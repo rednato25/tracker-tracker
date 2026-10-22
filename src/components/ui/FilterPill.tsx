@@ -21,8 +21,8 @@ const pill = cva(
   {
     variants: {
       size: {
-        sm: "px-2 py-0.5 text-2xs rounded-nm-sm",
-        md: "px-2.5 py-1 text-xs rounded-nm-sm",
+        sm: "min-h-6 px-2 py-0.5 text-2xs rounded-nm-sm",
+        md: "min-h-7 px-2.5 py-1 text-xs rounded-nm-sm",
       },
     },
     defaultVariants: {

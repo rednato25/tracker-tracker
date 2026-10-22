@@ -57,22 +57,17 @@ function UserClassRow({
         <span
           className={clsx(
             "text-sm font-mono min-w-35",
-            isCurrent ? "font-semibold" : "text-secondary"
+            isCurrent ? "font-semibold text-primary" : "text-secondary"
           )}
-          style={isCurrent ? { color: accentColor } : undefined}
         >
           {userClass.name}
         </span>
-        {isCurrent && (
-          <span className="text-3xs font-mono" style={{ color: accentColor }}>
-            ← you
-          </span>
-        )}
+        {isCurrent && <span className="text-3xs font-mono text-secondary">← you</span>}
       </div>
       {(userClass.requirements || (userClass.perks && userClass.perks.length > 0)) && (
         <div className="flex flex-col items-end gap-1 max-w-[60%]">
           {userClass.requirements && (
-            <span className="text-xs font-mono text-muted text-right">
+            <span className="text-xs font-mono text-secondary text-right">
               {userClass.requirements}
             </span>
           )}

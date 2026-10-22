@@ -31,8 +31,8 @@ const CATEGORY_STYLES: Record<EventCategory, { mark: string }> = {
 }
 
 const LEVEL_TEXT_COLORS: Record<EventLevel, string> = {
-  debug: "text-plum",
-  info: "text-slate-blue",
+  debug: "text-tertiary",
+  info: "text-secondary",
   warn: "text-warn",
   error: "text-danger",
 }

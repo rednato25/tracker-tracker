@@ -31,8 +31,10 @@ describe("DashboardEmptyState", () => {
   it("explains the empty dashboard with a real heading", () => {
     render(<DashboardEmptyState onAdded={vi.fn()} />)
 
-    expect(screen.getByRole("heading", { name: "No trackers added yet" })).toBeInTheDocument()
-    expect(screen.getByText(/start recording ratio, buffer, and rank/i)).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Account register" })).toBeInTheDocument()
+    expect(
+      screen.getByText(/Add a private tracker account to record ratio, buffer, seeding, and rank/i)
+    ).toBeInTheDocument()
   })
 
   it("opens its own add-tracker dialog from the Add First Tracker button", async () => {
@@ -41,7 +43,7 @@ describe("DashboardEmptyState", () => {
 
     expect(screen.queryByTestId("add-tracker-dialog")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Add First Tracker" }))
+    await user.click(screen.getByRole("button", { name: /Add first tracker/i }))
 
     expect(screen.getByTestId("add-tracker-dialog")).toBeInTheDocument()
   })
@@ -51,7 +53,7 @@ describe("DashboardEmptyState", () => {
     const onAdded = vi.fn()
     render(<DashboardEmptyState onAdded={onAdded} />)
 
-    await user.click(screen.getByRole("button", { name: "Add First Tracker" }))
+    await user.click(screen.getByRole("button", { name: /Add first tracker/i }))
     await user.click(screen.getByRole("button", { name: "simulate tracker created" }))
 
     expect(screen.queryByTestId("add-tracker-dialog")).not.toBeInTheDocument()

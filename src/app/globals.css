@@ -11,7 +11,7 @@
 }
 
 @theme {
-  /* â”€â”€ Layer 1: Raw palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* -- Layer 1: Raw palette ---------------------------------------------
    * Cold Vault: a seed-bank cold room, not a neon control room.
    * The rail is deep green-black; the register is mineral paper.
    */
@@ -42,7 +42,7 @@
   --color-slate-blue: #3f6d7d;
   --color-plum: #6b5b7a;
 
-  /* â”€â”€ Layer 2: Semantic aliases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* -- Layer 2: Semantic aliases ---------------------------------------- */
   --color-base: var(--color-paper-100);
   --color-raised: var(--color-paper-50);
   --color-elevated: var(--color-paper-200);
@@ -91,7 +91,7 @@
   --chart-warn-dim: rgb(138 90 18 / 0.12);
   --chart-warn-glow: rgb(138 90 18 / 0.22);
 
-  /* â”€â”€ Layer 3: Purpose aliases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* -- Layer 3: Purpose aliases ----------------------------------------- */
   --color-upload: var(--color-cold);
   --color-download: var(--color-oxide);
   --color-positive: var(--color-cold);
@@ -269,7 +269,7 @@
   padding-left: 3.5rem;
 }
 
-/* â”€â”€â”€ Typography utilities â”€â”€â”€ */
+/* --- Typography utilities --- */
 
 @utility card-heading {
   font-size: var(--text-sm);
@@ -331,7 +331,7 @@
   text-align: right;
 }
 
-/* â”€â”€â”€ Native dialog backdrop â”€â”€â”€ */
+/* --- Native dialog backdrop --- */
 
 dialog[data-overlay]::backdrop {
   background: rgb(0 0 0 / 0.6);
@@ -344,7 +344,7 @@ dialog[data-overlay][data-visible]::backdrop {
   transition: opacity 200ms ease-out;
 }
 
-/* â”€â”€â”€ Interactive utilities â”€â”€â”€ */
+/* --- Interactive utilities --- */
 
 @utility help-icon {
   cursor: help;
@@ -369,7 +369,7 @@ dialog[data-overlay][data-visible]::backdrop {
   }
 }
 
-/* â”€â”€â”€ Structural utilities â”€â”€â”€ */
+/* --- Structural utilities --- */
 
 @utility color-dot {
   width: 0.5rem;
@@ -404,7 +404,7 @@ dialog[data-overlay][data-visible]::backdrop {
 /*
  * Neumorphic interactive states, for clickable raised surfaces.
  * Three tiers matching elevation: sm (cards), base (panels), inset (dormant links).
- * Each transitions: rest â†’ hover (raise higher) â†’ active (press inward + scale).
+ * Each transitions: rest -> hover (raise higher) -> active (press inward + scale).
  * These replace static nm-raised-* classes on interactive elements.
  */
 .nm-interactive-sm {

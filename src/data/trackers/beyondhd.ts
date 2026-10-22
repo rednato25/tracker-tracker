@@ -22,7 +22,7 @@ export const beyondhd: TrackerRegistryEntry = {
 
   // ── Visual ──────────────────────────────────────────────────────────
   color: "#00897b",
-  logo: "",
+  logo: "/tracker-logos/beyondhd_logo.png",
 
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "beyond-hd",

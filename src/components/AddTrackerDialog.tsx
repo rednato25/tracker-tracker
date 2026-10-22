@@ -3,7 +3,6 @@
 
 import { H2 } from "@typography"
 import clsx from "clsx"
-import Image from "next/image"
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { CredentialFields } from "@/components/CredentialFields"
 import { CHART_THEME } from "@/components/charts/lib/theme"
@@ -16,6 +15,7 @@ import { Input } from "@/components/ui/Input"
 import { Notice } from "@/components/ui/Notice"
 import { QbtTagWarning } from "@/components/ui/QbtTagWarning"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { TrackerMark } from "@/components/ui/TrackerMark"
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 import { TRACKER_REGISTRY } from "@/data/tracker-registry"
 import { useClickOutside } from "@/hooks/useClickOutside"
@@ -129,6 +129,7 @@ function TrackerCombobox({ presets, value, onChange }: TrackerComboboxProps) {
         tabIndex={0}
         aria-expanded={open}
       >
+        {selectedEntry && <TrackerMark entry={selectedEntry} size={20} />}
         {selectedEntry && !open && !query ? (
           <span className="flex-1 truncate">{selectedEntry.name}</span>
         ) : (
@@ -194,15 +195,7 @@ function TrackerCombobox({ presets, value, onChange }: TrackerComboboxProps) {
                       : "text-secondary hover:text-primary hover:bg-overlay cursor-pointer"
                 )}
               >
-                {entry.logo && (
-                  <Image
-                    src={entry.logo}
-                    alt=""
-                    width={18}
-                    height={18}
-                    className="shrink-0 rounded-sm"
-                  />
-                )}
+                <TrackerMark entry={entry} size={20} />
                 <span className="flex-1 truncate">{entry.name}</span>
                 {entry.warning && (
                   <Tooltip content={entry.warningNote ?? "Warning"}>

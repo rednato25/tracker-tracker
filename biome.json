@@ -1,7 +1,15 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   "files": {
-    "includes": ["**", "!.next", "!node_modules", "!public", "!.history", "!docs/kb/site"]
+    "includes": [
+      "**",
+      "!.next",
+      "!node_modules",
+      "!public",
+      "!.history",
+      "!docs/kb/site",
+      "!.impeccable"
+    ]
   },
   "assist": {
     "enabled": true,

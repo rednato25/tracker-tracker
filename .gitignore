@@ -26,6 +26,7 @@ node_modules
 .DS_Store
 *.pem
 .cache/
+.impeccable/
 
 # debug
 npm-debug.log*

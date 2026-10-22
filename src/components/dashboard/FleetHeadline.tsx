@@ -1,4 +1,4 @@
-// src/components/dashboard/FleetHeadline.tsx
+﻿// src/components/dashboard/FleetHeadline.tsx
 "use client"
 
 import { CHART_THEME } from "@/components/charts/lib/theme"
@@ -55,26 +55,26 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
         : ("down" as const)
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-      <StatCard
+    <div className="grid w-full min-w-0 grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+      <StatCard className="min-w-0"
         label="Upload gained"
         value={uploadParts.num}
         unit={uploadParts.unit}
         subValue={pctLabel(uploadPct)}
-        accentColor={CHART_THEME.upload}
+        accentColor="var(--color-upload)"
         icon={<UploadArrowIcon width="16" height="16" />}
       />
 
-      <StatCard
+      <StatCard className="min-w-0"
         label="Download gained"
         value={downloadParts.num}
         unit={downloadParts.unit}
         subValue={pctLabel(downloadPct)}
-        accentColor={CHART_THEME.download}
+        accentColor="var(--color-download)"
         icon={<DownloadArrowIcon width="16" height="16" />}
       />
 
-      <StatCard
+      <StatCard className="min-w-0"
         label="Buffer change"
         value={bufferParts.num}
         unit={bufferParts.unit}
@@ -83,7 +83,7 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
         icon={<ShieldIcon width="16" height="16" />}
       />
 
-      <StatCard
+      <StatCard className="min-w-0"
         label="Ratio change"
         value={ratioDisplay}
         trend={ratioTrend}
@@ -95,11 +95,11 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
         icon={<RatioIcon width="16" height="16" />}
       />
 
-      <StatCard
+      <StatCard className="min-w-0"
         label="Bonus gained"
         value={seedbonusDisplay}
         unit="pts"
-        accentColor={CHART_THEME.violet}
+        accentColor="var(--color-scale-6)"
         icon={<StarIcon width="16" height="16" />}
       />
     </div>

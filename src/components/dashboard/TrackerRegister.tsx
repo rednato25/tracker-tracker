@@ -124,7 +124,10 @@ function buildRows(trackers: TrackerSummary[]): RegisterRow[] {
   return trackers.map((tracker) => {
     const health = getTrackerHealth(tracker)
     const login = readLoginWindow(tracker)
-    const segments = readSegments(tracker, login)
+    const segments: Tone[] =
+      health === "paused" || health === "error" || health === "offline"
+        ? ["muted", "muted", "muted", "muted"]
+        : readSegments(tracker, login)
     const buffer = readBuffer(tracker)
     const abbreviation =
       registryEntryFor(tracker)?.abbreviation ?? tracker.platformType.toUpperCase()
@@ -185,10 +188,14 @@ function AccountCell({ row }: { row: RegisterRow }) {
           {row.tracker.name}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-4xs text-secondary">
-          <span className="hidden shrink-0 font-cond font-semibold uppercase tracking-[0.08em] text-primary md:inline">
-            {row.statusLabel}
-          </span>
-          <span className="hidden shrink-0 md:inline">·</span>
+          {row.statusTone !== "ok" && (
+            <>
+              <span className="hidden shrink-0 font-cond font-semibold uppercase tracking-[0.08em] text-primary md:inline">
+                {row.statusLabel}
+              </span>
+              <span className="hidden shrink-0 md:inline">·</span>
+            </>
+          )}
           <span className="truncate">
             {row.abbreviation}
             {row.shortAge ? ` · ${row.shortAge}` : ""}
@@ -222,7 +229,14 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
   const errors = rows.filter((row) => row.tracker.lastError).length
 
   return (
-    <div id="today" className="grid border-t border-border-emphasis bg-raised md:grid-cols-3">
+    <div id="today" className="border-t border-border-emphasis bg-raised">
+      <div className="flex items-center justify-between border-b border-border px-4 py-1.5">
+        <span className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+          Today
+        </span>
+        <span className="font-mono text-4xs text-tertiary">login windows · H&amp;R · poll</span>
+      </div>
+      <div className="grid md:grid-cols-3">
       <section className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
         <h2 className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
           Login windows
@@ -302,6 +316,7 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
           </div>
         </dl>
       </section>
+      </div>
     </div>
   )
 }
@@ -334,12 +349,7 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
                     .at(-1) as string
                 )
               : "not yet"}
-            {rows.length > 9 && (
-              <span className="hidden min-[1280px]:inline">
-                {" "}
-                · showing 9 of {rows.length} · scroll for more
-              </span>
-            )}
+
           </p>
         </div>
         <span
@@ -402,7 +412,7 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
             )
           )}
         </div>
-        <ul className="styled-scrollbar-visible m-0 max-h-[432px] list-none overflow-y-auto p-0">
+        <ul className="m-0 list-none p-0">
           {rows.map((row) => (
             <li key={row.tracker.id} className="border-b border-border last:border-b-0">
               <Link
@@ -439,7 +449,12 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
                   </span>
                   <span className="font-mono text-3xs text-primary">{row.login.label}</span>
                 </span>
-                <span className="truncate px-3 font-mono text-3xs text-secondary">{row.rank}</span>
+                <span
+                  className="min-w-0 truncate px-3 font-mono text-3xs text-secondary"
+                  title={row.rank}
+                >
+                  {row.rank}
+                </span>
                 <span className="px-3">
                   <ViabilityStrip segments={row.segments} passed={row.passed} />
                 </span>

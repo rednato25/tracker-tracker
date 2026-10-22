@@ -172,7 +172,7 @@ export function DashboardClient({
 
         {/* Today At A Glance */}
         {dashSettings.settings.showTodayAtAGlance && (
-          <div className="flex flex-col gap-4">
+          <div className="flex w-full flex-col gap-4">
             <SectionToggle
               label="Fleet activity"
               expanded={todayAtAGlanceExpanded}

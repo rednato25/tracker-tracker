@@ -4,7 +4,7 @@ import clsx from "clsx"
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
 import { SpinnerIcon } from "@/components/ui/Icons"
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "minimal"
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "rail" | "minimal"
 type ButtonSize = "icon" | "sm" | "md" | "lg"
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -32,6 +32,7 @@ const button = cva(
           "border border-border bg-raised text-primary hover:border-border-emphasis hover:bg-elevated",
         ghost: "border border-transparent text-secondary hover:bg-elevated hover:text-primary",
         danger: "border border-danger bg-danger text-on-danger hover:bg-danger/90",
+        rail: "border border-rail-line bg-rail-raised text-rail-text hover:border-accent hover:bg-vault-800",
         minimal: "border border-transparent text-muted hover:text-secondary",
       },
       size: {

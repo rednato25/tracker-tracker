@@ -26,7 +26,7 @@ function useSidebarPreferences(): UseSidebarPreferencesReturn {
   const [sortMode, setSortMode] = useLocalStorage<SortMode>(STORAGE_KEYS.SIDEBAR_SORT_MODE, "index")
   const [filtersExpanded, setFiltersExpanded] = useLocalStorage(
     STORAGE_KEYS.SIDEBAR_FILTERS_EXPANDED,
-    true
+    false
   )
   const [showFavoritesOnly, setShowFavoritesOnly] = useLocalStorage(
     STORAGE_KEYS.SIDEBAR_FAVORITES_ONLY,

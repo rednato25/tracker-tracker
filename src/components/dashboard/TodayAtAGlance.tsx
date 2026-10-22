@@ -35,8 +35,8 @@ export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) 
     data.movers.topDownloaders.length > 0
 
   return (
-    <Card>
-      <div className="flex flex-col gap-5">
+    <Card className="w-full">
+      <div className="flex w-full min-w-0 flex-col gap-5">
         <FleetHeadline fleet={data.fleet} />
 
         <Divider compact />
@@ -46,8 +46,8 @@ export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) 
           <H2 className="uppercase tracking-wider">By Tracker</H2>
           <UpdatedAt iso={data.trackerLastUpdated} />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="nm-inset-sm rounded-nm-md p-4 flex flex-col gap-3">
+        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-3 rounded-nm-md border border-border p-4">
             <H2 className="uppercase tracking-wider">Upload</H2>
             {variant === "bars" ? (
               <TrackerBreakdownBars trackers={data.trackers} metric="upload" />
@@ -56,7 +56,7 @@ export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) 
             )}
           </div>
 
-          <div className="nm-inset-sm rounded-nm-md p-4 flex flex-col gap-3">
+          <div className="flex min-w-0 flex-col gap-3 rounded-nm-md border border-border p-4">
             <H2 className="uppercase tracking-wider">Download</H2>
             {variant === "bars" ? (
               <TrackerBreakdownBars trackers={data.trackers} metric="download" />

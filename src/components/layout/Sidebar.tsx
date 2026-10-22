@@ -1,4 +1,4 @@
-// src/components/layout/Sidebar.tsx
+﻿// src/components/layout/Sidebar.tsx
 
 "use client"
 
@@ -182,7 +182,7 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={clsx(
-                    "flex min-h-11 items-center gap-2.5 px-2 py-2 text-xs transition-colors duration-150 rounded-nm-sm md:min-h-0",
+                    "flex min-h-11 items-center gap-2.5 px-2 py-2 text-[13px] transition-colors duration-150 rounded-nm-sm md:min-h-0",
                     item.active
                       ? "bg-rail-raised text-rail-text"
                       : "text-rail-muted hover:bg-rail-raised hover:text-rail-text"
@@ -197,7 +197,7 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
                 href={DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-h-11 items-center gap-2.5 px-2 py-2 text-xs text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-text rounded-nm-sm md:min-h-0"
+                className="flex min-h-11 items-center gap-2.5 px-2 py-2 text-[13px] text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-text rounded-nm-sm md:min-h-0"
               >
                 <NavMark active={false} />
                 Docs
@@ -348,7 +348,7 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
               </button>
             )}
             <Button
-              variant="secondary"
+              variant="rail"
               size="sm"
               className="w-full"
               onClick={() => setShowAddDialog(true)}

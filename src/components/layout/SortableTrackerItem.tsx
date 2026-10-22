@@ -1,4 +1,4 @@
-// src/components/layout/SortableTrackerItem.tsx
+﻿// src/components/layout/SortableTrackerItem.tsx
 
 "use client"
 
@@ -65,7 +65,7 @@ function SortableTrackerItem({
       ) : (
         <PulseDot status={getHealthPulseDot(health)} size="sm" />
       )}
-      <span className="flex-1 truncate text-xs font-medium">{tracker.name}</span>
+      <span className="flex-1 truncate text-[13px] font-medium">{tracker.name}</span>
       <span className="font-mono text-3xs tabular-nums text-rail-muted shrink-0">
         {archived ? (
           "Archived"

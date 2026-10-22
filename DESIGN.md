@@ -26,9 +26,9 @@ column of every row.
 
 | Token | Value | Use |
 |---|---|---|
-| `--color-rail` | `#101915` | Sidebar, vault rail |
-| `--color-rail-raised` | `#16231e` | Active nav, rail controls |
-| `--color-rail-line` | `#2a3a32` | Rail rules |
+| `--color-rail` | `#1b2a24` | Sidebar, vault rail |
+| `--color-rail-raised` | `#24372e` | Active nav, rail controls |
+| `--color-rail-line` | `#34483d` | Rail rules |
 | `--color-base` | `#eef2ed` | Page ground |
 | `--color-raised` | `#f8faf6` | Registers, panels, cards |
 | `--color-elevated` | `#e3e9e2` | Table heads, nested bands |
@@ -91,10 +91,11 @@ is reserved for metadata, not for body copy.
 
 The dashboard's primary read. Columns: Account, Ratio, Buffer, Seeding, Login
 due, Rank, Viability. Rows preserve the user's order and carry a 6px status
-square plus a written status label. Critical rows tint `--color-danger-dim`;
-watch rows tint `--color-warn-dim`. The register scrolls internally after nine rows at
-900px, with a visible scrollbar and a “showing 9 of N” cue, so the lower bands
-remain visible.
+square plus a written status label when the account is not healthy. Critical rows
+tint `--color-danger-dim`; watch rows tint `--color-warn-dim`. The register shows
+every account; the page scrolls, and the Today band follows the full register.
+The rail is a deep forest green in light mode, not near-black; drawer controls
+default to collapsed so the rail reads as navigation, not a control panel.
 
 ### Viability strip
 
@@ -135,7 +136,8 @@ body copy stays 12–13px. Destructive actions are crimson, not decorative.
 - Light is the default. `data-theme="dark"` on `<html>` switches the semantic
   tokens; `theme` in `localStorage` persists the choice. A tiny before-paint
   bootstrap script applies the stored choice or the OS preference.
-- The rail is always the darkest surface; in dark mode the register, cards, and
+- The rail is always the darkest surface; in light mode it is a deep forest
+  green (`#1b2a24`), not near-black. In dark mode the register, cards, and
   controls move to green-black paper (`#0f1713` / `#16211b`), with lighter status
   inks for contrast.
 - Dark status inks: accent `#e07a4f`, success `#6fb79c`, warn `#d9a44a`, danger

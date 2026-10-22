@@ -15,10 +15,10 @@
    * Cold Vault: a seed-bank cold room, not a neon control room.
    * The rail is deep green-black; the register is mineral paper.
    */
-  --color-vault-950: #101915;
-  --color-vault-900: #16231e;
-  --color-vault-800: #1e2f28;
-  --color-vault-700: #2b3f36;
+  --color-vault-950: #1b2a24;
+  --color-vault-900: #24372e;
+  --color-vault-800: #2e463a;
+  --color-vault-700: #3a5245;
 
   --color-paper-50: #f8faf6;
   --color-paper-100: #eef2ed;
@@ -51,9 +51,9 @@
 
   --color-rail: var(--color-vault-950);
   --color-rail-raised: var(--color-vault-900);
-  --color-rail-line: #2a3a32;
+  --color-rail-line: #34483d;
   --color-rail-text: #edf2ed;
-  --color-rail-muted: #93a495;
+  --color-rail-muted: #aabbb0;
 
   --color-primary: var(--color-ink-900);
   --color-secondary: var(--color-ink-700);
@@ -134,11 +134,11 @@
   --color-overlay: #16211b;
   --color-control-bg: #121c17;
 
-  --color-rail: #080f0c;
-  --color-rail-raised: #111c16;
-  --color-rail-line: #223028;
+  --color-rail: #0c1510;
+  --color-rail-raised: #16241c;
+  --color-rail-line: #2a3d32;
   --color-rail-text: #edf2ed;
-  --color-rail-muted: #93a49a;
+  --color-rail-muted: #9fb1a6;
 
   --color-primary: #edf2ed;
   --color-secondary: #b3c0b7;

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
+import { XIcon } from "@/components/ui/Icons"
 import { DOCS } from "@/lib/constants"
 import { formatDateTime } from "@/lib/formatters"
 import { getPauseState } from "@/lib/tracker-status"
@@ -63,7 +64,7 @@ export function TrackerStatusBanner({
               className="text-danger/60 hover:text-danger transition-colors cursor-pointer shrink-0 text-xs p-1 -m-1"
               aria-label="Dismiss error"
             >
-              ✕
+              <XIcon width="12" height="12" />
             </button>
           </div>
         </Card>

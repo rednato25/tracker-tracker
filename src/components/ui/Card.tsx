@@ -2,8 +2,7 @@
 import { H2 } from "@typography"
 import { cva } from "class-variance-authority"
 import clsx from "clsx"
-import type { CSSProperties, HTMLAttributes } from "react"
-import { hexToRgba } from "@/lib/color-utils"
+import type { HTMLAttributes } from "react"
 
 type CardElevation = "raised" | "elevated"
 
@@ -17,11 +16,11 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   lazy?: boolean
 }
 
-const card = cva("p-5", {
+const card = cva("border border-border p-4", {
   variants: {
     elevation: {
-      raised: "bg-raised nm-raised",
-      elevated: "bg-elevated nm-raised-lg",
+      raised: "bg-raised",
+      elevated: "bg-elevated",
     },
   },
   defaultVariants: {
@@ -31,9 +30,9 @@ const card = cva("p-5", {
 
 function Card({
   elevation = "raised",
-  glow = false,
-  glowColor,
-  trackerColor,
+  glow: _glow = false,
+  glowColor: _glowColor,
+  trackerColor: _trackerColor,
   title,
   subtitle,
   lazy,
@@ -42,30 +41,10 @@ function Card({
   children,
   ...props
 }: CardProps) {
-  const composedStyle: CSSProperties = {}
-
-  // Outer haze
-  if (trackerColor) {
-    composedStyle.filter = `drop-shadow(0 0 16px ${hexToRgba(trackerColor, 0.11)})`
-  } else if (glow && glowColor) {
-    composedStyle.filter = `drop-shadow(0 0 16px ${glowColor})`
-  }
-
-  // Inset accent (pseudo-element for the "face")
-  if (trackerColor) {
-    ;(composedStyle as Record<string, string>)["--card-accent"] = hexToRgba(trackerColor, 0.08)
-  }
-
   return (
     <div
-      className={clsx(
-        card({ elevation }),
-        "rounded-nm-lg",
-        lazy && "lazy-card",
-        trackerColor && "card-accent",
-        className
-      )}
-      style={{ ...composedStyle, ...style }}
+      className={clsx(card({ elevation }), "rounded-nm-lg", lazy && "lazy-card", className)}
+      style={style}
       {...props}
     >
       {(title || subtitle) && (

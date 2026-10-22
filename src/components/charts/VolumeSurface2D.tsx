@@ -141,8 +141,6 @@ function buildVolumeSurface2DOption(grid: GridResult): EChartsOption {
         },
         emphasis: {
           itemStyle: {
-            shadowBlur: 10,
-            shadowColor: hexToRgba(color, 0.4),
           },
         },
       },

@@ -1,4 +1,4 @@
-// src/lib/download-clients/coordinator.ts
+﻿// src/lib/download-clients/coordinator.ts
 //
 // Functions: fetchFleetTorrents, fetchTrackerTorrents,
 //            fetchFleetAggregation, fetchTrackerTorrentsCached,
@@ -251,7 +251,7 @@ export async function fetchFleetAggregation(
       return {
         tag,
         name: r.name,
-        color: r.color ?? "#01d4ff",
+        color: r.color ?? "#9e3f1f",
         baseUrl: r.baseUrl,
       }
     })

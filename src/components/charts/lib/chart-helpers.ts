@@ -129,7 +129,7 @@ export function buildBucketedBarOption<TBucket, TTorrent>(
     data,
     barMaxWidth: 48,
     emphasis: {
-      itemStyle: { shadowBlur: 10, shadowColor: "rgba(0,0,0,0.3)" },
+      itemStyle: {},
     },
   }
 

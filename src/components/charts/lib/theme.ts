@@ -6,7 +6,7 @@
 //
 // Functions:
 //   escHtml             - HTML-escape untrusted strings for ECharts tooltips
-//   chartDot            - glowing dot swatch for tooltip rows
+//   chartDot            - square data swatch for tooltip rows
 //   chartTooltipRow     - standard tooltip row: colored dot + label + bold value
 //   chartTooltipHeader  - timestamp header for tooltip content
 //   formatChartTimestamp - locale-formatted date/time for chart tooltips
@@ -20,69 +20,173 @@
 
 import { hexToRgba } from "@/lib/color-utils"
 
+let cachedTheme: string | null = null
+const cssCache = new Map<string, string>()
+
+function cssVar(name: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback
+  const theme = document.documentElement.dataset.theme ?? "light"
+  if (theme !== cachedTheme) {
+    cssCache.clear()
+    cachedTheme = theme
+  }
+  const cached = cssCache.get(name)
+  if (cached) return cached
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+  cssCache.set(name, value)
+  return value
+}
+
+function cssAlpha(name: string, fallback: string, alpha: number): string {
+  return hexToRgba(cssVar(name, fallback), alpha)
+}
+
 export const CHART_THEME = {
   // ── Surfaces ──
-  surface: "#282a36", // --color-base
-  elevated: "#2e3042", // --color-elevated
-  surfaceElevated: "#343648", // --color-overlay, raised handle surfaces
-  overlay: "#343648", // --color-overlay
-  controlBg: "#1e2029", // --color-control-bg
-  tooltipBg: "#2e3042", // same as elevated
-  surfaceSemi: hexToRgba("#282a36", 0.6), // semi-transparent base for slider backgrounds
+  get surface() {
+    return cssVar("--color-base", "#eef2ed")
+  },
+  get elevated() {
+    return cssVar("--color-elevated", "#e3e9e2")
+  },
+  get surfaceElevated() {
+    return cssVar("--color-overlay", "#f8faf6")
+  },
+  get overlay() {
+    return cssVar("--color-overlay", "#f8faf6")
+  },
+  get controlBg() {
+    return cssVar("--color-control-bg", "#f4f7f2")
+  },
+  get tooltipBg() {
+    return cssVar("--color-raised", "#f8faf6")
+  },
+  get surfaceSemi() {
+    return cssVar("--chart-surface-semi", "rgba(238,242,237,0.82)")
+  },
 
   // ── Text ──
-  textPrimary: "#e2e8f0", // --color-primary
-  textSecondary: "#94a3b8", // --color-secondary
-  textTertiary: "#64748b", // --color-tertiary
+  get textPrimary() {
+    return cssVar("--color-primary", "#17211c")
+  },
+  get textSecondary() {
+    return cssVar("--color-secondary", "#526159")
+  },
+  get textTertiary() {
+    return cssVar("--color-tertiary", "#58675e")
+  },
   fontMono: "var(--font-mono), monospace",
 
   // ── Borders ──
-  tooltipBorder: hexToRgba("#94a3b8", 0.2),
-  gridLine: hexToRgba("#94a3b8", 0.08), // --color-border
-  borderEmphasis: hexToRgba("#94a3b8", 0.15), // --color-border-emphasis
-  borderMid: hexToRgba("#94a3b8", 0.3), // axis pointers, label lines
+  get tooltipBorder() {
+    return cssAlpha("--color-secondary", "#526159", 0.2)
+  },
+  get gridLine() {
+    return cssAlpha("--color-secondary", "#526159", 0.12)
+  },
+  get borderEmphasis() {
+    return cssAlpha("--color-secondary", "#526159", 0.2)
+  },
+  get borderMid() {
+    return cssAlpha("--color-secondary", "#526159", 0.35)
+  },
 
   // ── Layer 1: Raw colors ──
-  cyan: "#00d4ff",
-  amber: "#f59e0b",
-  red: "#ef4444",
-  green: "#10b981",
-  lime: "#22c55e",
-  violet: "#8b5cf6",
-  sky: "#06b6d4",
+  get cyan() {
+    return cssVar("--color-scale-4", "#3f6d7d")
+  },
+  get amber() {
+    return cssVar("--color-scale-2", "#a66b18")
+  },
+  get red() {
+    return cssVar("--color-scale-1", "#9f3428")
+  },
+  get green() {
+    return cssVar("--color-scale-3", "#2f6f5e")
+  },
+  get lime() {
+    return cssVar("--color-positive", "#2f6f5e")
+  },
+  get violet() {
+    return cssVar("--color-scale-6", "#6b5b7a")
+  },
+  get sky() {
+    return cssVar("--color-scale-4", "#3f6d7d")
+  },
 
   // ── Layer 2: Semantic ──
-  accent: "#00d4ff",
-  warn: "#f59e0b",
-  danger: "#ef4444",
-  success: "#10b981",
+  get accent() {
+    return cssVar("--color-accent", "#a84625")
+  },
+  get warn() {
+    return cssVar("--color-warn", "#8a5a12")
+  },
+  get danger() {
+    return cssVar("--color-danger", "#9f3428")
+  },
+  get success() {
+    return cssVar("--color-success", "#2f6f5e")
+  },
 
   // ── Layer 3: Purpose ──
-  upload: "#00d4ff",
-  download: "#f59e0b",
-  positive: "#22c55e",
-  negative: "#ef4444",
-  neutral: "#94a3b8",
-  chartFallback: "#6b7280",
+  get upload() {
+    return cssVar("--color-upload", "#2f6f5e")
+  },
+  get download() {
+    return cssVar("--color-download", "#a84625")
+  },
+  get positive() {
+    return cssVar("--color-positive", "#2f6f5e")
+  },
+  get negative() {
+    return cssVar("--color-negative", "#9f3428")
+  },
+  get neutral() {
+    return cssVar("--color-neutral", "#58675e")
+  },
+  get chartFallback() {
+    return cssVar("--color-tertiary", "#58675e")
+  },
 
   // Ordinal scale for ratio/seed-time distribution buckets
-  scale: ["#ef4444", "#f59e0b", "#10b981", "#00d4ff", "#8b5cf6", "#06b6d4"] as const,
+  get scale(): string[] {
+    return [
+      cssVar("--color-scale-1", "#9f3428"),
+      cssVar("--color-scale-2", "#a66b18"),
+      cssVar("--color-scale-3", "#2f6f5e"),
+      cssVar("--color-scale-4", "#3f6d7d"),
+      cssVar("--color-scale-5", "#7a5b3a"),
+      cssVar("--color-scale-6", "#6b5b7a"),
+    ]
+  },
 
-  // ── Glow variants (for areaStyle fills, shadows) ──
-  accentDim: hexToRgba("#00d4ff", 0.15),
-  accentGlow: hexToRgba("#00d4ff", 0.3),
-  accentGlow40: hexToRgba("#00d4ff", 0.4),
-  accentGlow60: hexToRgba("#00d4ff", 0.6),
-  warnDim: hexToRgba("#f59e0b", 0.15),
-  warnGlow: hexToRgba("#f59e0b", 0.3),
+  // ── Tint variants (area fills, selection) ──
+  get accentDim() {
+    return cssVar("--chart-accent-dim", "rgba(168,70,37,0.12)")
+  },
+  get accentGlow() {
+    return cssVar("--chart-accent-glow", "rgba(168,70,37,0.22)")
+  },
+  get accentGlow40() {
+    return cssVar("--chart-accent-glow-40", "rgba(168,70,37,0.32)")
+  },
+  get accentGlow60() {
+    return cssVar("--chart-accent-glow-60", "rgba(168,70,37,0.45)")
+  },
+  get warnDim() {
+    return cssVar("--chart-warn-dim", "rgba(138,90,18,0.12)")
+  },
+  get warnGlow() {
+    return cssVar("--chart-warn-glow", "rgba(138,90,18,0.22)")
+  },
 
   // ── Font sizes (raw numbers, ECharts cannot read CSS vars) ──
   // Keep in sync with @theme inline tokens in globals.css.
-  fontSizeMicro: 9, // text-4xs, unit suffixes in chart tooltips
-  fontSizeCompact: 10, // text-3xs, axis labels and legend items
-  fontSizeDense: 10, // text-2xs, same as compact today; bump to 11 if needed
-  fontSizeSmall: 12, // text-xs, tooltip body and larger labels
-} as const
+  fontSizeMicro: 10,
+  fontSizeCompact: 11,
+  fontSizeDense: 11,
+  fontSizeSmall: 12,
+}
 
 /** Escape HTML entities in untrusted strings before injecting into ECharts tooltip HTML */
 export function escHtml(s: string): string {
@@ -93,12 +197,12 @@ export function escHtml(s: string): string {
     .replace(/"/g, "&quot;")
 }
 
-/** Glowing dot swatch for tooltip rows */
+/** Square data swatch for tooltip rows */
 export function chartDot(color: string): string {
   const safe = /^(#[0-9a-fA-F]{3,8}|rgba?\(|hsla?\(|[a-z]+$)/.test(color)
     ? color
     : CHART_THEME.neutral
-  return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${safe};margin-right:6px;box-shadow:0 0 6px ${safe};"></span>`
+  return `<span style="display:inline-block;width:7px;height:7px;border-radius:1px;background:${safe};margin-right:6px;"></span>`
 }
 
 /** Standard tooltip row: colored dot + label + bold value */
@@ -260,8 +364,6 @@ export function chartDataZoom(accentColor: string): Record<string, unknown>[] {
         borderColor: hexToRgba(accentColor, 0.4),
         borderWidth: 1,
         borderRadius: 4,
-        shadowBlur: 4,
-        shadowColor: hexToRgba("#000", 0.3),
       },
       moveHandleStyle: {
         color: hexToRgba(accentColor, 0.3),
@@ -270,8 +372,6 @@ export function chartDataZoom(accentColor: string): Record<string, unknown>[] {
         handleStyle: {
           color: CHART_THEME.surfaceElevated,
           borderColor: accentColor,
-          shadowBlur: 8,
-          shadowColor: hexToRgba(accentColor, 0.3),
         },
         moveHandleStyle: {
           color: hexToRgba(accentColor, 0.5),

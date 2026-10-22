@@ -98,8 +98,6 @@ function buildOption(snapshots: FleetSnapshot[]): EChartsOption {
         label: { show: false },
         emphasis: {
           itemStyle: {
-            shadowBlur: 20,
-            shadowColor: "rgba(0, 0, 0, 0.4)",
           },
         },
       },

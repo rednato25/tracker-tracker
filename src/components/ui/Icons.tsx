@@ -6,7 +6,8 @@
 //            UserIcon, PlusIcon, ActivityIcon, ShareScoreIcon, ShieldIcon, StarIcon,
 //            LeechingIcon, SeedingIcon, TriangleWarningIcon, RatioIcon, GridIcon,
 //            ClockIcon, BoxIcon, ServerIcon, TagIcon, BookIcon, BugIcon, XIcon,
-//            TransitPapersIcon, SpinnerIcon, InfoIcon, QuestionIcon
+//            TransitPapersIcon, SpinnerIcon, InfoIcon, QuestionIcon,
+//            BookmarkIcon, LockIcon, UnlockIcon, PowerIcon, ChevronLeftIcon
 
 import type { SVGProps } from "react"
 
@@ -824,14 +825,139 @@ function InfoIcon(props: IconProps) {
   )
 }
 
+function BookmarkIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M6 3h12v18l-6-4-6 4Z" />
+    </svg>
+  )
+}
+
+function LockIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="5" y="11" width="14" height="10" rx="1" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
+}
+
+function UnlockIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="5" y="11" width="14" height="10" rx="1" />
+      <path d="M8 11V7a4 4 0 0 1 7.5-2" />
+    </svg>
+  )
+}
+
+function PowerIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M12 2v10" />
+      <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+    </svg>
+  )
+}
+
+function ChevronLeftIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <polyline points="15,18 9,12 15,6" />
+    </svg>
+  )
+}
+
+function SunIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  )
+}
+
+function MoonIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+    </svg>
+  )
+}
+
 export {
   ActivityIcon,
   BookIcon,
+  BookmarkIcon,
   BoxIcon,
   BugIcon,
   CheckIcon,
   CheckLargeIcon,
   ChevronDownSmallIcon,
+  ChevronLeftIcon,
   ChevronUpIcon,
   ChevronUpSmallIcon,
   ClockIcon,
@@ -848,9 +974,12 @@ export {
   InfinityIcon,
   InfoIcon,
   LeechingIcon,
+  LockIcon,
+  MoonIcon,
   PauseIcon,
   PlayIcon,
   PlusIcon,
+  PowerIcon,
   QuestionIcon,
   RatioIcon,
   RefreshIcon,
@@ -861,10 +990,12 @@ export {
   ShieldIcon,
   SpinnerIcon,
   StarIcon,
+  SunIcon,
   TagIcon,
   TransitPapersIcon,
   TrashIcon,
   TriangleWarningIcon,
+  UnlockIcon,
   UploadArrowIcon,
   UserIcon,
   XIcon,

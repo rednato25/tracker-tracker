@@ -82,7 +82,7 @@ function buildPieOption(
         },
         emphasis: {
           label: { show: true, fontWeight: "bold", color: CHART_THEME.textPrimary },
-          itemStyle: { shadowBlur: 12, shadowColor: "rgba(0,0,0,0.3)" },
+          itemStyle: {},
         },
         data: data.map((d) => ({
           name: d.name,
@@ -305,7 +305,7 @@ function buildParallelOption(
         opacity: 0.7,
       },
       emphasis: {
-        lineStyle: { width: 5, opacity: 1, shadowBlur: 12, shadowColor: t.color },
+        lineStyle: { width: 5, opacity: 1 },
       },
       data: [[t.uploadPct, t.seedingPct]],
     })),

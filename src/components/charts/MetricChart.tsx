@@ -223,12 +223,10 @@ function buildLineOption(
         lineStyle: {
           color: safeAccent,
           width: 2,
-          shadowColor: safeAccent,
-          shadowBlur: 8,
         },
         areaStyle: buildGlowAreaStyle(safeAccent),
         emphasis: {
-          lineStyle: { shadowBlur: 16, shadowColor: safeAccent },
+          lineStyle: { },
         },
         markLine:
           baselineValue != null && baselineValue > 0
@@ -335,9 +333,9 @@ function buildDailyDeltaOption(
               symbol: "circle",
               symbolSize: deltaDotSize,
               itemStyle: { color: safeAccent },
-              lineStyle: { color: safeAccent, width: 2, shadowColor: safeAccent, shadowBlur: 8 },
+              lineStyle: { color: safeAccent, width: 2},
               areaStyle: buildGlowAreaStyle(safeAccent),
-              emphasis: { lineStyle: { shadowBlur: 16, shadowColor: safeAccent } },
+              emphasis: { lineStyle: { } },
             },
             {
               name: "Download Δ",
@@ -351,11 +349,9 @@ function buildDailyDeltaOption(
               lineStyle: {
                 color: complementColor,
                 width: 2,
-                shadowColor: complementColor,
-                shadowBlur: 8,
               },
               areaStyle: buildGlowAreaStyle(complementColor, 0.2),
-              emphasis: { lineStyle: { shadowBlur: 16, shadowColor: complementColor } },
+              emphasis: { lineStyle: { } },
             },
           ]
         : [
@@ -367,7 +363,7 @@ function buildDailyDeltaOption(
                 color: safeAccent,
                 borderRadius: [3, 3, 0, 0],
               },
-              emphasis: { itemStyle: { shadowBlur: 8, shadowColor: safeAccent } },
+              emphasis: { itemStyle: { } },
             },
             {
               name: "Download Δ",
@@ -377,7 +373,7 @@ function buildDailyDeltaOption(
                 color: complementColor,
                 borderRadius: [3, 3, 0, 0],
               },
-              emphasis: { itemStyle: { shadowBlur: 8, shadowColor: complementColor } },
+              emphasis: { itemStyle: { } },
             },
           ],
   }

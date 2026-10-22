@@ -4,6 +4,7 @@
 
 import clsx from "clsx"
 import { useId, useRef, useState } from "react"
+import { ChevronDownSmallIcon } from "@/components/ui/Icons"
 import { useClickOutside } from "@/hooks/useClickOutside"
 
 type SelectSize = "sm" | "md"
@@ -26,13 +27,13 @@ interface SelectProps<T extends string> {
 
 const sizeStyles: Record<SelectSize, { trigger: string; option: string; radius: string }> = {
   sm: {
-    trigger: "text-xs px-3 py-2 nm-inset-sm rounded-nm-sm",
-    option: "px-3 py-2 text-xs",
+    trigger: "text-xs px-2 py-1.5 nm-inset-sm rounded-nm-sm",
+    option: "px-2 py-1.5 text-xs",
     radius: "var(--radius-sm)",
   },
   md: {
-    trigger: "text-sm px-4 py-3 nm-inset rounded-nm-md",
-    option: "px-4 py-3 text-sm",
+    trigger: "text-sm px-3 py-2 nm-inset rounded-nm-md",
+    option: "px-3 py-2 text-sm",
     radius: "var(--radius-md)",
   },
 }
@@ -60,7 +61,7 @@ function Select<T extends string>({
       {label && (
         <label
           htmlFor={generatedId}
-          className="text-xs font-sans font-medium text-secondary uppercase tracking-wider block mb-1"
+          className="mb-1 block font-cond text-4xs font-semibold text-secondary uppercase tracking-[0.14em]"
         >
           {label}
         </label>
@@ -78,8 +79,8 @@ function Select<T extends string>({
         aria-expanded={open}
       >
         <span className="truncate">{selectedLabel}</span>
-        <span className="text-tertiary text-3xs shrink-0" aria-hidden="true">
-          ▾
+        <span className="shrink-0 text-tertiary" aria-hidden="true">
+          <ChevronDownSmallIcon width="10" height="7" />
         </span>
       </button>
 

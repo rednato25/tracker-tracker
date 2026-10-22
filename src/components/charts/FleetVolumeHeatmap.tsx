@@ -130,8 +130,6 @@ function buildFleetVolumeHeatmapOption(
         },
         emphasis: {
           itemStyle: {
-            shadowBlur: 10,
-            shadowColor: hexToRgba(color, 0.4),
           },
         },
       },

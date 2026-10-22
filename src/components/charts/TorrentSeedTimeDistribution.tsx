@@ -56,7 +56,7 @@ function buildSeedTimeBucketedOption(
     type: "bar",
     data,
     barMaxWidth: 48,
-    emphasis: { itemStyle: { shadowBlur: 10, shadowColor: "rgba(0,0,0,0.3)" } },
+    emphasis: { itemStyle: {} },
   }
 
   if (markLine) {

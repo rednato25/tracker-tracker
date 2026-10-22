@@ -137,10 +137,10 @@ function buildOption(snapshots: FleetSnapshot[]): EChartsOption {
         symbol: "none",
         sampling: "lttb",
         itemStyle: { color: CYAN },
-        lineStyle: { color: CYAN, width: 2, shadowColor: CYAN, shadowBlur: 8 },
+        lineStyle: { color: CYAN, width: 2},
         emphasis: {
           focus: "series" as const,
-          lineStyle: { shadowBlur: 16, shadowColor: CYAN },
+          lineStyle: { },
         },
         areaStyle: {
           color: {
@@ -165,10 +165,10 @@ function buildOption(snapshots: FleetSnapshot[]): EChartsOption {
         symbol: "none",
         sampling: "lttb",
         itemStyle: { color: AMBER },
-        lineStyle: { color: AMBER, width: 2, shadowColor: AMBER, shadowBlur: 8 },
+        lineStyle: { color: AMBER, width: 2},
         emphasis: {
           focus: "series" as const,
-          lineStyle: { shadowBlur: 16, shadowColor: AMBER },
+          lineStyle: { },
         },
         areaStyle: {
           color: {

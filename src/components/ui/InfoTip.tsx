@@ -7,7 +7,7 @@ import type { DocsEntry } from "@/lib/constants"
 import { Tooltip } from "./Tooltip"
 
 const infoTipVariants = cva(
-  "inline-flex items-center text-muted hover:text-secondary cursor-help transition-colors duration-150 bg-transparent border-0 p-0 outline-none focus-visible:text-secondary",
+  "inline-flex h-6 w-6 items-center justify-center text-muted hover:text-secondary cursor-help transition-colors duration-150 bg-transparent border-0 p-0 outline-none focus-visible:text-secondary",
   {
     variants: {
       size: {

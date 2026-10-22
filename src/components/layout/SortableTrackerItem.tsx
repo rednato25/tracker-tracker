@@ -7,10 +7,8 @@ import { CSS } from "@dnd-kit/utilities"
 import clsx from "clsx"
 import Link from "next/link"
 import type { CSSProperties } from "react"
-import { CHART_THEME } from "@/components/charts/lib/theme"
-import { InfinityIcon } from "@/components/ui/Icons"
+import { BookmarkIcon, InfinityIcon } from "@/components/ui/Icons"
 import { PulseDot } from "@/components/ui/PulseDot"
-import { hexToRgba } from "@/lib/color-utils"
 import { formatStatValue, type StatMode } from "@/lib/formatters"
 import { getHealthPulseDot, getTrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
@@ -36,7 +34,6 @@ function SortableTrackerItem({
 
   const archived = !tracker.isActive
   const health = getTrackerHealth(tracker)
-  const tc = tracker.color || CHART_THEME.accent
   const stat = formatStatValue(tracker.latestStats, statMode)
 
   const dragStyle: CSSProperties = {
@@ -45,32 +42,31 @@ function SortableTrackerItem({
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const activeStyle: CSSProperties = isActive ? { backgroundColor: hexToRgba(tc, 0.08) } : {}
-
   const itemClasses = clsx(
-    "w-full flex items-center gap-3 px-4 py-3 text-left group rounded-nm-md",
-    unlocked ? "animate-jiggle cursor-grab" : "cursor-pointer",
+    "flex min-h-11 w-full items-center gap-2 border-b border-rail-line/60 px-3 py-2.5 text-left group rounded-nm-sm last:border-b-0 md:min-h-0",
+    unlocked ? "cursor-grab ring-1 ring-accent/30" : "cursor-pointer",
     archived && "opacity-40",
-    isActive ? "text-primary nm-raised-sm" : "text-secondary nm-interactive-sm hover:text-primary"
+    isActive
+      ? "bg-rail-raised text-rail-text"
+      : "text-rail-muted hover:bg-rail-raised hover:text-rail-text"
   )
 
   const children = (
     <>
       {unlocked && (
-        <span
-          className="text-tertiary shrink-0 text-sm leading-none select-none"
-          aria-hidden="true"
-        >
-          ⠿
+        <span className="grid grid-cols-2 gap-[2px] shrink-0" aria-hidden="true">
+          {Array.from({ length: 6 }, (_, i) => (
+            <span key={i} className="h-[2px] w-[2px] rounded-full bg-current opacity-60" />
+          ))}
         </span>
       )}
       {archived ? (
-        <span className="w-2 h-2 rounded-full bg-muted shrink-0" aria-hidden="true" />
+        <span className="w-2 h-2 rounded-full bg-rail-muted shrink-0" aria-hidden="true" />
       ) : (
         <PulseDot status={getHealthPulseDot(health)} size="sm" />
       )}
-      <span className="flex-1 truncate text-sm font-semibold">{tracker.name}</span>
-      <span className="font-mono text-xs tabular-nums text-tertiary shrink-0">
+      <span className="flex-1 truncate text-xs font-medium">{tracker.name}</span>
+      <span className="font-mono text-3xs tabular-nums text-rail-muted shrink-0">
         {archived ? (
           "Archived"
         ) : stat.startsWith("∞") ? (
@@ -83,7 +79,7 @@ function SortableTrackerItem({
         )}
       </span>
       {!unlocked && (
-        // biome-ignore lint/a11y/useSemanticElements: Star must be inside parent button for visual layout
+        // biome-ignore lint/a11y/useSemanticElements: Bookmark must be inside parent button for visual layout
         <span
           role="button"
           tabIndex={0}
@@ -101,14 +97,14 @@ function SortableTrackerItem({
             }
           }}
           className={clsx(
-            "shrink-0 text-sm leading-none transition-all duration-150 cursor-pointer bg-transparent border-none p-0",
+            "flex h-6 w-6 shrink-0 items-center justify-center border-none bg-transparent p-0 transition-all duration-150 cursor-pointer",
             tracker.isFavorite
               ? "text-warn opacity-100"
-              : "text-muted opacity-0 group-hover:opacity-50 hover:opacity-100!"
+              : "text-rail-muted opacity-0 group-hover:opacity-60 hover:opacity-100!"
           )}
           aria-label={tracker.isFavorite ? "Remove from favorites" : "Add to favorites"}
         >
-          {tracker.isFavorite ? "★" : "☆"}
+          <BookmarkIcon width="12" height="12" filled={tracker.isFavorite} />
         </span>
       )}
     </>
@@ -120,7 +116,6 @@ function SortableTrackerItem({
         <button
           type="button"
           className={itemClasses}
-          style={activeStyle}
           aria-current={isActive ? "page" : undefined}
           {...attributes}
           {...listeners}
@@ -132,7 +127,6 @@ function SortableTrackerItem({
           href={`/trackers/${tracker.id}`}
           prefetch
           className={itemClasses}
-          style={activeStyle}
           aria-current={isActive ? "page" : undefined}
         >
           {children}

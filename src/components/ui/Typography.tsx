@@ -11,7 +11,13 @@ interface TypographyProps extends HTMLAttributes<HTMLElement> {
 
 function H1({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h1 className={clsx("text-lg font-sans font-bold text-primary", className)} {...props}>
+    <h1
+      className={clsx(
+        "font-cond text-4xl font-semibold leading-none tracking-[-0.01em] text-primary",
+        className
+      )}
+      {...props}
+    >
       {children}
     </h1>
   )
@@ -22,7 +28,7 @@ function H2({ className, children, id, ...props }: HTMLAttributes<HTMLHeadingEle
     <h2
       id={id}
       className={clsx(
-        "text-xs font-sans font-medium text-secondary uppercase tracking-wider",
+        "font-cond text-4xs font-semibold text-secondary uppercase tracking-[0.16em]",
         className
       )}
       {...props}

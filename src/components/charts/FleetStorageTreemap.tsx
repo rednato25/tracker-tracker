@@ -84,7 +84,6 @@ function buildFleetStorageTreemapOption(nodes: TreemapNode[]): EChartsOption {
             color: CHART_THEME.elevated,
             borderColor: CHART_THEME.borderEmphasis,
             borderWidth: 1,
-            shadowBlur: 0,
             textStyle: {
               color: CHART_THEME.textSecondary,
               fontFamily: CHART_THEME.fontMono,
@@ -137,8 +136,6 @@ function buildFleetStorageTreemapOption(nodes: TreemapNode[]): EChartsOption {
         ],
         emphasis: {
           itemStyle: {
-            shadowBlur: 10,
-            shadowColor: "rgba(0,0,0,0.4)",
           },
         },
       },

@@ -1,5 +1,6 @@
 // src/components/ui/ChevronToggle.tsx
 import { clsx } from "clsx"
+import { ChevronDownSmallIcon } from "@/components/ui/Icons"
 
 interface ChevronToggleProps {
   expanded: boolean
@@ -12,12 +13,12 @@ function ChevronToggle({ expanded, variant = "pivot", className }: ChevronToggle
     return (
       <span
         className={clsx(
-          "inline-block transition-transform duration-150 ease-in-out text-tertiary text-sm shrink-0",
+          "inline-flex shrink-0 text-tertiary transition-transform duration-150 ease-in-out",
           expanded ? "rotate-0" : "rotate-180",
           className
         )}
       >
-        ▾
+        <ChevronDownSmallIcon width="11" height="8" />
       </span>
     )
   }
@@ -25,12 +26,12 @@ function ChevronToggle({ expanded, variant = "pivot", className }: ChevronToggle
   return (
     <span
       className={clsx(
-        "inline-block transition-transform duration-150 text-3xs",
-        expanded ? "rotate-90" : "rotate-0",
+        "inline-flex text-tertiary transition-transform duration-150",
+        expanded ? "rotate-0" : "-rotate-90",
         className
       )}
     >
-      ▶
+      <ChevronDownSmallIcon width="11" height="8" />
     </span>
   )
 }

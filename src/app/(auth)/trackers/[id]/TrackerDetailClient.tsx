@@ -1,7 +1,6 @@
 // src/app/(auth)/trackers/[id]/TrackerDetailClient.tsx
 "use client"
 
-import clsx from "clsx"
 import { useRouter } from "next/navigation"
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
@@ -17,6 +16,7 @@ import { resolveSlots } from "@/components/tracker-detail/resolve-slots"
 import { TrackerDetailHeader } from "@/components/tracker-detail/TrackerDetailHeader"
 import { TrackerInfoTab } from "@/components/tracker-detail/TrackerInfoTab"
 import { TrackerStatusBanner } from "@/components/tracker-detail/TrackerStatusBanner"
+import { TabBar } from "@/components/ui"
 import { registryBonusName, registryEntryFor } from "@/data/tracker-registry"
 import { useTrackerTorrents } from "@/hooks/useTrackerTorrents"
 import { hexToRgba } from "@/lib/color-utils"
@@ -308,24 +308,7 @@ export function TrackerDetailClient({
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => handleTabChange(tab.key)}
-            className={clsx(
-              "px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer -mb-px whitespace-nowrap",
-              activeTab === tab.key
-                ? "text-primary border-b-2"
-                : "text-tertiary hover:text-secondary"
-            )}
-            style={activeTab === tab.key ? { borderColor: tc } : undefined}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
 
       {/* Tab content */}
       {activeTab === "analytics" && (

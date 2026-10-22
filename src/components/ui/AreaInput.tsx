@@ -24,7 +24,7 @@ function AreaInput({ label, tooltip, docs, error, className, id, ref, ...props }
         <div className="flex items-center gap-1">
           <label
             htmlFor={inputId}
-            className="text-xs font-sans font-medium text-secondary uppercase tracking-wider"
+            className="font-cond text-4xs font-semibold text-secondary uppercase tracking-[0.14em]"
           >
             {label}
           </label>
@@ -37,7 +37,7 @@ function AreaInput({ label, tooltip, docs, error, className, id, ref, ...props }
         className={clsx(
           "w-full font-mono text-sm text-primary",
           "bg-control-bg rounded-nm-md",
-          "px-4 py-3 placeholder:text-muted",
+          "px-3 py-2 placeholder:text-muted",
           "transition-all duration-150",
           "nm-inset",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-control-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base",

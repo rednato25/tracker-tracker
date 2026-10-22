@@ -7,6 +7,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react"
 import clsx from "clsx"
 import type { CSSProperties, ReactNode } from "react"
 import { useCallback, useState } from "react"
+import { ChevronDownSmallIcon, ChevronUpSmallIcon } from "@/components/ui/Icons"
 import { Card } from "./Card"
 
 type TableSurface = "inset" | "raised" | "flat"
@@ -42,13 +43,14 @@ interface TableProps<T> {
   noHorizontalScroll?: boolean
 }
 
-const thBase = "px-5 py-3 text-xs font-sans font-medium text-secondary uppercase tracking-wider"
+const thBase =
+  "px-4 py-2.5 font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary"
 
 const thSortable = "cursor-pointer hover:text-primary transition-colors duration-150 select-none"
 
 const surfaceClasses: Record<TableSurface, string> = {
-  inset: "nm-inset-sm",
-  raised: "nm-raised-sm",
+  inset: "",
+  raised: "",
   flat: "",
 }
 
@@ -141,7 +143,7 @@ function Table<T>({
                     key={col.key}
                     className={clsx(
                       compact
-                        ? "px-3 py-2.5 text-xs font-sans font-medium text-secondary uppercase tracking-wider"
+                        ? "px-3 py-2 font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary"
                         : thBase,
                       col.align === "right" && "text-right",
                       col.sortable && thSortable
@@ -151,7 +153,13 @@ function Table<T>({
                   >
                     {col.header}
                     {col.sortable && sortKey === col.key && (
-                      <span className="ml-1 text-accent">{sortDir === "asc" ? "▲" : "▼"}</span>
+                      <span className="ml-1 inline-flex align-middle text-accent">
+                        {sortDir === "asc" ? (
+                          <ChevronUpSmallIcon width="8" height="6" />
+                        ) : (
+                          <ChevronDownSmallIcon width="8" height="6" />
+                        )}
+                      </span>
                     )}
                   </th>
                 ))}

@@ -2,7 +2,6 @@
 "use client"
 
 import clsx from "clsx"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { RetentionPrompt } from "@/components/dashboard/RetentionPromptDialog"
@@ -49,11 +48,23 @@ export function AuthShell({ children }: { children: ReactNode }) {
     mainRef.current?.scrollTo(0, 0)
   }, [pathname])
 
+  // A mobile drawer is transient: leave it open across a route change and it
+  // covers the page the user just navigated to.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger, so we intentionally re-run on route change
+  useEffect(() => {
+    if (isMobile) setCollapsed(true)
+  }, [pathname, isMobile, setCollapsed])
+
   const effectiveCollapsed = !mounted || collapsed
-  const showHamburger = isMobile || effectiveCollapsed
+  const showHamburger = isMobile ? collapsed : effectiveCollapsed
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div
+      className="flex h-screen overflow-hidden"
+      data-collapsed={String(collapsed)}
+      data-mounted={String(mounted)}
+      data-mobile={String(isMobile)}
+    >
       {/* Mounted in the persistent shell, not a page: the first-run prompt must
           survive the add-first-tracker redirect instead of vanishing with the
           dashboard. It renders nothing once answered. */}
@@ -86,22 +97,11 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div
           className={clsx(
             "transition-[padding-left] duration-300 ease-in-out min-h-full",
-            isMobile && "pt-12",
-            !isMobile && effectiveCollapsed && "pl-12"
+            !isMobile && effectiveCollapsed && "pl-12",
+            showHamburger && "shell-hamburger"
           )}
         >
           {children}
-          <footer className="flex justify-center pt-16 pb-8">
-            <Image
-              src="/img/trackerTracker_logo_nm.svg"
-              alt="Tracker Tracker"
-              width={240}
-              height={73}
-              className="select-none pointer-events-none"
-              draggable={false}
-              priority
-            />
-          </footer>
         </div>
         <BackToTop scrollRef={mainRef} />
       </main>

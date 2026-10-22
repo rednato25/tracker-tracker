@@ -11,7 +11,7 @@ import { CopyButton, DownloadButton } from "@/components/ui/ActionButtons"
 import { Button } from "@/components/ui/Button"
 import { ConfirmAction } from "@/components/ui/ConfirmAction"
 import { FilterPill } from "@/components/ui/FilterPill"
-import { RefreshIcon, TrashIcon } from "@/components/ui/Icons"
+import { CheckIcon, ChevronDownSmallIcon, RefreshIcon, TrashIcon } from "@/components/ui/Icons"
 import { Input } from "@/components/ui/Input"
 import { Notice } from "@/components/ui/Notice"
 import { EventLogSkeleton } from "@/components/ui/skeletons"
@@ -22,18 +22,17 @@ import { formatBytesNum, localDateStr } from "@/lib/formatters"
 import { EVENTS_LIMIT_CAP } from "@/lib/limits"
 import type { EventsPageResponse } from "@/types/api"
 
-const CATEGORY_STYLES: Record<EventCategory, { border: string; icon: string; iconColor: string }> =
-  {
-    polls: { border: "border-l-accent", icon: "✓", iconColor: "text-success" },
-    clients: { border: "border-l-sky-400", icon: "↕", iconColor: "text-sky-400" },
-    auth: { border: "border-l-violet-400", icon: "◆", iconColor: "text-violet-400" },
-    settings: { border: "border-l-warn", icon: "●", iconColor: "text-warn" },
-    backups: { border: "border-l-success", icon: "■", iconColor: "text-success" },
-  }
+const CATEGORY_STYLES: Record<EventCategory, { mark: string }> = {
+  polls: { mark: "bg-success" },
+  clients: { mark: "bg-slate-blue" },
+  auth: { mark: "bg-plum" },
+  settings: { mark: "bg-ochre" },
+  backups: { mark: "bg-cold" },
+}
 
 const LEVEL_TEXT_COLORS: Record<EventLevel, string> = {
-  debug: "text-violet-400",
-  info: "text-accent",
+  debug: "text-plum",
+  info: "text-slate-blue",
   warn: "text-warn",
   error: "text-danger",
 }
@@ -277,16 +276,10 @@ export function EventsSection() {
         ) : (
           filteredEvents.map((event, i) => {
             const baseStyle = CATEGORY_STYLES[event.category]
-            const LEVEL_STYLES: Partial<
-              Record<EventLevel, { border: string; icon: string; iconColor: string }>
-            > = {
-              error: { border: "border-l-danger", icon: "✕", iconColor: "text-danger" },
-              warn: { border: "border-l-warn", icon: "⚠", iconColor: "text-warn" },
-              debug: {
-                border: "border-l-violet-400/50",
-                icon: "·",
-                iconColor: "text-violet-400/60",
-              },
+            const LEVEL_STYLES: Partial<Record<EventLevel, { mark: string }>> = {
+              error: { mark: "bg-danger" },
+              warn: { mark: "bg-warn" },
+              debug: { mark: "bg-plum" },
             }
             const style = LEVEL_STYLES[event.level] ?? baseStyle
             const dateKey = getDateKey(event.timestamp)
@@ -301,25 +294,33 @@ export function EventsSection() {
             return (
               <div key={event.id}>
                 {showDateSep && (
-                  <div className="sticky top-0 z-10 px-3 py-1 text-3xs font-mono text-tertiary bg-overlay/90 backdrop-blur-sm border-b border-border">
+                  <div className="sticky top-0 z-10 border-b border-border bg-raised px-3 py-1 font-mono text-3xs text-tertiary">
                     {formatDateLabel(event.timestamp)}
                   </div>
                 )}
                 {(() => {
                   const rowClass = clsx(
-                    "flex flex-col gap-0 px-3 py-1.5 text-xs font-mono border-l-3 w-full text-left",
-                    style.border,
+                    "flex w-full flex-col gap-0 px-3 py-1.5 text-left font-mono text-xs",
                     i % 2 === 0 ? "bg-control-bg" : "bg-elevated/50",
                     isExpandable &&
-                      "cursor-pointer hover:bg-elevated/80 transition-colors duration-100"
+                      "cursor-pointer transition-colors duration-100 hover:bg-elevated/80"
                   )
                   const inner = (
                     <>
                       <div className="flex items-baseline gap-2 min-w-0">
-                        <span
-                          className={clsx("shrink-0 w-3 text-center leading-none", style.iconColor)}
-                        >
-                          {hasBatch ? (isExpanded ? "▾" : "▸") : style.icon}
+                        <span className="flex w-3 shrink-0 items-center justify-center leading-none">
+                          {hasBatch ? (
+                            <ChevronDownSmallIcon
+                              width="9"
+                              height="6"
+                              className={clsx(
+                                "transition-transform duration-150",
+                                isExpanded ? "rotate-0" : "-rotate-90"
+                              )}
+                            />
+                          ) : (
+                            <span className={clsx("block h-1.5 w-1.5", style.mark)} />
+                          )}
                         </span>
                         <span className="text-tertiary shrink-0 tabular-nums w-15.5">
                           {formatTime(event.timestamp)}
@@ -353,7 +354,7 @@ export function EventsSection() {
                     <>
                       {row}
                       {isExpanded && hasBatch && (
-                        <div className="border-l-3 border-l-accent/30">
+                        <div className="border-l border-border">
                           {event.children?.map((child, ci) => (
                             <div
                               key={child.id}
@@ -362,8 +363,8 @@ export function EventsSection() {
                                 ci % 2 === 0 ? "bg-control-bg/60" : "bg-elevated/30"
                               )}
                             >
-                              <span className="text-success shrink-0 w-3 text-center text-2xs">
-                                ✓
+                              <span className="flex w-3 shrink-0 items-center justify-center text-success">
+                                <CheckIcon width="10" height="10" />
                               </span>
                               <span className="text-tertiary truncate">{child.detail}</span>
                             </div>

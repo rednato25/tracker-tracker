@@ -4,15 +4,28 @@
 
 import { closestCenter, DndContext } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { BookIcon, EyeIcon, EyeOffIcon, GitHubIcon } from "@icons"
+import {
+  BookIcon,
+  BookmarkIcon,
+  ChevronLeftIcon,
+  EyeIcon,
+  EyeOffIcon,
+  GearIcon,
+  GitHubIcon,
+  LockIcon,
+  PlusIcon,
+  PowerIcon,
+  UnlockIcon,
+} from "@icons"
 import clsx from "clsx"
-import Image from "next/image"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { AddTrackerDialog } from "@/components/AddTrackerDialog"
 import { ChangelogDialog } from "@/components/layout/ChangelogDialog"
 import { DownloadClientStatusWidget } from "@/components/layout/DownloadClientStatusWidget"
 import { SortableTrackerItem } from "@/components/layout/SortableTrackerItem"
+import { ThemeToggle } from "@/components/layout/ThemeToggle"
 import { Button, ChevronToggle, PillTag, Select, Shimmer, Tooltip } from "@/components/ui"
 import { useSidebarPreferences } from "@/hooks/useSidebarPreferences"
 import { useTrackerList } from "@/hooks/useTrackerList"
@@ -33,6 +46,20 @@ const STAT_MODE_OPTIONS: { value: StatMode; label: string }[] = [
   { value: "downloaded", label: "Downloaded" },
   { value: "buffer", label: "Buffer" },
 ]
+
+const SIDEBAR_WIDTH = 248
+
+function NavMark({ active }: { active: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={clsx(
+        "h-1.5 w-1.5 shrink-0",
+        active ? "bg-accent" : "border border-rail-line bg-transparent"
+      )}
+    />
+  )
+}
 
 function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -65,10 +92,6 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
     [trackers]
   )
 
-  // Reordering a stat-sorted list is meaningless (the next render just
-  // re-sorts it by value), so drag is suppressed the same way `unlocked:
-  // false` suppresses it. No drag handle, no grab cursor, regardless of
-  // the lock toggle's own state.
   const dragUnlocked = prefs.unlocked && prefs.sortMode !== "stat"
   const lockDisabled = prefs.sortMode === "stat"
   const lockLabel = lockDisabled
@@ -81,70 +104,118 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
     setChangelogOpen(true)
   }
 
+  const navItems = [
+    { href: "/", label: "Dashboard", active: pathname === "/" },
+    { href: "/#register", label: "Register", active: false },
+    { href: "/#today", label: "Today", active: false },
+    { href: "/settings", label: "Settings", active: pathname.startsWith("/settings") },
+  ]
+
   return (
     <>
       <aside
         className={clsx(
-          "h-screen flex flex-col bg-base border-r border-border overflow-x-clip",
+          "h-screen flex flex-col bg-rail text-rail-text border-r border-rail-line overflow-x-clip",
           isMobile ? "fixed inset-y-0 left-0 z-30 shrink-0" : "shrink-0"
         )}
+        aria-hidden={isMobile && collapsed ? true : undefined}
+        inert={isMobile && collapsed ? true : undefined}
         style={
           isMobile
             ? {
-                width: "20rem",
+                width: SIDEBAR_WIDTH,
                 transform: collapsed ? "translateX(-100%)" : "translateX(0)",
                 transition: "transform 300ms ease",
               }
             : {
-                width: collapsed ? 0 : "20rem",
+                width: collapsed ? 0 : SIDEBAR_WIDTH,
                 borderRightWidth: collapsed ? 0 : undefined,
                 transition: "width 300ms ease, border-right-width 300ms ease",
               }
         }
       >
-        <div className="w-80 min-w-80 h-full flex flex-col">
-          {/* Logo area */}
-          <div className="px-4 py-4 border-b border-border shrink-0 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              className={clsx(
-                "flex items-center gap-2 cursor-pointer transition-opacity duration-150",
-                pathname === "/" ? "opacity-100" : "opacity-70 hover:opacity-100"
-              )}
-              aria-label="Go to dashboard"
-              aria-current={pathname === "/" ? "page" : undefined}
-            >
-              <Image
-                src="/img/trackerTracker_logo.svg"
-                alt="Tracker Tracker"
-                width={140}
-                height={42}
-                className="shrink-0"
-                style={{ width: 140, height: "auto" }}
-                priority
-              />
-            </button>
-            <button
-              type="button"
-              onClick={onToggle}
-              className="text-tertiary hover:text-secondary transition-colors duration-150 cursor-pointer p-1 rounded-nm-sm"
-              aria-label="Collapse sidebar"
-            >
-              ◀
-            </button>
+        <div className="w-[248px] min-w-[248px] h-full flex flex-col">
+          <div className="px-4 pt-4 pb-4 border-b border-rail-line shrink-0">
+            <div className="flex items-start justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className={clsx(
+                  "flex flex-col items-start gap-1.5 cursor-pointer text-left transition-opacity duration-150",
+                  pathname === "/" ? "opacity-100" : "opacity-80 hover:opacity-100"
+                )}
+                aria-label="Go to dashboard"
+                aria-current={pathname === "/" ? "page" : undefined}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-accent font-cond text-sm font-semibold text-on-accent">
+                    TT
+                  </span>
+                  <span className="font-cond text-base font-semibold uppercase leading-[0.9] tracking-[0.14em] text-rail-text">
+                    Tracker
+                    <br />
+                    Tracker
+                  </span>
+                </span>
+                <span className="font-cond text-4xs font-semibold uppercase tracking-[0.2em] text-rail-muted">
+                  Account vault
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={onToggle}
+                className="text-rail-muted hover:text-rail-text transition-colors duration-150 cursor-pointer p-1.5 -mr-1"
+                aria-label="Collapse sidebar"
+              >
+                <ChevronLeftIcon width="15" height="15" />
+              </button>
+            </div>
           </div>
 
-          {/* Control bar */}
-          <div className="border-b border-border shrink-0">
+          <div className="px-2 pt-4 pb-2 shrink-0">
+            <p className="px-2 pb-2 font-cond text-4xs font-semibold uppercase tracking-[0.18em] text-rail-muted">
+              Vault
+            </p>
+            <nav className="flex flex-col gap-0.5" aria-label="Main">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={clsx(
+                    "flex min-h-11 items-center gap-2.5 px-2 py-2 text-xs transition-colors duration-150 rounded-nm-sm md:min-h-0",
+                    item.active
+                      ? "bg-rail-raised text-rail-text"
+                      : "text-rail-muted hover:bg-rail-raised hover:text-rail-text"
+                  )}
+                  aria-current={item.active ? "page" : undefined}
+                >
+                  <NavMark active={item.active} />
+                  {item.label}
+                </Link>
+              ))}
+              <a
+                href={DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 items-center gap-2.5 px-2 py-2 text-xs text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-text rounded-nm-sm md:min-h-0"
+              >
+                <NavMark active={false} />
+                Docs
+              </a>
+            </nav>
+          </div>
+
+          <div className="border-t border-rail-line shrink-0">
             <button
               type="button"
               onClick={() => prefs.setFiltersExpanded((prev) => !prev)}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-tertiary hover:text-secondary transition-colors duration-150 cursor-pointer"
+              className="w-full flex items-center justify-between px-4 py-2 text-rail-muted hover:text-rail-text transition-colors duration-150 cursor-pointer"
               aria-expanded={prefs.filtersExpanded}
               aria-label={prefs.filtersExpanded ? "Collapse filters" : "Expand filters"}
             >
-              <span className="text-3xs font-mono uppercase tracking-wider">Filters</span>
+              <span className="font-cond text-4xs font-semibold uppercase tracking-[0.16em]">
+                Drawer controls
+              </span>
               <ChevronToggle expanded={prefs.filtersExpanded} variant="flip" />
             </button>
             <div
@@ -155,7 +226,7 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
               }}
             >
               <div className={prefs.filtersExpanded ? "overflow-visible" : "overflow-hidden"}>
-                <div className="px-3 pb-2 flex items-center gap-2">
+                <div className="mx-2 mb-2 flex items-center gap-1.5 border border-rail-line bg-raised p-1.5 text-primary">
                   <Select
                     value={prefs.statMode}
                     onChange={prefs.setStatMode}
@@ -178,12 +249,11 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
                     ]}
                   />
 
-                  {/* Favorites filter */}
                   <button
                     type="button"
                     onClick={() => prefs.setShowFavoritesOnly((f) => !f)}
                     className={clsx(
-                      "transition-colors duration-150 cursor-pointer px-2 py-1.5 shrink-0 rounded-nm-sm",
+                      "transition-colors duration-150 cursor-pointer px-2 py-2 shrink-0",
                       prefs.showFavoritesOnly ? "text-warn" : "text-tertiary hover:text-secondary"
                     )}
                     aria-label={
@@ -195,20 +265,23 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
                         prefs.showFavoritesOnly ? "Show all trackers" : "Show favorites only"
                       }
                     >
-                      <span>{prefs.showFavoritesOnly ? "★" : "☆"}</span>
+                      <BookmarkIcon width="14" height="14" filled={prefs.showFavoritesOnly} />
                     </Tooltip>
                   </button>
 
-                  {/* Lock/unlock drag-and-drop */}
                   <button
                     type="button"
                     onClick={() => prefs.setUnlocked((u) => !u)}
                     disabled={lockDisabled}
-                    className="text-tertiary hover:text-secondary transition-colors duration-150 cursor-pointer px-2 py-1.5 shrink-0 rounded-nm-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="text-tertiary hover:text-secondary transition-colors duration-150 cursor-pointer px-2 py-2 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                     aria-label={lockLabel}
                   >
                     <Tooltip content={lockLabel}>
-                      <span>{dragUnlocked ? "🔓" : "🔒"}</span>
+                      {dragUnlocked ? (
+                        <UnlockIcon width="14" height="14" />
+                      ) : (
+                        <LockIcon width="14" height="14" />
+                      )}
                     </Tooltip>
                   </button>
                 </div>
@@ -216,24 +289,29 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
             </div>
           </div>
 
-          {/* Tracker list (scrollable) */}
           <nav className="flex-1 overflow-y-auto py-2 styled-scrollbar" aria-label="Trackers">
+            <div className="flex items-center justify-between px-4 pb-1.5">
+              <p className="font-cond text-4xs font-semibold uppercase tracking-[0.18em] text-rail-muted">
+                Drawers
+              </p>
+              <span className="font-mono text-4xs text-rail-muted">{trackers.length}</span>
+            </div>
             {trackersLoading ? (
-              <div className="flex flex-col gap-4 px-4">
+              <div className="flex flex-col gap-2 px-3">
                 {Array.from({ length: 4 }, (_, i) => (
-                  <div key={`tracker-${i}`} className="flex items-center gap-3 px-4 py-3">
-                    <Shimmer rounded="full" className="h-4 w-4" />
+                  <div key={`tracker-${i}`} className="flex items-center gap-2 px-1 py-2">
+                    <Shimmer rounded="full" className="h-3 w-3" />
                     <Shimmer size="text" className="flex-1" />
-                    <Shimmer size="label" className="w-12" />
+                    <Shimmer size="label" className="w-10" />
                   </div>
                 ))}
               </div>
             ) : trackers.length === 0 ? (
-              <p className="px-4 py-3 text-xs text-muted font-mono">No trackers added yet.</p>
+              <p className="px-4 py-2 text-3xs text-rail-muted font-mono">No trackers added yet.</p>
             ) : (
               <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={trackerIds} strategy={verticalListSortingStrategy}>
-                  <ul className="list-none m-0 p-0 flex flex-col gap-4 px-4">
+                  <ul className="list-none m-0 p-0 flex flex-col px-2">
                     {displayedTrackers.map((tracker) => {
                       const isActive = pathname === `/trackers/${tracker.id}`
                       return (
@@ -252,37 +330,37 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
               </DndContext>
             )}
 
-            {/* Archive toggle + Add Tracker */}
-            <div className="mx-4 mt-4 pt-4 pb-6 border-t border-border flex flex-col gap-2">
-              {archivedCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => prefs.setShowArchived((s) => !s)}
-                  className="ghost-link flex items-center gap-2 duration-150 w-full"
-                >
-                  {prefs.showArchived ? (
-                    <EyeOffIcon width="14" height="14" className="shrink-0" />
-                  ) : (
-                    <EyeIcon width="14" height="14" className="shrink-0" />
-                  )}
-                  {prefs.showArchived ? "Hide" : "Show"} Archived ({archivedCount})
-                </button>
-              )}
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-full"
-                onClick={() => setShowAddDialog(true)}
-                text="+ Add Tracker"
-              />
-            </div>
           </nav>
 
-          {/* Client status widget */}
+          <div className="mx-2 shrink-0 border-t border-rail-line py-2 flex flex-col gap-1.5">
+            {archivedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => prefs.setShowArchived((s) => !s)}
+                className="flex w-full items-center gap-2 px-1 text-3xs text-rail-muted transition-colors duration-150 hover:text-rail-text cursor-pointer"
+              >
+                {prefs.showArchived ? (
+                  <EyeOffIcon width="13" height="13" className="shrink-0" />
+                ) : (
+                  <EyeIcon width="13" height="13" className="shrink-0" />
+                )}
+                {prefs.showArchived ? "Hide" : "Show"} archived ({archivedCount})
+              </button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              onClick={() => setShowAddDialog(true)}
+            >
+              <PlusIcon width="13" height="13" />
+              Add tracker
+            </Button>
+          </div>
+
           <DownloadClientStatusWidget />
 
-          {/* Bottom controls (pinned) */}
-          <div className="px-3 py-4 border-t border-border shrink-0 flex flex-col gap-1">
+          <div className="px-3 py-3 border-t border-rail-line shrink-0 flex flex-col gap-2">
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -290,69 +368,62 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
                   await fetch("/api/auth/logout", { method: "POST" })
                   router.push("/login")
                 }}
-                className="text-tertiary hover:text-secondary text-sm font-mono flex items-center gap-3 transition-colors duration-150 cursor-pointer flex-1 px-1 py-1"
+                className="text-rail-muted hover:text-rail-text text-3xs font-mono flex items-center gap-2 transition-colors duration-150 cursor-pointer flex-1 px-1 py-1"
               >
-                <span className="text-lg" aria-hidden="true">
-                  ⏻
-                </span>
-                Log Out
+                <PowerIcon width="13" height="13" />
+                Log out
               </button>
               <button
                 type="button"
                 onClick={() => router.push("/settings")}
-                className="text-tertiary hover:text-secondary text-sm font-mono flex items-center gap-3 transition-colors duration-150 cursor-pointer flex-1 px-1 py-1"
+                className="text-rail-muted hover:text-rail-text text-3xs font-mono flex items-center gap-2 transition-colors duration-150 cursor-pointer flex-1 px-1 py-1"
               >
-                <span className="text-lg" aria-hidden="true">
-                  ⚙
-                </span>
+                <GearIcon width="13" height="13" />
                 Settings
               </button>
             </div>
 
-            {/* Version + GitHub + Docs */}
-            <div className="flex items-center gap-2.5 px-1 pt-4 pb-1">
+            <div className="flex items-center gap-2.5 px-1 pt-2">
               <button
                 type="button"
                 onClick={openChangelog}
-                className="font-mono text-xs text-tertiary hover:text-secondary transition-colors duration-150 cursor-pointer text-left"
+                className="flex h-6 items-center px-1 text-left font-mono text-4xs text-rail-muted transition-colors duration-150 hover:text-rail-text cursor-pointer"
               >
                 v{process.env.NEXT_PUBLIC_APP_VERSION}
               </button>
               {process.env.NEXT_PUBLIC_RELEASE_CHANNEL === "development" && (
-                <PillTag color="warn" size="md" label="dev" />
+                <PillTag color="warn" size="sm" label="dev" />
               )}
               {updateAvailable && latestVersion && (
                 <a
                   href={`https://github.com/jordanlambrecht/tracker-tracker/releases/tag/v${latestVersion}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-1.5 py-0.5 text-4xs font-mono text-accent hover:bg-accent/25 transition-colors duration-150"
+                  className="inline-flex items-center gap-1 border border-rail-line bg-rail-raised px-1.5 py-0.5 text-4xs font-mono text-warn hover:border-warn transition-colors duration-150"
                 >
                   <Tooltip content={`Update available: v${latestVersion}`}>
-                    <span className="flex items-center gap-1">
-                      v{latestVersion}
-                      <span aria-hidden="true">↑</span>
-                    </span>
+                    <span className="flex items-center gap-1">v{latestVersion} ↑</span>
                   </Tooltip>
                 </a>
               )}
+              <ThemeToggle />
               <a
                 href="https://github.com/jordanlambrecht/tracker-tracker"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-tertiary hover:text-secondary transition-colors duration-150 shrink-0"
+                className="flex h-6 w-6 shrink-0 items-center justify-center text-rail-muted transition-colors duration-150 hover:text-rail-text"
                 aria-label="GitHub repository"
               >
-                <GitHubIcon width="15" height="15" />
+                <GitHubIcon width="14" height="14" />
               </a>
               <a
                 href={DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-tertiary hover:text-secondary transition-colors duration-150 shrink-0"
+                className="flex h-6 w-6 shrink-0 items-center justify-center text-rail-muted transition-colors duration-150 hover:text-rail-text"
                 aria-label="Documentation"
               >
-                <BookIcon width="15" height="15" />
+                <BookIcon width="14" height="14" />
               </a>
             </div>
           </div>

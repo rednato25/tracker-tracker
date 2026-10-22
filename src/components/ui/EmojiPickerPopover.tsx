@@ -5,6 +5,7 @@ import type { EmojiClickData, EmojiStyle, PickerProps, Theme } from "emoji-picke
 import dynamic from "next/dynamic"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { XIcon } from "@/components/ui/Icons"
 import { useEscapeKey } from "@/hooks/useEscapeKey"
 
 const EmojiPicker = dynamic<PickerProps>(() => import("emoji-picker-react"), { ssr: false })
@@ -71,7 +72,7 @@ function EmojiPickerPopover({
             className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-elevated text-muted hover:text-danger text-3xs leading-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 cursor-pointer rounded-nm-pill"
             aria-label="Clear emoji"
           >
-            ✕
+            <XIcon width="10" height="10" />
           </button>
         )}
       </div>

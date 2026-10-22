@@ -113,8 +113,6 @@ function buildRiverOption(
         },
         emphasis: {
           itemStyle: {
-            shadowBlur: 20,
-            shadowColor: "rgba(0, 0, 0, 0.4)",
           },
         },
       },

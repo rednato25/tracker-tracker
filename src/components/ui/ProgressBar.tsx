@@ -35,10 +35,10 @@ function ProgressBar({
   const resolvedColor = color ?? "var(--color-accent)"
 
   return (
-    <div className={clsx("nm-inset-sm rounded-nm-pill overflow-hidden", track, className)}>
+    <div className={clsx("nm-inset-sm rounded-nm-sm overflow-hidden", track, className)}>
       <div
         className={clsx(
-          "nm-raised-sm rounded-nm-pill relative",
+          "rounded-nm-sm relative",
           fill,
           animated && "transition-all duration-300",
           clamped === 0 && "invisible"
@@ -46,7 +46,6 @@ function ProgressBar({
         style={{
           width: `${clamped}%`,
           backgroundColor: resolvedColor,
-          filter: clamped > 0 ? `drop-shadow(0 0 8px ${resolvedColor}60)` : undefined,
         }}
         role="progressbar"
         aria-valuenow={clamped}
@@ -54,7 +53,7 @@ function ProgressBar({
         aria-valuemax={100}
       >
         {showLabel && size === "lg" && clamped > 10 && (
-          <span className="absolute inset-0 flex items-center justify-center text-4xs font-mono font-semibold text-white/80">
+          <span className="absolute inset-0 flex items-center justify-center text-4xs font-mono font-semibold text-on-accent">
             {Math.round(clamped)}%
           </span>
         )}

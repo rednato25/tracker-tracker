@@ -1,4 +1,4 @@
-// src/lib/constants.ts
+﻿// src/lib/constants.ts
 //
 // Available: DEFAULT_LOG_FILE, DOCS_URL, DOCS, DocsEntry
 
@@ -93,5 +93,5 @@ export const DOCS = {
   },
 } as const satisfies Record<string, DocsEntry>
 
-// ─── Defaults ─────────────────────────────────────────────────────────────────
-export const DEFAULT_TRACKER_COLOR = "#00d4ff"
+// â”€â”€â”€ Defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export const DEFAULT_TRACKER_COLOR = "#9e3f1f"

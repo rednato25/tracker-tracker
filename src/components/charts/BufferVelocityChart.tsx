@@ -191,14 +191,10 @@ function buildBufferVelocityOption(
       lineStyle: {
         color: tracker.color,
         width: 2,
-        shadowColor: tracker.color,
-        shadowBlur: 8,
       },
       emphasis: {
         focus: "series" as const,
         lineStyle: {
-          shadowBlur: 16,
-          shadowColor: tracker.color,
         },
       },
       // Only the first series carries the "Break even" markLine label

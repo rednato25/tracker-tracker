@@ -129,7 +129,6 @@ function buildOption(
           itemStyle: {
             color: CHART_THEME.overlay,
             borderColor: CHART_THEME.borderEmphasis,
-            shadowBlur: 0,
           },
           textStyle: {
             color: CHART_THEME.textSecondary,
@@ -182,8 +181,6 @@ function buildOption(
         ],
         emphasis: {
           itemStyle: {
-            shadowBlur: 12,
-            shadowColor: "rgba(0,0,0,0.4)",
           },
           upperLabel: {
             show: true,

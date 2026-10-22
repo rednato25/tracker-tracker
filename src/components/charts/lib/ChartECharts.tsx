@@ -167,7 +167,7 @@ function ChartECharts({
                 type="button"
                 onClick={() => handleToggleSeries(item.name)}
                 className={clsx(
-                  "flex items-center gap-1.5 text-3xs font-mono cursor-pointer transition-all duration-150 bg-transparent border-none px-1.5 py-0.5 rounded-nm-sm hover:bg-overlay/50",
+                  "flex min-h-6 items-center gap-1.5 text-3xs font-mono cursor-pointer transition-all duration-150 bg-transparent border-none px-1.5 py-0.5 rounded-nm-sm hover:bg-overlay/50",
                   isActive ? "opacity-100" : "opacity-30"
                 )}
               >
@@ -175,7 +175,7 @@ function ChartECharts({
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: item.color }}
                 />
-                <span style={{ color: CHART_THEME.textTertiary }}>{item.name}</span>
+                <span className="text-tertiary">{item.name}</span>
               </button>
             )
           })}

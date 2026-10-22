@@ -1,120 +1,194 @@
-/* src/app/globals.css */
+﻿/* src/app/globals.css */
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @theme inline {
-  /* Fonts */
-  --font-sans: var(--font-archivo), system-ui, sans-serif;
-  --font-mono: var(--font-mono), monospace;
+  /* next/font variables live on <body>, so the font families must be inlined
+     here; only the color tokens need to stay runtime-swappable. */
+  --font-sans: var(--font-barlow), system-ui, sans-serif;
+  --font-cond: var(--font-barlow-condensed), system-ui, sans-serif;
+  --font-mono: var(--font-roboto-mono), ui-monospace, monospace;
+}
 
-  /* ── Layer 1: Raw color palette ──────────────────────────────────────
-   * Ground-truth OKLCH values. The only place a raw color appears.
-   * Tailwind v4 generates text-cyan, bg-amber, border-red, etc.
+@theme {
+  /* â”€â”€ Layer 1: Raw palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   * Cold Vault: a seed-bank cold room, not a neon control room.
+   * The rail is deep green-black; the register is mineral paper.
    */
+  --color-vault-950: #101915;
+  --color-vault-900: #16231e;
+  --color-vault-800: #1e2f28;
+  --color-vault-700: #2b3f36;
 
-  /* Hues */
-  --color-cyan: oklch(80.43% 0.1459 219.52); /* #01d4ff */
-  --color-amber: oklch(76.86% 0.1647 70.08); /* #f59e0b */
-  --color-red: oklch(63.68% 0.2078 25.33); /* #ef4444 */
-  --color-green: oklch(69.59% 0.1491 162.48); /* #10b981 */
-  --color-lime: oklch(72.27% 0.192 149.58); /* #22c55e */
-  --color-violet: oklch(60.56% 0.2189 292.72); /* #8b5cf6 */
-  --color-sky: oklch(71.48% 0.1257 215.22); /* #06b6d4 */
+  --color-paper-50: #f8faf6;
+  --color-paper-100: #eef2ed;
+  --color-paper-200: #e3e9e2;
+  --color-paper-300: #c9d3ca;
+  --color-paper-400: #aebbb2;
 
-  /* Surfaces, dark purple-gray. Neumorphism: light/dark pair for depth. */
-  --color-surface-900: oklch(22.9% 0.0155 279.49); /* #1b1c24 */
-  --color-surface-800: oklch(24.55% 0.0174 275.22); /* #1e2029 */
-  --color-surface-700: oklch(28.82% 0.0221 277.51); /* #282a36 */
-  --color-surface-600: oklch(31.52% 0.0323 279.44); /* #2e3042 */
-  --color-surface-500: oklch(33.87% 0.0317 279.61); /* #343648 */
-  --color-surface-400: oklch(34.45% 0.0283 276.51); /* #353848 */
+  --color-ink-900: #17211c;
+  --color-ink-700: #526159;
+  --color-ink-500: #58675e;
+  --color-ink-300: #617067;
 
-  /* Text grays */
-  --color-gray-50: oklch(92.88% 0.0126 255.51); /* #e2e8f0 */
-  --color-gray-400: oklch(71.07% 0.0351 256.79); /* #94a3b8 */
-  --color-gray-500: oklch(55.44% 0.0407 257.42); /* #64748b */
-  --color-gray-600: oklch(44.55% 0.0374 257.28); /* #475569 */
+  --color-oxide: #9e3f1f;
+  --color-oxide-soft: #f1ded4;
+  --color-cold: #2f6f5e;
+  --color-cold-soft: #dce9e1;
+  --color-ochre: #a66b18;
+  --color-ochre-soft: #f3e6cf;
+  --color-crimson: #9f3428;
+  --color-crimson-soft: #f2dcd7;
+  --color-slate-blue: #3f6d7d;
+  --color-plum: #6b5b7a;
 
-  /* ── Layer 2: Semantic aliases ─────────────────────────────────────────
-   * Intent-named tokens. Use text-accent, bg-danger, border-warn, etc.
-   */
+  /* â”€â”€ Layer 2: Semantic aliases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  --color-base: var(--color-paper-100);
+  --color-raised: var(--color-paper-50);
+  --color-elevated: var(--color-paper-200);
+  --color-overlay: var(--color-paper-50);
+  --color-control-bg: #f4f7f2;
 
-  /* Surfaces */
-  --color-base: var(--color-surface-700);
-  --color-raised: var(--color-surface-700);
-  --color-elevated: var(--color-surface-600);
-  --color-overlay: var(--color-surface-500);
-  --color-control-bg: var(--color-surface-800);
+  --color-rail: var(--color-vault-950);
+  --color-rail-raised: var(--color-vault-900);
+  --color-rail-line: #2a3a32;
+  --color-rail-text: #edf2ed;
+  --color-rail-muted: #93a495;
 
-  /* Text hierarchy */
-  --color-primary: var(--color-gray-50);
-  --color-secondary: var(--color-gray-400);
-  --color-tertiary: var(--color-gray-500);
-  --color-muted: var(--color-gray-600);
+  --color-primary: var(--color-ink-900);
+  --color-secondary: var(--color-ink-700);
+  --color-tertiary: var(--color-ink-500);
+  --color-muted: var(--color-ink-300);
 
-  /* Semantic status */
-  --color-accent: var(--color-cyan);
-  --color-warn: var(--color-amber);
-  --color-danger: var(--color-red);
-  --color-success: var(--color-green);
+  --color-accent: var(--color-oxide);
+  --color-warn: #8a5a12;
+  --color-danger: var(--color-crimson);
+  --color-success: var(--color-cold);
 
-  /* Dim/glow variants */
-  --color-accent-dim: oklch(80.43% 0.1459 219.52 / 0.15); /* #01d4ff 15% */
-  --color-accent-glow: oklch(80.43% 0.1459 219.52 / 0.3); /* #01d4ff 30% */
-  --color-warn-dim: oklch(76.86% 0.1647 70.08 / 0.15); /* #f59e0b 15% */
-  --color-danger-dim: oklch(63.68% 0.2078 25.33 / 0.15); /* #ef4444 15% */
-  --color-success-dim: oklch(69.59% 0.1491 162.48 / 0.15); /* #10b981 15% */
+  --color-accent-dim: rgb(158 63 31 / 0.12);
+  --color-accent-glow: rgb(158 63 31 / 0.22);
+  --color-warn-dim: rgb(138 90 18 / 0.12);
+  --color-danger-dim: rgb(159 52 40 / 0.12);
+  --color-success-dim: rgb(47 111 94 / 0.12);
 
-  /* Borders */
-  --color-border: oklch(71.07% 0.0351 256.79 / 0.08); /* #94a3b8 8% */
-  --color-border-soft: oklch(71.07% 0.0351 256.79 / 0.04); /* #94a3b8 4% */
-  --color-border-emphasis: oklch(71.07% 0.0351 256.79 / 0.15); /* #94a3b8 15% */
+  --color-border: var(--color-paper-300);
+  --color-border-soft: #dfe6df;
+  --color-border-emphasis: var(--color-paper-400);
 
-  /* Controls */
-  --color-control-border: oklch(71.07% 0.0351 256.79 / 0.08); /* #94a3b8 8% */
-  --color-control-focus: oklch(80.43% 0.1459 219.52 / 0.5); /* #01d4ff 50% */
+  --color-control-border: var(--color-paper-400);
+  --color-control-focus: var(--color-accent);
 
-  /* ── Layer 3: Purpose aliases ──────────────────────────────────────────
-   * Domain-specific meaning for data visualization.
-   * Generates text-upload, bg-download, border-positive, etc.
-   */
-  --color-upload: var(--color-cyan);
-  --color-download: var(--color-amber);
-  --color-positive: var(--color-lime);
-  --color-negative: var(--color-red);
-  --color-neutral: var(--color-gray-400);
-  --color-tracker-default: var(--color-cyan);
+  --color-on-accent: #ffffff;
+  --color-on-danger: #ffffff;
+  --color-on-warn: #ffffff;
+  --color-on-success: #ffffff;
 
-  /* Ordinal scale, ratio tiers, seed-time tiers */
-  --color-scale-1: var(--color-red);
-  --color-scale-2: var(--color-amber);
-  --color-scale-3: var(--color-green);
-  --color-scale-4: var(--color-cyan);
-  --color-scale-5: var(--color-violet);
-  --color-scale-6: var(--color-sky);
+  --chart-surface-semi: rgb(238 242 237 / 0.82);
+  --chart-accent-dim: rgb(158 63 31 / 0.12);
+  --chart-accent-glow: rgb(158 63 31 / 0.22);
+  --chart-accent-glow-40: rgb(158 63 31 / 0.32);
+  --chart-accent-glow-60: rgb(158 63 31 / 0.45);
+  --chart-warn-dim: rgb(138 90 18 / 0.12);
+  --chart-warn-glow: rgb(138 90 18 / 0.22);
 
-  /* Glow shadows */
-  --shadow-glow: 0 0 16px var(--color-accent-glow);
-  --shadow-glow-sm: 0 0 8px var(--color-accent-glow);
-  --shadow-glow-lg: 0 0 28px var(--color-accent-glow);
-  --shadow-glow-warn: 0 0 16px var(--color-warn-dim);
-  --shadow-glow-danger: 0 0 16px var(--color-danger-dim);
-  --shadow-glow-success: 0 0 16px var(--color-success-dim);
+  /* â”€â”€ Layer 3: Purpose aliases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  --color-upload: var(--color-cold);
+  --color-download: var(--color-oxide);
+  --color-positive: var(--color-cold);
+  --color-negative: var(--color-crimson);
+  --color-neutral: var(--color-ink-500);
+  --color-tracker-default: var(--color-oxide);
 
-  /* Border radius, bubbly */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
-  --radius-pill: 9999px;
+  --color-scale-1: var(--color-crimson);
+  --color-scale-2: var(--color-ochre);
+  --color-scale-3: var(--color-cold);
+  --color-scale-4: var(--color-slate-blue);
+  --color-scale-5: #7a5b3a;
+  --color-scale-6: var(--color-plum);
 
-  /* Sub-xs font sizes for dense data UI.
-   * text-3xs and text-2xs are intentionally the same value today (10px).
-   * text-2xs covers former 11px contexts (table cells, pills).
-   * If dense tables feel too tight, bump --text-2xs to 11px, one-line change. */
-  --text-4xs: 9px;
-  --text-3xs: 10px;
-  --text-2xs: 10px;
+  /* Elevation is a hairline, not a glow. */
+  --shadow-glow: 0 0 0 1px var(--color-border);
+  --shadow-glow-sm: 0 0 0 1px var(--color-border);
+  --shadow-glow-lg: 0 0 0 1px var(--color-border);
+  --shadow-glow-warn: 0 0 0 1px var(--color-warn);
+  --shadow-glow-danger: 0 0 0 1px var(--color-danger);
+  --shadow-glow-success: 0 0 0 1px var(--color-success);
+
+  /* Stamped corners, not bubbles. */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-pill: 2px;
+
+  /* Sub-xs font sizes for dense data UI. */
+  --text-4xs: 10px;
+  --text-3xs: 11px;
+  --text-2xs: 11px;
+}
+
+:root[data-theme="dark"] {
+  --color-base: #0f1713;
+  --color-raised: #16211b;
+  --color-elevated: #1d2a23;
+  --color-overlay: #16211b;
+  --color-control-bg: #121c17;
+
+  --color-rail: #080f0c;
+  --color-rail-raised: #111c16;
+  --color-rail-line: #223028;
+  --color-rail-text: #edf2ed;
+  --color-rail-muted: #93a49a;
+
+  --color-primary: #edf2ed;
+  --color-secondary: #b3c0b7;
+  --color-tertiary: #93a49a;
+  --color-muted: #85978c;
+
+  --color-accent: #e07a4f;
+  --color-warn: #d9a44a;
+  --color-danger: #e06a58;
+  --color-success: #6fb79c;
+
+  --color-accent-dim: rgb(224 122 79 / 0.16);
+  --color-accent-glow: rgb(224 122 79 / 0.28);
+  --color-warn-dim: rgb(217 164 74 / 0.16);
+  --color-danger-dim: rgb(224 106 88 / 0.16);
+  --color-success-dim: rgb(111 183 156 / 0.16);
+
+  --color-border: #2b3b32;
+  --color-border-soft: #223028;
+  --color-border-emphasis: #3d5246;
+
+  --color-control-border: #3d5246;
+  --color-control-focus: var(--color-accent);
+
+  --color-upload: var(--color-success);
+  --color-download: var(--color-accent);
+  --color-positive: var(--color-success);
+  --color-negative: var(--color-danger);
+  --color-neutral: var(--color-tertiary);
+  --color-tracker-default: var(--color-accent);
+
+  --color-scale-1: #e06a58;
+  --color-scale-2: #d9a44a;
+  --color-scale-3: #6fb79c;
+  --color-scale-4: #7fa7b5;
+  --color-scale-5: #b89a72;
+  --color-scale-6: #a18fb0;
+
+  --color-on-accent: #1b120d;
+  --color-on-danger: #24100c;
+  --color-on-warn: #241a08;
+  --color-on-success: #0c1a15;
+
+  --chart-surface-semi: rgb(15 23 19 / 0.82);
+  --chart-accent-dim: rgb(224 122 79 / 0.16);
+  --chart-accent-glow: rgb(224 122 79 / 0.28);
+  --chart-accent-glow-40: rgb(224 122 79 / 0.4);
+  --chart-accent-glow-60: rgb(224 122 79 / 0.55);
+  --chart-warn-dim: rgb(217 164 74 / 0.16);
+  --chart-warn-glow: rgb(217 164 74 / 0.28);
 }
 
 /* Custom radius utilities matching design system tokens */
@@ -135,126 +209,81 @@
 }
 
 /*
- * Neumorphic shadow utilities, registered as @utility so Tailwind v4
- * generates variant classes (hover:nm-raised, active:nm-pressed, etc.).
- * Base: #282A36. Generated via neumorphism.io.
- *
- * IMPORTANT: overflow-hidden on a parent CLIPS these shadows. If you nest
- * nm-raised elements inside an overflow-hidden container, use the p-N/-m-N
- * trick to push the clip boundary out. Shadow reach per variant:
- *   nm-raised-sm: ~12px  (use p-3 -m-3)
- *   nm-raised:    ~24px  (use p-6 -m-6)
- *   nm-raised-lg: ~36px  (use p-9 -m-9)
+ * Edge utilities retained for component compatibility. Elevation in the Cold
+ * Vault is a one-pixel rule, not a dual shadow; the names stay because every
+ * surface already speaks them.
  */
 @utility nm-raised {
-  box-shadow:
-    -8px -8px 16px oklch(34.45% 0.0283 276.51),
-    /* #353848 */ 8px 8px 16px oklch(22.9% 0.0155 279.49); /* #1b1c24 */
+  box-shadow: 0 0 0 1px var(--color-border);
 }
 
 @utility nm-raised-sm {
-  box-shadow:
-    -4px -4px 8px oklch(33.24% 0.0268 276.01),
-    /* #323544 */ 4px 4px 8px oklch(24.23% 0.0172 280.05); /* #1e1f28 */
+  box-shadow: 0 0 0 1px var(--color-border);
 }
 
 @utility nm-raised-lg {
-  box-shadow:
-    -12px -12px 24px oklch(36.85% 0.0312 277.36),
-    /* #3b3e50 */ 12px 12px 24px oklch(20.19% 0.0121 277.81); /* #15161c */
+  box-shadow: 0 0 0 1px var(--color-border);
 }
 
 @utility nm-inset {
-  box-shadow:
-    inset -1px -1px 0 oklch(100% 0 0 / 0.07),
-    inset 4px 4px 8px oklch(19.74% 0.0121 277.78),
-    /* #14151b */ inset -4px -4px 8px oklch(37.23% 0.0311 277.38); /* #3c3f51 */
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 @utility nm-inset-sm {
-  box-shadow:
-    inset 2px 2px 5px oklch(24.55% 0.0174 275.22),
-    /* #1e2029 */ inset -2px -2px 5px oklch(32.94% 0.0266 278.88); /* #323443 */
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 @utility nm-pressed {
-  box-shadow:
-    inset 4px 4px 10px oklch(19.74% 0.0121 277.78),
-    /* #14151b */ inset -2px -2px 5px oklch(32.94% 0.0266 278.88); /* #323443 */
+  box-shadow: inset 0 0 0 1px var(--color-border-emphasis);
 }
 
-/*
- * Overlay elevation (Dialog, Sheet panels). Floating surfaces must not use
- * the raised dual shadow: that illusion needs the element's background to
- * match the page around it, and a panel over a dimmed backdrop never does,
- * so the light half hazes the scrim and the edge dissolves into gradient.
- * Instead: a 1px ring draws the edge, an inset rim light keeps the
- * light-from-above vocabulary inside the panel, and layered hue-matched dark
- * shadows carry depth. Pair with bg-overlay (one surface step lighter) for
- * tonal elevation. Backdrop blur was deliberately removed for perf (2780d5e);
- * do not re-add it here.
- */
+/* Floating surfaces carry one edge and one soft offset shadow. */
 @utility nm-float {
   box-shadow:
-    inset 0 1px 0 oklch(100% 0 0 / 0.1),
-    0 0 0 1px oklch(100% 0 0 / 0.14),
-    0 4px 8px oklch(10% 0.012 277.5 / 0.5),
-    0 12px 32px oklch(10% 0.012 277.5 / 0.45);
+    0 12px 32px rgb(16 25 21 / 0.14),
+    0 0 0 1px var(--color-border);
 }
 
-/* Same grammar at popover scale (dropdowns, color picker). One depth layer:
- * these hover close to their trigger, not high above the page. */
 @utility nm-float-sm {
   box-shadow:
-    inset 0 1px 0 oklch(100% 0 0 / 0.08),
-    0 0 0 1px oklch(100% 0 0 / 0.12),
-    0 4px 12px oklch(10% 0.012 277.5 / 0.5);
+    0 8px 20px rgb(16 25 21 / 0.12),
+    0 0 0 1px var(--color-border);
 }
 
-/* Tracker color accent glow, corner-pooling inset glow via pseudo-element
- * so it doesn't conflict with the card's nm-raised box-shadow. Four offset
- * shadows concentrate light in the corners and fade along the edges.
- * Color passed as --card-accent via inline style. */
+/* Tracker color is a data mark, not a glow. */
 @utility card-accent {
   position: relative;
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow:
-      inset 5px 5px 14px -5px var(--card-accent, transparent),
-      inset -3px -3px 14px -8px var(--card-accent, transparent),
-      inset 1px 1px 2px 0 rgba(255, 255, 255, 0.05),
-      inset -1px -1px 2px 0 rgba(255, 255, 255, 0.015);
-    pointer-events: none;
-  }
 }
 
 @utility slot-label {
-  font-family: var(--font-sans);
+  font-family: var(--font-cond);
   font-size: var(--text-3xs);
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.14em;
   color: var(--color-tertiary);
 }
 
-/* ─── Typography utilities ─── */
+/* The floating sidebar toggle needs room in the first row of every page. */
+.shell-hamburger .page-topbar {
+  padding-left: 3.5rem;
+}
+
+/* â”€â”€â”€ Typography utilities â”€â”€â”€ */
 
 @utility card-heading {
   font-size: var(--text-sm);
-  font-family: var(--font-sans);
+  font-family: var(--font-cond);
   font-weight: 600;
   color: var(--color-primary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 @utility timestamp {
   font-size: var(--text-3xs);
   font-family: var(--font-mono);
-  color: var(--color-muted);
+  color: var(--color-tertiary);
 }
 
 @utility tabular-cell {
@@ -302,7 +331,7 @@
   text-align: right;
 }
 
-/* ─── Native dialog backdrop ─── */
+/* â”€â”€â”€ Native dialog backdrop â”€â”€â”€ */
 
 dialog[data-overlay]::backdrop {
   background: rgb(0 0 0 / 0.6);
@@ -315,7 +344,7 @@ dialog[data-overlay][data-visible]::backdrop {
   transition: opacity 200ms ease-out;
 }
 
-/* ─── Interactive utilities ─── */
+/* â”€â”€â”€ Interactive utilities â”€â”€â”€ */
 
 @utility help-icon {
   cursor: help;
@@ -340,7 +369,7 @@ dialog[data-overlay][data-visible]::backdrop {
   }
 }
 
-/* ─── Structural utilities ─── */
+/* â”€â”€â”€ Structural utilities â”€â”€â”€ */
 
 @utility color-dot {
   width: 0.5rem;
@@ -375,49 +404,37 @@ dialog[data-overlay][data-visible]::backdrop {
 /*
  * Neumorphic interactive states, for clickable raised surfaces.
  * Three tiers matching elevation: sm (cards), base (panels), inset (dormant links).
- * Each transitions: rest → hover (raise higher) → active (press inward + scale).
+ * Each transitions: rest â†’ hover (raise higher) â†’ active (press inward + scale).
  * These replace static nm-raised-* classes on interactive elements.
  */
 .nm-interactive-sm {
-  box-shadow:
-    -4px -4px 8px oklch(33.24% 0.0268 276.01),
-    /* #323544 */ 4px 4px 8px oklch(24.23% 0.0172 280.05); /* #1e1f28 */
+  box-shadow: 0 0 0 1px var(--color-border);
   transition:
-    box-shadow 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background-color 160ms ease-out,
+    box-shadow 160ms ease-out,
+    color 160ms ease-out;
 }
 .nm-interactive-sm:hover {
-  box-shadow:
-    -4px -4px 8px oklch(31.67% 0.0271 275.92),
-    /* #2e3140 */ 5px 5px 9px oklch(23.8% 0.0173 280.02); /* #1d1e27 */
-  transform: scale(1.01);
+  background: var(--color-elevated);
+  box-shadow: 0 0 0 1px var(--color-border-emphasis);
 }
 .nm-interactive-sm:active {
-  box-shadow:
-    inset 2px 2px 6px oklch(21.5% 0.0119 277.89),
-    /* #18191f */ inset -2px -2px 4px oklch(31.42% 0.0287 279.05); /* #2e3040 */
-  transform: scale(0.99);
+  background: var(--color-elevated);
+  box-shadow: inset 0 0 0 1px var(--color-border-emphasis);
 }
-
 .nm-interactive-inset {
-  box-shadow:
-    inset 2px 2px 5px oklch(24.55% 0.0174 275.22),
-    /* #1e2029 */ inset -2px -2px 5px oklch(32.94% 0.0266 278.88); /* #323443 */
+  box-shadow: inset 0 0 0 1px var(--color-border);
   transition:
-    box-shadow 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background-color 160ms ease-out,
+    box-shadow 160ms ease-out;
 }
 .nm-interactive-inset:hover {
-  box-shadow:
-    -2px -2px 5px oklch(31.67% 0.0271 275.92),
-    /* #2e3140 */ 3px 3px 6px oklch(25.07% 0.017 280.1); /* #20212a */
-  transform: scale(1.01);
+  background: var(--color-elevated);
+  box-shadow: inset 0 0 0 1px var(--color-border-emphasis);
 }
 .nm-interactive-inset:active {
-  box-shadow:
-    inset 2px 2px 6px oklch(21.5% 0.0119 277.89),
-    /* #18191f */ inset -2px -2px 4px oklch(31.42% 0.0287 279.05); /* #2e3040 */
-  transform: scale(0.99);
+  background: var(--color-elevated);
+  box-shadow: inset 0 0 0 1px var(--color-border-emphasis);
 }
 
 /* Glow animation for pulse dots */
@@ -425,33 +442,14 @@ dialog[data-overlay][data-visible]::backdrop {
   0%,
   100% {
     opacity: 1;
-    filter: drop-shadow(0 0 5px currentColor);
   }
   50% {
-    opacity: 0.7;
-    filter: drop-shadow(0 0 12px currentColor);
+    opacity: 0.55;
   }
 }
 
 .animate-pulse-glow {
   animation: pulse-glow 2.5s ease-in-out infinite;
-}
-
-@keyframes jiggle {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(-0.5deg);
-  }
-  75% {
-    transform: rotate(0.5deg);
-  }
-}
-
-.animate-jiggle {
-  animation: jiggle 0.3s ease-in-out infinite;
 }
 
 @keyframes loading-breathe {
@@ -531,12 +529,12 @@ input:autofill:hover,
 input:autofill:focus,
 textarea:autofill,
 select:autofill {
-  -webkit-box-shadow: 0 0 0 1000px oklch(24.55% 0.0174 275.22) inset; /* control-bg, Chromium */
-  box-shadow: 0 0 0 1000px oklch(24.55% 0.0174 275.22) inset; /* control-bg, Firefox/standard */
-  -webkit-text-fill-color: oklch(92.88% 0.0126 255.51); /* primary text */
-  color: oklch(92.88% 0.0126 255.51) !important;
-  background-color: oklch(24.55% 0.0174 275.22) !important;
-  caret-color: oklch(92.88% 0.0126 255.51);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-control-bg) inset;
+  box-shadow: 0 0 0 1000px var(--color-control-bg) inset;
+  -webkit-text-fill-color: var(--color-primary);
+  color: var(--color-primary) !important;
+  background-color: var(--color-control-bg) !important;
+  caret-color: var(--color-primary);
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -558,8 +556,8 @@ select {
 
 /* Page scrollbar, picks up --scrollbar-color from nearest ancestor (tracker page sets it) */
 .themed-scrollbar {
-  --scrollbar-color: oklch(34.45% 0.0283 276.51); /* #353848 */
-  --scrollbar-hover: oklch(40.24% 0.0439 279.12); /* #434660 */
+  --scrollbar-color: #aebbb2;
+  --scrollbar-hover: #78867d;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-color) transparent;
 }
@@ -581,7 +579,7 @@ select {
 /* Inner horizontal scrollbars on tables/code, always subtle */
 .styled-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: oklch(34.45% 0.0283 276.51) /* #353848 */ transparent;
+  scrollbar-color: #aebbb2 transparent;
 }
 .styled-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -591,32 +589,31 @@ select {
   background: transparent;
 }
 .styled-scrollbar::-webkit-scrollbar-thumb {
-  background: oklch(34.45% 0.0283 276.51); /* #353848 */
-  border-radius: 9999px;
+  background: #aebbb2;
+  border-radius: 2px;
 }
 .styled-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: oklch(40.24% 0.0439 279.12); /* #434660 */
+  background: #78867d;
 }
 
 .styled-scrollbar-visible {
   scrollbar-width: thin;
-  scrollbar-color: oklch(34.45% 0.0283 276.51) /* #353848 */ oklch(22.44% 0.0168 277.68)
-    /* #1e2029 */;
+  scrollbar-color: #aebbb2 #dfe6df;
 }
 .styled-scrollbar-visible::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 .styled-scrollbar-visible::-webkit-scrollbar-track {
-  background: oklch(22.44% 0.0168 277.68); /* #1e2029 control-bg */
-  border-radius: 9999px;
+  background: #dfe6df;
+  border-radius: 2px;
 }
 .styled-scrollbar-visible::-webkit-scrollbar-thumb {
-  background: oklch(34.45% 0.0283 276.51); /* #353848 */
-  border-radius: 9999px;
+  background: #aebbb2;
+  border-radius: 2px;
 }
 .styled-scrollbar-visible::-webkit-scrollbar-thumb:hover {
-  background: oklch(40.24% 0.0439 279.12); /* #434660 */
+  background: #78867d;
 }
 
 /* react-colorful overrides */
@@ -644,15 +641,26 @@ select {
 
 /* Emoji picker theme overrides */
 .emoji-picker-wrapper .EmojiPickerReact.epr-dark-theme {
-  --epr-bg-color: oklch(31.52% 0.0323 279.44); /* #2e3042 */
-  --epr-category-label-bg-color: oklch(31.52% 0.0323 279.44); /* #2e3042 */
-  --epr-hover-bg-color: oklch(33.87% 0.0317 279.61); /* #343648 */
-  --epr-search-input-bg-color: oklch(24.55% 0.0174 275.22); /* #1e2029 */
-  --epr-text-color: oklch(92.88% 0.0126 255.51); /* #e2e8f0 */
-  --epr-search-input-text-color: oklch(92.88% 0.0126 255.51); /* #e2e8f0 */
-  --epr-search-input-placeholder-color: oklch(55.44% 0.0407 257.42); /* #64748b */
-  --epr-category-icon-active-color: oklch(80.43% 0.1459 219.52); /* #01d4ff */
-  --epr-skin-tone-picker-menu-color: oklch(33.87% 0.0317 279.61); /* #343648 */
+  --epr-bg-color: #f8faf6;
+  --epr-category-label-bg-color: #e3e9e2;
+  --epr-hover-bg-color: #e3e9e2;
+  --epr-search-input-bg-color: #f4f7f2;
+  --epr-text-color: #17211c;
+  --epr-search-input-text-color: #17211c;
+  --epr-search-input-placeholder-color: #78867d;
+  --epr-category-icon-active-color: var(--color-accent);
+  --epr-skin-tone-picker-menu-color: #e3e9e2;
   border-radius: var(--radius-md);
-  border: 1px solid oklch(37.23% 0.0311 277.38); /* #3c3f51 */
+  border: 1px solid #dfe6df;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

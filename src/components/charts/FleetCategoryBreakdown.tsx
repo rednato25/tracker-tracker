@@ -49,8 +49,6 @@ function buildFleetCategoryBreakdownOption(
       label: { show: false },
       emphasis: {
         itemStyle: {
-          shadowBlur: 8,
-          shadowColor: "rgba(0,0,0,0.3)",
         },
         label: {
           show: true,

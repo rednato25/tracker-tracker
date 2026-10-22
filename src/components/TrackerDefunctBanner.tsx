@@ -163,7 +163,7 @@ function DefunctBannerBody({
             rel="noopener noreferrer"
             className="text-accent hover:underline"
           >
-            Announcement →
+            Announcement <ExternalLinkSmallIcon width="10" height="10" className="inline-block align-[-1px]" />
           </a>
         )}
       </p>

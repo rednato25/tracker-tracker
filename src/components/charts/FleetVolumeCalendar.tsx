@@ -126,8 +126,6 @@ function buildFleetVolumeCalendarOption(
         },
         emphasis: {
           itemStyle: {
-            shadowBlur: 8,
-            shadowColor: hexToRgba(color, 0.4),
           },
         },
       },

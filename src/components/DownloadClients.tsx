@@ -20,6 +20,7 @@ import {
   Toggle,
   UptimeBar,
 } from "@/components/ui"
+import { XIcon } from "@/components/ui/Icons"
 
 import { useActionStatus } from "@/hooks/useActionStatus"
 import { useCrudCard } from "@/hooks/useCrudCard"
@@ -624,7 +625,7 @@ function ClientCard({ client, linkedTrackers, onSaved, onRemove, onSetDefault }:
                     className="text-tertiary hover:text-danger transition-colors cursor-pointer text-xs leading-none"
                     aria-label={`Remove tag ${tag}`}
                   >
-                    ✕
+                    <XIcon width="11" height="11" />
                   </button>
                 </span>
               ))}

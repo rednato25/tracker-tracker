@@ -1,4 +1,4 @@
-// src/lib/db/schema.ts
+﻿// src/lib/db/schema.ts
 //
 // Tables: appSettings, trackers, trackerSnapshots, trackerRoles, downloadClients,
 // tagGroups, tagGroupMembers, clientSnapshots, backupHistory, dismissedAlerts,
@@ -132,7 +132,7 @@ export const trackers = pgTable("trackers", {
   consecutiveFailures: integer("consecutive_failures").default(0).notNull(),
   pausedAt: timestamp("paused_at"),
   userPausedAt: timestamp("user_paused_at"),
-  color: varchar("color", { length: 20 }).default("#00d4ff"),
+  color: varchar("color", { length: 20 }).default("#9e3f1f"),
   qbtTag: varchar("qbt_tag", { length: 100 }),
   remoteUserId: integer("remote_user_id"),
   platformMeta: text("platform_meta"),
@@ -315,18 +315,18 @@ export const dismissedAlerts = pgTable(
   (table) => [uniqueIndex("uq_dismissed_alert_key").on(table.alertKey)]
 )
 
-// ─── Notification targets ────────────────────────────────────────────────────
+// â”€â”€â”€ Notification targets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // One row per notification destination (Discord webhook, future Gotify/Telegram/
 // Slack/email). Credentials travel as AES-256-GCM ciphertext in encryptedConfig,
 // matching the encrypted* column convention used throughout this schema.
 //
 // encryptedConfig stores a JSON object whose shape is determined by `type`:
-//   discord  → { webhookUrl: string }
-//   gotify   → { serverUrl: string, appToken: string }
-//   telegram → { botToken: string, chatId: string }
-//   slack    → { webhookUrl: string }
-//   email    → { host: string, port: number, username: string, password: string, from: string, to: string }
+//   discord  â†’ { webhookUrl: string }
+//   gotify   â†’ { serverUrl: string, appToken: string }
+//   telegram â†’ { botToken: string, chatId: string }
+//   slack    â†’ { webhookUrl: string }
+//   email    â†’ { host: string, port: number, username: string, password: string, from: string, to: string }
 //
 // scope stores a PostgreSQL integer array of tracker IDs this target applies to.
 // null means "all trackers".
@@ -386,7 +386,7 @@ export const notificationTargets = pgTable("notification_targets", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// ─── Notification delivery state ─────────────────────────────────────────────
+// â”€â”€â”€ Notification delivery state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // Per-target / per-tracker / per-event cooldown tracking.
 // Each row answers: "when did target T last fire event E for tracker X?"
@@ -548,7 +548,7 @@ export const trackerOutages = pgTable(
   ]
 )
 
-// ── type exports ──────────────────────────────────────────────
+// â”€â”€ type exports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export type AppSettingsRow = typeof appSettings.$inferSelect
 export type TrackerRow = typeof trackers.$inferSelect
 export type TrackerSnapshotRow = typeof trackerSnapshots.$inferSelect

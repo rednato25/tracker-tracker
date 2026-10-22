@@ -84,7 +84,7 @@ function buildTrackerHealthRadarOption(
       },
       splitArea: {
         areaStyle: {
-          color: ["rgba(255,255,255,0.01)", "rgba(255,255,255,0.02)"],
+          color: ["rgba(23,33,28,0.02)", "rgba(23,33,28,0.04)"],
         },
       },
       axisLine: {

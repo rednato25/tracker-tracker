@@ -137,11 +137,9 @@ function buildAverageSeries(
       lineStyle: {
         color,
         width: 3,
-        shadowColor: color,
-        shadowBlur: 12,
       },
       emphasis: {
-        lineStyle: { shadowBlur: 20, shadowColor: color },
+        lineStyle: { },
       },
       areaStyle: {
         color: {
@@ -248,11 +246,9 @@ function buildComparisonOption(
         lineStyle: {
           color: totalColor,
           width: 3,
-          shadowColor: totalColor,
-          shadowBlur: 12,
         },
         emphasis: {
-          lineStyle: { shadowBlur: 20, shadowColor: totalColor },
+          lineStyle: { },
         },
       },
     ]
@@ -297,8 +293,6 @@ function buildComparisonOption(
           color: tracker.color,
           width: useStacked ? 1 : 2,
           // Omitting the glow while stacked would carry the line view's glow into the stacked view
-          shadowColor: useStacked ? undefined : tracker.color,
-          shadowBlur: useStacked ? undefined : 8,
         },
         // Nested objects merge too, so the same rule applies one level down:
         // an emphasis that omits lineStyle leaves the previous hover glow on
@@ -306,8 +300,6 @@ function buildComparisonOption(
         emphasis: {
           focus: "series" as const,
           lineStyle: {
-            shadowBlur: useStacked ? undefined : 16,
-            shadowColor: useStacked ? undefined : tracker.color,
           },
         },
       }

@@ -30,7 +30,7 @@ function SectionToggle({ label, expanded, onToggle, className }: SectionTogglePr
         aria-expanded={expanded}
         onClick={onToggle}
         className={clsx(
-          "flex items-center gap-2 text-xs font-sans font-medium text-tertiary uppercase tracking-wider",
+          "flex min-h-6 items-center gap-2 font-cond text-4xs font-semibold text-tertiary uppercase tracking-[0.16em]",
           "hover:text-secondary transition-colors duration-150 cursor-pointer w-fit",
           className
         )}

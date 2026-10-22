@@ -8,6 +8,7 @@ import clsx from "clsx"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 import { ChevronToggle } from "@/components/ui/ChevronToggle"
+import { TriangleWarningIcon } from "@/components/ui/Icons"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { formatTimeAgo } from "@/lib/formatters"
 
@@ -133,7 +134,7 @@ function TrackerHubStatus({
             {isUp ? "Up" : "Down"}
           </span>
           {fetchedAt && (
-            <span className="text-xs font-mono text-muted ml-1">
+            <span className="ml-1 font-mono text-3xs text-secondary">
               · Checked {formatTimeAgo(fetchedAt)}
             </span>
           )}
@@ -177,7 +178,9 @@ function TrackerHubStatus({
                 isUp ? "bg-warn-dim text-warn" : "bg-danger-dim text-danger"
               )}
             >
-              <span className="shrink-0">⚠</span>
+              <span className="shrink-0">
+                <TriangleWarningIcon width="12" height="12" />
+              </span>
               <span>
                 {formatIncidentDate(incident.date)}: {formatDowntime(incident.minutes)} downtime
               </span>
@@ -189,12 +192,12 @@ function TrackerHubStatus({
             <div className="flex items-center gap-3 text-xs font-mono text-tertiary">
               <span>
                 Uptime <span className="text-secondary">{data.uptimeMonth}</span>
-                <span className="text-muted ml-0.5">30d</span>
+                <span className="ml-0.5 text-secondary">30d</span>
               </span>
-              <span className="text-border-emphasis">·</span>
+              <span className="text-tertiary">·</span>
               <span>
                 Resp <span className="text-secondary">{data.timeDay}ms</span>
-                <span className="text-muted ml-0.5">24h</span>
+                <span className="ml-0.5 text-secondary">24h</span>
               </span>
             </div>
 

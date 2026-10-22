@@ -82,7 +82,7 @@ function NumberInput({
             disabled={disabled || value >= max}
             onClick={() => onChange(clamp(value + step))}
             className={clsx(
-              "flex items-center justify-center w-7 flex-1",
+              "flex min-h-6 w-7 flex-1 items-center justify-center",
               "bg-control-bg text-tertiary",
               "hover:text-primary hover:bg-overlay",
               "transition-colors duration-100 cursor-pointer",
@@ -99,7 +99,7 @@ function NumberInput({
             disabled={disabled || value <= min}
             onClick={() => onChange(clamp(value - step))}
             className={clsx(
-              "flex items-center justify-center w-7 flex-1",
+              "flex min-h-6 w-7 flex-1 items-center justify-center",
               "bg-control-bg text-tertiary",
               "hover:text-primary hover:bg-overlay",
               "transition-colors duration-100 cursor-pointer",

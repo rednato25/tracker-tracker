@@ -34,11 +34,11 @@ function RankRow({
         (dimmed || userClass.outsideLadder) && "opacity-60"
       )}
       title={userClass.outsideLadder ? OUTSIDE_LADDER_NOTE[userClass.outsideLadder] : undefined}
-      style={
-        isCurrent ? { color: accentColor, backgroundColor: hexToRgba(accentColor, 0.1) } : undefined
-      }
+      style={isCurrent ? { backgroundColor: hexToRgba(accentColor, 0.1) } : undefined}
     >
-      <span className={isCurrent ? "font-semibold" : "text-secondary"}>{userClass.name}</span>
+      <span className={isCurrent ? "font-semibold text-primary" : "text-secondary"}>
+        {userClass.name}
+      </span>
       {isCurrent && <span className="text-3xs">&larr; you</span>}
     </div>
   )
@@ -46,7 +46,7 @@ function RankRow({
 
 function GroupLabel({ children }: { children: string }) {
   return (
-    <div className="px-3 pt-2 pb-1 text-4xs font-mono uppercase tracking-wider text-muted">
+    <div className="px-3 pt-2 pb-1 text-4xs font-mono uppercase tracking-wider text-secondary">
       {children}
     </div>
   )
@@ -132,16 +132,10 @@ export function RankTooltip({
         </div>
       }
     >
-      <Badge
-        tabIndex={0}
-        style={{
-          backgroundColor: hexToRgba(accentColor, 0.15),
-          color: accentColor,
-        }}
-      >
+      <Badge tabIndex={0} className="border border-accent bg-accent/10 text-primary">
         <span className="flex items-center gap-2">
           {currentRank}
-          <span className="help-icon opacity-70" aria-hidden="true">
+          <span className="help-icon text-secondary" aria-hidden="true">
             ?
           </span>
         </span>

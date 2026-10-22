@@ -143,14 +143,10 @@ function buildBubbleOption(trackers: ValidTrackerData[], forceLog: boolean | nul
       symbolSize: bubbleSize,
       itemStyle: {
         color,
-        shadowColor: color,
-        shadowBlur: 12,
       },
       emphasis: {
         itemStyle: {
           color,
-          shadowColor: color,
-          shadowBlur: 20,
         },
       },
       ...(markLine ? { markLine } : {}),

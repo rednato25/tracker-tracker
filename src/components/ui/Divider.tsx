@@ -8,10 +8,8 @@ interface DividerProps {
   className?: string
 }
 
-function Divider({ compact, className }: DividerProps) {
-  return (
-    <div className={clsx("h-1.5 nm-inset-sm rounded-nm-pill", !compact && "mx-8", className)} />
-  )
+function Divider({ className }: DividerProps) {
+  return <div className={clsx("h-px w-full bg-border", className)} />
 }
 
 export { Divider }

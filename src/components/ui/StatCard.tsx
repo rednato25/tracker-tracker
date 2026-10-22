@@ -8,10 +8,9 @@
 
 import clsx from "clsx"
 import type { HTMLAttributes, ReactNode } from "react"
-import { CHART_THEME } from "@/components/charts/lib/theme"
+import { TriangleWarningIcon } from "@/components/ui/Icons"
 import { InfoTip } from "@/components/ui/InfoTip"
 import { Tooltip } from "@/components/ui/Tooltip"
-import { hexToRgba } from "@/lib/color-utils"
 
 // ---------------------------------------------------------------------------
 //  types
@@ -96,8 +95,6 @@ type StatCardProps =
 // ---------------------------------------------------------------------------
 
 function Shell({
-  accentColor,
-  accentOverride,
   alert,
   children,
   className,
@@ -111,21 +108,20 @@ function Shell({
   center?: boolean
 }) {
   const alertColor =
-    alert === "danger" ? CHART_THEME.danger : alert === "warn" ? CHART_THEME.warn : null
-  const glowColor = alertColor ?? accentOverride ?? accentColor
+    alert === "danger"
+      ? "var(--color-danger)"
+      : alert === "warn"
+        ? "var(--color-warn)"
+        : null
   return (
     <div
       className={clsx(
-        "bg-raised p-5 flex flex-col gap-2 nm-raised-sm rounded-nm-lg overflow-visible relative",
+        "bg-raised p-4 flex flex-col gap-2 border border-border rounded-nm-lg overflow-visible relative",
         center && "items-center gap-3",
         className
       )}
       style={{
-        filter: glowColor
-          ? `drop-shadow(0 0 14px ${hexToRgba(glowColor, alertColor ? 0.18 : 0.09)})`
-          : undefined,
-        outline: alertColor ? `1px solid ${hexToRgba(alertColor, 0.25)}` : undefined,
-        outlineOffset: "-1px",
+        borderColor: alertColor ?? undefined,
         ...style,
       }}
       {...rest}
@@ -153,12 +149,16 @@ function Header({
   alertReason?: string
 }) {
   const alertColor =
-    alert === "danger" ? CHART_THEME.danger : alert === "warn" ? CHART_THEME.warn : null
+    alert === "danger"
+      ? "var(--color-danger)"
+      : alert === "warn"
+        ? "var(--color-warn)"
+        : null
 
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
-        <p className="text-xs font-sans font-medium text-tertiary uppercase tracking-wider">
+        <p className="font-cond text-4xs font-semibold text-tertiary uppercase tracking-[0.14em]">
           {label}
         </p>
         {tooltip && (
@@ -172,11 +172,11 @@ function Header({
           <Tooltip content={<span className="w-52 block">{alertReason}</span>}>
             <button
               type="button"
-              className="help-icon hover:opacity-80 transition-opacity outline-none"
+              className="help-icon flex h-6 w-6 items-center justify-center outline-none transition-opacity hover:opacity-80"
               style={{ color: alertColor }}
               aria-label={`Alert: ${alertReason}`}
             >
-              !
+              <TriangleWarningIcon width="10" height="10" />
             </button>
           </Tooltip>
         )}
@@ -195,9 +195,9 @@ function Header({
 // ---------------------------------------------------------------------------
 
 const trendConfig: Record<TrendDirection, { symbol: string; colorClass: string; label: string }> = {
-  up: { symbol: "▲", colorClass: "text-success", label: "Trending up" },
-  down: { symbol: "▼", colorClass: "text-danger", label: "Trending down" },
-  flat: { symbol: "—", colorClass: "text-secondary", label: "No change" },
+  up: { symbol: "+", colorClass: "text-success", label: "Trending up" },
+  down: { symbol: "−", colorClass: "text-danger", label: "Trending down" },
+  flat: { symbol: "·", colorClass: "text-secondary", label: "No change" },
 }
 
 function BasicContent({
@@ -313,8 +313,8 @@ function StackedContent({
 // ---------------------------------------------------------------------------
 
 function getDeadlineColor(progress: number, accent: string): string {
-  if (progress > 0.8) return CHART_THEME.danger
-  if (progress > 0.5) return CHART_THEME.warn
+  if (progress > 0.8) return "var(--color-danger)"
+  if (progress > 0.5) return "var(--color-warn)"
   return accent
 }
 
@@ -406,7 +406,7 @@ function RingContent({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgba(255,255,255,0.08)"
+            stroke="var(--color-border)"
             strokeWidth={strokeWidth}
           />
           <circle
@@ -421,7 +421,6 @@ function RingContent({
             strokeDashoffset={dashOffset}
             style={{
               transition: "stroke-dashoffset 0.5s ease, stroke 0.3s ease",
-              filter: `drop-shadow(0 0 4px ${hexToRgba(color, 0.5)})`,
             }}
           />
         </svg>
@@ -468,7 +467,10 @@ function StatCard(props: StatCardProps) {
   if (props.type === "ring" || props.type === "deadline") {
     const window = ringWindow(props)
     if (!window) return null
-    const ringColor = getDeadlineColor(ringProgress(window), accentColor ?? CHART_THEME.accent)
+    const ringColor = getDeadlineColor(
+      ringProgress(window),
+      accentColor ?? "var(--color-accent)"
+    )
     return (
       <Shell
         accentColor={accentColor}
@@ -487,7 +489,7 @@ function StatCard(props: StatCardProps) {
         />
         <RingContent
           {...window}
-          accentColor={accentColor ?? CHART_THEME.accent}
+          accentColor={accentColor ?? "var(--color-accent)"}
           variant={props.type}
         />
       </Shell>

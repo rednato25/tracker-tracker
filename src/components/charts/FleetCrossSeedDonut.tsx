@@ -80,7 +80,7 @@ function buildFleetCrossSeedOption(
         },
         emphasis: {
           label: { show: true, fontWeight: "bold", color: CHART_THEME.textPrimary },
-          itemStyle: { shadowBlur: 12, shadowColor: "rgba(0,0,0,0.3)" },
+          itemStyle: {},
         },
         data: [
           {

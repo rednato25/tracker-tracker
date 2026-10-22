@@ -50,7 +50,7 @@ function Checkbox({
           className={clsx(
             "absolute inset-0 block rounded-nm-sm transition-all duration-150",
             "peer-focus-visible:ring-2 peer-focus-visible:ring-(--color-control-focus) peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-base",
-            checked ? "nm-raised-sm bg-accent-dim" : "nm-inset-sm bg-control-bg"
+            checked ? "border border-accent bg-accent" : "border border-border bg-control-bg"
           )}
         >
           {checked && (
@@ -58,7 +58,7 @@ function Checkbox({
               className="absolute inset-0 m-auto"
               width="12"
               height="12"
-              stroke="var(--color-accent)"
+              stroke="var(--color-on-accent)"
             />
           )}
         </span>

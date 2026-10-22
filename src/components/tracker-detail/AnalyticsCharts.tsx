@@ -136,7 +136,7 @@ export function AnalyticsCharts({
       </div>
 
       {/* Sticky sidebar */}
-      <DayRangeSidebar days={days} onChange={onDaysChange} accentColor={tc} />
+      <DayRangeSidebar days={days} onChange={onDaysChange} />
     </div>
   )
 }

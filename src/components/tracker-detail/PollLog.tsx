@@ -5,6 +5,7 @@ import clsx from "clsx"
 import { useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { ChevronToggle } from "@/components/ui/ChevronToggle"
+import { CheckIcon, PauseIcon, XIcon } from "@/components/ui/Icons"
 import { formatBytesFromString, formatDateTime, formatRatioDisplay } from "@/lib/formatters"
 import type { Snapshot } from "@/types/api"
 
@@ -56,14 +57,18 @@ export function PollLog({
         <div className="nm-inset-sm bg-control-bg overflow-hidden overflow-x-auto styled-scrollbar rounded-nm-md">
           {userPausedAt && (
             <div className="flex items-center gap-2 px-4 py-2.5 text-xs font-mono text-warn border-b border-border whitespace-nowrap min-w-fit">
-              <span className="shrink-0">⏸</span>
+              <span className="shrink-0">
+                <PauseIcon width="12" height="12" />
+              </span>
               <span className="text-tertiary shrink-0 w-40">{formatDateTime(userPausedAt)}</span>
               <span>Polling paused</span>
             </div>
           )}
           {lastError && !userPausedAt && (
             <div className="flex items-center gap-2 px-4 py-2.5 text-xs font-mono text-danger border-b border-border whitespace-nowrap min-w-fit">
-              <span className="shrink-0">✕</span>
+              <span className="shrink-0">
+                <XIcon width="12" height="12" />
+              </span>
               <span className="text-tertiary shrink-0 w-40">
                 {lastErrorAt ? formatDateTime(lastErrorAt) : lastPolledLabel}
               </span>
@@ -84,7 +89,9 @@ export function PollLog({
                     i % 2 === 0 ? "" : "bg-elevated"
                   )}
                 >
-                  <span className="text-success shrink-0">✓</span>
+                  <span className="shrink-0 text-success">
+                    <CheckIcon width="12" height="12" />
+                  </span>
                   <span className="text-tertiary shrink-0 w-40">
                     {formatDateTime(snap.polledAt)}
                   </span>

@@ -103,7 +103,7 @@ function buildDailyVolumeOption(trackerData: TrackerSnapshotSeries[]): EChartsOp
         return [dayTimestamps[i], val] as [number, number]
       }),
       itemStyle: { color: tracker.color, borderRadius: [2, 2, 0, 0] },
-      emphasis: { itemStyle: { shadowBlur: 8, shadowColor: tracker.color } },
+      emphasis: { itemStyle: { } },
     })
 
     series.push({
@@ -122,7 +122,7 @@ function buildDailyVolumeOption(trackerData: TrackerSnapshotSeries[]): EChartsOp
         opacity: 0.5,
         borderRadius: [0, 0, 2, 2],
       },
-      emphasis: { itemStyle: { shadowBlur: 8, shadowColor: tracker.color } },
+      emphasis: { itemStyle: { } },
     })
   }
 
@@ -285,8 +285,6 @@ function buildRiverOption(trackerData: TrackerSnapshotSeries[]): EChartsOption {
         },
         emphasis: {
           itemStyle: {
-            shadowBlur: 20,
-            shadowColor: "rgba(0, 0, 0, 0.4)",
           },
         },
       },
@@ -467,8 +465,6 @@ function buildSumsOption(trackerData: TrackerSnapshotSeries[]): EChartsOption {
         lineStyle: {
           color: CHART_THEME.upload,
           width: 3,
-          shadowColor: CHART_THEME.upload,
-          shadowBlur: 12,
         },
         areaStyle: {
           color: {
@@ -497,8 +493,6 @@ function buildSumsOption(trackerData: TrackerSnapshotSeries[]): EChartsOption {
         lineStyle: {
           color: CHART_THEME.download,
           width: 3,
-          shadowColor: CHART_THEME.download,
-          shadowBlur: 12,
         },
         areaStyle: {
           color: {

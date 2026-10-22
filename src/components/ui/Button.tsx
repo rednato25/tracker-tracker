@@ -19,23 +19,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const button = cva(
   [
-    "inline-flex items-center justify-center font-sans font-medium",
-    "transition-all duration-150 cursor-pointer select-none",
+    "inline-flex items-center justify-center font-cond font-semibold uppercase tracking-[0.1em]",
+    "transition-colors duration-150 cursor-pointer select-none",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-control-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base",
-    "disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none disabled:shadow-none",
+    "disabled:cursor-not-allowed disabled:pointer-events-none disabled:border-border! disabled:bg-elevated! disabled:text-secondary! disabled:opacity-100!",
   ],
   {
     variants: {
       variant: {
-        primary:
-          "bg-accent-dim text-accent nm-raised-sm hover:nm-raised active:nm-pressed active:scale-[0.93]",
+        primary: "border border-accent bg-accent text-on-accent hover:bg-accent/90",
         secondary:
-          "bg-raised text-primary nm-raised-sm hover:nm-raised active:nm-pressed active:scale-[0.93]",
-        ghost:
-          "bg-transparent text-secondary hover:bg-raised hover:text-primary hover:nm-raised-sm active:scale-[0.96]",
-        danger:
-          "bg-danger-dim text-danger nm-raised-sm hover:nm-raised active:nm-pressed active:scale-[0.93]",
-        minimal: "bg-transparent text-muted hover:text-secondary",
+          "border border-border bg-raised text-primary hover:border-border-emphasis hover:bg-elevated",
+        ghost: "border border-transparent text-secondary hover:bg-elevated hover:text-primary",
+        danger: "border border-danger bg-danger text-on-danger hover:bg-danger/90",
+        minimal: "border border-transparent text-muted hover:text-secondary",
       },
       size: {
         icon: "p-1.5 rounded-nm-sm",

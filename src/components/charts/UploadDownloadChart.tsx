@@ -141,14 +141,10 @@ function buildOption(
         lineStyle: {
           color: accentColor,
           width: 2,
-          shadowColor: accentColor,
-          shadowBlur: 8,
         },
         areaStyle: buildGlowAreaStyle(accentColor),
         emphasis: {
           lineStyle: {
-            shadowBlur: 16,
-            shadowColor: accentColor,
           },
         },
       },
@@ -164,14 +160,10 @@ function buildOption(
         lineStyle: {
           color: complementColor,
           width: 2,
-          shadowColor: complementColor,
-          shadowBlur: 8,
         },
         areaStyle: buildGlowAreaStyle(complementColor, 0.2),
         emphasis: {
           lineStyle: {
-            shadowBlur: 16,
-            shadowColor: complementColor,
           },
         },
       },

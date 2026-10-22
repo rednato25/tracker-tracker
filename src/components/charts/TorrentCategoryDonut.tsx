@@ -82,8 +82,6 @@ function TorrentCategoryDonut({ categories, accentColor }: TorrentCategoryDonutP
         emphasis: {
           label: { show: true },
           itemStyle: {
-            shadowBlur: 12,
-            shadowColor: "rgba(0,0,0,0.3)",
           },
         },
         data: sorted.map((cat, i) => ({

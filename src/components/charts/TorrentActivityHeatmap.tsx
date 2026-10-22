@@ -87,8 +87,6 @@ function buildHeatmapOption(
         label: { show: false },
         emphasis: {
           itemStyle: {
-            shadowBlur: 10,
-            shadowColor: hexToRgba(accentColor, 0.4),
           },
         },
         itemStyle: {

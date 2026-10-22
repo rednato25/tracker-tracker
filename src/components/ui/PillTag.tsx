@@ -4,7 +4,9 @@ import { cva, type VariantProps } from "class-variance-authority"
 import clsx from "clsx"
 import type { HTMLAttributes } from "react"
 
-const pillTagVariants = cva("nm-inset-sm bg-control-bg rounded-nm-pill font-mono", {
+const pillTagVariants = cva(
+  "border border-border bg-control-bg rounded-nm-pill font-mono",
+  {
   variants: {
     color: {
       accent: "text-accent",

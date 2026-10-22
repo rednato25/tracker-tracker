@@ -43,13 +43,13 @@ const shouldPulse: Record<PulseDotStatus, boolean> = {
 const pulseDot = cva("inline-block rounded-full shrink-0", {
   variants: {
     status: {
-      healthy: "text-accent bg-accent",
+      healthy: "text-success bg-success",
       warning: "text-warn bg-warn",
       "no-seeds": "text-danger bg-danger",
       critical: "text-danger bg-danger",
       paused: "text-danger bg-danger",
       "paused-user": "text-warn bg-warn",
-      error: "text-secondary bg-secondary",
+      error: "text-danger bg-danger",
       offline: "text-muted bg-muted",
     },
     size: {

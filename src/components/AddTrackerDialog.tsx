@@ -10,7 +10,7 @@ import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Button } from "@/components/ui/Button"
 import { ColorPicker } from "@/components/ui/ColorPicker"
 import { Dialog } from "@/components/ui/Dialog"
-import { TriangleWarningIcon } from "@/components/ui/Icons"
+import { ChevronDownSmallIcon, TriangleWarningIcon, XIcon } from "@/components/ui/Icons"
 import { InfoTip } from "@/components/ui/InfoTip"
 import { Input } from "@/components/ui/Input"
 import { Notice } from "@/components/ui/Notice"
@@ -160,11 +160,11 @@ function TrackerCombobox({ presets, value, onChange }: TrackerComboboxProps) {
             className="text-muted hover:text-secondary transition-colors cursor-pointer shrink-0 text-xs"
             aria-label="Clear selection"
           >
-            ✕
+            <XIcon width="12" height="12" />
           </button>
         )}
-        <span className="text-tertiary text-3xs shrink-0" aria-hidden="true">
-          ▾
+        <span className="shrink-0 text-tertiary" aria-hidden="true">
+          <ChevronDownSmallIcon width="10" height="7" />
         </span>
       </div>
 

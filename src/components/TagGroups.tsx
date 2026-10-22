@@ -30,6 +30,7 @@ import {
   Tooltip,
 } from "@/components/ui"
 import { EmojiPickerPopover } from "@/components/ui/EmojiPickerPopover"
+import { XIcon } from "@/components/ui/Icons"
 import { QBT_TAG_WARN_PATTERN } from "@/components/ui/QbtTagWarning"
 import { useEscapeKey } from "@/hooks/useEscapeKey"
 import { DOCS } from "@/lib/constants"
@@ -221,7 +222,7 @@ function MemberRow({
           className="shrink-0 text-tertiary hover:text-danger transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed text-base leading-none"
           aria-label="Remove member"
         >
-          ✕
+          <XIcon width="12" height="12" />
         </button>
       </div>
       <Notice variant="warn" message={warn} className="px-1" />

@@ -1,18 +1,26 @@
 // src/app/layout.tsx
 import type { Metadata } from "next"
-import { Archivo, Space_Mono } from "next/font/google"
+import { Barlow, Barlow_Condensed, Roboto_Mono } from "next/font/google"
+import Script from "next/script"
 import type { ReactNode } from "react"
 import "./globals.css"
 
-const archivo = Archivo({
+const barlow = Barlow({
   subsets: ["latin"],
-  variable: "--font-archivo",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-barlow",
 })
 
-const spaceMono = Space_Mono({
+const barlowCondensed = Barlow_Condensed({
   subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-mono",
+  weight: ["500", "600", "700"],
+  variable: "--font-barlow-condensed",
+})
+
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-roboto-mono",
 })
 
 export const metadata: Metadata = {
@@ -28,10 +36,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${archivo.variable} ${spaceMono.variable} font-sans antialiased bg-base text-primary`}
+        className={`${barlow.variable} ${barlowCondensed.variable} ${robotoMono.variable} font-sans antialiased bg-base text-primary`}
       >
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {`(function(){try{var s=localStorage.getItem("theme");var d=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=d?"dark":"light";}catch(e){}})();`}
+        </Script>
         {children}
       </body>
     </html>

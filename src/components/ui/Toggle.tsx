@@ -32,17 +32,17 @@ function Toggle({ label, checked, onChange, disabled = false, description, id }:
         className={clsx(
           "relative shrink-0 w-11 h-6 cursor-pointer",
           "transition-all duration-200",
-          "nm-inset-sm rounded-nm-pill",
+          "border border-border rounded-nm-sm",
           "disabled:opacity-40 disabled:cursor-not-allowed",
-          checked ? "bg-accent-dim" : "bg-control-bg"
+          checked ? "bg-accent" : "bg-control-bg"
         )}
       >
         <span
           className={clsx(
             "absolute top-0.5 block w-5 h-5",
-            "nm-raised-sm rounded-nm-pill",
+            "rounded-nm-sm",
             "transition-all duration-200",
-            checked ? "left-5.5 bg-accent" : "left-0.5 bg-secondary"
+            checked ? "left-5.5 bg-paper-50" : "left-0.5 bg-secondary"
           )}
           aria-hidden="true"
         />

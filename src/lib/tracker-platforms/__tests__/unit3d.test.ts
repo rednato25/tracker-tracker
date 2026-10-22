@@ -41,6 +41,25 @@ describe("Unit3dAdapter", () => {
     expect(stats.hitAndRuns).toBe(0)
   })
 
+  it("reads the last-access day when the build reports one", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        username: "JohnDoe",
+        group: "Power User",
+        uploaded: "500.25 GiB",
+        downloaded: "125.50 GiB",
+        ratio: "3.99",
+        buffer: "374.75 GiB",
+        last_login: "2026-10-20 12:00:00",
+      }),
+    } as Response)
+
+    const stats = await adapter.fetchStats("https://aither.cc", "fake-token", "/api/user")
+
+    expect(stats.lastAccessDate).toBe("2026-10-20")
+  })
+
   it("reports figures the response omits as unknown, not as zero", async () => {
     // unwrapUnit3dResponse requires only uploaded, downloaded and buffer, so a
     // fork that trims the payload reaches the mapping with these absent. Zero

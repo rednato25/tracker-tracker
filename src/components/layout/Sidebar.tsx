@@ -106,8 +106,6 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
 
   const navItems = [
     { href: "/", label: "Dashboard", active: pathname === "/" },
-    { href: "/#register", label: "Register", active: false },
-    { href: "/#today", label: "Today", active: false },
     { href: "/settings", label: "Settings", active: pathname.startsWith("/settings") },
   ]
 

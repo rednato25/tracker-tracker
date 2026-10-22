@@ -25,6 +25,7 @@ interface LoginWindow {
   days: number | null
   label: string
   tone: Tone
+  reason: string
 }
 
 interface RegisterRow {
@@ -59,15 +60,54 @@ function healthTone(health: TrackerHealth): Tone {
 
 function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   const interval = registryEntryFor(tracker)?.rules?.loginIntervalDays
-  if (!interval || !tracker.lastAccessAt) return { days: null, label: "—", tone: "muted" }
+  if (interval === undefined) {
+    return {
+      days: null,
+      label: "—",
+      tone: "muted",
+      reason: "No login interval is defined for this tracker.",
+    }
+  }
+  if (interval === 0) {
+    return {
+      days: null,
+      label: "—",
+      tone: "muted",
+      reason: "This tracker has no mandatory login interval.",
+    }
+  }
+  if (!tracker.lastAccessAt) {
+    return {
+      days: null,
+      label: "—",
+      tone: "muted",
+      reason: "The adapter has not captured a last-access date for this tracker.",
+    }
+  }
   const last = new Date(tracker.lastAccessAt).getTime()
-  if (Number.isNaN(last)) return { days: null, label: "—", tone: "muted" }
+  if (Number.isNaN(last)) {
+    return {
+      days: null,
+      label: "—",
+      tone: "muted",
+      reason: "The captured last-access date could not be parsed.",
+    }
+  }
   const remaining = interval * 86_400_000 - (Date.now() - last)
   const days = Math.max(0, Math.floor(remaining / 86_400_000))
   const tone: Tone = days <= 2 ? "crit" : days <= 7 ? "warn" : "ok"
-  if (remaining <= 0) return { days: 0, label: "due", tone: "crit" }
-  if (days < 1) return { days, label: `${Math.max(1, Math.floor(remaining / 3_600_000))}h`, tone }
-  return { days, label: `${days}d`, tone }
+  if (remaining <= 0) {
+    return { days: 0, label: "due", tone: "crit", reason: "The login window is overdue." }
+  }
+  if (days < 1) {
+    return {
+      days,
+      label: `${Math.max(1, Math.floor(remaining / 3_600_000))}h`,
+      tone,
+      reason: `Next login is due in ${Math.max(1, Math.floor(remaining / 3_600_000))} hours.`,
+    }
+  }
+  return { days, label: `${days}d`, tone, reason: `Next login is due in ${days} days.` }
 }
 
 function readBuffer(tracker: TrackerSummary): { display: string; tone: Tone } {
@@ -435,7 +475,7 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
                 <span className="px-3 font-mono text-3xs tabular-nums text-secondary">
                   {row.seeding}
                 </span>
-                <span className="flex items-center gap-2 px-3">
+                <span className="flex cursor-help items-center gap-2 px-3" title={row.login.reason}>
                   <span className="block h-1 w-10 bg-border">
                     <span
                       className={clsx("block h-1", TONE_MARK[row.login.tone])}
@@ -493,9 +533,14 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
                     <span className="slot-label">Seeding</span>
                     <span className="font-mono text-3xs text-secondary">{row.seeding}</span>
                   </span>
-                  <span className="flex items-baseline justify-between gap-2">
+                  <span
+                    className="flex items-baseline justify-between gap-2"
+                    title={row.login.reason}
+                  >
                     <span className="slot-label">Login</span>
-                    <span className="font-mono text-3xs text-primary">{row.login.label}</span>
+                    <span className="cursor-help font-mono text-3xs text-primary">
+                      {row.login.label}
+                    </span>
                   </span>
                   <span className="col-span-2 flex items-center justify-between gap-2 pt-1">
                     <span className="slot-label">{row.rank}</span>

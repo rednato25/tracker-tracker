@@ -73,6 +73,15 @@ interface Unit3dApiResponse {
   leeching?: number
   seedbonus?: string | number
   hit_and_runs?: number
+  last_login?: string | null
+  last_access?: string | null
+  last_seen?: string | null
+}
+
+/** UNIT3D timestamps are site-local; the register only needs the day. */
+function dateOnly(value: string | null | undefined): string | undefined {
+  if (typeof value !== "string") return undefined
+  return value.trim().match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
 }
 
 // ---------------------------------------------------------------------------
@@ -305,6 +314,7 @@ export class Unit3dAdapter implements TrackerAdapter {
       requiredRatio: null,
       warned: null,
       freeleechTokens: null,
+      lastAccessDate: dateOnly(data.last_access ?? data.last_login ?? data.last_seen),
       // Always an object, even without an expiry, so a poll that stops reporting
       // one overwrites the stale date instead of leaving the card counting down
       // to it. JSON.stringify drops the undefined member.

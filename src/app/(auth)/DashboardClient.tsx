@@ -2,7 +2,6 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { H1 } from "@typography"
 import dynamic from "next/dynamic"
 import { useMemo, useState, useTransition } from "react"
 import { DashboardSkeleton } from "@/app/(auth)/DashboardSkeleton"
@@ -20,7 +19,7 @@ import { TagGroupsSection } from "@/components/dashboard/TagGroupsSection"
 import { TodayAtAGlance } from "@/components/dashboard/TodayAtAGlance"
 import { TodayAtAGlanceSkeleton } from "@/components/dashboard/TodayAtAGlanceSkeleton"
 import { TrackerLeaderboard } from "@/components/dashboard/TrackerLeaderboard"
-import { TrackerOverviewGrid } from "@/components/dashboard/TrackerOverviewGrid"
+import { TrackerRegister } from "@/components/dashboard/TrackerRegister"
 import { useChartPreferences } from "@/components/dashboard/useChartPreferences"
 import { useDashboardSettings } from "@/components/dashboard/useDashboardSettings"
 import { Button, Divider, GearIcon, TabBar } from "@/components/ui"
@@ -32,6 +31,7 @@ import { useSectionCollapse } from "@/hooks/useSectionCollapse"
 import { computeAggregateStats } from "@/lib/dashboard"
 import type { FleetAggregation } from "@/lib/fleet-aggregation"
 import { fleetCachedQueryOptions } from "@/lib/query-options"
+import { getTrackerHealth } from "@/lib/tracker-status"
 import type { Snapshot, TrackerSummary } from "@/types/api"
 import type { TrackerSnapshotSeries } from "@/types/charts"
 
@@ -105,6 +105,14 @@ export function DashboardClient({
     () => buildTrackerSeries(data.trackers, data.snapshotMap),
     [data.trackers, data.snapshotMap]
   )
+  const attentionCount = useMemo(
+    () =>
+      data.trackers.filter((tracker) => {
+        const health = getTrackerHealth(tracker)
+        return health !== "healthy" && health !== "paused-user"
+      }).length,
+    [data.trackers]
+  )
 
   // Sections render expanded until localStorage has been read. Charts gate the other way
   // (collapsed until hydrated) because mounting echarts is expensive; section content is
@@ -113,7 +121,6 @@ export function DashboardClient({
   const isExpanded = (id: string) => !sectionCollapse.hydrated || !sectionCollapse.isCollapsed(id)
 
   const todayAtAGlanceExpanded = isExpanded("today-at-a-glance")
-  const trackersExpanded = isExpanded("trackers")
   const leaderboardExpanded = isExpanded("leaderboard")
   const ecosystemStatsExpanded = isExpanded("ecosystem-stats")
   const loginTimersExpanded = isExpanded("login-timers")
@@ -129,68 +136,56 @@ export function DashboardClient({
   }
 
   return (
-    <div className="flex flex-col gap-10 max-w-6xl mx-auto pb-12">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <H1>Dashboard</H1>
+    <div className="min-h-full">
+      <div className="page-topbar sticky top-0 z-20 -mx-4 -mt-4 mb-6 flex h-14 items-center justify-between border-b border-border bg-raised pl-4 pr-4 md:-mx-6 md:-mt-6 md:pl-7 md:pr-7">
+        <div className="font-cond text-3xs font-semibold uppercase tracking-[0.14em] text-tertiary">
+          Vault / <span className="text-primary">Dashboard</span>
+        </div>
         <div className="flex items-center gap-2">
+          <span className="hidden font-mono text-4xs text-secondary md:inline">
+            {data.trackers.length} {data.trackers.length === 1 ? "accession" : "accessions"} ·{" "}
+            {attentionCount} {attentionCount === 1 ? "needs" : "need"} attention
+          </span>
           <PollAllButton onPollComplete={data.refresh} />
           <Button
             variant="secondary"
-            size="sm"
+            size="icon"
             onClick={() => setSettingsOpen(true)}
             aria-label="Dashboard settings"
-            className="group"
           >
-            <GearIcon
-              width="16"
-              height="16"
-              className="transition-transform duration-300 group-active:rotate-90"
-            />
+            <GearIcon width="16" height="16" />
           </Button>
         </div>
       </div>
 
-      {/* Today At A Glance */}
-      {dashSettings.settings.showTodayAtAGlance && (
-        <div className="flex flex-col gap-4">
-          <SectionToggle
-            label="Today At A Glance"
-            expanded={todayAtAGlanceExpanded}
-            onToggle={() => sectionCollapse.toggle("today-at-a-glance")}
-          />
-          {todayAtAGlanceExpanded &&
-            (data.todayData ? (
-              <TodayAtAGlance data={data.todayData} />
-            ) : data.todayLoading ? (
-              <TodayAtAGlanceSkeleton />
-            ) : null)}
-        </div>
-      )}
+      <div className="mx-auto flex max-w-[1500px] flex-col gap-10 pb-12">
+        <TrackerRegister trackers={data.trackers} />
 
-      {/* Tracker Overview */}
-      <div className="flex flex-col gap-4">
-        <SectionToggle
-          label="Trackers"
-          expanded={trackersExpanded}
-          onToggle={() => sectionCollapse.toggle("trackers")}
-        />
-        {trackersExpanded && (
-          <TrackerOverviewGrid
-            trackers={data.trackers}
-            showHealthIndicators={dashSettings.settings.showHealthIndicators}
+        {/* Alerts */}
+        {data.alerts.length > 0 && (
+          <AlertsBanner
+            alerts={data.alerts}
+            onDismiss={data.dismissAlert}
+            onDismissAll={data.dismissAllAlerts}
           />
         )}
-      </div>
 
-      {/* Alerts */}
-      {data.alerts.length > 0 && (
-        <AlertsBanner
-          alerts={data.alerts}
-          onDismiss={data.dismissAlert}
-          onDismissAll={data.dismissAllAlerts}
-        />
-      )}
+        {/* Today At A Glance */}
+        {dashSettings.settings.showTodayAtAGlance && (
+          <div className="flex flex-col gap-4">
+            <SectionToggle
+              label="Fleet activity"
+              expanded={todayAtAGlanceExpanded}
+              onToggle={() => sectionCollapse.toggle("today-at-a-glance")}
+            />
+            {todayAtAGlanceExpanded &&
+              (data.todayData ? (
+                <TodayAtAGlance data={data.todayData} />
+              ) : data.todayLoading ? (
+                <TodayAtAGlanceSkeleton />
+              ) : null)}
+          </div>
+        )}
 
       {/* Login Timers */}
       {dashSettings.settings.showLoginTimers && (
@@ -280,11 +275,7 @@ export function DashboardClient({
         </div>
 
         {/* Sticky sidebar*/}
-        <DayRangeSidebar
-          days={data.dayRange}
-          onChange={data.setDayRange}
-          accentColor={CHART_THEME.accent}
-        />
+        <DayRangeSidebar days={data.dayRange} onChange={data.setDayRange} />
       </div>
 
       {/* Settings Sheet */}
@@ -294,6 +285,7 @@ export function DashboardClient({
         chartPrefs={chartPrefs}
         dashSettings={dashSettings}
       />
+      </div>
     </div>
   )
 }

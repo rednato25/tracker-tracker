@@ -5,6 +5,7 @@ import { cva } from "class-variance-authority"
 import clsx from "clsx"
 import Link from "next/link"
 import { useCallback, useState } from "react"
+import { XIcon } from "@/components/ui/Icons"
 import type { DashboardAlert } from "@/lib/dashboard"
 import { formatDateTime } from "@/lib/formatters"
 
@@ -13,18 +14,24 @@ import { formatDateTime } from "@/lib/formatters"
 type AlertSeverity = "danger" | "warn" | "accent"
 
 const alertRowVariants = cva(
-  "flex items-start sm:items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 nm-inset-sm bg-control-bg rounded-nm-md border-l-3 transition-transform duration-200 ease-out",
+  "flex items-start sm:items-center gap-2 sm:gap-3 border border-border bg-raised px-3 py-2.5 transition-transform duration-200 ease-out",
   {
     variants: {
       severity: {
-        danger: "border-l-danger",
-        warn: "border-l-warn",
-        accent: "border-l-accent",
+        danger: "border-danger/40",
+        warn: "border-warn/40",
+        accent: "border-accent/40",
       },
     },
     defaultVariants: { severity: "danger" },
   }
 )
+
+const severityMark: Record<AlertSeverity, string> = {
+  danger: "bg-danger",
+  warn: "bg-warn",
+  accent: "bg-accent",
+}
 
 // ── Type config ──
 
@@ -34,18 +41,18 @@ interface AlertsBannerProps {
   onDismissAll?: () => void
 }
 
-const typeConfig: Record<string, { severity: AlertSeverity; icon: string; label: string }> = {
-  error: { severity: "danger", icon: "✕", label: "Error" },
-  "ratio-danger": { severity: "danger", icon: "▼", label: "Ratio" },
-  "stale-data": { severity: "warn", icon: "⏱", label: "Stale" },
-  "rank-change": { severity: "accent", icon: "🎉", label: "Rank" },
-  "zero-seeding": { severity: "warn", icon: "⏸", label: "Seeds" },
-  warned: { severity: "danger", icon: "⚠", label: "Warning" },
-  anniversary: { severity: "accent", icon: "🎂", label: "Anniversary" },
-  "update-available": { severity: "accent", icon: "⬆", label: "Update" },
-  "backup-failed": { severity: "warn", icon: "⚠", label: "Backup" },
-  "client-error": { severity: "danger", icon: "⏹", label: "Client" },
-  "poll-paused": { severity: "danger", icon: "⏸", label: "Paused" },
+const typeConfig: Record<string, { severity: AlertSeverity; label: string }> = {
+  error: { severity: "danger", label: "Error" },
+  "ratio-danger": { severity: "danger", label: "Ratio" },
+  "stale-data": { severity: "warn", label: "Stale" },
+  "rank-change": { severity: "accent", label: "Rank" },
+  "zero-seeding": { severity: "warn", label: "Seeds" },
+  warned: { severity: "danger", label: "Warning" },
+  anniversary: { severity: "accent", label: "Anniversary" },
+  "update-available": { severity: "accent", label: "Update" },
+  "backup-failed": { severity: "warn", label: "Backup" },
+  "client-error": { severity: "danger", label: "Client" },
+  "poll-paused": { severity: "danger", label: "Paused" },
 }
 
 function AlertsBanner({ alerts, onDismiss, onDismissAll }: AlertsBannerProps) {
@@ -86,7 +93,7 @@ function AlertsBanner({ alerts, onDismiss, onDismissAll }: AlertsBannerProps) {
           <button
             type="button"
             onClick={handleDismissAll}
-            className="timestamp hover:text-secondary transition-colors duration-150 cursor-pointer uppercase tracking-wider"
+            className="timestamp inline-flex min-h-6 items-center px-1 uppercase tracking-wider transition-colors duration-150 hover:text-secondary cursor-pointer"
           >
             Clear All
           </button>
@@ -116,19 +123,23 @@ function AlertsBanner({ alerts, onDismiss, onDismissAll }: AlertsBannerProps) {
                 isDismissing ? "-translate-x-3" : "translate-x-0"
               )}
             >
-              <span className="shrink-0 text-sm mt-0.5 sm:mt-0" aria-hidden="true">
-                {config.icon}
-              </span>
+              <span
+                className={clsx(
+                  "mt-1 h-1.5 w-1.5 shrink-0 sm:mt-0",
+                  severityMark[config.severity]
+                )}
+                aria-hidden="true"
+              />
               <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3">
                 {alert.trackerId !== null ? (
                   <Link
                     href={`/trackers/${alert.trackerId}`}
-                    className="font-mono text-xs font-semibold text-secondary uppercase tracking-wider shrink-0 hover:text-primary transition-colors duration-150"
+                    className="flex min-h-6 shrink-0 items-center font-cond text-4xs font-semibold uppercase tracking-[0.12em] text-secondary transition-colors duration-150 hover:text-primary"
                   >
                     {alert.trackerName}
                   </Link>
                 ) : (
-                  <span className="font-mono text-xs font-semibold text-secondary uppercase tracking-wider shrink-0">
+                  <span className="shrink-0 font-cond text-4xs font-semibold uppercase tracking-[0.12em] text-secondary">
                     {alert.trackerName}
                   </span>
                 )}
@@ -143,10 +154,10 @@ function AlertsBanner({ alerts, onDismiss, onDismissAll }: AlertsBannerProps) {
                 <button
                   type="button"
                   onClick={() => handleDismiss(alert.key, alert.type)}
-                  className="text-muted hover:text-secondary transition-colors duration-150 cursor-pointer shrink-0 px-1 mt-0.5 sm:mt-0"
+                  className="mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center text-muted transition-colors duration-150 hover:text-secondary sm:mt-0"
                   aria-label={`Dismiss ${config.label} alert for ${alert.trackerName}`}
                 >
-                  x
+                  <XIcon width="12" height="12" />
                 </button>
               )}
             </div>

@@ -3,8 +3,6 @@
 "use client"
 
 import clsx from "clsx"
-import { CHART_THEME } from "@/components/charts/lib/theme"
-import { hexToRgba } from "@/lib/color-utils"
 import type { DayRange } from "@/types/api"
 
 const DAY_RANGES: { value: DayRange; label: string }[] = [
@@ -19,13 +17,12 @@ const DAY_RANGES: { value: DayRange; label: string }[] = [
 interface DayRangeSidebarProps {
   days: DayRange
   onChange: (days: DayRange) => void
-  accentColor: string
 }
 
-function DayRangeSidebar({ days, onChange, accentColor }: DayRangeSidebarProps) {
+function DayRangeSidebar({ days, onChange }: DayRangeSidebarProps) {
   return (
-    <div className="order-first md:order-0 md:sticky md:top-6 flex flex-row flex-wrap md:flex-col gap-1 p-3 nm-raised-sm bg-elevated md:self-start md:ml-6 rounded-nm-lg">
-      <span className="w-full text-4xs font-sans font-medium text-muted uppercase tracking-wider px-2 pb-1 md:pb-1">
+    <div className="order-first flex flex-row flex-wrap gap-1 rounded-nm-lg border border-border bg-elevated p-3 md:sticky md:top-6 md:order-0 md:ml-6 md:flex-col md:self-start">
+      <span className="w-full px-2 pb-1 font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary md:pb-1">
         Range
       </span>
       {DAY_RANGES.map((d) => {
@@ -36,20 +33,11 @@ function DayRangeSidebar({ days, onChange, accentColor }: DayRangeSidebarProps) 
             type="button"
             onClick={() => onChange(d.value)}
             className={clsx(
-              "px-3 py-1.5 text-xs font-mono cursor-pointer text-center rounded-nm-sm",
+              "cursor-pointer rounded-nm-sm px-3 py-1.5 text-center font-mono text-xs transition-colors duration-150",
               isActive
-                ? "nm-inset-sm"
-                : "transition-all duration-150 hover:nm-raised-sm active:nm-inset-sm active:scale-[0.96]"
+                ? "border border-accent bg-accent-dim font-semibold text-primary"
+                : "border border-transparent text-tertiary hover:border-border hover:bg-raised hover:text-secondary"
             )}
-            style={
-              isActive
-                ? {
-                    backgroundColor: hexToRgba(accentColor, 0.12),
-                    color: accentColor,
-                    fontWeight: 600,
-                  }
-                : { color: CHART_THEME.textTertiary }
-            }
           >
             {d.label}
           </button>

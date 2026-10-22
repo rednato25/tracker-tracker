@@ -153,7 +153,6 @@ function TrackerLeaderboard({ trackers }: { trackers: TrackerSummary[] }) {
       defaultSortKey="ratio"
       defaultSortDirection="desc"
       onRowClick={(t) => router.push(`/trackers/${t.id}`)}
-      rowStyle={(t) => ({ borderLeft: `3px solid ${t.color}` })}
     />
   )
 }

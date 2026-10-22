@@ -6,6 +6,7 @@
 
 import { useCallback, useState } from "react"
 import { Button } from "@/components/ui/Button"
+import { CheckIcon, XIcon } from "@/components/ui/Icons"
 
 function PollRing({ completed, total }: { completed: number; total: number }) {
   const size = 18
@@ -31,7 +32,7 @@ function PollRing({ completed, total }: { completed: number; total: number }) {
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="var(--color-accent, #00d4ff)"
+        stroke="currentColor"
         strokeWidth={stroke}
         strokeDasharray={circumference}
         strokeDashoffset={offset}
@@ -113,7 +114,7 @@ export function PollAllButton({ onPollComplete }: PollAllButtonProps) {
   }, [polling, status, onPollComplete])
 
   return (
-    <Button variant="secondary" size="sm" onClick={handleClick} className="min-w-34">
+    <Button variant="primary" size="sm" onClick={handleClick} className="min-w-34">
       <span className="grid [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:flex [&>*]:items-center [&>*]:justify-center [&>*]:transition-opacity [&>*]:duration-200">
         <span className={polling || status !== "idle" ? "opacity-0" : "opacity-100"}>
           Poll All Now
@@ -129,14 +130,14 @@ export function PollAllButton({ onPollComplete }: PollAllButtonProps) {
             !polling && status === "success" ? "opacity-100" : "opacity-0 pointer-events-none"
           }
         >
-          ✓ All Polled
+          <CheckIcon width="12" height="12" className="mr-1" /> All Polled
         </span>
         <span
           className={
             !polling && status === "failed" ? "opacity-100" : "opacity-0 pointer-events-none"
           }
         >
-          ✕ Some Failed
+          <XIcon width="12" height="12" className="mr-1" /> Some Failed
         </span>
       </span>
     </Button>

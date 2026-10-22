@@ -2,7 +2,6 @@
 
 "use client"
 
-import { CHART_THEME } from "@/components/charts/lib/theme"
 import { ExternalLinkIcon } from "@/components/ui/Icons"
 import { SectionToggle } from "@/components/ui/SectionToggle"
 import { StatCard } from "@/components/ui/StatCard"
@@ -70,7 +69,7 @@ export function LoginTimers({ trackers, expanded, onToggleExpanded }: LoginTimer
                 title={tracker.name}
                 lastAccessAt={lastAccessAt}
                 loginIntervalDays={loginIntervalDays}
-                accentColor={CHART_THEME.success}
+                accentColor="var(--color-success)"
                 className="p-3 nm-interactive-sm rounded-nm-md"
               />
               <span className="absolute top-2 right-2 text-muted opacity-0 group-hover:opacity-60 transition-opacity duration-150">

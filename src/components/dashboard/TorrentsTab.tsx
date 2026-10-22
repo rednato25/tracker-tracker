@@ -29,6 +29,7 @@ import {
 } from "@/components/dashboard/torrents"
 import { useDashboardSettings } from "@/components/dashboard/useDashboardSettings"
 import { Card, LazySection, Notice, TorrentTabSkeleton } from "@/components/ui"
+import { XIcon } from "@/components/ui/Icons"
 import type { TrackerTorrentsData } from "@/hooks/useTrackerTorrents"
 import { formatSpeed, formatTimeAgo } from "@/lib/formatters"
 
@@ -101,7 +102,7 @@ function TorrentsTab({
       {/* Stale data banner that's dismissible, reappears on next mount */}
       {data.stale && data.cachedAt && !staleDismissed && (
         <div className="px-4 py-3 text-xs font-mono text-secondary nm-inset-sm rounded-nm-md flex items-center gap-2">
-          <span className="text-warn">●</span>
+          <span className="block h-1.5 w-1.5 shrink-0 bg-warn" />
           <span className="flex-1">
             Showing cached data from {formatTimeAgo(data.cachedAt)} (client offline)
           </span>
@@ -111,7 +112,7 @@ function TorrentsTab({
             className="text-muted hover:text-secondary transition-colors text-sm leading-none"
             aria-label="Dismiss stale data banner"
           >
-            ✕
+            <XIcon width="12" height="12" />
           </button>
         </div>
       )}

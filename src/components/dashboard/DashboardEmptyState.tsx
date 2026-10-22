@@ -1,11 +1,10 @@
 // src/components/dashboard/DashboardEmptyState.tsx
 "use client"
 
-import { H3, Paragraph } from "@typography"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { AddTrackerDialog } from "@/components/AddTrackerDialog"
-import { Button, Card } from "@/components/ui"
+import { Button, PlusIcon } from "@/components/ui"
 
 interface DashboardEmptyStateProps {
   /** Refetches the dashboard queries once the first tracker exists. */
@@ -24,17 +23,30 @@ function DashboardEmptyState({ onAdded }: DashboardEmptyStateProps) {
   const router = useRouter()
 
   return (
-    <div className="max-w-2xl mx-auto pt-12 pb-12">
-      <Card elevation="raised" className="flex flex-col items-center gap-4 py-10">
-        <div className="text-center flex flex-col gap-2">
-          <H3>No trackers added yet</H3>
-          <Paragraph>
-            Add one of your private tracker accounts to start recording ratio, buffer, and rank.
-            Stats show up here after the first poll.
-          </Paragraph>
+    <div className="mx-auto max-w-2xl pt-12 pb-12">
+      <div className="border border-border bg-raised">
+        <div className="border-b border-border px-6 py-6">
+          <h1 className="font-cond text-4xl font-semibold leading-none text-primary">
+            Account register
+          </h1>
+          <p className="mt-2 font-mono text-3xs text-secondary">
+            No accessions yet · the register begins with one account.
+          </p>
         </div>
-        <Button size="sm" onClick={() => setShowAddDialog(true)} text="Add First Tracker" />
-      </Card>
+        <div className="flex flex-col gap-4 px-6 py-6">
+          <p className="max-w-prose text-xs leading-relaxed text-secondary">
+            Add a private tracker account to record ratio, buffer, seeding, and rank. The first
+            line appears here after the first poll.
+          </p>
+          <div className="flex items-center gap-3">
+            <Button size="sm" onClick={() => setShowAddDialog(true)}>
+              <PlusIcon width="13" height="13" />
+              Add first tracker
+            </Button>
+            <span className="font-mono text-4xs text-muted">Credentials stay on this server.</span>
+          </div>
+        </div>
+      </div>
 
       <AddTrackerDialog
         open={showAddDialog}

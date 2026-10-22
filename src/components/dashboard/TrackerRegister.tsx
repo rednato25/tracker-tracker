@@ -1,0 +1,501 @@
+﻿// src/components/dashboard/TrackerRegister.tsx
+//
+// The account register: one ruled sheet, one row per tracker, and a
+// four-segment viability strip in the last column. This is the dashboard's
+// primary read, not a grid of cards.
+
+"use client"
+
+import clsx from "clsx"
+import Link from "next/link"
+import { registryEntryFor } from "@/data/tracker-registry"
+import {
+  formatAccountAge,
+  formatBytesFromString,
+  formatCount,
+  formatRatioDisplay,
+  formatTimeAgo,
+} from "@/lib/formatters"
+import { getHealthLabel, getTrackerHealth, type TrackerHealth } from "@/lib/tracker-status"
+import type { TrackerSummary } from "@/types/api"
+
+type Tone = "ok" | "warn" | "crit" | "muted"
+
+interface LoginWindow {
+  days: number | null
+  label: string
+  tone: Tone
+}
+
+interface RegisterRow {
+  tracker: TrackerSummary
+  health: TrackerHealth
+  statusTone: Tone
+  ratio: string
+  buffer: string
+  seeding: string
+  login: LoginWindow
+  rank: string
+  shortAge: string | null
+  abbreviation: string
+  statusLabel: string
+  segments: Tone[]
+  passed: number
+}
+
+const TONE_MARK: Record<Tone, string> = {
+  ok: "bg-success",
+  warn: "bg-warn",
+  crit: "bg-danger",
+  muted: "bg-muted",
+}
+
+function healthTone(health: TrackerHealth): Tone {
+  if (health === "healthy") return "ok"
+  if (health === "warning" || health === "no-seeds" || health === "paused-user") return "warn"
+  if (health === "critical" || health === "error" || health === "paused") return "crit"
+  return "muted"
+}
+
+function readLoginWindow(tracker: TrackerSummary): LoginWindow {
+  const interval = registryEntryFor(tracker)?.rules?.loginIntervalDays
+  if (!interval || !tracker.lastAccessAt) return { days: null, label: "—", tone: "muted" }
+  const last = new Date(tracker.lastAccessAt).getTime()
+  if (Number.isNaN(last)) return { days: null, label: "—", tone: "muted" }
+  const remaining = interval * 86_400_000 - (Date.now() - last)
+  const days = Math.max(0, Math.floor(remaining / 86_400_000))
+  const tone: Tone = days <= 2 ? "crit" : days <= 7 ? "warn" : "ok"
+  if (remaining <= 0) return { days: 0, label: "due", tone: "crit" }
+  if (days < 1) return { days, label: `${Math.max(1, Math.floor(remaining / 3_600_000))}h`, tone }
+  return { days, label: `${days}d`, tone }
+}
+
+function readBuffer(tracker: TrackerSummary): { display: string; tone: Tone } {
+  const raw = tracker.latestStats?.bufferBytes
+  if (!raw) return { display: "—", tone: "muted" }
+  try {
+    const value = BigInt(raw)
+    const display = formatBytesFromString(raw)
+    return {
+      display: value > 0n && !display.startsWith("+") ? `+${display}` : display,
+      tone: value > 0n ? "ok" : value < 0n ? "crit" : "warn",
+    }
+  } catch {
+    return { display: formatBytesFromString(raw), tone: "muted" }
+  }
+}
+
+function readSegments(tracker: TrackerSummary, login: LoginWindow): Tone[] {
+  const stats = tracker.latestStats
+  if (!stats) return ["muted", "muted", "muted", "muted"]
+
+  const requirement =
+    stats.requiredRatio ?? registryEntryFor(tracker)?.rules?.minimumRatio ?? 1
+  const ratioTone: Tone = stats.ratioIsInfinite
+    ? "ok"
+    : stats.ratio === null
+      ? "muted"
+      : stats.ratio >= 2 * requirement
+        ? "ok"
+        : stats.ratio >= requirement
+          ? "warn"
+          : "crit"
+
+  const bufferTone = readBuffer(tracker).tone
+
+  const seedTone: Tone =
+    stats.seedingCount === null ? "muted" : stats.seedingCount > 0 ? "ok" : "crit"
+
+  return [ratioTone, bufferTone, seedTone, login.tone]
+}
+
+function compactAge(value: string | null): string | null {
+  if (!value) return null
+  return value
+    .replace(/,\s*/g, " ")
+    .replace(/\s*years?/g, "y")
+    .replace(/\s*months?/g, "m")
+    .replace(/\s*days?/g, "d")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function buildRows(trackers: TrackerSummary[]): RegisterRow[] {
+  return trackers.map((tracker) => {
+    const health = getTrackerHealth(tracker)
+    const login = readLoginWindow(tracker)
+    const segments = readSegments(tracker, login)
+    const buffer = readBuffer(tracker)
+    const abbreviation =
+      registryEntryFor(tracker)?.abbreviation ?? tracker.platformType.toUpperCase()
+    const ratio = formatRatioDisplay(tracker.latestStats?.ratio ?? null)
+
+    return {
+      tracker,
+      health,
+      statusTone: healthTone(health),
+      statusLabel: getHealthLabel(health),
+      ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}×` : ratio,
+      buffer: buffer.display,
+      seeding: formatCount(tracker.latestStats?.seedingCount),
+      login,
+      rank: tracker.latestStats?.group ?? "—",
+      shortAge: compactAge(formatAccountAge(tracker.joinedAt)),
+      abbreviation,
+      segments,
+      passed: segments.filter((segment) => segment === "ok").length,
+    }
+  })
+}
+
+function ViabilityStrip({ segments, passed }: { segments: Tone[]; passed: number }) {
+  const known = segments.some((segment) => segment !== "muted")
+  return (
+    <span className="flex items-center gap-2">
+      <span className="flex h-[7px] w-[92px] shrink-0 gap-[2px]" aria-hidden="true">
+        {segments.map((tone, index) => (
+          <span key={index} className={clsx("block h-full flex-1", TONE_MARK[tone])} />
+        ))}
+      </span>
+      <span className="font-mono text-3xs text-secondary">{known ? `${passed}/4` : "—"}</span>
+    </span>
+  )
+}
+
+function StatusMark({ tone, label }: { tone: Tone; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={clsx("h-1.5 w-1.5 shrink-0", TONE_MARK[tone])} aria-hidden="true" />
+      <span className="font-cond text-4xs font-semibold uppercase tracking-[0.12em] text-primary">
+        {label}
+      </span>
+    </span>
+  )
+}
+
+function AccountCell({ row }: { row: RegisterRow }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span
+        className={clsx("h-1.5 w-1.5 shrink-0", TONE_MARK[row.statusTone])}
+        aria-hidden="true"
+      />
+      <span className="min-w-0">
+        <span className="block truncate text-xs font-semibold text-primary">
+          {row.tracker.name}
+        </span>
+        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-4xs text-secondary">
+          <span className="hidden shrink-0 font-cond font-semibold uppercase tracking-[0.08em] text-primary md:inline">
+            {row.statusLabel}
+          </span>
+          <span className="hidden shrink-0 md:inline">·</span>
+          <span className="truncate">
+            {row.abbreviation}
+            {row.shortAge ? ` · ${row.shortAge}` : ""}
+          </span>
+        </span>
+      </span>
+    </span>
+  )
+}
+
+function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
+  const windows = rows
+    .filter((row) => row.login.days !== null)
+    .sort((a, b) => (a.login.days ?? 0) - (b.login.days ?? 0))
+    .slice(0, 4)
+
+  const hnr = rows
+    .filter((row) => (row.tracker.latestStats?.hitAndRuns ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.tracker.latestStats?.hitAndRuns ?? 0) - (a.tracker.latestStats?.hitAndRuns ?? 0)
+    )
+    .slice(0, 4)
+
+  const polled = rows.filter((row) => row.tracker.lastPolledAt)
+  const latestPoll = polled
+    .map((row) => row.tracker.lastPolledAt)
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1)
+  const errors = rows.filter((row) => row.tracker.lastError).length
+
+  return (
+    <div id="today" className="grid border-t border-border-emphasis bg-raised md:grid-cols-3">
+      <section className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
+        <h2 className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+          Login windows
+        </h2>
+        {windows.length === 0 ? (
+          <p className="mt-2 text-3xs text-secondary">No login intervals on record.</p>
+        ) : (
+          <ul className="mt-1.5 flex flex-col">
+            {windows.map((row) => (
+              <li
+                key={row.tracker.id}
+                className="flex items-center justify-between gap-3 border-b border-border-soft py-1.5 last:border-b-0"
+              >
+                <Link
+                  href={`/trackers/${row.tracker.id}`}
+                  className="flex min-h-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
+                >
+                  {row.tracker.name}
+                </Link>
+                <span className="font-mono text-3xs text-secondary">{row.login.label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
+        <h2 className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+          H&amp;R watch
+        </h2>
+        {hnr.length === 0 ? (
+          <p className="mt-2 text-3xs text-secondary">No open H&amp;R on the register.</p>
+        ) : (
+          <ul className="mt-1.5 flex flex-col">
+            {hnr.map((row) => (
+              <li
+                key={row.tracker.id}
+                className="flex items-center justify-between gap-3 border-b border-border-soft py-1.5 last:border-b-0"
+              >
+                <Link
+                  href={`/trackers/${row.tracker.id}`}
+                  className="flex min-h-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
+                >
+                  {row.tracker.name}
+                </Link>
+                <span className="font-mono text-3xs text-danger">
+                  {row.tracker.latestStats?.hitAndRuns} open
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="px-4 py-3">
+        <h2 className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+          Poll status
+        </h2>
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+          <div>
+            <dt className="font-mono text-3xs text-secondary">Polled</dt>
+            <dd className="font-mono text-sm text-primary">
+              {polled.length}/{rows.length}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-mono text-3xs text-secondary">Errors</dt>
+            <dd className={clsx("font-mono text-sm", errors > 0 ? "text-danger" : "text-primary")}>
+              {errors}
+            </dd>
+          </div>
+          <div className="col-span-2">
+            <dt className="font-mono text-3xs text-secondary">Last poll</dt>
+            <dd className="font-mono text-3xs text-secondary">
+              {latestPoll ? formatTimeAgo(latestPoll) : "Not polled yet"}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  )
+}
+
+function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
+  const rows = buildRows(trackers)
+  const healthy = rows.filter((row) => row.statusTone === "ok").length
+  const watch = rows.filter((row) => row.statusTone === "warn").length
+  const critical = rows.filter((row) => row.statusTone === "crit").length
+
+  return (
+    <section id="register" className="flex flex-col gap-4">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div>
+          <h1 className="font-cond text-4xl font-semibold leading-none tracking-[-0.01em] text-primary">
+            Account register
+          </h1>
+          <p className="mt-2 font-mono text-3xs text-secondary">
+            {rows.length} {rows.length === 1 ? "accession" : "accessions"} · last poll{" "}
+            {rows
+              .map((row) => row.tracker.lastPolledAt)
+              .filter((value): value is string => Boolean(value))
+              .sort()
+              .at(-1)
+              ? formatTimeAgo(
+                  rows
+                    .map((row) => row.tracker.lastPolledAt)
+                    .filter((value): value is string => Boolean(value))
+                    .sort()
+                    .at(-1) as string
+                )
+              : "not yet"}
+            {rows.length > 9 && (
+              <span className="hidden min-[1280px]:inline">
+                {" "}
+                · showing 9 of {rows.length} · scroll for more
+              </span>
+            )}
+          </p>
+        </div>
+        <span
+          className={clsx(
+            "self-start -rotate-1 border px-2.5 py-1.5 font-cond text-4xs font-semibold uppercase tracking-[0.16em]",
+            critical > 0
+              ? "border-danger bg-danger-dim text-danger"
+              : "border-border-emphasis bg-elevated text-secondary"
+          )}
+        >
+          {critical > 0 ? "Cold chain breached" : "Cold chain intact"}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 border-y border-border-emphasis bg-raised md:grid-cols-4">
+        <div className="border-b border-r border-border px-4 py-3 md:border-b-0">
+          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-success">
+            {String(healthy).padStart(2, "0")}
+          </span>
+          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Healthy
+          </span>
+        </div>
+        <div className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
+          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-warn">
+            {String(watch).padStart(2, "0")}
+          </span>
+          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Watch
+          </span>
+        </div>
+        <div className="border-r border-border px-4 py-3">
+          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-danger">
+            {String(critical).padStart(2, "0")}
+          </span>
+          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Critical
+          </span>
+        </div>
+        <div className="px-4 py-3">
+          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-primary">
+            {String(rows.length).padStart(2, "0")}
+          </span>
+          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Total accessions
+          </span>
+        </div>
+      </div>
+
+      <div className="hidden border border-border bg-raised min-[1280px]:block">
+        <div className="grid h-8 grid-cols-[1.6fr_.62fr_.8fr_.72fr_.9fr_1fr_1.25fr] items-center border-b border-border-emphasis bg-elevated px-1">
+          {["Account", "Ratio", "Buffer", "Seeding", "Login due", "Rank", "Viability"].map(
+            (label) => (
+              <span
+                key={label}
+                className="px-3 font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary"
+              >
+                {label}
+              </span>
+            )
+          )}
+        </div>
+        <ul className="styled-scrollbar-visible m-0 max-h-[432px] list-none overflow-y-auto p-0">
+          {rows.map((row) => (
+            <li key={row.tracker.id} className="border-b border-border last:border-b-0">
+              <Link
+                href={`/trackers/${row.tracker.id}`}
+                className={clsx(
+                  "grid h-12 grid-cols-[1.6fr_.62fr_.8fr_.72fr_.9fr_1fr_1.25fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
+                  row.statusTone === "crit" && "bg-danger-dim",
+                  row.statusTone === "warn" && "bg-warn-dim"
+                )}
+              >
+                <span className="px-3">
+                  <AccountCell row={row} />
+                </span>
+                <span className="px-3 font-mono text-3xs tabular-nums text-primary">
+                  {row.ratio}
+                </span>
+                <span className="px-3 font-mono text-3xs tabular-nums text-secondary">
+                  {row.buffer}
+                </span>
+                <span className="px-3 font-mono text-3xs tabular-nums text-secondary">
+                  {row.seeding}
+                </span>
+                <span className="flex items-center gap-2 px-3">
+                  <span className="block h-1 w-10 bg-border">
+                    <span
+                      className={clsx("block h-1", TONE_MARK[row.login.tone])}
+                      style={{
+                        width:
+                          row.login.days === null
+                            ? "0%"
+                            : `${Math.max(10, Math.min(100, row.login.days * 3))}%`,
+                      }}
+                    />
+                  </span>
+                  <span className="font-mono text-3xs text-primary">{row.login.label}</span>
+                </span>
+                <span className="truncate px-3 font-mono text-3xs text-secondary">{row.rank}</span>
+                <span className="px-3">
+                  <ViabilityStrip segments={row.segments} passed={row.passed} />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="border border-border bg-raised min-[1280px]:hidden">
+        <ul className="m-0 list-none p-0">
+          {rows.map((row) => (
+            <li key={row.tracker.id} className="border-b border-border last:border-b-0">
+              <Link
+                href={`/trackers/${row.tracker.id}`}
+                className={clsx(
+                  "flex flex-col gap-2 px-3 py-3",
+                  row.statusTone === "crit" && "bg-danger-dim",
+                  row.statusTone === "warn" && "bg-warn-dim"
+                )}
+              >
+                <span className="flex items-start justify-between gap-3">
+                  <AccountCell row={row} />
+                  <StatusMark tone={row.statusTone} label={getHealthLabel(row.health)} />
+                </span>
+                <span className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border-soft pt-2">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="slot-label">Ratio</span>
+                    <span className="font-mono text-3xs text-primary">{row.ratio}</span>
+                  </span>
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="slot-label">Buffer</span>
+                    <span className="font-mono text-3xs text-secondary">{row.buffer}</span>
+                  </span>
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="slot-label">Seeding</span>
+                    <span className="font-mono text-3xs text-secondary">{row.seeding}</span>
+                  </span>
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="slot-label">Login</span>
+                    <span className="font-mono text-3xs text-primary">{row.login.label}</span>
+                  </span>
+                  <span className="col-span-2 flex items-center justify-between gap-2 pt-1">
+                    <span className="slot-label">{row.rank}</span>
+                    <ViabilityStrip segments={row.segments} passed={row.passed} />
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <RegisterFoot rows={rows} />
+    </section>
+  )
+}
+
+export { TrackerRegister }

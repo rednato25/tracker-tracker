@@ -24,11 +24,11 @@ export function TrackerBreakdownTicker({ trackers }: TrackerBreakdownProps) {
         return (
           <div
             key={tracker.id}
-            className="nm-raised-sm rounded-full px-3 py-1 flex items-center gap-2"
+            className="flex items-center gap-2 rounded-nm-sm border border-border px-2 py-1"
           >
             <span className="color-dot" style={{ backgroundColor: dotColor }} />
-            <span className="text-xs font-sans text-primary">{tracker.name}</span>
-            <span className="text-xs font-mono text-secondary">
+            <span className="text-xs font-medium text-primary">{tracker.name}</span>
+            <span className="font-mono text-3xs text-secondary">
               {formatBytesFromString(tracker.uploadDelta)}
             </span>
           </div>

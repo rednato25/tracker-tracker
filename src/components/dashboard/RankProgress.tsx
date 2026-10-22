@@ -2,9 +2,9 @@
 "use client"
 
 import clsx from "clsx"
-import type { CSSProperties } from "react"
 import { useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
+import { ChevronDownSmallIcon, ChevronUpSmallIcon } from "@/components/ui/Icons"
 import { RedactedText } from "@/components/ui/RedactedText"
 import { SectionToggle } from "@/components/ui/SectionToggle"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
@@ -151,50 +151,27 @@ function classifyDirection(
 
 type RankChipState = "current" | "past" | "future" | "outside"
 
-function chipStyle(state: RankChipState, accentColor: string): CSSProperties {
+function chipClass(state: RankChipState): string {
   if (state === "current") {
-    return {
-      backgroundColor: hexToRgba(accentColor, 0.15),
-      color: accentColor,
-      fontWeight: 600,
-      boxShadow: `0 0 12px ${hexToRgba(accentColor, 0.2)}`,
-    }
+    return "border border-accent bg-accent/15 font-semibold text-primary"
   }
   if (state === "past") {
-    return {
-      backgroundColor: hexToRgba(accentColor, 0.06),
-      color: hexToRgba(accentColor, 0.6),
-    }
+    return "border border-transparent bg-accent/5 text-secondary"
   }
   if (state === "future") {
-    return {
-      backgroundColor: "transparent",
-      color: CHART_THEME.borderMid,
-      border: `1px dashed ${CHART_THEME.borderEmphasis}`,
-    }
+    return "border border-dashed border-border-emphasis text-secondary"
   }
-  return { color: CHART_THEME.textSecondary }
+  return "border border-transparent text-secondary opacity-60"
 }
 
-function RankChip({
-  name,
-  state,
-  accentColor,
-  title,
-}: {
-  name: string
-  state: RankChipState
-  accentColor: string
-  title?: string
-}) {
+function RankChip({ name, state, title }: { name: string; state: RankChipState; title?: string }) {
   return (
     <div
       className={clsx(
-        "px-3 py-1.5 text-xs font-mono transition-all duration-150 shrink-0 rounded-nm-pill",
-        state === "outside" && "opacity-60"
+        "shrink-0 rounded-nm-sm border px-3 py-1.5 font-mono text-xs transition-colors duration-150",
+        chipClass(state)
       )}
       title={title}
-      style={chipStyle(state, accentColor)}
     >
       {name}
     </div>
@@ -242,7 +219,6 @@ function RankProgressBar({ userClasses, currentRank, accentColor }: RankProgress
             <RankChip
               name={uc.name}
               state={state}
-              accentColor={accentColor}
               title={uc.outsideLadder ? OUTSIDE_LADDER_NOTE[uc.outsideLadder] : undefined}
             />
           </div>
@@ -294,7 +270,7 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
                       }}
                     />
                   )}
-                  <RankChip name={rung.name} state={sharedState(index)} accentColor={accentColor} />
+                  <RankChip name={rung.name} state={sharedState(index)} />
                   <div
                     className="w-5 h-px shrink-0"
                     style={{
@@ -311,7 +287,6 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
               <RankChip
                 name={forest.shared[forest.shared.length - 1].name}
                 state={sharedState(forest.shared.length - 1)}
-                accentColor={accentColor}
               />
             </div>
             <div aria-hidden="true" />
@@ -377,7 +352,7 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
                     {path.label}
                   </span>
                   {path.description && (
-                    <span className="text-4xs font-mono text-muted">{path.description}</span>
+                    <span className="text-4xs font-mono text-secondary">{path.description}</span>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-1">
@@ -400,7 +375,7 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
                             }}
                           />
                         )}
-                        <RankChip name={rung.name} state={state} accentColor={accentColor} />
+                        <RankChip name={rung.name} state={state} />
                       </div>
                     )
                   })}
@@ -419,7 +394,6 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
                 state={
                   uc.name.toLowerCase() === forest.shownClass?.toLowerCase() ? "current" : "outside"
                 }
-                accentColor={accentColor}
                 title={uc.outsideLadder ? OUTSIDE_LADDER_NOTE[uc.outsideLadder] : undefined}
               />
             ))}
@@ -455,12 +429,18 @@ function RankTimeline({ events, accentColor }: RankTimelineProps) {
 
         const dirColor =
           event.direction === "promotion"
-            ? CHART_THEME.success
+            ? "var(--color-success)"
             : event.direction === "demotion"
-              ? CHART_THEME.danger
-              : accentColor
-        const dirIcon =
-          event.direction === "promotion" ? "▲" : event.direction === "demotion" ? "▼" : "→"
+              ? "var(--color-danger)"
+              : "var(--color-secondary)"
+        const DirIcon =
+          event.direction === "promotion" ? ChevronUpSmallIcon : ChevronDownSmallIcon
+        const dirIconClass =
+          event.direction === "promotion"
+            ? "text-success"
+            : event.direction === "demotion"
+              ? "text-danger"
+              : "-rotate-90 text-secondary"
 
         const dateStr = new Date(event.date).toLocaleDateString("en-US", {
           month: "short",
@@ -471,8 +451,8 @@ function RankTimeline({ events, accentColor }: RankTimelineProps) {
         return (
           <div key={`${event.date}-${event.to}`} className="flex flex-col gap-0.5 shrink-0">
             <div className="flex items-center gap-2 whitespace-nowrap">
-              <span className="text-4xs leading-none shrink-0" style={{ color: dirColor }}>
-                {dirIcon}
+              <span className={clsx("shrink-0 leading-none", dirIconClass)}>
+                <DirIcon width="9" height="6" />
               </span>
               <span className="text-xs font-mono text-secondary">
                 <RedactedText
@@ -480,7 +460,11 @@ function RankTimeline({ events, accentColor }: RankTimelineProps) {
                   color="var(--color-tertiary)"
                   className="text-tertiary"
                 />
-                <span className="text-muted mx-1">→</span>
+                <ChevronDownSmallIcon
+                  width="9"
+                  height="6"
+                  className="mx-1 inline-block -rotate-90 text-tertiary"
+                />
                 <RedactedText value={event.to} color={dirColor} className="font-semibold" />
               </span>
             </div>

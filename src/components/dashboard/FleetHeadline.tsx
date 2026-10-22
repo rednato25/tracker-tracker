@@ -79,7 +79,7 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
         value={bufferParts.num}
         unit={bufferParts.unit}
         subValue={pctLabel(bufferPct)}
-        accentColor={CHART_THEME.accent}
+        accentColor="var(--color-accent)"
         icon={<ShieldIcon width="16" height="16" />}
       />
 
@@ -89,8 +89,8 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
         trend={ratioTrend}
         accentColor={
           fleet.ratioChange !== null && fleet.ratioChange < 0
-            ? CHART_THEME.danger
-            : CHART_THEME.success
+            ? "var(--color-danger)"
+            : "var(--color-success)"
         }
         icon={<RatioIcon width="16" height="16" />}
       />

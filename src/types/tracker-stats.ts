@@ -249,6 +249,19 @@ export interface MteamPlatformMeta {
   vip?: boolean
 }
 
+/**
+ * Portugas exposes a few extra figures in its profile sidebar.
+ */
+export interface PortugasPlatformMeta {
+  invites?: number
+  /** H&R warnings currently on the account, from "Contagem de HnR". */
+  hnrCount?: number
+  /** Bytes currently seeding, from "Tamanho das Sementes". */
+  seedSizeBytes?: number
+  /** Real ratio, before BON credits, from "Real Rácio". */
+  realRatio?: number
+}
+
 /** Union of all platform-specific metadata types */
 export type PlatformMeta =
   | GGnPlatformMeta
@@ -263,6 +276,7 @@ export type PlatformMeta =
   | RetrotoonPlatformMeta
   | C411PlatformMeta
   | MteamPlatformMeta
+  | PortugasPlatformMeta
 
 /** Maps platformType string → the corresponding PlatformMeta variant */
 export interface PlatformMetaMap {
@@ -278,6 +292,7 @@ export interface PlatformMetaMap {
   retrotoon: RetrotoonPlatformMeta
   c411: C411PlatformMeta
   mteam: MteamPlatformMeta
+  portugas: PortugasPlatformMeta
 }
 
 /**

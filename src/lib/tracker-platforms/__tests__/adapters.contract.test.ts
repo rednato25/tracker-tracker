@@ -39,6 +39,7 @@ const CREDENTIALS: Record<string, string> = {
   torrentleech: JSON.stringify({ username: "someone", password: CANARY }),
   digitalcore: JSON.stringify({ uid: "54321", pass: CANARY }),
   mteam: CANARY,
+  portugas: cookieBlob(),
 }
 
 /**

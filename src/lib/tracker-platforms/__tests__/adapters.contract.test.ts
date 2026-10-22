@@ -40,6 +40,7 @@ const CREDENTIALS: Record<string, string> = {
   digitalcore: JSON.stringify({ uid: "54321", pass: CANARY }),
   mteam: CANARY,
   portugas: cookieBlob(),
+  carpt: cookieBlob(),
 }
 
 /**

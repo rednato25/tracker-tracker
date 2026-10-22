@@ -333,6 +333,22 @@ describe("tracker registry", () => {
     expect(TRACKER_REGISTRY.length).toBeGreaterThanOrEqual(2)
   })
 
+  it("has no unreferenced logo files", () => {
+    const referenced = new Set(
+      ALL_TRACKERS.map((tracker) => tracker.logo)
+        .filter((logo): logo is string => Boolean(logo))
+        .map((logo) => path.basename(logo))
+    )
+    // The MAM mouse-hole card ships its own mark outside the registry.
+    const nonRegistry = new Set(["mousehole_logo.svg"])
+    const files = fs
+      .readdirSync(LOGO_DIR)
+      .filter((file) => /\.(svg|png)$/i.test(file))
+      .filter((file) => !referenced.has(file) && !nonRegistry.has(file))
+
+    expect(files, `Unreferenced logo files: ${files.join(", ")}`).toEqual([])
+  })
+
   describe("gazelle auth styles", () => {
     // Issue #155. RED answers the prefixed `token <key>` form with a 401, so it
     // must stay on the raw style.

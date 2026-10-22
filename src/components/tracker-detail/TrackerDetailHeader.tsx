@@ -92,7 +92,8 @@ export function TrackerDetailHeader({
                 href={tracker.baseUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted hover:text-accent transition-colors duration-150 shrink-0"
+                className="flex h-6 w-6 shrink-0 items-center justify-center text-muted transition-colors duration-150 hover:text-accent"
+                aria-label={`Open ${tracker.name}`}
               >
                 <ExternalLinkSmallIcon width="16" height="16" />
               </a>

@@ -65,6 +65,12 @@ export function AuthShell({ children }: { children: ReactNode }) {
       data-mounted={String(mounted)}
       data-mobile={String(isMobile)}
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:border focus:border-accent focus:bg-raised focus:px-3 focus:py-2 focus:font-cond focus:text-xs focus:font-semibold focus:uppercase focus:tracking-[0.12em] focus:text-primary"
+      >
+        Skip to main content
+      </a>
       {/* Mounted in the persistent shell, not a page: the first-run prompt must
           survive the add-first-tracker redirect instead of vanishing with the
           dashboard. It renders nothing once answered. */}
@@ -81,7 +87,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
       )}
       <Sidebar collapsed={effectiveCollapsed} onToggle={toggle} isMobile={isMobile} />
       <main
+        id="main-content"
         ref={mainRef}
+        tabIndex={-1}
         className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6 relative themed-scrollbar"
       >
         {showHamburger && (

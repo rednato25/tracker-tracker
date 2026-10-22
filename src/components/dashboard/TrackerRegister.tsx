@@ -292,7 +292,7 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
               >
                 <Link
                   href={`/trackers/${row.tracker.id}`}
-                  className="flex min-h-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
+                  className="flex min-h-6 min-w-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
                 >
                   {row.tracker.name}
                 </Link>
@@ -318,7 +318,7 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
               >
                 <Link
                   href={`/trackers/${row.tracker.id}`}
-                  className="flex min-h-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
+                  className="flex min-h-6 min-w-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
                 >
                   {row.tracker.name}
                 </Link>

@@ -116,8 +116,8 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
           "h-screen flex flex-col bg-rail text-rail-text border-r border-rail-line overflow-x-clip",
           isMobile ? "fixed inset-y-0 left-0 z-30 shrink-0" : "shrink-0"
         )}
-        aria-hidden={isMobile && collapsed ? true : undefined}
-        inert={isMobile && collapsed ? true : undefined}
+        aria-hidden={collapsed ? true : undefined}
+        inert={collapsed ? true : undefined}
         style={
           isMobile
             ? {

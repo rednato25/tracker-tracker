@@ -451,7 +451,10 @@ function RankTimeline({ events, accentColor }: RankTimelineProps) {
         return (
           <div key={`${event.date}-${event.to}`} className="flex flex-col gap-0.5 shrink-0">
             <div className="flex items-center gap-2 whitespace-nowrap">
-              <span className={clsx("shrink-0 leading-none", dirIconClass)}>
+              <span
+                data-direction={event.direction}
+                className={clsx("shrink-0 leading-none", dirIconClass)}
+              >
                 <DirIcon width="9" height="6" />
               </span>
               <span className="text-xs font-mono text-secondary">

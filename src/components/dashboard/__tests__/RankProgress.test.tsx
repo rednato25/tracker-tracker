@@ -81,13 +81,13 @@ describe("RankProgress pills", () => {
 
   it("still highlights the current class through the case-insensitive matcher", () => {
     renderPills("power user")
-    expect(screen.getByText("Power User")).toHaveStyle({ fontWeight: 600 })
-    expect(screen.getByText("User")).not.toHaveStyle({ fontWeight: 600 })
+    expect(screen.getByText("Power User")).toHaveClass("font-semibold")
+    expect(screen.getByText("User")).not.toHaveClass("font-semibold")
   })
 
   it("highlights a current class even when it sits outside the ladder", () => {
     renderPills("Uploader")
-    expect(screen.getByText("Uploader")).toHaveStyle({ fontWeight: 600 })
+    expect(screen.getByText("Uploader")).toHaveClass("font-semibold")
   })
 
   it("styles no rung as past for a member in a below state", () => {
@@ -111,7 +111,7 @@ describe("RankProgress pills", () => {
     const leech = screen.getByText("Leech")
     expect(leech).not.toHaveStyle({ backgroundColor: "rgba(0, 212, 255, 0.06)" })
     expect(leech).not.toHaveStyle({ borderStyle: "dashed" })
-    expect(leech).toHaveStyle({ color: "rgb(82, 97, 89)" })
+    expect(leech).toHaveClass("text-secondary")
   })
 })
 
@@ -160,59 +160,59 @@ function renderPathChange(from: string, to: string) {
 
 describe("RankProgress timeline direction", () => {
   it("reads a drop from the top rung into a below state as a demotion", () => {
-    renderChange("Archivist", "Parked")
-    expect(screen.getByText("▼")).toBeInTheDocument()
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
+    const { container } = renderChange("Archivist", "Parked")
+    expect(container.querySelector('[data-direction="demotion"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a drop from the first rung into a below state as a demotion", () => {
-    renderChange("User", "Leech")
-    expect(screen.getByText("▼")).toBeInTheDocument()
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
+    const { container } = renderChange("User", "Leech")
+    expect(container.querySelector('[data-direction="demotion"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a move between two above classes as neither promotion nor demotion", () => {
-    renderChange("Uploader", "Moderator")
+    const { container } = renderChange("Uploader", "Moderator")
     expect(screen.getByText("Moderator")).toBeInTheDocument()
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
-    expect(screen.queryByText("▼")).not.toBeInTheDocument()
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a move from a rung into an above class as neither promotion nor demotion", () => {
-    renderChange("Member", "Uploader")
+    const { container } = renderChange("Member", "Uploader")
     expect(screen.getByText("Uploader")).toBeInTheDocument()
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
-    expect(screen.queryByText("▼")).not.toBeInTheDocument()
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a move from an above class down to a rung as neither promotion nor demotion", () => {
-    renderChange("Uploader", "Member")
+    const { container } = renderChange("Uploader", "Member")
     expect(screen.getByText("Member")).toBeInTheDocument()
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
-    expect(screen.queryByText("▼")).not.toBeInTheDocument()
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a move from the shared prefix into a branch as a promotion", () => {
-    renderPathChange("Explorer", "Bulker")
-    expect(screen.getByText("▲")).toBeInTheDocument()
-    expect(screen.queryByText("▼")).not.toBeInTheDocument()
+    const { container } = renderPathChange("Explorer", "Bulker")
+    expect(container.querySelector('[data-direction="promotion"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a drop inside a branch as a demotion", () => {
-    renderPathChange("Force", "Bulker")
-    expect(screen.getByText("▼")).toBeInTheDocument()
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
+    const { container } = renderPathChange("Force", "Bulker")
+    expect(container.querySelector('[data-direction="demotion"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a move between branches as neither promotion nor demotion", () => {
-    renderPathChange("Bulker", "Climber")
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
-    expect(screen.queryByText("▼")).not.toBeInTheDocument()
+    const { container } = renderPathChange("Bulker", "Climber")
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a move from a branch back to the shared prefix as a demotion", () => {
-    renderPathChange("Bulker", "Explorer")
-    expect(screen.getByText("▼")).toBeInTheDocument()
-    expect(screen.queryByText("▲")).not.toBeInTheDocument()
+    const { container } = renderPathChange("Bulker", "Explorer")
+    expect(container.querySelector('[data-direction="demotion"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
   })
 })

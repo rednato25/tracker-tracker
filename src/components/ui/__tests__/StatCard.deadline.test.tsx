@@ -58,7 +58,7 @@ describe("StatCard deadline ring", () => {
     const { container } = renderDeadline(10)
 
     expect(screen.getByText("10")).toBeInTheDocument()
-    expect(progressStroke(container)).toBe(CHART_THEME.warn)
+    expect(progressStroke(container)).toBe("var(--color-warn)")
   })
 
   it("turns danger in the last fifth of the window", () => {
@@ -66,14 +66,14 @@ describe("StatCard deadline ring", () => {
     const { container } = renderDeadline(4)
 
     expect(screen.getByText("4")).toBeInTheDocument()
-    expect(progressStroke(container)).toBe(CHART_THEME.danger)
+    expect(progressStroke(container)).toBe("var(--color-danger)")
   })
 
   it("scales the thresholds to the window", () => {
     // The same 4 days left is only progress 0.6 inside a 10-day window.
     const { container } = renderDeadline(4, { windowDays: 10 })
 
-    expect(progressStroke(container)).toBe(CHART_THEME.warn)
+    expect(progressStroke(container)).toBe("var(--color-warn)")
   })
 
   it("names the deadline date in the footer", () => {

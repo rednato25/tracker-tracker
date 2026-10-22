@@ -3,7 +3,7 @@
 // Functions: isUnlimitedBuffer, toBytes, toNumber, toSignedBytes, isPlainObject,
 //            missingByteFields, quoteList, describeKeys, readApiKeyExpiry,
 //            unwrapUnit3dResponse, readUnit3dUser, readAuthStyle, rememberAuthStyle,
-//            buildRequest, unit3dFetch, Unit3dAdapter
+//            dateOnly, buildRequest, unit3dFetch, Unit3dAdapter
 
 import {
   computeBufferBytes,

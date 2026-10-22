@@ -48,7 +48,7 @@ describe("LoginDeadlineCard", () => {
     expect(screen.getByText("5")).toBeInTheDocument()
     expect(screen.getByText("days")).toBeInTheDocument()
     const progressCircle = container.querySelectorAll("circle")[1]
-    expect(progressCircle?.getAttribute("stroke")).toBe(CHART_THEME.danger)
+    expect(progressCircle?.getAttribute("stroke")).toBe("var(--color-danger)")
   })
 
   it("switches to hours when <24h remaining", () => {
@@ -107,7 +107,7 @@ describe("LoginDeadlineCard", () => {
 
     expect(screen.getByText("30")).toBeInTheDocument()
     const progressCircle = container.querySelectorAll("circle")[1]
-    expect(progressCircle?.getAttribute("stroke")).toBe(CHART_THEME.warn)
+    expect(progressCircle?.getAttribute("stroke")).toBe("var(--color-warn)")
   })
 
   it("shows 1 day overdue singular", () => {

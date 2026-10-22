@@ -165,10 +165,10 @@ describe("Button variants render without error", () => {
   // These are checked in addition to the render-crash guard (getByRole) so that a
   // variant silently losing its class is caught even if the component still mounts.
   const variantClass: Record<(typeof variants)[number], string> = {
-    primary: "bg-accent text-paper-50",
+    primary: "bg-accent text-on-accent",
     secondary: "bg-raised",
     ghost: "text-secondary", // bg-transparent is shared with minimal; text-secondary is unique to ghost
-    danger: "bg-danger text-paper-50",
+    danger: "bg-danger text-on-danger",
     minimal: "text-muted", // bg-transparent is shared with ghost; text-muted is unique to minimal
   }
 

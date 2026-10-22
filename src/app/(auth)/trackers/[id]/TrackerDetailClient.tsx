@@ -21,6 +21,7 @@ import { registryBonusName, registryEntryFor } from "@/data/tracker-registry"
 import { useTrackerTorrents } from "@/hooks/useTrackerTorrents"
 import { hexToRgba } from "@/lib/color-utils"
 import { computeDelta } from "@/lib/data-transforms"
+import { localDateStr } from "@/lib/formatters"
 import type {
   DayRange,
   GazellePlatformMeta,
@@ -80,6 +81,7 @@ export function TrackerDetailClient({
   const [debugLoading, setDebugLoading] = useState(false)
   const [debugError, setDebugError] = useState<string | null>(null)
   const [pauseLoading, setPauseLoading] = useState(false)
+  const [markLoginLoading, setMarkLoginLoading] = useState(false)
   const [settingsSaves, setSettingsSaves] = useState(0)
 
   const torrentData = useTrackerTorrents({
@@ -155,6 +157,24 @@ export function TrackerDetailClient({
       setPollError("Failed to toggle pause. Please try again")
     } finally {
       setPauseLoading(false)
+    }
+  }
+
+  async function handleMarkLoginToday() {
+    setMarkLoginLoading(true)
+    setPollError(null)
+    try {
+      const res = await fetch(`/api/trackers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lastAccessAt: localDateStr() }),
+      })
+      if (!res.ok) throw new Error("Failed to mark login")
+      setTracker(await res.json())
+    } catch {
+      setPollError("Failed to mark login today. Please try again.")
+    } finally {
+      setMarkLoginLoading(false)
     }
   }
 
@@ -268,6 +288,8 @@ export function TrackerDetailClient({
         badgeSlots={badgeSlots}
         onTogglePause={handleTogglePause}
         pauseLoading={pauseLoading}
+        onMarkLoginToday={handleMarkLoginToday}
+        markLoginLoading={markLoginLoading}
         settingsSaves={settingsSaves}
       />
 

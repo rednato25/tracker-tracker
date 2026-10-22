@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import {
   BugIcon,
+  CheckIcon,
   ExternalLinkSmallIcon,
   GearIcon,
   PauseIcon,
@@ -48,6 +49,8 @@ interface TrackerDetailHeaderProps {
   badgeSlots: ResolvedSlot[]
   onTogglePause: () => void
   pauseLoading: boolean
+  onMarkLoginToday: () => void
+  markLoginLoading: boolean
   settingsSaves: number
 }
 
@@ -65,6 +68,8 @@ export function TrackerDetailHeader({
   badgeSlots,
   onTogglePause,
   pauseLoading,
+  onMarkLoginToday,
+  markLoginLoading,
   settingsSaves,
 }: TrackerDetailHeaderProps) {
   const health = getTrackerHealth(tracker)
@@ -144,6 +149,18 @@ export function TrackerDetailHeader({
               ) : (
                 <PauseIcon width="16" height="16" />
               )}
+            </Button>
+          </Tooltip>
+          <Tooltip content="Set Last Login to today">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMarkLoginToday}
+              disabled={markLoginLoading || polling}
+              aria-label="Mark login today"
+              className="px-2"
+            >
+              <CheckIcon width="16" height="16" />
             </Button>
           </Tooltip>
           <Button

@@ -174,14 +174,23 @@ docker run -d --name "$DB_CONTAINER" --network "$NETWORK" -p 127.0.0.1::5432 \
   -e POSTGRES_DB=postgres \
   "$PG_IMAGE" >/dev/null
 
+postgres_ready=0
 for _ in $(seq 1 60); do
-  if docker exec "$DB_CONTAINER" pg_isready -U "$DB_USER" -d postgres >/dev/null 2>&1; then
+  # Query the actual database rather than relying on pg_isready's socket
+  # heuristic; this also proves the POSTGRES_USER/POSTGRES_DB initialization
+  # finished before any app container starts.
+  if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -Atc 'select 1' \
+    >/dev/null 2>&1; then
+    postgres_ready=1
     break
   fi
   sleep 1
 done
-docker exec "$DB_CONTAINER" pg_isready -U "$DB_USER" -d postgres >/dev/null ||
+if [ "$postgres_ready" -ne 1 ]; then
+  docker inspect -f 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' \
+    "$DB_CONTAINER" 2>&1 || true
   fail "PostgreSQL did not become ready"
+fi
 PG_HOST_PORT="$(docker port "$DB_CONTAINER" 5432/tcp | head -n1 | awk -F: '{print $NF}')"
 
 # ── 1. Fresh database startup and health ──────────────────────────────────────

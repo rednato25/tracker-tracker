@@ -4,9 +4,9 @@ Status: P02b-6 implemented and validated in this checkpoint (backup format
 v2, v1-compatible import, durable delivery/checkpoint restore and authenticated
 HTTP coverage). P02b-7 records the Node 24 evidence, upgrade/rollback procedures
 and release notes. P02b-1–P02b-3 are validated. P02b-5's candidate image passed the CI Docker
-matrix; its published image was not rebuilt, so P01's published-image
-fresh-install smoke test remains open. This checkpoint is committed on the
-feature branch but undeployed.
+matrix; that candidate matrix is the pre-merge gate. Published-image
+fresh-install smoke testing is a post-publication release gate. This checkpoint
+is committed on the feature branch but undeployed.
 Operational upgrade, backup-compatibility and rollback procedures are in
 `docs/UPGRADE_AND_ROLLBACK.md`.
 
@@ -491,7 +491,8 @@ Exactly one mechanism is active in the P02b-5 working tree:
   the Dockerfile, plus the required-runner check.
 - The PR-head image was built for linux/amd64 in CI and passed fresh,
   unmanaged/adopted, managed-restart, unknown/ahead, concurrent and Compose
-  startup. The published `latest` image was not rebuilt.
+  startup. The published `latest` image was not rebuilt; its smoke test is a
+  post-publication release gate, not a pre-merge requirement.
 - CI run: https://github.com/rednato25/tracker-tracker/actions/runs/40030887418
 
 ## 6. Rollback compatibility
@@ -561,7 +562,8 @@ P02b-6 implements this in the working tree.
 9. Document image/schema rollback and require a pre-upgrade database dump.
    Done; image rollback still requires the container smoke test.
 10. Update `IMPLEMENTATION_STATUS.md` only after the gate passes. P02b-5 has
-    passing candidate-image evidence; only the published-image gate remains.
+    passing candidate-image evidence; published-image smoke testing is a
+    post-publication gate.
 
 ## 8a. Security-audit finding review
 
@@ -640,7 +642,7 @@ global finding acceptance is used.
 | Entrypoint success/failure/termination | Migration runs before the app; failure or TERM/INT prevents startup; no push fallback or orphan | Node 24 + POSIX sh/WSL; 4/4 passed in P02b-5 |
 | Unsupported PostgreSQL major | PostgreSQL 17 rejected before ledger/table creation and before server startup | Docker scenario 7; passed |
 | Candidate image startup | Fresh, unmanaged, managed/restart, unknown/ahead and concurrent containers; app health after migration | CI run 40030887418; **passed** on PR head 465d63c1 |
-| Published image startup | P01 fresh install from the published image | **Open**; published image not rebuilt |
+| Published image startup | P01 fresh install from the published image | **Post-publication gate**; not required before merge |
 
 Test harness: a Node-environment suite under `e2e/p02b/` (not the jsdom Vitest
 project) using the P02a safety pattern with a distinct `_p02b` suffix, marker
@@ -664,7 +666,7 @@ environment issue.
 2. ~~Production still runs `drizzle-kit push --force`; runner and push must
    never coexist.~~ P02b-5 removes `db:push`, switches the entrypoint to the
    runner and rejects push in the audit. The image/container validation is
-   validated on the candidate image; published image remains open.
+   validated on the candidate image; published-image smoke is post-publication.
 3. ~~There is no checksum-verifying ledger; edited/removed applied migrations
    and a database ahead of the app are undetectable today.~~ P02b-2 implements
    the ledger, checksum validation, edited-removal and ahead-of-app rejection.
@@ -699,9 +701,8 @@ environment issue.
     missing runtime covering-index repair are proposed.
 13. Backfills must run after migration and remain idempotent; checkpoint
     backfills are derived state.
-14. P02b-5's candidate-image matrix passed in CI. P01's published-image
-    fresh-install smoke test remains open because the published image was not
-    rebuilt from this checkpoint.
+14. P02b-5's candidate-image matrix passed in CI and is the pre-merge gate.
+    P01's published-image fresh-install smoke test is a post-publication gate.
 
 **Low / documentation**
 
@@ -728,8 +729,8 @@ environment issue.
 5. **P02b-5 - cutover:** implemented and candidate-validated. Entrypoint push
    replaced by the runner, Dockerfile stages updated, `db:push` removed and the
    audit tightened. Node 24 unit/entrypoint/integration/build checks pass, and
-   CI run 40030887418 passed the candidate image matrix. The published image
-   remains untested.
+   CI run 40030887418 passed the candidate image matrix (pre-merge gate).
+   Published-image smoke testing is a post-publication gate.
 6. **P02b-6 — backup and crypto:** implemented in the working tree. v2
    export/validation, v1 import, durable delivery/checkpoint restore, id/scope
    remapping, advisory-lock coordination, and authenticated HTTP round-trip,
@@ -779,8 +780,8 @@ missing-runtime-index repair, with data/ciphertext/sequence preservation and
 failure/interruption/concurrent tests. P02b-5 removes `db:push`, switches the
 entrypoint to the runner, packages the runner assets in the runtime stage and
 tightens the audit; its Node 24 entrypoint, unit, integration and build checks
-pass, and the candidate-image Docker matrix passed in CI. The published image
-was not rebuilt. P02b-6 passes
+pass, and the candidate-image Docker matrix passed in CI. Published-image smoke
+testing is post-publication. P02b-6 passes
 5918 unit tests, its contract suites, authenticated HTTP export/restore tests
 on PostgreSQL 18 and Node 24, TypeScript, lint, the security audit and the
 production build; the destination migration ledger is preserved on success and
@@ -788,8 +789,7 @@ failure.
 
 All four owner decisions are recorded and approved; no further policy approval
 is required. Node 24 is already the CI runtime. P02b-7 is complete as
-documentation only. The next bounded task is the **Docker validation matrix on
-a host with a working daemon**, which also closes the P01 fresh-install smoke
-test against a published image; P02b-5's candidate image is already validated.
-The runtime PostgreSQL 18 guard is already implemented and Docker-verified;
-P03 was not started.
+documentation only. Candidate-image validation is complete and is
+the pre-merge gate. The only remaining Docker work is the P01 published-image
+fresh-install smoke test after publication, not before merge. The runtime
+PostgreSQL 18 guard is implemented and Docker-verified; P03 was not started.

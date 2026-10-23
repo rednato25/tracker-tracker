@@ -369,6 +369,27 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and 
 
 The count guard ensures security coverage is monotonically non-decreasing. If a security test is removed or refactored, CI fails until the count is restored or the threshold is explicitly updated.
 
+#### Retired inherited OSSAR workflow
+
+The inherited `.github/workflows/ossar.yml` has been retired for this fork. It
+wrapped Microsoft Security DevOps with four configured tools: Bandit (Python),
+BinSkim (compiled binaries), ESLint (JavaScript/TypeScript) and SpotBugs (JVM).
+On this repository it produced no successful SARIF output: there are no Python,
+JVM or compiled-binary targets, and its generated ESLint 9 configuration could
+not run against this Biome-only tree, so the job failed before security results
+were uploaded. No finding was dismissed, because none were produced.
+
+The coverage removed is the intended OSSAR ESLint JavaScript security rules
+(for example `no-eval`, `no-restricted-syntax`, React `no-danger`, and the
+ESLint security-plugin checks), plus theoretical Bandit/BinSkim/SpotBugs
+coverage for languages and artifacts this repository does not contain. The
+remaining tools are **not one-for-one replacements**: CodeQL runs semantic
+security queries over JavaScript/TypeScript, Trivy scans the candidate
+container and dependencies for known vulnerabilities, Biome performs
+lint/correctness checks, Dependency Review evaluates dependency changes when
+the repository graph is enabled, and `scripts/security-audit.ts` checks this
+project's invariants. None of them reproduce OSSAR's exact rule set.
+
 ---
 
 ### Static Security Audit

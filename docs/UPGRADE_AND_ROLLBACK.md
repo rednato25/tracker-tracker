@@ -92,18 +92,19 @@ pre-upgrade v1 backup or the dump.
 
 ## Validation status
 
-The PR-head candidate image passed the Docker matrix in CI
+The PR-head candidate image passed the pre-merge Docker gate in CI
 ([run 40030887418](https://github.com/rednato25/tracker-tracker/actions/runs/40030887418)):
 fresh startup and health, older unmanaged P02a adoption, managed restart/no-op,
-unknown and ahead schema refusal, concurrent startup, and a Compose Quick Start
-with an explicit candidate-image override. The published `latest` image was not
-used.
+unknown and ahead schema refusal, PostgreSQL 17 refusal, concurrent startup,
+and a Compose Quick Start with an explicit candidate-image override. The
+published `latest` image was not used.
 
-The following checks remain **open** before a production claim:
+**Candidate-image validation is the pre-merge gate.** Published-image smoke
+testing happens after the merge that publishes the image; it is not required
+before that merge. After publication, and before a production claim:
 
-- Rebuild and publish the image only when authorized, then run the P01
-  disposable fresh-install smoke test against that published image.
-- Re-run the same migration and health matrix against the published image.
+- Run the P01 disposable fresh-install smoke test against the published image.
+- Re-run the migration and health matrix against the published image.
 - Take and test a pre-upgrade dump on the target installation.
 
 No deployment, release or production database validation has been performed.

@@ -93,7 +93,7 @@ pre-upgrade v1 backup or the dump.
 ## Validation status
 
 The PR-head candidate image passed the pre-merge Docker gate in CI
-([run 40030887418](https://github.com/rednato25/tracker-tracker/actions/runs/40030887418)):
+([run 40036272230](https://github.com/rednato25/tracker-tracker/actions/runs/40036272230)):
 fresh startup and health, older unmanaged P02a adoption, managed restart/no-op,
 unknown and ahead schema refusal, PostgreSQL 17 refusal, concurrent startup,
 and a Compose Quick Start with an explicit candidate-image override. The

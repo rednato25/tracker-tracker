@@ -20,6 +20,7 @@ import { backfillRegistrySlugs } from "@/lib/db/backfill-registry-slug"
 import { checkLockout } from "@/lib/lockout"
 import { log } from "@/lib/logger"
 import { NOTIFY_TOGGLE_KEYS } from "@/lib/notifications/types"
+import { acquireRestoreLock, RestoreBusyError } from "@/lib/restore-lock"
 import { ensureSchedulerRunning, stopScheduler } from "@/lib/scheduler"
 import { POST } from "./route"
 
@@ -56,6 +57,8 @@ vi.mock("@/lib/db/schema", () => ({
   tagGroups: { __table: "tag_groups", id: "tag_groups.id" },
   trackerRoles: { __table: "tracker_roles" },
   trackerSnapshots: { __table: "tracker_snapshots" },
+  trackerDailyCheckpoints: { __table: "tracker_daily_checkpoints" },
+  torrentDailyCheckpoints: { __table: "torrent_daily_checkpoints" },
   trackers: { __table: "trackers", id: "trackers.id" },
 }))
 
@@ -74,6 +77,11 @@ vi.mock("@/lib/scheduler", () => ({
   ensureSchedulerRunning: vi.fn(),
   stopScheduler: vi.fn(),
 }))
+
+vi.mock("@/lib/restore-lock", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/restore-lock")>()
+  return { ...actual, acquireRestoreLock: vi.fn(actual.acquireRestoreLock) }
+})
 
 // It reads the database through its own query chain, which the db mock above
 // does not model.
@@ -311,6 +319,68 @@ function makeBackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPaylo
   }
 }
 
+/**
+ * The same fixture with the v2 durable-history fields populated. Kept separate
+ * from makeBackupPayload so the legacy v1 import path keeps its own coverage.
+ */
+function makeV2BackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPayload {
+  const legacy = makeBackupPayload(encryptionSalt, ct)
+  return {
+    ...legacy,
+    manifest: {
+      ...legacy.manifest,
+      version: 2,
+      counts: {
+        ...legacy.manifest.counts,
+        appCoverageGaps: 0,
+        trackerOutages: 0,
+        notificationDeliveryState: 1,
+        trackerDailyCheckpoints: 1,
+        torrentDailyCheckpoints: 1,
+      },
+    },
+    appCoverageGaps: [],
+    trackerOutages: [],
+    notificationTargets: [
+      { ...legacy.notificationTargets![0], scope: [1] },
+    ],
+    notificationDeliveryState: [
+      {
+        id: 1,
+        targetId: 1,
+        trackerId: 1,
+        eventType: "ratio_drop",
+        lastNotifiedAt: ISO,
+        snoozedUntil: "2026-01-02T00:00:00.000Z",
+      },
+    ],
+    trackerDailyCheckpoints: [
+      {
+        id: 1,
+        trackerId: 1,
+        checkpointDate: "2026-01-01",
+        uploadedBytesEnd: "1000",
+        downloadedBytesEnd: "500",
+        bufferBytesEnd: "250",
+        ratioEnd: 2,
+        seedbonusEnd: 100,
+        snapshotCount: 10,
+      },
+    ],
+    torrentDailyCheckpoints: [
+      {
+        id: 1,
+        clientId: 1,
+        hash: "a".repeat(40),
+        name: "Torrent",
+        checkpointDate: "2026-01-01",
+        uploadedStart: "100",
+        downloadedStart: "50",
+      },
+    ],
+  }
+}
+
 // ─── Mock plumbing ────────────────────────────────────────────────────────────
 
 interface InsertCall {
@@ -333,6 +403,7 @@ function createTx(): { tx: Record<string, unknown>; recorder: TxRecorder } {
   let nextId = 100
 
   const tx = {
+    execute: vi.fn().mockResolvedValue([{ acquired: true }]),
     delete: vi.fn((table: unknown) => {
       recorder.deletes.push(table)
       return Promise.resolve([])
@@ -1041,22 +1112,22 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     const res = await POST(makeRequest(payload, PASSWORD))
     expect(res.status).toBe(200)
 
-    // trackerDailyCheckpoints and torrentDailyCheckpoints are absent here, but
-    // both cascade off trackers/downloadClients (schema.ts:400,420) and neither
-    // is in BackupPayload, so restore destroys them with nothing to restore from.
+    // The v2 durable history tables are wiped explicitly before their parents,
+    // then restored from the payload. app_liveness is deliberately neither: it
+    // describes the running process rather than the data.
     expect(recorder.deletes.map((t) => (t as { __table: string }).__table)).toEqual([
       "dismissed_alerts",
-      // app_coverage_gaps is wiped and restored; app_liveness is deliberately
-      // neither, because it describes the running process rather than the data.
       "app_coverage_gaps",
       "client_uptime_buckets",
       "client_snapshots",
       "tracker_snapshots",
       "tracker_roles",
+      "tracker_daily_checkpoints",
       "tag_group_members",
       "tag_groups",
       "notification_delivery_state",
       "notification_targets",
+      "torrent_daily_checkpoints",
       "download_clients",
       "trackers",
     ])
@@ -1294,5 +1365,158 @@ describe("POST /api/settings/backup/restore — retention prompt state", () => {
 
     // null correctly means "ask", which is right for a backup that never answered.
     expect(recorder.settingsUpdate?.retentionPromptedAt).toBeNull()
+  })
+})
+
+describe("POST /api/settings/backup/restore — v2 durable history", () => {
+  let recorder: TxRecorder
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(authenticate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      encryptionKey: "ab".repeat(32),
+    })
+    ;(verifyPassword as ReturnType<typeof vi.fn>).mockResolvedValue(true)
+    ;(checkLockout as ReturnType<typeof vi.fn>).mockReturnValue(null)
+
+    const created = createTx()
+    recorder = created.recorder
+    ;(db.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => fn(created.tx)
+    )
+  })
+
+  it("restores delivery state and both checkpoint tables with remapped ids", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeV2BackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const delivery = onlyInsert(recorder, "notification_delivery_state")
+    expect(delivery).toMatchObject({
+      eventType: "ratio_drop",
+      lastNotifiedAt: new Date(ISO),
+      snoozedUntil: new Date("2026-01-02T00:00:00.000Z"),
+    })
+    expect(delivery.targetId).toEqual(expect.any(Number))
+    expect(delivery.targetId).not.toBe(1)
+    expect(delivery.trackerId).toEqual(expect.any(Number))
+    expect(delivery.trackerId).not.toBe(1)
+
+    const trackerCheckpoint = onlyInsert(recorder, "tracker_daily_checkpoints")
+    expect(trackerCheckpoint).toMatchObject({
+      checkpointDate: "2026-01-01",
+      uploadedBytesEnd: 1000n,
+      downloadedBytesEnd: 500n,
+      bufferBytesEnd: 250n,
+      ratioEnd: 2,
+      seedbonusEnd: 100,
+      snapshotCount: 10,
+      trackerId: delivery.trackerId,
+    })
+
+    const torrentCheckpoint = onlyInsert(recorder, "torrent_daily_checkpoints")
+    expect(torrentCheckpoint).toMatchObject({
+      hash: "a".repeat(40),
+      name: "Torrent",
+      checkpointDate: "2026-01-01",
+      uploadedStart: 100n,
+      downloadedStart: 50n,
+    })
+    expect(torrentCheckpoint.clientId).toEqual(expect.any(Number))
+    expect(torrentCheckpoint.clientId).not.toBe(1)
+  })
+
+  it("remaps notification scope from source tracker ids", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeV2BackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const delivery = onlyInsert(recorder, "notification_delivery_state")
+    const target = onlyInsert(recorder, "notification_targets")
+    expect(target.scope).toEqual([delivery.trackerId])
+  })
+
+  it("reports unavailable history for a v1 backup and writes no v2 rows", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as Record<string, unknown>
+    expect(body.legacyHistoryUnavailable).toBe(true)
+    expect(body.history).toMatchObject({
+      version: 1,
+      notificationDeliveryState: "unavailable",
+      trackerDailyCheckpoints: "unavailable",
+      torrentDailyCheckpoints: "unavailable",
+    })
+
+    expect(
+      recorder.inserts.some(
+        (i) =>
+          (i.table as { __table?: string }).__table === "notification_delivery_state" ||
+          (i.table as { __table?: string }).__table === "tracker_daily_checkpoints" ||
+          (i.table as { __table?: string }).__table === "torrent_daily_checkpoints"
+      )
+    ).toBe(false)
+  })
+
+  it("rejects a v2 payload missing a history field before any delete", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeV2BackupPayload(SALT_A, encryptAll(backupKey)) as unknown as Record<
+      string,
+      unknown
+    >
+    delete payload.notificationDeliveryState
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(400)
+    expect(recorder.deletes).toHaveLength(0)
+    expect(stopScheduler).not.toHaveBeenCalled()
+  })
+
+  it("rejects a v1 payload that carries v2 history fields", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeV2BackupPayload(SALT_A, encryptAll(backupKey))
+    payload.manifest.version = 1
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(400)
+    expect(recorder.deletes).toHaveLength(0)
+  })
+
+  it("rejects a v2 checkpoint pointing at a missing tracker before mutation", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeV2BackupPayload(SALT_A, encryptAll(backupKey))
+    ;(payload.trackerDailyCheckpoints![0] as Record<string, unknown>).trackerId = 99
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(400)
+    expect(recorder.deletes).toHaveLength(0)
+    expect(stopScheduler).not.toHaveBeenCalled()
+  })
+
+  it("returns 503 and restarts the scheduler when the restore lock is busy", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeV2BackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+    ;(acquireRestoreLock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new RestoreBusyError()
+    )
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(503)
+    expect(recorder.deletes).toHaveLength(0)
+    expect(ensureSchedulerRunning).toHaveBeenCalledTimes(1)
   })
 })

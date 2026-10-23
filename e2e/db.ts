@@ -27,13 +27,30 @@ export function e2eSql(): postgres.Sql {
 export async function resetDatabase(): Promise<void> {
   const sql = e2eSql()
   try {
+    // The migration ledger is destination state, not application state. It must
+    // survive a test wipe so backup/restore tests can prove it is unchanged.
     const tables = await sql<{ tablename: string }[]>`
-      select tablename from pg_tables where schemaname = 'public'
+      select tablename from pg_tables
+      where schemaname = 'public' and tablename <> 'schema_migrations'
     `
     if (tables.length > 0) {
       const list = tables.map((t) => `"${t.tablename}"`).join(", ")
       await sql.unsafe(`truncate table ${list} restart identity cascade`)
     }
+  } finally {
+    await sql.end()
+  }
+}
+
+/** The destination migration ledger, used to prove restore never rewrites it. */
+export async function migrationLedger(): Promise<
+  { version: string; checksum: string; baseline: boolean }[]
+> {
+  const sql = e2eSql()
+  try {
+    return await sql<{ version: string; checksum: string; baseline: boolean }[]>`
+      select version, checksum, baseline from schema_migrations order by version
+    `
   } finally {
     await sql.end()
   }

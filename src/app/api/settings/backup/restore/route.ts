@@ -12,6 +12,7 @@ import {
   type BackupPayload,
   decryptBackupPayload,
   type EncryptedBackupEnvelope,
+  normalizeBackupHistory,
   validateBackupJson,
 } from "@/lib/backup"
 import { decrypt, deriveKey, reencrypt } from "@/lib/crypto"
@@ -29,6 +30,8 @@ import {
   notificationTargets,
   tagGroupMembers,
   tagGroups,
+  torrentDailyCheckpoints,
+  trackerDailyCheckpoints,
   trackerOutages,
   trackerRoles,
   trackerSnapshots,
@@ -47,6 +50,7 @@ import {
 import { checkLockout, recordFailedAttempt, resetFailedAttempts } from "@/lib/lockout"
 import { log } from "@/lib/logger"
 import { NOTIFY_TOGGLE_KEYS } from "@/lib/notifications/types"
+import { acquireRestoreLock, RestoreBusyError } from "@/lib/restore-lock"
 import { ensureSchedulerRunning, stopScheduler } from "@/lib/scheduler"
 
 const BATCH_SIZE = 500
@@ -236,6 +240,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid or corrupted backup file" }, { status: 400 })
   }
 
+  // v1 carries no delivery or checkpoint history. Keep that distinction for the
+  // response and logs instead of presenting an empty v2 dataset as a faithful
+  // restore of state the source never had.
+  const history = normalizeBackupHistory(payload)
+
   // Step 5: Get current settings for ID
   const [currentSettings] = await db.select().from(appSettings).limit(1)
   if (!currentSettings) {
@@ -363,6 +372,11 @@ export async function POST(request: Request) {
 
   try {
     await db.transaction(async (tx) => {
+      // Serialize against every other app instance. Background cycles hold the
+      // shared form; other restores hold the exclusive form. The lock is
+      // transaction-scoped and released on commit or rollback.
+      await acquireRestoreLock(tx)
+
       // Delete all existing data in FK-safe order (children before parents)
       await tx.delete(dismissedAlerts)
       // app_liveness is intentionally absent here and from the backup payload:
@@ -373,10 +387,12 @@ export async function POST(request: Request) {
       await tx.delete(clientSnapshots)
       await tx.delete(trackerSnapshots)
       await tx.delete(trackerRoles)
+      await tx.delete(trackerDailyCheckpoints)
       await tx.delete(tagGroupMembers)
       await tx.delete(tagGroups)
       await tx.delete(notificationDeliveryState)
       await tx.delete(notificationTargets)
+      await tx.delete(torrentDailyCheckpoints)
       await tx.delete(downloadClients)
       await tx.delete(trackers)
 
@@ -788,9 +804,10 @@ export async function POST(request: Request) {
       }
 
       // Insert notificationTargets with config re-encryption (optional, absent in older backups)
+      const notificationTargetIdMap = new Map<number, number>()
       if (Array.isArray(payload.notificationTargets) && payload.notificationTargets.length > 0) {
         for (const nt of payload.notificationTargets) {
-          const { id: _id, ...fields } = nt as Record<string, unknown> & { id: number }
+          const { id: oldTargetId, ...fields } = nt as Record<string, unknown> & { id: number }
 
           let encryptedConfig: string
           if (canPassThrough) {
@@ -813,22 +830,119 @@ export async function POST(request: Request) {
             NOTIFY_TOGGLE_KEYS.map((key) => [key, (fields[key] as boolean) ?? false])
           ) as Record<(typeof NOTIFY_TOGGLE_KEYS)[number], boolean>
 
-          await tx.insert(notificationTargets).values({
-            name: fields.name as string,
-            type: fields.type as string,
-            enabled: configCleared ? false : (fields.enabled as boolean),
-            encryptedConfig,
-            ...toggles,
-            thresholds: (fields.thresholds as Record<string, unknown> | null) ?? null,
-            includeTrackerName: (fields.includeTrackerName as boolean) ?? true,
-            scope: (fields.scope as number[] | null) ?? null,
-            lastDeliveryError: configCleared
-              ? "Config cleared during restore. Re-enter and re-enable"
+          // Scope holds source tracker ids. Restoring the array verbatim would
+          // point the target at unrelated trackers after id remapping. v2
+          // validation has already proved every entry exists; v1 keeps the
+          // historical best-effort drop for stale ids.
+          const sourceScope = Array.isArray(fields.scope) ? (fields.scope as number[]) : null
+          const restoredScope = sourceScope
+            ? sourceScope
+                .map((oldTrackerId) => trackerIdMap.get(oldTrackerId))
+                .filter((id): id is number => id !== undefined)
+            : null
+
+          const [insertedTarget] = await tx
+            .insert(notificationTargets)
+            .values({
+              name: fields.name as string,
+              type: fields.type as string,
+              enabled: configCleared ? false : (fields.enabled as boolean),
+              encryptedConfig,
+              ...toggles,
+              thresholds: (fields.thresholds as Record<string, unknown> | null) ?? null,
+              includeTrackerName: (fields.includeTrackerName as boolean) ?? true,
+              scope: restoredScope,
+              lastDeliveryError: configCleared
+                ? "Config cleared during restore. Re-enter and re-enable"
+                : null,
+              createdAt: new Date(fields.createdAt as string),
+              updatedAt: new Date(fields.updatedAt as string),
+            })
+            .returning({ id: notificationTargets.id })
+          notificationTargetIdMap.set(oldTargetId, insertedTarget.id)
+        }
+      }
+
+      // Notification delivery state (v2). Durable cooldown history, not an
+      // in-flight lease: lastNotifiedAt and snoozedUntil are restored as they
+      // were. Rows whose target/tracker did not survive are counted, matching
+      // the historical child-row behavior; v2 validation rejects those before
+      // the transaction.
+      if (history.notificationDeliveryState && history.notificationDeliveryState.length > 0) {
+        const deliveryRows: Record<string, unknown>[] = []
+        for (const state of history.notificationDeliveryState) {
+          const fields = state as Record<string, unknown>
+          const newTargetId = notificationTargetIdMap.get(fields.targetId as number)
+          const oldTrackerId =
+            fields.trackerId === null || fields.trackerId === undefined
+              ? null
+              : (fields.trackerId as number)
+          const newTrackerId = oldTrackerId === null ? null : trackerIdMap.get(oldTrackerId)
+          if (!newTargetId || (oldTrackerId !== null && newTrackerId === undefined)) {
+            orphanedRecordsSkipped++
+            continue
+          }
+          deliveryRows.push({
+            targetId: newTargetId,
+            trackerId: newTrackerId ?? null,
+            eventType: fields.eventType as string,
+            lastNotifiedAt: new Date(fields.lastNotifiedAt as string),
+            snoozedUntil: fields.snoozedUntil
+              ? new Date(fields.snoozedUntil as string)
               : null,
-            createdAt: new Date(fields.createdAt as string),
-            updatedAt: new Date(fields.updatedAt as string),
           })
         }
+        await batchInsert(tx, notificationDeliveryState, deliveryRows)
+      }
+
+      // Tracker daily checkpoints (v2). checkpointDate is a PostgreSQL date and
+      // stays a YYYY-MM-DD string; the byte totals round-trip as BigInt.
+      if (history.trackerDailyCheckpoints && history.trackerDailyCheckpoints.length > 0) {
+        const checkpointRows: Record<string, unknown>[] = []
+        for (const checkpoint of history.trackerDailyCheckpoints) {
+          const fields = checkpoint as Record<string, unknown>
+          const newTrackerId = trackerIdMap.get(fields.trackerId as number)
+          if (!newTrackerId) {
+            orphanedRecordsSkipped++
+            continue
+          }
+          checkpointRows.push({
+            trackerId: newTrackerId,
+            checkpointDate: fields.checkpointDate as string,
+            uploadedBytesEnd: BigInt(fields.uploadedBytesEnd as string),
+            downloadedBytesEnd: BigInt(fields.downloadedBytesEnd as string),
+            bufferBytesEnd: fields.bufferBytesEnd
+              ? BigInt(fields.bufferBytesEnd as string)
+              : null,
+            ratioEnd: (fields.ratioEnd as number | null) ?? null,
+            seedbonusEnd: (fields.seedbonusEnd as number | null) ?? null,
+            snapshotCount: (fields.snapshotCount as number) ?? 0,
+          })
+        }
+        await batchInsert(tx, trackerDailyCheckpoints, checkpointRows)
+      }
+
+      // Torrent daily checkpoints (v2). Keyed by the remapped client id and the
+      // torrent hash; the checkpoint date is the day's start baseline.
+      if (history.torrentDailyCheckpoints && history.torrentDailyCheckpoints.length > 0) {
+        const checkpointRows: Record<string, unknown>[] = []
+        for (const checkpoint of history.torrentDailyCheckpoints) {
+          const fields = checkpoint as Record<string, unknown>
+          const newClientId = clientIdMap.get(fields.clientId as number)
+          if (!newClientId) {
+            orphanedRecordsSkipped++
+            continue
+          }
+          checkpointRows.push({
+            clientId: newClientId,
+            hash: fields.hash as string,
+            name: fields.name as string,
+            checkpointDate: fields.checkpointDate as string,
+            uploadedStart: BigInt(fields.uploadedStart as string),
+            downloadedStart: BigInt(fields.downloadedStart as string),
+          })
+        }
+        await batchInsert(tx, torrentDailyCheckpoints, checkpointRows)
       }
 
       // Re-encrypt proxy password if possible
@@ -1004,6 +1118,20 @@ export async function POST(request: Request) {
         .where(eq(appSettings.id, currentSettingsId))
     })
   } catch (err) {
+    // A restore that could not get the cross-process lock never touched data.
+    // Report it as contention, not corruption, and put the scheduler back.
+    if (err instanceof RestoreBusyError) {
+      log.warn(
+        { event: "restore_busy", fileNameHash: hashFileName(fileName) },
+        "Restore skipped because a background cycle or another restore holds the lock"
+      )
+      ensureSchedulerRunning(auth.encryptionKey)
+      return NextResponse.json(
+        { error: "Backup restore is temporarily unavailable. Try again shortly." },
+        { status: 503 }
+      )
+    }
+
     log.error(
       {
         event: "restore_failed",
@@ -1061,6 +1189,18 @@ export async function POST(request: Request) {
         notificationTargets: Array.isArray(payload.notificationTargets)
           ? payload.notificationTargets.length
           : 0,
+        notificationDeliveryState: history.notificationDeliveryState?.length ?? 0,
+        trackerDailyCheckpoints: history.trackerDailyCheckpoints?.length ?? 0,
+        torrentDailyCheckpoints: history.torrentDailyCheckpoints?.length ?? 0,
+      },
+      history: {
+        version: history.version,
+        notificationDeliveryState:
+          history.notificationDeliveryState === null ? "unavailable" : "restored",
+        trackerDailyCheckpoints:
+          history.trackerDailyCheckpoints === null ? "unavailable" : "restored",
+        torrentDailyCheckpoints:
+          history.torrentDailyCheckpoints === null ? "unavailable" : "restored",
       },
     },
     "Restore operation completed successfully"
@@ -1085,7 +1225,20 @@ export async function POST(request: Request) {
       notificationTargets: Array.isArray(payload.notificationTargets)
         ? payload.notificationTargets.length
         : 0,
+      notificationDeliveryState: history.notificationDeliveryState?.length ?? 0,
+      trackerDailyCheckpoints: history.trackerDailyCheckpoints?.length ?? 0,
+      torrentDailyCheckpoints: history.torrentDailyCheckpoints?.length ?? 0,
     },
+    history: {
+      version: history.version,
+      notificationDeliveryState:
+        history.notificationDeliveryState === null ? "unavailable" : "restored",
+      trackerDailyCheckpoints:
+        history.trackerDailyCheckpoints === null ? "unavailable" : "restored",
+      torrentDailyCheckpoints:
+        history.torrentDailyCheckpoints === null ? "unavailable" : "restored",
+    },
+    legacyHistoryUnavailable: history.version === 1,
     tokensPreserved,
     tokensCleared,
     clientCredentialsCleared,

@@ -492,7 +492,7 @@ Exactly one mechanism is active in the P02b-5 working tree:
 - The PR-head image was built for linux/amd64 in CI and passed fresh,
   unmanaged/adopted, managed-restart, unknown/ahead, concurrent and Compose
   startup. The published `latest` image was not rebuilt.
-- CI run: https://github.com/rednato25/tracker-tracker/actions/runs/40023976516
+- CI run: https://github.com/rednato25/tracker-tracker/actions/runs/40025347574
 
 ## 6. Rollback compatibility
 
@@ -638,7 +638,7 @@ global finding acceptance is used.
 | Restore/background coordination | Restore waits and returns 503 while a background lock is held; guard skips during restore | Node 24 + PostgreSQL 18; passed |
 | Unauthenticated restore | 401 | Node 24 + PostgreSQL 18; passed |
 | Entrypoint success/failure/termination | Migration runs before the app; failure or TERM/INT prevents startup; no push fallback or orphan | Node 24 + POSIX sh/WSL; 4/4 passed in P02b-5 |
-| Candidate image startup | Fresh, unmanaged, managed/restart, unknown/ahead and concurrent containers; app health after migration | CI run 40023976516; **passed** on PR head 27dce3c9 |
+| Candidate image startup | Fresh, unmanaged, managed/restart, unknown/ahead and concurrent containers; app health after migration | CI run 40025347574; **passed** on PR head 938f7fb4 |
 | Published image startup | P01 fresh install from the published image | **Open**; published image not rebuilt |
 
 Test harness: a Node-environment suite under `e2e/p02b/` (not the jsdom Vitest
@@ -727,7 +727,7 @@ environment issue.
 5. **P02b-5 - cutover:** implemented and candidate-validated. Entrypoint push
    replaced by the runner, Dockerfile stages updated, `db:push` removed and the
    audit tightened. Node 24 unit/entrypoint/integration/build checks pass, and
-   CI run 40023976516 passed the candidate image matrix. The published image
+   CI run 40025347574 passed the candidate image matrix. The published image
    remains untested.
 6. **P02b-6 — backup and crypto:** implemented in the working tree. v2
    export/validation, v1 import, durable delivery/checkpoint restore, id/scope

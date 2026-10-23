@@ -30,6 +30,9 @@ vi.mock("@/lib/db/schema", () => ({
   clientUptimeBuckets: {},
   dismissedAlerts: {},
   notificationTargets: {},
+  notificationDeliveryState: {},
+  trackerDailyCheckpoints: {},
+  torrentDailyCheckpoints: {},
   backupHistory: {},
 }))
 
@@ -63,6 +66,14 @@ function validPayload() {
         tagGroups: 0,
         tagGroupMembers: 0,
         clientSnapshots: 0,
+        clientUptimeBuckets: 0,
+        appCoverageGaps: 0,
+        trackerOutages: 0,
+        dismissedAlerts: 0,
+        notificationTargets: 0,
+        notificationDeliveryState: 0,
+        trackerDailyCheckpoints: 0,
+        torrentDailyCheckpoints: 0,
       },
     },
     settings: {
@@ -118,6 +129,13 @@ function validPayload() {
     tagGroupMembers: [],
     clientSnapshots: [],
     clientUptimeBuckets: [],
+    appCoverageGaps: [],
+    trackerOutages: [],
+    dismissedAlerts: [],
+    notificationTargets: [],
+    notificationDeliveryState: [],
+    trackerDailyCheckpoints: [],
+    torrentDailyCheckpoints: [],
   }
 }
 
@@ -128,6 +146,89 @@ function validPayload() {
 describe("validateBackupJson", () => {
   it("accepts a valid payload", () => {
     expect(() => validateBackupJson(validPayload())).not.toThrow()
+  })
+
+  it("accepts a v1 payload without durable history", () => {
+    const p = validPayload() as unknown as Record<string, unknown>
+    p.manifest = { ...(p.manifest as Record<string, unknown>), version: 1 }
+    for (const field of [
+      "notificationDeliveryState",
+      "trackerDailyCheckpoints",
+      "torrentDailyCheckpoints",
+    ]) {
+      delete p[field]
+    }
+    expect(() => validateBackupJson(p)).not.toThrow()
+  })
+
+  it("rejects a v1 payload that carries v2 history fields", () => {
+    const p = validPayload() as unknown as Record<string, unknown>
+    p.manifest = { ...(p.manifest as Record<string, unknown>), version: 1 }
+    expect(() => validateBackupJson(p)).toThrow("must not contain notificationDeliveryState")
+  })
+
+  it("rejects a v2 payload missing a history field", () => {
+    const p = validPayload() as unknown as Record<string, unknown>
+    delete p.notificationDeliveryState
+    expect(() => validateBackupJson(p)).toThrow("notificationDeliveryState must be an array")
+  })
+
+  it("rejects a v2 count that does not match the array length", () => {
+    const p = validPayload()
+    p.manifest.counts.trackerDailyCheckpoints = 1
+    expect(() => validateBackupJson(p)).toThrow("manifest.counts.trackerDailyCheckpoints")
+  })
+
+  it("rejects an unsupported version before any restore work", () => {
+    const p = validPayload()
+    p.manifest.version = 3 as typeof p.manifest.version
+    expect(() => validateBackupJson(p)).toThrow("unsupported backup version 3")
+  })
+
+  it("rejects duplicate v2 checkpoint rows", () => {
+    const p = validPayload() as unknown as Record<string, unknown>
+    p.trackerDailyCheckpoints = [
+      {
+        id: 1,
+        trackerId: 1,
+        checkpointDate: "2026-01-01",
+        uploadedBytesEnd: "1000",
+        downloadedBytesEnd: "500",
+        bufferBytesEnd: null,
+        ratioEnd: 2,
+        seedbonusEnd: 100,
+        snapshotCount: 1,
+      },
+      {
+        id: 2,
+        trackerId: 1,
+        checkpointDate: "2026-01-01",
+        uploadedBytesEnd: "1000",
+        downloadedBytesEnd: "500",
+        bufferBytesEnd: null,
+        ratioEnd: 2,
+        seedbonusEnd: 100,
+        snapshotCount: 1,
+      },
+    ]
+    ;(p.manifest as { counts: Record<string, number> }).counts.trackerDailyCheckpoints = 2
+    expect(() => validateBackupJson(p)).toThrow("duplicate trackerDailyCheckpoints row")
+  })
+
+  it("rejects a v2 delivery row pointing at a missing target", () => {
+    const p = validPayload() as unknown as Record<string, unknown>
+    p.notificationDeliveryState = [
+      {
+        id: 1,
+        targetId: 99,
+        trackerId: null,
+        eventType: "ratio_drop",
+        lastNotifiedAt: "2026-01-01T00:00:00.000Z",
+        snoozedUntil: null,
+      },
+    ]
+    ;(p.manifest as { counts: Record<string, number> }).counts.notificationDeliveryState = 1
+    expect(() => validateBackupJson(p)).toThrow("references a missing row")
   })
 
   it("rejects null payload", () => {
@@ -492,6 +593,19 @@ describe("app liveness ledger exclusion", () => {
     vi.mocked(db.select).mockImplementation(emptySelectMock())
   })
 
+  it("exports v2 with explicit durable history arrays", async () => {
+    const payload = await generateBackupPayload()
+    expect(payload.manifest.version).toBe(CURRENT_BACKUP_VERSION)
+    expect(payload.notificationDeliveryState).toEqual([])
+    expect(payload.trackerDailyCheckpoints).toEqual([])
+    expect(payload.torrentDailyCheckpoints).toEqual([])
+    expect(payload.manifest.counts).toMatchObject({
+      notificationDeliveryState: 0,
+      trackerDailyCheckpoints: 0,
+      torrentDailyCheckpoints: 0,
+    })
+  })
+
   it("does NOT carry app_liveness", async () => {
     const payload = await generateBackupPayload()
     expect(payload).not.toHaveProperty("appLiveness")
@@ -549,6 +663,8 @@ describe("appCoverageGaps validation", () => {
         reason: "shutdown",
       },
     ]
+    const manifest = payload.manifest as { counts: Record<string, number> }
+    manifest.counts.appCoverageGaps = 1
     expect(() => validateBackupJson(payload)).not.toThrow()
   })
 })

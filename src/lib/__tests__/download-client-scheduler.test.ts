@@ -89,6 +89,14 @@ vi.mock("node-cron", () => ({
   },
 }))
 
+// The real guard reserves a PostgreSQL connection. These tests exercise the
+// cron body with a mocked db, so let the guarded work run unconditionally.
+vi.mock("@/lib/restore-lock", () => ({
+  withBackgroundRestoreGuard: vi.fn(
+    async (_label: string, run: () => Promise<unknown>) => run()
+  ),
+}))
+
 // Mocked so the failure-logging tests can count uptime records and log lines
 // separately, the whole claim of the log gate is that suppressing one leaves
 // the other untouched.

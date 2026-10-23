@@ -14,6 +14,7 @@ import {
 import { db } from "@/lib/db"
 import { appSettings, backupHistory } from "@/lib/db/schema"
 import { log } from "@/lib/logger"
+import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
 
 // Store on globalThis to survive HMR in development.
 // Without this, each hot-reload orphans the old cron job while creating a new one.
@@ -150,7 +151,7 @@ export function startBackupScheduler(encryptionKey: Buffer): void {
         const key = getBackupKey()
         if (!key) return
         try {
-          await runScheduledBackup(key)
+          await withBackgroundRestoreGuard("scheduled-backup", () => runScheduledBackup(key))
         } catch (error) {
           log.error(error, "Backup scheduler error")
         }

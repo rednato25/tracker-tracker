@@ -52,7 +52,7 @@ test.describe.serial("a tracker added from the registry", () => {
     await page.route("**/api/trackers/*/poll", (route) => route.fulfill({ json: { ok: true } }))
 
     await page.goto("/")
-    await page.getByRole("button", { name: "+ Add Tracker" }).click()
+    await page.getByRole("button", { name: /add tracker/i }).click()
 
     // The dialog's content is in the DOM while closed; scope to the open one.
     const dialog = page.locator("dialog[open]")

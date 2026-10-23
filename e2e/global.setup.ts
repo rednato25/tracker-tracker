@@ -27,6 +27,12 @@ setup("fresh database and a signed-in owner", async ({ page }) => {
     data: { snapshotRetentionDays: null },
   })
   expect(prompt.ok()).toBe(true)
+  // The dialog is client state decided on mount; the API call above does not
+  // close the already-open overlay. Reload so it reads retentionPromptedAt.
+  await page.reload()
+  await expect(
+    page.getByRole("dialog", { name: /How long should snapshot history be kept/ })
+  ).toBeHidden({ timeout: 10_000 })
 
   // The first visit on a fresh profile also opens the What's New modal. Dismissing
   // it writes lastSeenVersion to localStorage, which the saved state carries.

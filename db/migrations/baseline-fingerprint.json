@@ -1,0 +1,2800 @@
+{
+  "tables": [
+    "app_coverage_gaps",
+    "app_liveness",
+    "app_settings",
+    "backup_history",
+    "client_snapshots",
+    "client_uptime_buckets",
+    "db_size_history",
+    "dismissed_alerts",
+    "download_clients",
+    "notification_delivery_state",
+    "notification_targets",
+    "tag_group_members",
+    "tag_groups",
+    "torrent_daily_checkpoints",
+    "tracker_daily_checkpoints",
+    "tracker_outages",
+    "tracker_roles",
+    "tracker_snapshots",
+    "trackers"
+  ],
+  "columns": [
+    {
+      "table": "app_coverage_gaps",
+      "column": "ended_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "app_coverage_gaps",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('app_coverage_gaps_id_seq'::regclass)"
+    },
+    {
+      "table": "app_coverage_gaps",
+      "column": "reason",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "app_coverage_gaps",
+      "column": "started_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "app_liveness",
+      "column": "first_seen_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "app_liveness",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('app_liveness_id_seq'::regclass)"
+    },
+    {
+      "table": "app_liveness",
+      "column": "last_seen_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "app_liveness",
+      "column": "stopped_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "backup_encryption_enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "app_settings",
+      "column": "backup_retention_count",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "14"
+    },
+    {
+      "table": "app_settings",
+      "column": "backup_schedule_enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "app_settings",
+      "column": "backup_schedule_frequency",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'daily'::character varying"
+    },
+    {
+      "table": "app_settings",
+      "column": "backup_storage_path",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "created_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "app_settings",
+      "column": "credential_vault_enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "app_settings",
+      "column": "dashboard_settings",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "draft_quicklinks",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "encrypted_backup_password",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "encrypted_imgbb_api_key",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "encrypted_oeimg_api_key",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "encrypted_proxy_password",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "encrypted_ptpimg_api_key",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "encrypted_scheduler_key",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "encryption_salt",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "failed_login_attempts",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "0"
+    },
+    {
+      "table": "app_settings",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('app_settings_id_seq'::regclass)"
+    },
+    {
+      "table": "app_settings",
+      "column": "locked_until",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "lockout_duration_minutes",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "15"
+    },
+    {
+      "table": "app_settings",
+      "column": "lockout_enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "true"
+    },
+    {
+      "table": "app_settings",
+      "column": "lockout_threshold",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "5"
+    },
+    {
+      "table": "app_settings",
+      "column": "password_hash",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "proxy_enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "app_settings",
+      "column": "proxy_host",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "proxy_port",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": "1080"
+    },
+    {
+      "table": "app_settings",
+      "column": "proxy_type",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'socks5'::character varying"
+    },
+    {
+      "table": "app_settings",
+      "column": "proxy_username",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "qbitmanage_enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "app_settings",
+      "column": "qbitmanage_tags",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "retention_prompted_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "session_timeout_minutes",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "snapshot_retention_days",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "store_usernames",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "true"
+    },
+    {
+      "table": "app_settings",
+      "column": "totp_backup_codes",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "totp_secret",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "app_settings",
+      "column": "tracker_poll_interval_minutes",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "60"
+    },
+    {
+      "table": "app_settings",
+      "column": "username",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "backup_history",
+      "column": "created_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "backup_history",
+      "column": "encrypted",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "backup_history",
+      "column": "frequency",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "backup_history",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('backup_history_id_seq'::regclass)"
+    },
+    {
+      "table": "backup_history",
+      "column": "notes",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "backup_history",
+      "column": "size_bytes",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "backup_history",
+      "column": "status",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'completed'::character varying"
+    },
+    {
+      "table": "backup_history",
+      "column": "storage_path",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "client_snapshots",
+      "column": "client_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "client_snapshots",
+      "column": "download_speed_bytes",
+      "type": "bigint:int8",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "client_snapshots",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('client_snapshots_id_seq'::regclass)"
+    },
+    {
+      "table": "client_snapshots",
+      "column": "polled_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "client_snapshots",
+      "column": "tag_stats",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "client_snapshots",
+      "column": "total_leeching_count",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "client_snapshots",
+      "column": "total_seeding_count",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "client_snapshots",
+      "column": "upload_speed_bytes",
+      "type": "bigint:int8",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "client_uptime_buckets",
+      "column": "bucket_ts",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "client_uptime_buckets",
+      "column": "client_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "client_uptime_buckets",
+      "column": "fail",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "0"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('client_uptime_buckets_id_seq'::regclass)"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "column": "ok",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "0"
+    },
+    {
+      "table": "db_size_history",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('db_size_history_id_seq'::regclass)"
+    },
+    {
+      "table": "db_size_history",
+      "column": "recorded_at",
+      "type": "date:date",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "db_size_history",
+      "column": "total_bytes",
+      "type": "bigint:int8",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "dismissed_alerts",
+      "column": "alert_key",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "dismissed_alerts",
+      "column": "alert_type",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "dismissed_alerts",
+      "column": "dismissed_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "dismissed_alerts",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('dismissed_alerts_id_seq'::regclass)"
+    },
+    {
+      "table": "download_clients",
+      "column": "auth_method",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'password'::character varying"
+    },
+    {
+      "table": "download_clients",
+      "column": "cached_torrents",
+      "type": "jsonb:jsonb",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "cached_torrents_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "created_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "download_clients",
+      "column": "cross_seed_tags",
+      "type": "ARRAY:_text",
+      "nullable": false,
+      "default": "'{}'::text[]"
+    },
+    {
+      "table": "download_clients",
+      "column": "enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "true"
+    },
+    {
+      "table": "download_clients",
+      "column": "encrypted_api_key",
+      "type": "text:text",
+      "nullable": false,
+      "default": "''::text"
+    },
+    {
+      "table": "download_clients",
+      "column": "encrypted_password",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "encrypted_url_path",
+      "type": "text:text",
+      "nullable": false,
+      "default": "''::text"
+    },
+    {
+      "table": "download_clients",
+      "column": "encrypted_username",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "error_since",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "host",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('download_clients_id_seq'::regclass)"
+    },
+    {
+      "table": "download_clients",
+      "column": "is_default",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "download_clients",
+      "column": "last_error",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "last_polled_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "name",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "download_clients",
+      "column": "poll_interval_seconds",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "300"
+    },
+    {
+      "table": "download_clients",
+      "column": "port",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "8080"
+    },
+    {
+      "table": "download_clients",
+      "column": "type",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'qbittorrent'::character varying"
+    },
+    {
+      "table": "download_clients",
+      "column": "updated_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "download_clients",
+      "column": "use_ssl",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_delivery_state",
+      "column": "event_type",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "notification_delivery_state",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('notification_delivery_state_id_seq'::regclass)"
+    },
+    {
+      "table": "notification_delivery_state",
+      "column": "last_notified_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "notification_delivery_state",
+      "column": "snoozed_until",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "notification_delivery_state",
+      "column": "target_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "notification_delivery_state",
+      "column": "tracker_id",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "created_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "notification_targets",
+      "column": "enabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "true"
+    },
+    {
+      "table": "notification_targets",
+      "column": "encrypted_config",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('notification_targets_id_seq'::regclass)"
+    },
+    {
+      "table": "notification_targets",
+      "column": "include_tracker_name",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "true"
+    },
+    {
+      "table": "notification_targets",
+      "column": "last_delivery_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "last_delivery_error",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "last_delivery_status",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "name",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_active_hnrs",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_anniversary",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_bonus_cap",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_buffer_milestone",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_download_disabled",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_hit_and_run",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_rank_change",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_ratio_danger",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_ratio_drop",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_tracker_down",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_unsatisfied_limit",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_vip_expiring",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_warned",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "notify_zero_seeding",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "notification_targets",
+      "column": "scope",
+      "type": "ARRAY:_int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "thresholds",
+      "type": "jsonb:jsonb",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "type",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "notification_targets",
+      "column": "updated_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "tag_group_members",
+      "column": "color",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tag_group_members",
+      "column": "group_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tag_group_members",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('tag_group_members_id_seq'::regclass)"
+    },
+    {
+      "table": "tag_group_members",
+      "column": "label",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tag_group_members",
+      "column": "sort_order",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "0"
+    },
+    {
+      "table": "tag_group_members",
+      "column": "tag",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tag_groups",
+      "column": "chart_type",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'bar'::character varying"
+    },
+    {
+      "table": "tag_groups",
+      "column": "count_unmatched",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "tag_groups",
+      "column": "created_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "tag_groups",
+      "column": "description",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tag_groups",
+      "column": "emoji",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tag_groups",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('tag_groups_id_seq'::regclass)"
+    },
+    {
+      "table": "tag_groups",
+      "column": "name",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tag_groups",
+      "column": "sort_order",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "0"
+    },
+    {
+      "table": "tag_groups",
+      "column": "updated_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "column": "checkpoint_date",
+      "type": "date:date",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "column": "client_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "column": "downloaded_start",
+      "type": "bigint:int8",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "column": "hash",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('torrent_daily_checkpoints_id_seq'::regclass)"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "column": "name",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "column": "uploaded_start",
+      "type": "bigint:int8",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "buffer_bytes_end",
+      "type": "bigint:int8",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "checkpoint_date",
+      "type": "date:date",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "downloaded_bytes_end",
+      "type": "bigint:int8",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('tracker_daily_checkpoints_id_seq'::regclass)"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "ratio_end",
+      "type": "real:float4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "seedbonus_end",
+      "type": "real:float4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "snapshot_count",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "0"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "tracker_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "column": "uploaded_bytes_end",
+      "type": "bigint:int8",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_outages",
+      "column": "ended_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_outages",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('tracker_outages_id_seq'::regclass)"
+    },
+    {
+      "table": "tracker_outages",
+      "column": "reason",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_outages",
+      "column": "started_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_outages",
+      "column": "tracker_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_roles",
+      "column": "achieved_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "tracker_roles",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('tracker_roles_id_seq'::regclass)"
+    },
+    {
+      "table": "tracker_roles",
+      "column": "notes",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_roles",
+      "column": "role_name",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_roles",
+      "column": "tracker_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "buffer_bytes",
+      "type": "bigint:int8",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "downloaded_bytes",
+      "type": "bigint:int8",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "freeleech_tokens",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "group_name",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "hit_and_runs",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('tracker_snapshots_id_seq'::regclass)"
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "is_manual",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "leeching_count",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "polled_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "ratio",
+      "type": "real:float4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "required_ratio",
+      "type": "real:float4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "seedbonus",
+      "type": "real:float4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "seeding_count",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "share_score",
+      "type": "real:float4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "tracker_id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "uploaded_bytes",
+      "type": "bigint:int8",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "username",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "tracker_snapshots",
+      "column": "warned",
+      "type": "boolean:bool",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "api_path",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'/api/user'::character varying"
+    },
+    {
+      "table": "trackers",
+      "column": "avatar_cached_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "avatar_data",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "avatar_mime_type",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "avatar_remote_url",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "base_url",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "color",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": "'#9e3f1f'::character varying"
+    },
+    {
+      "table": "trackers",
+      "column": "consecutive_failures",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "0"
+    },
+    {
+      "table": "trackers",
+      "column": "count_cross_seed_unsatisfied",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "trackers",
+      "column": "created_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "trackers",
+      "column": "encrypted_api_token",
+      "type": "text:text",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "encrypted_credentials",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "encrypted_mousehole_token",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "hide_unread_badges",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "trackers",
+      "column": "id",
+      "type": "integer:int4",
+      "nullable": false,
+      "default": "nextval('trackers_id_seq'::regclass)"
+    },
+    {
+      "table": "trackers",
+      "column": "is_active",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "true"
+    },
+    {
+      "table": "trackers",
+      "column": "is_favorite",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "trackers",
+      "column": "joined_at",
+      "type": "date:date",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "last_access_at",
+      "type": "date:date",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "last_error",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "last_error_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "last_polled_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "mousehole_url",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "name",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "paused_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "platform_meta",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "platform_type",
+      "type": "character varying:varchar",
+      "nullable": false,
+      "default": "'unit3d'::character varying"
+    },
+    {
+      "table": "trackers",
+      "column": "profile_url",
+      "type": "text:text",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "qbt_tag",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "registry_slug",
+      "type": "character varying:varchar",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "remote_user_id",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "sort_order",
+      "type": "integer:int4",
+      "nullable": true,
+      "default": null
+    },
+    {
+      "table": "trackers",
+      "column": "updated_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": false,
+      "default": "now()"
+    },
+    {
+      "table": "trackers",
+      "column": "use_proxy",
+      "type": "boolean:bool",
+      "nullable": false,
+      "default": "false"
+    },
+    {
+      "table": "trackers",
+      "column": "user_paused_at",
+      "type": "timestamp without time zone:timestamp",
+      "nullable": true,
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "table": "app_coverage_gaps",
+      "index": "app_coverage_gaps_pkey",
+      "definition": "CREATE UNIQUE INDEX app_coverage_gaps_pkey ON public.app_coverage_gaps USING btree (id)"
+    },
+    {
+      "table": "app_coverage_gaps",
+      "index": "idx_app_coverage_gaps_ended",
+      "definition": "CREATE INDEX idx_app_coverage_gaps_ended ON public.app_coverage_gaps USING btree (ended_at)"
+    },
+    {
+      "table": "app_coverage_gaps",
+      "index": "idx_app_coverage_gaps_started",
+      "definition": "CREATE INDEX idx_app_coverage_gaps_started ON public.app_coverage_gaps USING btree (started_at)"
+    },
+    {
+      "table": "app_liveness",
+      "index": "app_liveness_pkey",
+      "definition": "CREATE UNIQUE INDEX app_liveness_pkey ON public.app_liveness USING btree (id)"
+    },
+    {
+      "table": "app_settings",
+      "index": "app_settings_pkey",
+      "definition": "CREATE UNIQUE INDEX app_settings_pkey ON public.app_settings USING btree (id)"
+    },
+    {
+      "table": "backup_history",
+      "index": "backup_history_pkey",
+      "definition": "CREATE UNIQUE INDEX backup_history_pkey ON public.backup_history USING btree (id)"
+    },
+    {
+      "table": "client_snapshots",
+      "index": "client_snapshots_pkey",
+      "definition": "CREATE UNIQUE INDEX client_snapshots_pkey ON public.client_snapshots USING btree (id)"
+    },
+    {
+      "table": "client_snapshots",
+      "index": "idx_client_snapshots_client_polled",
+      "definition": "CREATE INDEX idx_client_snapshots_client_polled ON public.client_snapshots USING btree (client_id, polled_at)"
+    },
+    {
+      "table": "client_snapshots",
+      "index": "idx_client_snapshots_polled_brin",
+      "definition": "CREATE INDEX idx_client_snapshots_polled_brin ON public.client_snapshots USING brin (polled_at)"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "index": "client_uptime_buckets_pkey",
+      "definition": "CREATE UNIQUE INDEX client_uptime_buckets_pkey ON public.client_uptime_buckets USING btree (id)"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "index": "idx_uptime_bucket_ts",
+      "definition": "CREATE INDEX idx_uptime_bucket_ts ON public.client_uptime_buckets USING btree (bucket_ts)"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "index": "uq_client_uptime_bucket",
+      "definition": "CREATE UNIQUE INDEX uq_client_uptime_bucket ON public.client_uptime_buckets USING btree (client_id, bucket_ts)"
+    },
+    {
+      "table": "db_size_history",
+      "index": "db_size_history_pkey",
+      "definition": "CREATE UNIQUE INDEX db_size_history_pkey ON public.db_size_history USING btree (id)"
+    },
+    {
+      "table": "db_size_history",
+      "index": "uq_db_size_recorded_at",
+      "definition": "CREATE UNIQUE INDEX uq_db_size_recorded_at ON public.db_size_history USING btree (recorded_at)"
+    },
+    {
+      "table": "dismissed_alerts",
+      "index": "dismissed_alerts_pkey",
+      "definition": "CREATE UNIQUE INDEX dismissed_alerts_pkey ON public.dismissed_alerts USING btree (id)"
+    },
+    {
+      "table": "dismissed_alerts",
+      "index": "uq_dismissed_alert_key",
+      "definition": "CREATE UNIQUE INDEX uq_dismissed_alert_key ON public.dismissed_alerts USING btree (alert_key)"
+    },
+    {
+      "table": "download_clients",
+      "index": "download_clients_pkey",
+      "definition": "CREATE UNIQUE INDEX download_clients_pkey ON public.download_clients USING btree (id)"
+    },
+    {
+      "table": "notification_delivery_state",
+      "index": "idx_delivery_state_tracker_id",
+      "definition": "CREATE INDEX idx_delivery_state_tracker_id ON public.notification_delivery_state USING btree (tracker_id)"
+    },
+    {
+      "table": "notification_delivery_state",
+      "index": "notification_delivery_state_pkey",
+      "definition": "CREATE UNIQUE INDEX notification_delivery_state_pkey ON public.notification_delivery_state USING btree (id)"
+    },
+    {
+      "table": "notification_delivery_state",
+      "index": "uq_delivery_state_target_tracker_event",
+      "definition": "CREATE UNIQUE INDEX uq_delivery_state_target_tracker_event ON public.notification_delivery_state USING btree (target_id, tracker_id, event_type)"
+    },
+    {
+      "table": "notification_targets",
+      "index": "notification_targets_pkey",
+      "definition": "CREATE UNIQUE INDEX notification_targets_pkey ON public.notification_targets USING btree (id)"
+    },
+    {
+      "table": "tag_group_members",
+      "index": "tag_group_members_pkey",
+      "definition": "CREATE UNIQUE INDEX tag_group_members_pkey ON public.tag_group_members USING btree (id)"
+    },
+    {
+      "table": "tag_groups",
+      "index": "tag_groups_pkey",
+      "definition": "CREATE UNIQUE INDEX tag_groups_pkey ON public.tag_groups USING btree (id)"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "index": "idx_torrent_checkpoint_date",
+      "definition": "CREATE INDEX idx_torrent_checkpoint_date ON public.torrent_daily_checkpoints USING btree (checkpoint_date)"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "index": "torrent_daily_checkpoints_pkey",
+      "definition": "CREATE UNIQUE INDEX torrent_daily_checkpoints_pkey ON public.torrent_daily_checkpoints USING btree (id)"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "index": "uq_torrent_checkpoint_client_hash_date",
+      "definition": "CREATE UNIQUE INDEX uq_torrent_checkpoint_client_hash_date ON public.torrent_daily_checkpoints USING btree (client_id, hash, checkpoint_date)"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "index": "tracker_daily_checkpoints_pkey",
+      "definition": "CREATE UNIQUE INDEX tracker_daily_checkpoints_pkey ON public.tracker_daily_checkpoints USING btree (id)"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "index": "uq_tracker_checkpoint_tracker_date",
+      "definition": "CREATE UNIQUE INDEX uq_tracker_checkpoint_tracker_date ON public.tracker_daily_checkpoints USING btree (tracker_id, checkpoint_date)"
+    },
+    {
+      "table": "tracker_outages",
+      "index": "idx_tracker_outages_ended",
+      "definition": "CREATE INDEX idx_tracker_outages_ended ON public.tracker_outages USING btree (ended_at)"
+    },
+    {
+      "table": "tracker_outages",
+      "index": "idx_tracker_outages_tracker_started",
+      "definition": "CREATE INDEX idx_tracker_outages_tracker_started ON public.tracker_outages USING btree (tracker_id, started_at)"
+    },
+    {
+      "table": "tracker_outages",
+      "index": "tracker_outages_pkey",
+      "definition": "CREATE UNIQUE INDEX tracker_outages_pkey ON public.tracker_outages USING btree (id)"
+    },
+    {
+      "table": "tracker_roles",
+      "index": "idx_tracker_roles_tracker_id",
+      "definition": "CREATE INDEX idx_tracker_roles_tracker_id ON public.tracker_roles USING btree (tracker_id)"
+    },
+    {
+      "table": "tracker_roles",
+      "index": "tracker_roles_pkey",
+      "definition": "CREATE UNIQUE INDEX tracker_roles_pkey ON public.tracker_roles USING btree (id)"
+    },
+    {
+      "table": "tracker_snapshots",
+      "index": "idx_snapshots_polled_brin",
+      "definition": "CREATE INDEX idx_snapshots_polled_brin ON public.tracker_snapshots USING brin (polled_at)"
+    },
+    {
+      "table": "tracker_snapshots",
+      "index": "idx_snapshots_tracker_polled",
+      "definition": "CREATE INDEX idx_snapshots_tracker_polled ON public.tracker_snapshots USING btree (tracker_id, polled_at)"
+    },
+    {
+      "table": "tracker_snapshots",
+      "index": "idx_snapshots_tracker_polled_covering",
+      "definition": "CREATE INDEX idx_snapshots_tracker_polled_covering ON public.tracker_snapshots USING btree (tracker_id, polled_at) INCLUDE (uploaded_bytes, downloaded_bytes, ratio, buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs, required_ratio, warned, freeleech_tokens, share_score, username, group_name)"
+    },
+    {
+      "table": "tracker_snapshots",
+      "index": "tracker_snapshots_pkey",
+      "definition": "CREATE UNIQUE INDEX tracker_snapshots_pkey ON public.tracker_snapshots USING btree (id)"
+    },
+    {
+      "table": "trackers",
+      "index": "trackers_pkey",
+      "definition": "CREATE UNIQUE INDEX trackers_pkey ON public.trackers USING btree (id)"
+    }
+  ],
+  "constraints": [
+    {
+      "table": "app_coverage_gaps",
+      "constraint": "app_coverage_gaps_ended_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL ended_at"
+    },
+    {
+      "table": "app_coverage_gaps",
+      "constraint": "app_coverage_gaps_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "app_coverage_gaps",
+      "constraint": "app_coverage_gaps_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "app_coverage_gaps",
+      "constraint": "app_coverage_gaps_reason_not_null",
+      "type": "n",
+      "definition": "NOT NULL reason"
+    },
+    {
+      "table": "app_coverage_gaps",
+      "constraint": "app_coverage_gaps_started_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL started_at"
+    },
+    {
+      "table": "app_liveness",
+      "constraint": "app_liveness_first_seen_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL first_seen_at"
+    },
+    {
+      "table": "app_liveness",
+      "constraint": "app_liveness_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "app_liveness",
+      "constraint": "app_liveness_last_seen_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL last_seen_at"
+    },
+    {
+      "table": "app_liveness",
+      "constraint": "app_liveness_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_backup_encryption_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL backup_encryption_enabled"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_backup_retention_count_not_null",
+      "type": "n",
+      "definition": "NOT NULL backup_retention_count"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_backup_schedule_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL backup_schedule_enabled"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_backup_schedule_frequency_not_null",
+      "type": "n",
+      "definition": "NOT NULL backup_schedule_frequency"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_created_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL created_at"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_credential_vault_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL credential_vault_enabled"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_encryption_salt_not_null",
+      "type": "n",
+      "definition": "NOT NULL encryption_salt"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_failed_login_attempts_not_null",
+      "type": "n",
+      "definition": "NOT NULL failed_login_attempts"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_lockout_duration_minutes_not_null",
+      "type": "n",
+      "definition": "NOT NULL lockout_duration_minutes"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_lockout_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL lockout_enabled"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_lockout_threshold_not_null",
+      "type": "n",
+      "definition": "NOT NULL lockout_threshold"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_password_hash_not_null",
+      "type": "n",
+      "definition": "NOT NULL password_hash"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_proxy_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL proxy_enabled"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_proxy_type_not_null",
+      "type": "n",
+      "definition": "NOT NULL proxy_type"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_qbitmanage_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL qbitmanage_enabled"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_store_usernames_not_null",
+      "type": "n",
+      "definition": "NOT NULL store_usernames"
+    },
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_tracker_poll_interval_minutes_not_null",
+      "type": "n",
+      "definition": "NOT NULL tracker_poll_interval_minutes"
+    },
+    {
+      "table": "backup_history",
+      "constraint": "backup_history_created_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL created_at"
+    },
+    {
+      "table": "backup_history",
+      "constraint": "backup_history_encrypted_not_null",
+      "type": "n",
+      "definition": "NOT NULL encrypted"
+    },
+    {
+      "table": "backup_history",
+      "constraint": "backup_history_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "backup_history",
+      "constraint": "backup_history_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "backup_history",
+      "constraint": "backup_history_size_bytes_not_null",
+      "type": "n",
+      "definition": "NOT NULL size_bytes"
+    },
+    {
+      "table": "backup_history",
+      "constraint": "backup_history_status_not_null",
+      "type": "n",
+      "definition": "NOT NULL status"
+    },
+    {
+      "table": "client_snapshots",
+      "constraint": "client_snapshots_client_id_download_clients_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES download_clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "client_snapshots",
+      "constraint": "client_snapshots_client_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL client_id"
+    },
+    {
+      "table": "client_snapshots",
+      "constraint": "client_snapshots_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "client_snapshots",
+      "constraint": "client_snapshots_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "client_snapshots",
+      "constraint": "client_snapshots_polled_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL polled_at"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "constraint": "client_uptime_buckets_bucket_ts_not_null",
+      "type": "n",
+      "definition": "NOT NULL bucket_ts"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "constraint": "client_uptime_buckets_client_id_download_clients_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES download_clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "constraint": "client_uptime_buckets_client_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL client_id"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "constraint": "client_uptime_buckets_fail_not_null",
+      "type": "n",
+      "definition": "NOT NULL fail"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "constraint": "client_uptime_buckets_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "constraint": "client_uptime_buckets_ok_not_null",
+      "type": "n",
+      "definition": "NOT NULL ok"
+    },
+    {
+      "table": "client_uptime_buckets",
+      "constraint": "client_uptime_buckets_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "db_size_history",
+      "constraint": "db_size_history_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "db_size_history",
+      "constraint": "db_size_history_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "db_size_history",
+      "constraint": "db_size_history_recorded_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL recorded_at"
+    },
+    {
+      "table": "db_size_history",
+      "constraint": "db_size_history_total_bytes_not_null",
+      "type": "n",
+      "definition": "NOT NULL total_bytes"
+    },
+    {
+      "table": "dismissed_alerts",
+      "constraint": "dismissed_alerts_alert_key_not_null",
+      "type": "n",
+      "definition": "NOT NULL alert_key"
+    },
+    {
+      "table": "dismissed_alerts",
+      "constraint": "dismissed_alerts_alert_type_not_null",
+      "type": "n",
+      "definition": "NOT NULL alert_type"
+    },
+    {
+      "table": "dismissed_alerts",
+      "constraint": "dismissed_alerts_dismissed_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL dismissed_at"
+    },
+    {
+      "table": "dismissed_alerts",
+      "constraint": "dismissed_alerts_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "dismissed_alerts",
+      "constraint": "dismissed_alerts_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_auth_method_not_null",
+      "type": "n",
+      "definition": "NOT NULL auth_method"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_created_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL created_at"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_cross_seed_tags_not_null",
+      "type": "n",
+      "definition": "NOT NULL cross_seed_tags"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL enabled"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_encrypted_api_key_not_null",
+      "type": "n",
+      "definition": "NOT NULL encrypted_api_key"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_encrypted_password_not_null",
+      "type": "n",
+      "definition": "NOT NULL encrypted_password"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_encrypted_url_path_not_null",
+      "type": "n",
+      "definition": "NOT NULL encrypted_url_path"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_encrypted_username_not_null",
+      "type": "n",
+      "definition": "NOT NULL encrypted_username"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_host_not_null",
+      "type": "n",
+      "definition": "NOT NULL host"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_is_default_not_null",
+      "type": "n",
+      "definition": "NOT NULL is_default"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_name_not_null",
+      "type": "n",
+      "definition": "NOT NULL name"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_poll_interval_seconds_not_null",
+      "type": "n",
+      "definition": "NOT NULL poll_interval_seconds"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_port_not_null",
+      "type": "n",
+      "definition": "NOT NULL port"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_type_not_null",
+      "type": "n",
+      "definition": "NOT NULL type"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_updated_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL updated_at"
+    },
+    {
+      "table": "download_clients",
+      "constraint": "download_clients_use_ssl_not_null",
+      "type": "n",
+      "definition": "NOT NULL use_ssl"
+    },
+    {
+      "table": "notification_delivery_state",
+      "constraint": "fk_delivery_state_target",
+      "type": "f",
+      "definition": "FOREIGN KEY (target_id) REFERENCES notification_targets(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "notification_delivery_state",
+      "constraint": "notification_delivery_state_event_type_not_null",
+      "type": "n",
+      "definition": "NOT NULL event_type"
+    },
+    {
+      "table": "notification_delivery_state",
+      "constraint": "notification_delivery_state_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "notification_delivery_state",
+      "constraint": "notification_delivery_state_last_notified_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL last_notified_at"
+    },
+    {
+      "table": "notification_delivery_state",
+      "constraint": "notification_delivery_state_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "notification_delivery_state",
+      "constraint": "notification_delivery_state_target_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL target_id"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_created_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL created_at"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_enabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL enabled"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_encrypted_config_not_null",
+      "type": "n",
+      "definition": "NOT NULL encrypted_config"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_include_tracker_name_not_null",
+      "type": "n",
+      "definition": "NOT NULL include_tracker_name"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_name_not_null",
+      "type": "n",
+      "definition": "NOT NULL name"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_active_hnrs_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_active_hnrs"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_anniversary_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_anniversary"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_bonus_cap_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_bonus_cap"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_buffer_milestone_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_buffer_milestone"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_download_disabled_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_download_disabled"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_hit_and_run_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_hit_and_run"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_rank_change_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_rank_change"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_ratio_danger_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_ratio_danger"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_ratio_drop_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_ratio_drop"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_tracker_down_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_tracker_down"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_unsatisfied_limit_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_unsatisfied_limit"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_vip_expiring_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_vip_expiring"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_warned_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_warned"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_notify_zero_seeding_not_null",
+      "type": "n",
+      "definition": "NOT NULL notify_zero_seeding"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_type_not_null",
+      "type": "n",
+      "definition": "NOT NULL type"
+    },
+    {
+      "table": "notification_targets",
+      "constraint": "notification_targets_updated_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL updated_at"
+    },
+    {
+      "table": "tag_group_members",
+      "constraint": "tag_group_members_group_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL group_id"
+    },
+    {
+      "table": "tag_group_members",
+      "constraint": "tag_group_members_group_id_tag_groups_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (group_id) REFERENCES tag_groups(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "tag_group_members",
+      "constraint": "tag_group_members_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "tag_group_members",
+      "constraint": "tag_group_members_label_not_null",
+      "type": "n",
+      "definition": "NOT NULL label"
+    },
+    {
+      "table": "tag_group_members",
+      "constraint": "tag_group_members_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "tag_group_members",
+      "constraint": "tag_group_members_sort_order_not_null",
+      "type": "n",
+      "definition": "NOT NULL sort_order"
+    },
+    {
+      "table": "tag_group_members",
+      "constraint": "tag_group_members_tag_not_null",
+      "type": "n",
+      "definition": "NOT NULL tag"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_chart_type_not_null",
+      "type": "n",
+      "definition": "NOT NULL chart_type"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_count_unmatched_not_null",
+      "type": "n",
+      "definition": "NOT NULL count_unmatched"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_created_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL created_at"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_name_not_null",
+      "type": "n",
+      "definition": "NOT NULL name"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_sort_order_not_null",
+      "type": "n",
+      "definition": "NOT NULL sort_order"
+    },
+    {
+      "table": "tag_groups",
+      "constraint": "tag_groups_updated_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL updated_at"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_checkpoint_date_not_null",
+      "type": "n",
+      "definition": "NOT NULL checkpoint_date"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_client_id_download_clients_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES download_clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_client_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL client_id"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_downloaded_start_not_null",
+      "type": "n",
+      "definition": "NOT NULL downloaded_start"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_hash_not_null",
+      "type": "n",
+      "definition": "NOT NULL hash"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_name_not_null",
+      "type": "n",
+      "definition": "NOT NULL name"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "torrent_daily_checkpoints",
+      "constraint": "torrent_daily_checkpoints_uploaded_start_not_null",
+      "type": "n",
+      "definition": "NOT NULL uploaded_start"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_checkpoint_date_not_null",
+      "type": "n",
+      "definition": "NOT NULL checkpoint_date"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_downloaded_bytes_end_not_null",
+      "type": "n",
+      "definition": "NOT NULL downloaded_bytes_end"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_snapshot_count_not_null",
+      "type": "n",
+      "definition": "NOT NULL snapshot_count"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_tracker_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL tracker_id"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_tracker_id_trackers_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (tracker_id) REFERENCES trackers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "tracker_daily_checkpoints",
+      "constraint": "tracker_daily_checkpoints_uploaded_bytes_end_not_null",
+      "type": "n",
+      "definition": "NOT NULL uploaded_bytes_end"
+    },
+    {
+      "table": "tracker_outages",
+      "constraint": "tracker_outages_ended_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL ended_at"
+    },
+    {
+      "table": "tracker_outages",
+      "constraint": "tracker_outages_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "tracker_outages",
+      "constraint": "tracker_outages_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "tracker_outages",
+      "constraint": "tracker_outages_reason_not_null",
+      "type": "n",
+      "definition": "NOT NULL reason"
+    },
+    {
+      "table": "tracker_outages",
+      "constraint": "tracker_outages_started_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL started_at"
+    },
+    {
+      "table": "tracker_outages",
+      "constraint": "tracker_outages_tracker_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL tracker_id"
+    },
+    {
+      "table": "tracker_outages",
+      "constraint": "tracker_outages_tracker_id_trackers_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (tracker_id) REFERENCES trackers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "tracker_roles",
+      "constraint": "tracker_roles_achieved_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL achieved_at"
+    },
+    {
+      "table": "tracker_roles",
+      "constraint": "tracker_roles_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "tracker_roles",
+      "constraint": "tracker_roles_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "tracker_roles",
+      "constraint": "tracker_roles_role_name_not_null",
+      "type": "n",
+      "definition": "NOT NULL role_name"
+    },
+    {
+      "table": "tracker_roles",
+      "constraint": "tracker_roles_tracker_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL tracker_id"
+    },
+    {
+      "table": "tracker_roles",
+      "constraint": "tracker_roles_tracker_id_trackers_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (tracker_id) REFERENCES trackers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_downloaded_bytes_not_null",
+      "type": "n",
+      "definition": "NOT NULL downloaded_bytes"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_is_manual_not_null",
+      "type": "n",
+      "definition": "NOT NULL is_manual"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_polled_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL polled_at"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_tracker_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL tracker_id"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_tracker_id_trackers_id_fk",
+      "type": "f",
+      "definition": "FOREIGN KEY (tracker_id) REFERENCES trackers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "tracker_snapshots",
+      "constraint": "tracker_snapshots_uploaded_bytes_not_null",
+      "type": "n",
+      "definition": "NOT NULL uploaded_bytes"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_api_path_not_null",
+      "type": "n",
+      "definition": "NOT NULL api_path"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_base_url_not_null",
+      "type": "n",
+      "definition": "NOT NULL base_url"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_consecutive_failures_not_null",
+      "type": "n",
+      "definition": "NOT NULL consecutive_failures"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_count_cross_seed_unsatisfied_not_null",
+      "type": "n",
+      "definition": "NOT NULL count_cross_seed_unsatisfied"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_created_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL created_at"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_encrypted_api_token_not_null",
+      "type": "n",
+      "definition": "NOT NULL encrypted_api_token"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_hide_unread_badges_not_null",
+      "type": "n",
+      "definition": "NOT NULL hide_unread_badges"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_id_not_null",
+      "type": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_is_active_not_null",
+      "type": "n",
+      "definition": "NOT NULL is_active"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_is_favorite_not_null",
+      "type": "n",
+      "definition": "NOT NULL is_favorite"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_name_not_null",
+      "type": "n",
+      "definition": "NOT NULL name"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_platform_type_not_null",
+      "type": "n",
+      "definition": "NOT NULL platform_type"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_updated_at_not_null",
+      "type": "n",
+      "definition": "NOT NULL updated_at"
+    },
+    {
+      "table": "trackers",
+      "constraint": "trackers_use_proxy_not_null",
+      "type": "n",
+      "definition": "NOT NULL use_proxy"
+    }
+  ]
+}

@@ -109,6 +109,11 @@ You can check out a few other, longer, screenshots in the docs folder.
 
 ### Docker (recommended)
 
+This is Renato's fork. The Compose file pulls
+`ghcr.io/rednato25/tracker-tracker:latest`, built from this repository's `main`
+for **linux/amd64** only. Upstream attribution and documentation links remain
+below; the fork does not replace the upstream project.
+
 ```bash
 mkdir tracker-tracker && cd tracker-tracker
 ```
@@ -116,8 +121,8 @@ mkdir tracker-tracker && cd tracker-tracker
 1. Download the compose file and example env:
 
    ```bash
-   curl -LO https://raw.githubusercontent.com/jordanlambrecht/tracker-tracker/main/docker-compose.yml
-   curl -L https://raw.githubusercontent.com/jordanlambrecht/tracker-tracker/main/.env.example -o .env
+   curl -LO https://raw.githubusercontent.com/rednato25/tracker-tracker/main/docker-compose.yml
+   curl -L https://raw.githubusercontent.com/rednato25/tracker-tracker/main/.env.example -o .env
    ```
 
 2. Generate secrets and paste them into `.env`:
@@ -142,7 +147,29 @@ mkdir tracker-tracker && cd tracker-tracker
 docker compose pull && docker compose up -d
 ```
 
-The database schema is synced automatically on startup.
+The reviewed migration runner applies the manifest-listed schema changes before the
+server starts. PostgreSQL 18 is supported. Migration failures stop startup; keep a
+database dump from before the upgrade.
+
+### Platform and rollback
+
+The fork image is built for **linux/amd64** only. On arm64, build the Dockerfile
+locally or use an image that supports your platform; pulling the fork image on
+an unsupported platform is not a supported installation path.
+
+To roll back, pin the `tracker-tracker-app` image to a previously verified
+digest or `sha-<commit>` tag, then run:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Rolling back the image does **not** reverse database schema changes. An older
+image that still runs `drizzle-kit push --force` is **not** a safe rollback
+against a newer schema; restore the pre-upgrade database dump instead. Take a
+database dump before upgrading and keep the previous image reference. See
+[Upgrade and Rollback](docs/UPGRADE_AND_ROLLBACK.md) for the full procedure and
+backup v2/v1 compatibility.
 
 ### Using an external database
 
@@ -156,11 +183,11 @@ Requires Node.js 24+, pnpm, and PostgreSQL.
 pnpm install
 cp .env.example .env.local
 # In .env.local, set DATABASE_URL to your local Postgres and SESSION_SECRET
-pnpm db:push
+node --env-file=.env.local scripts/db/migrate.mjs
 pnpm dev
 ```
 
-Unit tests run with `pnpm test:run`. The browser smoke suite runs with `pnpm test:e2e` against a production build (`pnpm build` first) and a throwaway `tracker_tracker_e2e` database on the same Postgres server, which it wipes on every run; create that database once with `createdb tracker_tracker_e2e` and sync it with `POSTGRES_DB=tracker_tracker_e2e pnpm db:push`.
+Unit tests run with `pnpm test:run`. The browser smoke suite runs with `pnpm test:e2e` against a production build (`pnpm build` first) and a throwaway `tracker_tracker_e2e` database on the same Postgres server, which it wipes on every run; create that database once with `createdb tracker_tracker_e2e` and initialize it with `DATABASE_URL=postgresql://.../tracker_tracker_e2e node scripts/db/migrate.mjs`.
 
 ## Configuration
 

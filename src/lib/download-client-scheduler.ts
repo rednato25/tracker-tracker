@@ -64,6 +64,7 @@ import {
 import { parseTorrentTags } from "@/lib/fleet"
 import { localDateStr } from "@/lib/formatters"
 import { log } from "@/lib/logger"
+import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
 import { createTrackedTorrentPredicate, trackerHostKey } from "@/lib/tracker-matching"
 import { clearUptimeAccumulator, flushCompletedBuckets, recordHeartbeat } from "@/lib/uptime"
 
@@ -595,11 +596,16 @@ export function startClientScheduler(encryptionKey: Buffer): void {
   // already happened synchronously by the time the call returns.
   if (getHeartbeatTask() || getDeepPollTask()) void stopClientScheduler()
 
-  // Run both immediately on start
-  heartbeatAllClients(encryptionKey).catch((error) => {
+  // Run both immediately on start, guarded against a restore in another
+  // instance.
+  withBackgroundRestoreGuard("client-initial-heartbeat", () =>
+    heartbeatAllClients(encryptionKey)
+  ).catch((error) => {
     log.error(error, "Initial heartbeat error")
   })
-  deepPollAllClients(encryptionKey).catch((error) => {
+  withBackgroundRestoreGuard("client-initial-deep-poll", () =>
+    deepPollAllClients(encryptionKey)
+  ).catch((error) => {
     log.error(error, "Initial deep poll error")
   })
 
@@ -608,8 +614,10 @@ export function startClientScheduler(encryptionKey: Buffer): void {
     if (g.__heartbeatInFlight) return
     g.__heartbeatInFlight = true
     try {
-      await heartbeatAllClients(encryptionKey)
-      await flushCompletedBuckets()
+      await withBackgroundRestoreGuard("client-heartbeat", async () => {
+        await heartbeatAllClients(encryptionKey)
+        await flushCompletedBuckets()
+      })
     } catch (error) {
       log.error(error, "Client heartbeat error")
     } finally {
@@ -623,24 +631,26 @@ export function startClientScheduler(encryptionKey: Buffer): void {
     if (g.__deepPollInFlight) return
     g.__deepPollInFlight = true
     try {
-      await deepPollAllClients(encryptionKey)
-      // Prune client snapshots + uptime buckets at most once per hour
-      const now = Date.now()
-      if (now - (g.__lastPruneAt ?? 0) >= PRUNE_INTERVAL_MS) {
-        const [settings] = await db
-          .select({ retention: appSettings.snapshotRetentionDays })
-          .from(appSettings)
-          .limit(1)
-        // NULL retention means keep forever and is also the never-configured
-        // default (see db/schema.ts). No configured value, no delete.
-        const retentionDays = settings?.retention ?? null
-        if (retentionDays !== null && retentionDays > 0) {
-          const cutoff = new Date(now - retentionDays * 24 * 60 * 60 * 1000)
-          await db.delete(clientSnapshots).where(lt(clientSnapshots.polledAt, cutoff))
-          await db.delete(clientUptimeBuckets).where(lt(clientUptimeBuckets.bucketTs, cutoff))
+      await withBackgroundRestoreGuard("client-deep-poll", async () => {
+        await deepPollAllClients(encryptionKey)
+        // Prune client snapshots + uptime buckets at most once per hour
+        const now = Date.now()
+        if (now - (g.__lastPruneAt ?? 0) >= PRUNE_INTERVAL_MS) {
+          const [settings] = await db
+            .select({ retention: appSettings.snapshotRetentionDays })
+            .from(appSettings)
+            .limit(1)
+          // NULL retention means keep forever and is also the never-configured
+          // default (see db/schema.ts). No configured value, no delete.
+          const retentionDays = settings?.retention ?? null
+          if (retentionDays !== null && retentionDays > 0) {
+            const cutoff = new Date(now - retentionDays * 24 * 60 * 60 * 1000)
+            await db.delete(clientSnapshots).where(lt(clientSnapshots.polledAt, cutoff))
+            await db.delete(clientUptimeBuckets).where(lt(clientUptimeBuckets.bucketTs, cutoff))
+          }
+          g.__lastPruneAt = now
         }
-        g.__lastPruneAt = now
-      }
+      })
     } catch (error) {
       log.error(error, "Client deep poll error")
     } finally {

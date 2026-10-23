@@ -34,6 +34,7 @@
 import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
+import { auditMigrationFiles } from "./db/migration-manifest.mjs"
 import { FETCH_RE, fetchWindowEnd, hasInjectionGuard, logsCredential } from "./security-audit-lib"
 
 const ROOT = path.resolve(__dirname, "..")
@@ -1025,57 +1026,16 @@ function checkTimingSafeComparison(): CheckResult {
 // ── Check 16: No raw SQL migrations (critical) ───────────────────────────
 
 function checkNoRawMigrations(): CheckResult {
-  const findings: Finding[] = []
-  const MIGRATIONS_DIR = path.resolve(SRC_DIR, "lib/db/migrations")
-  const DRIZZLE_MIGRATIONS_DIR = path.resolve(ROOT, "drizzle")
-
-  // Check for a migrations directory with .sql files
-  for (const dir of [MIGRATIONS_DIR, DRIZZLE_MIGRATIONS_DIR]) {
-    if (!fs.existsSync(dir)) continue
-    const sqlFiles = walkFiles(dir, ".sql")
-    for (const f of sqlFiles) {
-      findings.push({
-        file: relativePath(f),
-        detail:
-          "Raw SQL migration file found. Use drizzle-kit push (schema-first) instead of generate/migrate",
-      })
-    }
-  }
-
-  // Check package.json scripts for drizzle-kit generate or migrate
-  const pkgPath = path.join(ROOT, "package.json")
-  if (fs.existsSync(pkgPath)) {
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
-      scripts?: Record<string, string>
-    }
-    for (const [name, cmd] of Object.entries(pkg.scripts ?? {})) {
-      if (/drizzle-kit\s+(generate|migrate)\b/.test(cmd)) {
-        findings.push({
-          file: "package.json",
-          detail: `Script "${name}" uses drizzle-kit generate/migrate. Use drizzle-kit push instead`,
-        })
-      }
-    }
-  }
-
-  // Check CI workflow files for drizzle-kit generate or migrate
-  const workflowDir = path.join(ROOT, ".github/workflows")
-  if (fs.existsSync(workflowDir)) {
-    const yamlFiles = [...walkFiles(workflowDir, ".yml"), ...walkFiles(workflowDir, ".yaml")]
-    for (const f of yamlFiles) {
-      const content = fs.readFileSync(f, "utf8")
-      if (/drizzle-kit\s+(generate|migrate)\b/.test(content)) {
-        findings.push({
-          file: relativePath(f),
-          detail: "CI workflow uses drizzle-kit generate/migrate. Use drizzle-kit push instead",
-        })
-      }
-    }
-  }
+  // The approved mechanism is a manifest-listed, checksum-verified migration
+  // directory. The shared validator also rejects the old schema-first-only paths,
+  // unlisted SQL, path escapes, malformed manifests and drizzle-kit
+  // generate/migrate/push commands. The P02b-5 cutover removed db:push and made
+  // the entrypoint and Dockerfile use scripts/db/migrate.mjs.
+  const findings: Finding[] = auditMigrationFiles(ROOT)
 
   return {
     id: "no-raw-migrations",
-    name: "No raw SQL migration files (schema-first only)",
+    name: "Reviewed SQL migrations only (manifest and checksums)",
     severity: "critical",
     status: findings.length === 0 ? "pass" : "fail",
     findings,

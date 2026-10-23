@@ -47,7 +47,18 @@ function buildConnectionString(): string {
   return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${name}`
 }
 
-function createDb() {
+let cachedClient: ReturnType<typeof postgres> | null = null
+
+/**
+ * The raw postgres.js pool.
+ *
+ * Background work that needs a session-level advisory lock reserves one
+ * connection from this pool. It must be the same pool the application uses so
+ * tests and HMR do not leak a second set of connections.
+ */
+export function getDbClient(): ReturnType<typeof postgres> {
+  if (cachedClient) return cachedClient
+
   const connectionString = buildConnectionString()
 
   // Reuse the Postgres connection across HMR reloads in development. The pool
@@ -55,7 +66,7 @@ function createDb() {
   // scope is what HMR throws away, without this, every reload would open
   // another pool and leak the old one.
   const g = globalThis as typeof globalThis & { __dbClient?: ReturnType<typeof postgres> }
-  const client =
+  cachedClient =
     g.__dbClient ??
     postgres(connectionString, {
       max: 5,
@@ -63,10 +74,14 @@ function createDb() {
       connect_timeout: 10,
     })
   if (process.env.NODE_ENV !== "production") {
-    g.__dbClient = client
+    g.__dbClient = cachedClient
   }
 
-  return drizzle(client, { schema })
+  return cachedClient
+}
+
+function createDb() {
+  return drizzle(getDbClient(), { schema })
 }
 
 type Db = ReturnType<typeof createDb>

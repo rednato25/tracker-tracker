@@ -17,16 +17,31 @@ Tracker Tracker backs up your configuration and history. Download backups manual
 | Download client configurations                                  | ✓          | Encrypted (credentials)                         |
 | Tag groups & notification targets                               | ✓          | All destinations                                |
 | **Your login password**                                         | ✗          | Never exported; use current password to restore |
-| **Encryption salt**                                             | ✗          | Never backed up; stays on instance              |
+| Encryption salt                                                 | ✓          | Included so restored ciphertext can be re-keyed |
+| Encrypted scheduler key                                         | ✗          | Destination-specific; cleared on restore        |
 | **Failed login counters**                                       | ✗          | Reset to zero on restore                        |
 | Transient state (last poll time, errors, cached torrents)       | ✗          | Not persisted                                   |
-| Notification delivery history                                   | ✗          | Not included                                    |
+| Migration ledger (`schema_migrations`)                          | ✗          | Destination-owned; never exported or restored   |
+| Worker leases / in-flight delivery state                        | ✗          | Not stored; only durable cooldown state exists  |
+| Notification delivery state (cooldowns/snoozes)                 | ✓          | v2 only; durable dedupe state                   |
+| Daily tracker and torrent checkpoints                           | ✓          | v2 only; history, not derived on restore        |
 
 Sensitive values (API tokens, client credentials, proxy passwords, webhook URLs, TOTP secrets) remain encrypted in the backup file.
 
 ## Backup File Format
 
-Backups are plain JSON (encrypted backups use `.ttbak`). The header includes version, creation time, instance URL, and data counts to confirm you're restoring the right file.
+New backups use **format v2**. Manual exports and scheduled backups use the same
+contract. The header includes version, creation time, instance URL, and data
+counts to confirm you're restoring the right file. v2 adds notification delivery
+state and daily tracker/torrent checkpoints.
+
+Older **v1** files remain importable. They do not contain that durable history,
+so a v1 restore leaves those tables empty instead of inventing past deliveries
+or daily values. The restore response and logs report that history as
+unavailable. After a v1 restore, notification cooldowns restart from the restore
+point: a notification that was suppressed before the backup may fire once.
+Restoring an older backup cannot prove what was delivered after it was taken, so
+exactly-once delivery across a restore is not claimed.
 
 ## Encrypted Backups (.ttbak)
 
@@ -65,12 +80,24 @@ Set a retention count (1-365, default 14). Once exceeded, the oldest backups del
 
 ### What happens during restore
 
-1. Backup file is validated
-2. All existing data is deleted
-3. Backup data is written to the database
-4. If the backup is from a different instance, encrypted fields are automatically re-encrypted for your current password
-5. Failed login attempts reset to zero
-6. **Your login password stays the same.** You stay logged in.
+1. The complete backup file is validated, including versions, row shapes, counts and relationships
+2. The restore takes a database-wide lock so background pollers and another app instance cannot write during replacement
+3. All existing application data is deleted inside one transaction
+4. Backup data is written in dependency order; tracker, client and notification ids are remapped
+5. If the backup is from a different instance, encrypted fields are automatically re-encrypted for your current password
+6. Any validation, decryption or insert failure rolls the whole transaction back; the previous data remains
+7. Failed login attempts reset to zero
+8. **Your login password stays the same.** You stay logged in.
+
+The migration ledger belongs to the destination instance. It is never exported,
+deleted or restored from backup content.
+
+Tracker polling, client polling and scheduled backups skip their next cycle
+while the restore lock is held in any instance, then resume after commit or
+rollback. The scheduler key is destination-specific and is not backup data; it
+is cleared during restore, so polling restarts immediately but needs the next
+login to survive a process restart. No schema DDL or migration command is run
+from backup content.
 
 ### Cross-instance restores
 

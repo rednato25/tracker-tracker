@@ -11,7 +11,12 @@ name: tracker-tracker
 
 services:
   tracker-tracker-app:
-    image: ghcr.io/jordanlambrecht/tracker-tracker:latest
+    # Renato's fork image. linux/amd64 only; verified 2026-10-23 at
+    # sha256:6266376ff4951857f0be4dd41369bb3f8652353c3a790247891d7b69b7f6d779.
+    # Roll back by pinning a previous sha-<commit> tag or digest, then
+    # `docker compose pull && docker compose up -d`. A rollback does not
+    # reverse database schema changes.
+    image: ghcr.io/rednato25/tracker-tracker:latest
     restart: unless-stopped
     container_name: tracker-tracker-app
     ports:

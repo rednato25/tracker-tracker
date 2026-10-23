@@ -15,9 +15,12 @@ import {
   clientUptimeBuckets,
   dismissedAlerts,
   downloadClients,
+  notificationDeliveryState,
   notificationTargets,
   tagGroupMembers,
   tagGroups,
+  torrentDailyCheckpoints,
+  trackerDailyCheckpoints,
   trackerOutages,
   trackerRoles,
   trackerSnapshots,
@@ -30,10 +33,27 @@ import { PROXY_HOST_PATTERN } from "@/lib/tunnel"
 import { HEX_64_RE, ISO_8601_RE, isValidHex, isValidPort } from "@/lib/validators"
 import packageJson from "../../package.json"
 
-export const CURRENT_BACKUP_VERSION = 1
+// v1 is the historical contract. v2 adds durable notification delivery state
+// and the two daily checkpoint tables. New exports are always v2; v1 stays
+// importable without fabricating the history it never carried.
+export const CURRENT_BACKUP_VERSION = 2
+export const LEGACY_BACKUP_VERSION = 1
+export const SUPPORTED_BACKUP_VERSIONS = [LEGACY_BACKUP_VERSION, CURRENT_BACKUP_VERSION] as const
+
+/**
+ * Fields that only a v2 backup may carry. Their absence in v1 means "history
+ * was not recorded", which is different from an explicit v2 empty array.
+ */
+export const BACKUP_V2_HISTORY_FIELDS = [
+  "notificationDeliveryState",
+  "trackerDailyCheckpoints",
+  "torrentDailyCheckpoints",
+] as const
+
+export type BackupVersion = (typeof SUPPORTED_BACKUP_VERSIONS)[number]
 
 export interface BackupManifest {
-  version: number
+  version: BackupVersion
   appVersion: string
   instanceUrl: string | null
   createdAt: string
@@ -56,6 +76,39 @@ export interface BackupPayload {
   trackerOutages?: Record<string, unknown>[]
   dismissedAlerts?: Record<string, unknown>[]
   notificationTargets?: Record<string, unknown>[]
+  // v2-only durable history. Undefined is the v1 sentinel, not "empty".
+  notificationDeliveryState?: Record<string, unknown>[]
+  trackerDailyCheckpoints?: Record<string, unknown>[]
+  torrentDailyCheckpoints?: Record<string, unknown>[]
+}
+
+/**
+ * Durable history normalized for restore. `null` means the source backup
+ * predates the table, so the destination must not invent rows for it.
+ */
+export interface NormalizedBackupHistory {
+  version: BackupVersion
+  notificationDeliveryState: Record<string, unknown>[] | null
+  trackerDailyCheckpoints: Record<string, unknown>[] | null
+  torrentDailyCheckpoints: Record<string, unknown>[] | null
+}
+
+export function normalizeBackupHistory(payload: BackupPayload): NormalizedBackupHistory {
+  if (payload.manifest.version === LEGACY_BACKUP_VERSION) {
+    return {
+      version: LEGACY_BACKUP_VERSION,
+      notificationDeliveryState: null,
+      trackerDailyCheckpoints: null,
+      torrentDailyCheckpoints: null,
+    }
+  }
+
+  return {
+    version: CURRENT_BACKUP_VERSION,
+    notificationDeliveryState: payload.notificationDeliveryState ?? [],
+    trackerDailyCheckpoints: payload.trackerDailyCheckpoints ?? [],
+    torrentDailyCheckpoints: payload.torrentDailyCheckpoints ?? [],
+  }
 }
 
 export interface EncryptedBackupEnvelope {
@@ -127,6 +180,9 @@ export async function generateBackupPayload(): Promise<BackupPayload> {
     rawTrackerOutages,
     rawDismissedAlerts,
     allNotificationTargets,
+    rawNotificationDeliveryState,
+    rawTrackerDailyCheckpoints,
+    rawTorrentDailyCheckpoints,
   ] = await Promise.all([
     db.select().from(appSettings).limit(1),
     db.select().from(trackers).orderBy(trackers.id),
@@ -151,6 +207,11 @@ export async function generateBackupPayload(): Promise<BackupPayload> {
     db.select().from(trackerOutages).orderBy(trackerOutages.id),
     db.select().from(dismissedAlerts).orderBy(dismissedAlerts.id),
     db.select().from(notificationTargets).orderBy(notificationTargets.id),
+    // Durable cooldown history, not a delivery log. It is restored so a backup
+    // does not reset every notification snooze.
+    db.select().from(notificationDeliveryState).orderBy(notificationDeliveryState.id),
+    db.select().from(trackerDailyCheckpoints).orderBy(trackerDailyCheckpoints.id),
+    db.select().from(torrentDailyCheckpoints).orderBy(torrentDailyCheckpoints.id),
   ])
 
   const settingsPayload: Record<string, unknown> = {}
@@ -210,6 +271,15 @@ export async function generateBackupPayload(): Promise<BackupPayload> {
     ({ lastDeliveryStatus, lastDeliveryAt, lastDeliveryError, ...rest }) =>
       serializeRow(rest as Record<string, unknown>)
   )
+  const notificationDeliveryStatePayload = rawNotificationDeliveryState.map((row) =>
+    serializeRow(row as Record<string, unknown>)
+  )
+  const trackerDailyCheckpointsPayload = rawTrackerDailyCheckpoints.map((row) =>
+    serializeRow(row as Record<string, unknown>)
+  )
+  const torrentDailyCheckpointsPayload = rawTorrentDailyCheckpoints.map((row) =>
+    serializeRow(row as Record<string, unknown>)
+  )
 
   const counts: Record<string, number> = {
     trackers: trackersPayload.length,
@@ -224,6 +294,9 @@ export async function generateBackupPayload(): Promise<BackupPayload> {
     trackerOutages: trackerOutagesPayload.length,
     dismissedAlerts: dismissedAlertsPayload.length,
     notificationTargets: backupNotificationTargets.length,
+    notificationDeliveryState: notificationDeliveryStatePayload.length,
+    trackerDailyCheckpoints: trackerDailyCheckpointsPayload.length,
+    torrentDailyCheckpoints: torrentDailyCheckpointsPayload.length,
   }
 
   const manifest: BackupManifest = {
@@ -250,6 +323,9 @@ export async function generateBackupPayload(): Promise<BackupPayload> {
     trackerOutages: trackerOutagesPayload,
     dismissedAlerts: dismissedAlertsPayload,
     notificationTargets: backupNotificationTargets,
+    notificationDeliveryState: notificationDeliveryStatePayload,
+    trackerDailyCheckpoints: trackerDailyCheckpointsPayload,
+    torrentDailyCheckpoints: torrentDailyCheckpointsPayload,
   }
 }
 
@@ -282,6 +358,252 @@ function assertValidIso(value: unknown, label: string): void {
   }
 }
 
+function assertNullableIso(value: unknown, label: string): void {
+  if (value === null || value === undefined) return
+  assertValidIso(value, label)
+}
+
+function assertInteger(value: unknown, label: string): asserts value is number {
+  assertNumber(value, label)
+  if (!Number.isInteger(value)) {
+    throw new Error(`Backup validation: ${label} must be an integer`)
+  }
+}
+
+function assertPositiveId(value: unknown, label: string): asserts value is number {
+  assertInteger(value, label)
+  if (value < 1) {
+    throw new Error(`Backup validation: ${label} must be a positive integer`)
+  }
+}
+
+function assertNonNegativeInteger(value: unknown, label: string): void {
+  assertInteger(value, label)
+  if (value < 0) {
+    throw new Error(`Backup validation: ${label} must be a non-negative integer`)
+  }
+}
+
+function assertDateOnly(value: unknown, label: string): void {
+  assertString(value, label)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`Backup validation: ${label} must be a YYYY-MM-DD date`)
+  }
+}
+
+function assertBigIntString(value: unknown, label: string): void {
+  assertString(value, label)
+  try {
+    BigInt(value)
+  } catch {
+    throw new Error(`Backup validation: ${label} must be parseable as BigInt`)
+  }
+}
+
+// ─── Relationship and durable-history validation ──────────────────────────────
+
+function requiredBackupIds(
+  rows: Record<string, unknown>[],
+  label: string,
+  isV2: boolean
+): Set<number> {
+  const ids = new Set<number>()
+  for (let i = 0; i < rows.length; i++) {
+    const id = rows[i].id
+    // Real v1 exports already carried ids (restore has always remapped on
+    // them). v2 additionally depends on them for delivery-state and scope
+    // remapping, so it rejects a missing id rather than building an
+    // undefined-keyed map.
+    if (isV2 || id !== undefined) assertPositiveId(id, `${label}[${i}].id`)
+    if (id === undefined) continue
+    const numericId = id as number
+    if (ids.has(numericId)) {
+      throw new Error(`Backup validation: duplicate ${label} id ${numericId}`)
+    }
+    ids.add(numericId)
+  }
+  return ids
+}
+
+function assertReference(
+  present: Set<number>,
+  value: unknown,
+  label: string,
+  field: string
+): void {
+  assertPositiveId(value, `${label}.${field}`)
+  if (!present.has(value)) {
+    throw new Error(`Backup validation: ${label}.${field} references a missing row`)
+  }
+}
+
+function assertUniqueComposite(
+  seen: Set<string>,
+  key: string,
+  label: string
+): void {
+  if (seen.has(key)) {
+    throw new Error(`Backup validation: duplicate ${label}`)
+  }
+  seen.add(key)
+}
+
+function validateV2History(payload: Record<string, unknown>): void {
+  const trackersRows = payload.trackers as Record<string, unknown>[]
+  const clientsRows = payload.downloadClients as Record<string, unknown>[]
+  const targetRows = payload.notificationTargets as Record<string, unknown>[]
+  const trackerIds = requiredBackupIds(trackersRows, "trackers", true)
+  const clientIds = requiredBackupIds(clientsRows, "downloadClients", true)
+  const targetIds = requiredBackupIds(targetRows, "notificationTargets", true)
+
+  // Every child reference must resolve inside the backup. The v1 path keeps its
+  // historical "skip orphaned children" behavior; v2 fails before any delete.
+  for (let i = 0; i < (payload.trackerSnapshots as unknown[]).length; i++) {
+    const row = (payload.trackerSnapshots as Record<string, unknown>[])[i]
+    assertReference(trackerIds, row.trackerId, `trackerSnapshots[${i}]`, "trackerId")
+  }
+  for (let i = 0; i < (payload.trackerRoles as unknown[]).length; i++) {
+    const row = (payload.trackerRoles as Record<string, unknown>[])[i]
+    assertReference(trackerIds, row.trackerId, `trackerRoles[${i}]`, "trackerId")
+  }
+  for (let i = 0; i < ((payload.trackerOutages as unknown[]) ?? []).length; i++) {
+    const row = (payload.trackerOutages as Record<string, unknown>[])[i]
+    assertReference(trackerIds, row.trackerId, `trackerOutages[${i}]`, "trackerId")
+  }
+  for (let i = 0; i < (payload.clientSnapshots as unknown[]).length; i++) {
+    const row = (payload.clientSnapshots as Record<string, unknown>[])[i]
+    assertReference(clientIds, row.clientId, `clientSnapshots[${i}]`, "clientId")
+  }
+  for (let i = 0; i < ((payload.clientUptimeBuckets as unknown[]) ?? []).length; i++) {
+    const row = (payload.clientUptimeBuckets as Record<string, unknown>[])[i]
+    assertReference(clientIds, row.clientId, `clientUptimeBuckets[${i}]`, "clientId")
+  }
+
+  const tagGroupIds = requiredBackupIds(
+    payload.tagGroups as Record<string, unknown>[],
+    "tagGroups",
+    true
+  )
+  for (let i = 0; i < (payload.tagGroupMembers as unknown[]).length; i++) {
+    const row = (payload.tagGroupMembers as Record<string, unknown>[])[i]
+    assertReference(tagGroupIds, row.groupId, `tagGroupMembers[${i}]`, "groupId")
+  }
+
+  for (let i = 0; i < targetRows.length; i++) {
+    const scope = targetRows[i].scope
+    if (scope === null || scope === undefined) continue
+    assertArray(scope, `notificationTargets[${i}].scope`)
+    for (let s = 0; s < scope.length; s++) {
+      assertReference(
+        trackerIds,
+        scope[s],
+        `notificationTargets[${i}].scope[${s}]`,
+        "trackerId"
+      )
+    }
+  }
+
+  // notification_delivery_state: durable cooldown history. It is not an
+  // in-flight lease, so every row is preserved; its relationships must be
+  // resolvable or the whole restore is rejected.
+  const deliverySeen = new Set<string>()
+  const deliveryRows = payload.notificationDeliveryState as Record<string, unknown>[]
+  for (let i = 0; i < deliveryRows.length; i++) {
+    const row = deliveryRows[i]
+    const label = `notificationDeliveryState[${i}]`
+    assertReference(targetIds, row.targetId, label, "targetId")
+    if (row.trackerId !== null && row.trackerId !== undefined) {
+      assertReference(trackerIds, row.trackerId, label, "trackerId")
+    }
+    assertString(row.eventType, `${label}.eventType`)
+    if (row.eventType.length === 0 || row.eventType.length > 50) {
+      throw new Error(`Backup validation: ${label}.eventType must be 1..50 characters`)
+    }
+    assertValidIso(row.lastNotifiedAt, `${label}.lastNotifiedAt`)
+    assertNullableIso(row.snoozedUntil, `${label}.snoozedUntil`)
+    assertUniqueComposite(
+      deliverySeen,
+      `${row.targetId}:${row.trackerId ?? "null"}:${row.eventType}`,
+      "notificationDeliveryState row"
+    )
+  }
+
+  const trackerCheckpointSeen = new Set<string>()
+  const trackerCheckpointRows = payload.trackerDailyCheckpoints as Record<string, unknown>[]
+  for (let i = 0; i < trackerCheckpointRows.length; i++) {
+    const row = trackerCheckpointRows[i]
+    const label = `trackerDailyCheckpoints[${i}]`
+    assertReference(trackerIds, row.trackerId, label, "trackerId")
+    assertDateOnly(row.checkpointDate, `${label}.checkpointDate`)
+    assertBigIntString(row.uploadedBytesEnd, `${label}.uploadedBytesEnd`)
+    assertBigIntString(row.downloadedBytesEnd, `${label}.downloadedBytesEnd`)
+    if (row.bufferBytesEnd !== null && row.bufferBytesEnd !== undefined) {
+      assertBigIntString(row.bufferBytesEnd, `${label}.bufferBytesEnd`)
+    }
+    if (row.ratioEnd !== null && row.ratioEnd !== undefined) {
+      assertNumber(row.ratioEnd, `${label}.ratioEnd`)
+    }
+    if (row.seedbonusEnd !== null && row.seedbonusEnd !== undefined) {
+      assertNumber(row.seedbonusEnd, `${label}.seedbonusEnd`)
+    }
+    assertNonNegativeInteger(row.snapshotCount, `${label}.snapshotCount`)
+    assertUniqueComposite(
+      trackerCheckpointSeen,
+      `${row.trackerId}:${row.checkpointDate}`,
+      "trackerDailyCheckpoints row"
+    )
+  }
+
+  const torrentCheckpointSeen = new Set<string>()
+  const torrentCheckpointRows = payload.torrentDailyCheckpoints as Record<string, unknown>[]
+  for (let i = 0; i < torrentCheckpointRows.length; i++) {
+    const row = torrentCheckpointRows[i]
+    const label = `torrentDailyCheckpoints[${i}]`
+    assertReference(clientIds, row.clientId, label, "clientId")
+    assertString(row.hash, `${label}.hash`)
+    if (row.hash.length === 0 || row.hash.length > 64) {
+      throw new Error(`Backup validation: ${label}.hash must be 1..64 characters`)
+    }
+    assertString(row.name, `${label}.name`)
+    assertDateOnly(row.checkpointDate, `${label}.checkpointDate`)
+    assertBigIntString(row.uploadedStart, `${label}.uploadedStart`)
+    assertBigIntString(row.downloadedStart, `${label}.downloadedStart`)
+    assertUniqueComposite(
+      torrentCheckpointSeen,
+      `${row.clientId}:${row.hash}:${row.checkpointDate}`,
+      "torrentDailyCheckpoints row"
+    )
+  }
+
+  const countObject = (payload.manifest as Record<string, unknown>).counts as Record<
+    string,
+    unknown
+  >
+  for (const [field, rows] of [
+    ["trackers", payload.trackers],
+    ["trackerSnapshots", payload.trackerSnapshots],
+    ["trackerRoles", payload.trackerRoles],
+    ["downloadClients", payload.downloadClients],
+    ["tagGroups", payload.tagGroups],
+    ["tagGroupMembers", payload.tagGroupMembers],
+    ["clientSnapshots", payload.clientSnapshots],
+    ["clientUptimeBuckets", payload.clientUptimeBuckets],
+    ["appCoverageGaps", payload.appCoverageGaps],
+    ["trackerOutages", payload.trackerOutages],
+    ["dismissedAlerts", payload.dismissedAlerts],
+    ["notificationTargets", payload.notificationTargets],
+    ["notificationDeliveryState", payload.notificationDeliveryState],
+    ["trackerDailyCheckpoints", payload.trackerDailyCheckpoints],
+    ["torrentDailyCheckpoints", payload.torrentDailyCheckpoints],
+  ] as const) {
+    if (countObject[field] !== (rows as unknown[]).length) {
+      throw new Error(
+        `Backup validation: manifest.counts.${field} must equal the ${field} array length`
+      )
+    }
+  }
+}
+
 // ─── Public validation ────────────────────────────────────────────────────────
 
 export function validateBackupJson(payload: unknown): asserts payload is BackupPayload {
@@ -297,11 +619,15 @@ export function validateBackupJson(payload: unknown): asserts payload is BackupP
   }
   const manifest = p.manifest as Record<string, unknown>
 
-  if (manifest.version !== CURRENT_BACKUP_VERSION) {
+  if (
+    manifest.version !== LEGACY_BACKUP_VERSION &&
+    manifest.version !== CURRENT_BACKUP_VERSION
+  ) {
     throw new Error(
-      `Backup validation: unsupported backup version ${manifest.version} (expected ${CURRENT_BACKUP_VERSION})`
+      `Backup validation: unsupported backup version ${String(manifest.version)} (supported: ${SUPPORTED_BACKUP_VERSIONS.join(", ")})`
     )
   }
+  const isV2 = manifest.version === CURRENT_BACKUP_VERSION
 
   assertValidIso(manifest.createdAt, "manifest.createdAt")
 
@@ -359,8 +685,19 @@ export function validateBackupJson(payload: unknown): asserts payload is BackupP
   assertArray(p.tagGroups, "tagGroups")
   assertArray(p.tagGroupMembers, "tagGroupMembers")
   assertArray(p.clientSnapshots, "clientSnapshots")
+
+  // v2 history presence is explicit. A v1 payload carrying v2 fields is
+  // malformed rather than silently reinterpreted, and a v2 payload missing a
+  // field cannot be mistaken for an older export with no history.
+  for (const field of BACKUP_V2_HISTORY_FIELDS) {
+    if (isV2) {
+      assertArray(p[field], field)
+    } else if (p[field] !== undefined) {
+      throw new Error(`Backup validation: version 1 backup must not contain ${field}`)
+    }
+  }
   // clientUptimeBuckets is optional for backward compatibility with older backups
-  if (p.clientUptimeBuckets !== undefined) {
+  if (isV2 || p.clientUptimeBuckets !== undefined) {
     assertArray(p.clientUptimeBuckets, "clientUptimeBuckets")
     for (let i = 0; i < p.clientUptimeBuckets.length; i++) {
       const ub = p.clientUptimeBuckets[i] as Record<string, unknown>
@@ -372,7 +709,7 @@ export function validateBackupJson(payload: unknown): asserts payload is BackupP
     }
   }
   // trackerOutages is optional for backward compatibility with older backups
-  if (p.trackerOutages !== undefined) {
+  if (isV2 || p.trackerOutages !== undefined) {
     assertArray(p.trackerOutages, "trackerOutages")
     for (let i = 0; i < p.trackerOutages.length; i++) {
       const o = p.trackerOutages[i] as Record<string, unknown>
@@ -390,7 +727,7 @@ export function validateBackupJson(payload: unknown): asserts payload is BackupP
     }
   }
   // appCoverageGaps is optional for backward compatibility with older backups
-  if (p.appCoverageGaps !== undefined) {
+  if (isV2 || p.appCoverageGaps !== undefined) {
     assertArray(p.appCoverageGaps, "appCoverageGaps")
     for (let i = 0; i < p.appCoverageGaps.length; i++) {
       const cg = p.appCoverageGaps[i] as Record<string, unknown>
@@ -408,11 +745,11 @@ export function validateBackupJson(payload: unknown): asserts payload is BackupP
     }
   }
   // dismissedAlerts is optional for backward compatibility with older backups
-  if (p.dismissedAlerts !== undefined) {
+  if (isV2 || p.dismissedAlerts !== undefined) {
     assertArray(p.dismissedAlerts, "dismissedAlerts")
   }
   // notificationTargets is optional for backward compatibility with older backups
-  if (p.notificationTargets !== undefined) {
+  if (isV2 || p.notificationTargets !== undefined) {
     assertArray(p.notificationTargets, "notificationTargets")
     for (let i = 0; i < p.notificationTargets.length; i++) {
       const nt = p.notificationTargets[i] as Record<string, unknown>
@@ -542,6 +879,8 @@ export function validateBackupJson(payload: unknown): asserts payload is BackupP
     assertString(m.tag, `${prefix}.tag`)
     assertString(m.label, `${prefix}.label`)
   }
+
+  if (isV2) validateV2History(p)
 }
 
 // ─── Encryption wrappers ──────────────────────────────────────────────────────

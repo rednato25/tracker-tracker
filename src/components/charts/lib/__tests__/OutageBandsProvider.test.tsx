@@ -189,8 +189,9 @@ describe("OutageBandsProvider", () => {
   })
 
   it("draws nothing when the ledger request fails", async () => {
-    // The tables do not exist until `pnpm db:push` runs, and the route 500s
-    // until then. A failure has to read as UNKNOWN, never as a band.
+    // The tables do not exist until the migration runner applies the baseline,
+    // and the route 500s until then. A failure has to read as UNKNOWN, never as
+    // a band.
     fetchMock.mockImplementation(() => Promise.reject(new Error("boom")))
 
     render(

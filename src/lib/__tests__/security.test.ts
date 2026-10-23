@@ -116,8 +116,11 @@ vi.mock("@/lib/db/schema", () => ({
   dismissedAlerts: {},
   notificationTargets: {},
   notificationDeliveryState: {},
+  trackerDailyCheckpoints: {},
+  torrentDailyCheckpoints: {},
   clientUptimeBuckets: {},
   appCoverageGaps: {},
+  trackerOutages: {},
   // appLiveness is absent on purpose, restore must never touch it.
 }))
 
@@ -126,6 +129,12 @@ vi.mock("@/lib/backup", () => ({
   encryptBackupPayload: vi.fn(),
   decryptBackupPayload: vi.fn(),
   validateBackupJson: vi.fn(),
+  normalizeBackupHistory: vi.fn(() => ({
+    version: 1,
+    notificationDeliveryState: null,
+    trackerDailyCheckpoints: null,
+    torrentDailyCheckpoints: null,
+  })),
   CURRENT_BACKUP_VERSION: 1,
 }))
 
@@ -1765,7 +1774,9 @@ describe("Backup restore: new notify* column round-trip", () => {
       insert: () => ({
         values: (vals: Record<string, unknown>) => {
           insertedValues.push(vals)
-          return Promise.resolve()
+          return Object.assign(Promise.resolve(), {
+            returning: () => Promise.resolve([{ id: 1 }]),
+          })
         },
         onConflictDoNothing: () => Promise.resolve(),
       }),
@@ -1775,7 +1786,7 @@ describe("Backup restore: new notify* column round-trip", () => {
         }),
       }),
       delete: () => Promise.resolve(undefined),
-      execute: () => Promise.resolve([]),
+      execute: () => Promise.resolve([{ acquired: true }]),
     }
 
     // Mock db.transaction to invoke the callback with the tx mock
@@ -1855,7 +1866,9 @@ describe("Backup restore: new notify* column round-trip", () => {
       insert: () => ({
         values: (vals: Record<string, unknown>) => {
           insertedValues.push(vals)
-          return Promise.resolve()
+          return Object.assign(Promise.resolve(), {
+            returning: () => Promise.resolve([{ id: 1 }]),
+          })
         },
         onConflictDoNothing: () => Promise.resolve(),
       }),
@@ -1865,7 +1878,7 @@ describe("Backup restore: new notify* column round-trip", () => {
         }),
       }),
       delete: () => Promise.resolve(undefined),
-      execute: () => Promise.resolve([]),
+      execute: () => Promise.resolve([{ acquired: true }]),
     }
 
     ;(db.transaction as ReturnType<typeof vi.fn>).mockImplementation(

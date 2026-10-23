@@ -369,11 +369,32 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and 
 
 The count guard ensures security coverage is monotonically non-decreasing. If a security test is removed or refactored, CI fails until the count is restored or the threshold is explicitly updated.
 
+#### Retired inherited OSSAR workflow
+
+The inherited `.github/workflows/ossar.yml` has been retired for this fork. It
+wrapped Microsoft Security DevOps with four configured tools: Bandit (Python),
+BinSkim (compiled binaries), ESLint (JavaScript/TypeScript) and SpotBugs (JVM).
+On this repository it produced no successful SARIF output: there are no Python,
+JVM or compiled-binary targets, and its generated ESLint 9 configuration could
+not run against this Biome-only tree, so the job failed before security results
+were uploaded. No finding was dismissed, because none were produced.
+
+The coverage removed is the intended OSSAR ESLint JavaScript security rules
+(for example `no-eval`, `no-restricted-syntax`, React `no-danger`, and the
+ESLint security-plugin checks), plus theoretical Bandit/BinSkim/SpotBugs
+coverage for languages and artifacts this repository does not contain. The
+remaining tools are **not one-for-one replacements**: CodeQL runs semantic
+security queries over JavaScript/TypeScript, Trivy scans the candidate
+container and dependencies for known vulnerabilities, Biome performs
+lint/correctness checks, Dependency Review evaluates dependency changes when
+the repository graph is enabled, and `scripts/security-audit.ts` checks this
+project's invariants. None of them reproduce OSSAR's exact rule set.
+
 ---
 
 ### Static Security Audit
 
-The security audit (`scripts/security-audit.ts`) performs 28 automated checks on every push and PR:
+The security audit (`scripts/security-audit.ts`) performs the automated checks below on every push and PR:
 
 | #   | Check                    | Severity | What's Verified                                                                       |
 | --- | ------------------------ | -------- | ------------------------------------------------------------------------------------- |
@@ -387,7 +408,7 @@ The security audit (`scripts/security-audit.ts`) performs 28 automated checks on
 | 8   | Raw SQL in routes        | Critical | No `db.execute()` in API route handlers (use Drizzle query builder)                   |
 | 9   | Unsafe redirect/fetch    | Critical | No `fetch()`/`redirect()` with user-supplied URLs in API routes (SSRF)                |
 | 10  | Timing-safe comparison   | Critical | Secret comparisons in auth/crypto/totp use `timingSafeEqual`                          |
-| 11  | No raw migrations        | Critical | No SQL migration files, which enforces the schema-first Drizzle approach              |
+| 11  | Reviewed migrations      | Critical | Only manifest-listed SQL in `db/migrations` with matching SHA-256; no unmanifested SQL or unauthorized `drizzle-kit generate/migrate` |
 | 12  | Fetch timeout            | Critical | All external HTTP requests in adapters/clients have `AbortSignal.timeout`             |
 | 13  | Dockerfile non-root      | Critical | Docker container runs as non-root user with explicit `USER` directive                 |
 | 14  | Proxy allowlist sync     | Critical | Public routes in proxy allowlist match `NO_AUTH_ROUTES` bidirectionally               |
@@ -434,7 +455,7 @@ Run this checklist when adding new features, modifying API routes, or before rel
 ```sh
 pnpm tsc                              # Type safety
 pnpm test:run                         # Full test suite (including 78+ security tests)
-npx tsx scripts/security-audit.ts     # Static security audit (28 checks)
+npx tsx scripts/security-audit.ts     # Static security audit
 ```
 
 #### 1. Authentication & Authorization

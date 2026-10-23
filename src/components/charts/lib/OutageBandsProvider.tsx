@@ -101,8 +101,9 @@ function OutageBandsProvider({ children, trackerId }: OutageBandsProviderProps) 
           tracker: sanitize(data.tracker),
         })
       } catch {
-        // Best effort. The ledger tables do not exist until `pnpm db:push` has
-        // run, and the route 500s (and logs) until then. Keeping the previous
+        // Best effort. The ledger tables do not exist until the migration
+        // runner has applied the baseline, and the route 500s (and logs) until
+        // then. Keeping the previous
         // bands rather than clearing them means a transient failure does not
         // make an already-drawn explanation blink out of the chart.
       }

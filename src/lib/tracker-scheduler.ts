@@ -28,6 +28,7 @@ import { POLL_CYCLE_DEADLINE_MS, POLL_INTERVAL_DEFAULT } from "@/lib/limits"
 import { log } from "@/lib/logger"
 import { dispatchNotifications } from "@/lib/notifications/dispatch"
 import { maskUsername } from "@/lib/privacy"
+import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
 import { recordDatabaseSize } from "@/lib/server-data"
 import { pruneTrackerOutages, recordTrackerPollFailure } from "@/lib/tracker-outages"
 import { buildFetchOptions, getAdapter } from "@/lib/tracker-platforms"
@@ -799,8 +800,11 @@ export function startTrackerPolling(encryptionKey: Buffer): void {
 
   setSchedulerKey(encryptionKey)
 
-  // Poll immediately on start, don't wait for first 5-minute tick
-  pollAllTrackers(encryptionKey).catch((error) => {
+  // Poll immediately on start, don't wait for first 5-minute tick. The guard
+  // matters if another instance is restoring while this process boots.
+  withBackgroundRestoreGuard("tracker-initial-poll", () =>
+    pollAllTrackers(encryptionKey)
+  ).catch((error) => {
     log.error(error, "Initial poll error")
   })
 
@@ -811,7 +815,9 @@ export function startTrackerPolling(encryptionKey: Buffer): void {
     if (getPollInFlight()) return
     setPollInFlight(true)
     try {
-      await withCycleDeadline(pollAllTrackers(encryptionKey), POLL_CYCLE_DEADLINE_MS, "poll cycle")
+      await withBackgroundRestoreGuard("tracker-poll", () =>
+        withCycleDeadline(pollAllTrackers(encryptionKey), POLL_CYCLE_DEADLINE_MS, "poll cycle")
+      )
     } catch (error) {
       log.error(error, "Scheduler error")
     } finally {

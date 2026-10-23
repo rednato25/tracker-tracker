@@ -47,16 +47,16 @@ biome.json
 
 # Development scripts.
 #
-# scripts/recover.cjs is the emergency password-recovery CLI and
-# scripts/backfill-buffer.cjs is the signed-buffer history repair; both are
-# operator tools that MUST reach the build context. The Dockerfile copies them
-# into the runner. Write this as `scripts/*` + negations, never as a bare
-# `scripts` + negation: re-including a child of a wholly-excluded directory is
-# not reliable across BuildKit versions, and the failure mode is a COPY error
-# mid-build.
-scripts/*
-!scripts/recover.cjs
-!scripts/backfill-buffer.cjs
+# Runtime and operator scripts must reach the build context: the migration
+# runner, its shared validators, the recovery CLI and the buffer backfill.
+# Exclude development-only tools by name instead of excluding scripts/* and
+# relying on negations; BuildKit cannot reliably re-include a child of an
+# excluded directory.
+scripts/knip-filter.sh
+scripts/regen-changelog.cjs
+scripts/security-audit-lib.ts
+scripts/security-audit.ts
+scripts/validate-trackers.ts
 
-# Drizzle generated migrations (schema-push used instead)
+# Legacy Drizzle output is not used by the reviewed migration mechanism.
 drizzle

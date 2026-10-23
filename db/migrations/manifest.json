@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "baseline": "0000_baseline",
+  "migrations": [
+    {
+      "version": "0000_baseline",
+      "file": "0000_baseline.sql",
+      "sha256": "59b382583d2a70edf5b1b2ca8488408f3eb83582ea4a4eb6aec501f72e0e9815"
+    }
+  ]
+}

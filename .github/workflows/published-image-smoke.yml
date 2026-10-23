@@ -1,0 +1,65 @@
+name: Published Image Smoke
+
+# Post-publication validation of the exact GHCR artifact. This workflow pulls
+# the image by digest and never rebuilds it or substitutes the PR candidate.
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Published image reference, preferably by sha256 digest
+        required: true
+        default: ghcr.io/rednato25/tracker-tracker@sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/published-image-smoke.yml
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  IMAGE_REF: ${{ github.event.inputs.image || 'ghcr.io/rednato25/tracker-tracker@sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda' }}
+
+jobs:
+  smoke:
+    name: Published digest smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull the published digest
+        run: docker pull "$IMAGE_REF"
+
+      - name: Assert the pulled digest matches the published artifact
+        run: |
+          set -euo pipefail
+          digests="$(docker image inspect "$IMAGE_REF" --format '{{range .RepoDigests}}{{println .}}{{end}}')"
+          printf '%s\n' "$digests"
+          grep -Fx "$IMAGE_REF" <<< "$digests"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node 24 for the P02a fixture
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install fixture dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run the published-image matrix
+        env:
+          CANDIDATE_IMAGE: ${{ env.IMAGE_REF }}
+          CI: "true"
+        run: bash e2e/docker/validate-candidate.sh

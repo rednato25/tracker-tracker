@@ -59,8 +59,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # --- Reviewed migration runner and frozen migration assets ---
-COPY --chown=nextjs:nodejs /app/db/migrations ./db/migrations
-COPY --chown=nextjs:nodejs /app/scripts/db ./scripts/db
+COPY --chown=nextjs:nodejs db/migrations ./db/migrations
+COPY --chown=nextjs:nodejs scripts/db ./scripts/db
 
 # --- Changelog  ---
 COPY --from=builder /app/CHANGELOG.md ./

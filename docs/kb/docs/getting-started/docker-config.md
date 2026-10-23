@@ -159,7 +159,11 @@ The `/api/health` endpoint returns `200 OK` when both the app and database are h
 docker compose pull && docker compose up -d
 ```
 
-The database schema updates automatically. No manual steps needed.
+The reviewed migration runner updates the schema before the server starts. A
+migration failure stops startup; check the app logs. PostgreSQL 18 is supported.
+Take a database dump before upgrading. Rolling the image back does not reverse a
+schema change, and an older image that runs `drizzle-kit push --force` is not a
+safe rollback.
 
 !!! tip "Read the changelog first"
     Check the [CHANGELOG](https://github.com/jordanlambrecht/tracker-tracker/blob/main/CHANGELOG.md) before upgrading, especially major versions, which may break backups or environment variables.

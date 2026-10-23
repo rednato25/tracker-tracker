@@ -63,7 +63,10 @@ TZ=America/Chicago
 docker compose up -d
 ```
 
-The app waits for the database to be ready, then sets up the schema automatically. First boot takes about 15-20 seconds. Peek at the logs if you want to watch:
+The app waits for the database to be ready, applies the reviewed migrations, then
+starts the server. Migration failures stop startup and are logged. PostgreSQL 18
+is supported. Take a database dump before upgrading. First boot takes about
+15-20 seconds. Peek at the logs if you want to watch:
 
 ```bash
 docker compose logs -f tracker-tracker-app
@@ -85,7 +88,9 @@ docker run -d \
     ghcr.io/jordanlambrecht/tracker-tracker:latest
 ```
 
-Point `DATABASE_URL` to your Postgres instance. The app will create its schema on startup if needed.
+Point `DATABASE_URL` to your PostgreSQL 18 instance. The app applies the reviewed
+migrations on startup; an unknown or newer schema prevents the server from
+starting and must be resolved from a pre-upgrade dump.
 
 ## Step 5. Verify it's running
 

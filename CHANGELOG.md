@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased] (2026-10-23)
+
+### Features
+
+* **db:** ship the reviewed manifest migration runner and remove production `drizzle-kit push`
+* **backups:** add format v2 with durable notification delivery state and daily checkpoints
+* **distribution:** publish the fork image and document linux/amd64 support
+
+### ⚠ BREAKING CHANGES
+
+* Production startup now applies manifest-listed SQL migrations. Take a database dump and record the current image digest before upgrading. Image rollback does not reverse schema changes.
+* New backups use format v2. v1 files remain importable but carry no delivery/checkpoint history.
+
+### Documentation
+
+* add upgrade, rollback and Docker-validation limits in `docs/UPGRADE_AND_ROLLBACK.md`
+
 ## [2.13.5](https://github.com/jordanlambrecht/tracker-tracker/compare/v2.13.4...v2.13.5) (2026-10-20)
 
 ## [2.13.4](https://github.com/jordanlambrecht/tracker-tracker/compare/v2.13.3...v2.13.4) (2026-10-20)

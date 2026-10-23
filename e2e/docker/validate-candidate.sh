@@ -260,6 +260,7 @@ echo "::group::P02a adoption"
 create_database tt_p02a
 P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PORT}/tt_p02a" \
   P02A_ALLOW_DESTRUCTIVE=1 \
+  P02A_ALLOW_REMOTE=1 \
   env -u NODE_ENV pnpm exec tsx e2e/fixtures/db-baseline-v1/seed.ts >/dev/null
 P02A_PORT="$(start_app tt-ci-p02a tt_p02a)"
 wait_health tt-ci-p02a "$P02A_PORT"
@@ -267,7 +268,7 @@ assert_equal 1 "$(psql_query tt_p02a 'select count(*) from schema_migrations')" 
 assert_equal 2 "$(psql_query tt_p02a 'select count(*) from trackers')" "P02a seeded trackers"
 assert_equal "p02a-fixture" "$(psql_query tt_p02a 'select username from app_settings limit 1')" "P02a settings"
 P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PORT}/tt_p02a" \
-  env -u NODE_ENV pnpm exec tsx e2e/fixtures/db-baseline-v1/verify.ts >/dev/null
+  P02A_ALLOW_REMOTE=1 env -u NODE_ENV pnpm exec tsx e2e/fixtures/db-baseline-v1/verify.ts >/dev/null
 echo "unmanaged P02a baseline adopted with seeded rows preserved"
 echo "::endgroup::"
 

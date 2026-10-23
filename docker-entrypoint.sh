@@ -3,7 +3,7 @@
 #
 # 1. Validate required environment variables
 # 2. Wait for PostgreSQL to accept connections
-# 3. Sync database schema (drizzle-kit push)
+# 3. Apply reviewed database migrations (node scripts/db/migrate.mjs)
 # 4. Start the Next.js standalone server
 set -e
 
@@ -88,19 +88,36 @@ until node -e "
   sleep 2
 done
 
-# ── Sync schema ─────────────────────────────────────────────────────────
-echo "tracker-tracker | Database ready. Syncing schema..."
+# --- Apply reviewed migrations -------------------------------------------
+echo "tracker-tracker | Database ready. Applying migrations..."
 
-# drizzle-kit push is schema-first: reads src/lib/db/schema.ts and applies
-# changes automatically. --force skips interactive prompts (required in Docker
-# where there is no TTY). This means column renames are treated as drop+create
-# and destructive changes proceed without confirmation, which is acceptable because
-# the schema in the image is the source of truth for that release.
-#
-cd /schema-sync
-./node_modules/.bin/drizzle-kit push --force --config=drizzle.config.ts
-cd /app
+# The runner owns the advisory lock, ledger checks, fingerprint/adoption
+# decisions and transactions. Shell must not retry permanent failures or fall
+# back to push/reset. Forward termination to the migration child so Docker does
+# not leave an orphan running after the container is stopped.
+MIGRATE_PID=""
+on_signal() {
+  if [ -n "$MIGRATE_PID" ]; then
+    kill -TERM "$MIGRATE_PID" 2>/dev/null || true
+    wait "$MIGRATE_PID" 2>/dev/null || true
+  fi
+  exit 143
+}
+trap on_signal TERM INT
 
-# ── Start server ────────────────────────────────────────────────────────
+node /app/scripts/db/migrate.mjs &
+MIGRATE_PID=$!
+if wait "$MIGRATE_PID"; then
+  MIGRATE_PID=""
+else
+  MIGRATE_STATUS=$?
+  MIGRATE_PID=""
+  echo "tracker-tracker | FATAL: database migration failed (exit ${MIGRATE_STATUS}); server will not start." >&2
+  echo "tracker-tracker | Review the migration output above and restore a backup if the schema is unknown or ahead." >&2
+  exit 1
+fi
+trap - TERM INT
+
+# --- Start server ---------------------------------------------------------
 echo "tracker-tracker | Starting server on port ${PORT:-3000}..."
 exec node server.js

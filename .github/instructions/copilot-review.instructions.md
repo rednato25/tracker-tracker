@@ -28,8 +28,8 @@ pnpm only. Never use npm or yarn. Node.js >= 22 required.
 
 ## Database (Drizzle ORM)
 
-- ALWAYS use Drizzle's schema-first approach. NEVER use raw SQL migrations.
-- Schema lives in `src/lib/db/schema.ts`. Use `drizzle-kit push` to sync schema to DB.
+- ALWAYS use the reviewed migration mechanism: manifest-listed SQL in `db/migrations/` applied by `scripts/db/migrate.mjs`. Never use `drizzle-kit push` in production.
+- Schema lives in `src/lib/db/schema.ts`; generate reviewed SQL with the approved authoring flow, then add it to the manifest and checksum contract.
 - `DISTINCT ON` is supported natively via `db.selectDistinctOn()`. Do not use `db.execute(sql\`...\`)` for this.
 - Use explicit column projections in `.select({ ... })` instead of `.select()` (which fetches all columns).
 - BigInt columns use `{ mode: "bigint" }` and return native `bigint` values from queries.
@@ -155,7 +155,7 @@ All module-level singletons (cron tasks, DB client, qBT SID cache) must be store
 
 - Do not use ESLint. It has been deprecated for this project.
 - Do not use `npm` or `yarn`. Use `pnpm` only.
-- Do not create raw SQL migration files. Use `drizzle-kit push`.
+- Do not create unmanifested SQL migration files and do not reintroduce `drizzle-kit push` in production.
 - Do not use `.toISOString().slice(0, 10)` for checkpoint/daily dates. Use `localDateStr()`.
 - Do not pass unknown props through to DOM elements via `{...rest}` spreads without filtering component-only props first.
 - Do not use dynamic code execution or inject raw HTML into the DOM. See `scripts/security-audit.ts` for the full list of banned functions.

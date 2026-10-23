@@ -373,7 +373,7 @@ The count guard ensures security coverage is monotonically non-decreasing. If a 
 
 ### Static Security Audit
 
-The security audit (`scripts/security-audit.ts`) performs 28 automated checks on every push and PR:
+The security audit (`scripts/security-audit.ts`) performs the automated checks below on every push and PR:
 
 | #   | Check                    | Severity | What's Verified                                                                       |
 | --- | ------------------------ | -------- | ------------------------------------------------------------------------------------- |
@@ -387,7 +387,7 @@ The security audit (`scripts/security-audit.ts`) performs 28 automated checks on
 | 8   | Raw SQL in routes        | Critical | No `db.execute()` in API route handlers (use Drizzle query builder)                   |
 | 9   | Unsafe redirect/fetch    | Critical | No `fetch()`/`redirect()` with user-supplied URLs in API routes (SSRF)                |
 | 10  | Timing-safe comparison   | Critical | Secret comparisons in auth/crypto/totp use `timingSafeEqual`                          |
-| 11  | No raw migrations        | Critical | No SQL migration files, which enforces the schema-first Drizzle approach              |
+| 11  | Reviewed migrations      | Critical | Only manifest-listed SQL in `db/migrations` with matching SHA-256; no unmanifested SQL or unauthorized `drizzle-kit generate/migrate` |
 | 12  | Fetch timeout            | Critical | All external HTTP requests in adapters/clients have `AbortSignal.timeout`             |
 | 13  | Dockerfile non-root      | Critical | Docker container runs as non-root user with explicit `USER` directive                 |
 | 14  | Proxy allowlist sync     | Critical | Public routes in proxy allowlist match `NO_AUTH_ROUTES` bidirectionally               |
@@ -434,7 +434,7 @@ Run this checklist when adding new features, modifying API routes, or before rel
 ```sh
 pnpm tsc                              # Type safety
 pnpm test:run                         # Full test suite (including 78+ security tests)
-npx tsx scripts/security-audit.ts     # Static security audit (28 checks)
+npx tsx scripts/security-audit.ts     # Static security audit
 ```
 
 #### 1. Authentication & Authorization

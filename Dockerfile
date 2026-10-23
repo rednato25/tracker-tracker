@@ -34,20 +34,7 @@ ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 RUN pnpm build
 
 # ---------------------------------------------------------------------------
-# Stage 3 -  Deps for drizzle-kit
-#
-# --prod keeps the dev toolchain out: the TypeScript native compiler it would
-# pull in is a Go binary that fails the Trivy scan, and nothing here compiles
-# TypeScript - drizzle-kit uses its own bundled esbuild. --ignore-scripts is
-# required with it, since the "prepare": "husky" script is a devDependency.
-# ---------------------------------------------------------------------------
-FROM base AS schema-deps
-WORKDIR /schema-sync
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts
-
-# ---------------------------------------------------------------------------
-# Stage 4 - Production runner
+# Stage 3 - Production runner
 # ---------------------------------------------------------------------------
 FROM node:24-alpine AS runner
 RUN apk add --no-cache libc6-compat bash && apk upgrade --no-cache \
@@ -71,13 +58,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# --- Drizzle schema-sync for drizzle-kit push at startup ---
-RUN mkdir -p /schema-sync/src/lib
-COPY --from=schema-deps /schema-sync/node_modules /schema-sync/node_modules
-COPY --from=schema-deps /schema-sync/package.json /schema-sync/
-COPY --from=builder /app/drizzle.config.ts /schema-sync/
-COPY --from=builder /app/src/lib/db /schema-sync/src/lib/db
-COPY --from=builder /app/tsconfig.json /schema-sync/
+# --- Reviewed migration runner and frozen migration assets ---
+COPY --chown=nextjs:nodejs /app/db/migrations ./db/migrations
+COPY --chown=nextjs:nodejs /app/scripts/db ./scripts/db
 
 # --- Changelog  ---
 COPY --from=builder /app/CHANGELOG.md ./

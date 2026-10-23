@@ -57,6 +57,9 @@ biome.json
 scripts/*
 !scripts/recover.cjs
 !scripts/backfill-buffer.cjs
+# The reviewed migration runner and its shared validators are runtime code.
+!scripts/db/
+!scripts/db/**
 
-# Drizzle generated migrations (schema-push used instead)
+# Legacy Drizzle output is not used by the reviewed migration mechanism.
 drizzle

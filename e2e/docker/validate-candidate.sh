@@ -229,7 +229,7 @@ remove_app tt-ci-managed-1
 MANAGED_PORT="$(start_app tt-ci-managed-2 tt_managed)"
 wait_health tt-ci-managed-2 "$MANAGED_PORT"
 assert_equal 1 "$(psql_query tt_managed 'select count(*) from schema_migrations')" "managed ledger rows"
-assert_log tt-ci-managed-2 '"path":"noop"'
+assert_log tt-ci-managed-2 '"path": *"noop"'
 echo "managed restart healthy with a no-op migration path"
 echo "::endgroup::"
 

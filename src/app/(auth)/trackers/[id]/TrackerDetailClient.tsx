@@ -1,6 +1,7 @@
 // src/app/(auth)/trackers/[id]/TrackerDetailClient.tsx
 "use client"
 
+import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
@@ -22,6 +23,7 @@ import { useTrackerTorrents } from "@/hooks/useTrackerTorrents"
 import { hexToRgba } from "@/lib/color-utils"
 import { computeDelta } from "@/lib/data-transforms"
 import { localDateStr } from "@/lib/formatters"
+import { trackerQueryOptions } from "@/lib/query-options"
 import type {
   DayRange,
   GazellePlatformMeta,
@@ -60,6 +62,7 @@ export function TrackerDetailClient({
   initialTab: initialTabProp,
 }: TrackerDetailClientProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const id = String(trackerId)
 
   const initialTab = VALID_TABS.includes(initialTabProp as Tab)
@@ -115,13 +118,27 @@ export function TrackerDetailClient({
     }
   }, [scrollbarColor])
 
+  const syncTrackerCache = useCallback(
+    (next: TrackerSummary) => {
+      queryClient.setQueryData<TrackerSummary[]>(trackerQueryOptions.queryKey, (prev) =>
+        prev ? prev.map((t) => (t.id === next.id ? next : t)) : prev
+      )
+      queryClient.invalidateQueries({ queryKey: trackerQueryOptions.queryKey })
+    },
+    [queryClient]
+  )
+
   async function handleResume() {
     setPollError(null)
     try {
       const res = await fetch(`/api/trackers/${id}/resume`, { method: "POST" })
       if (res.ok) {
         const trackerRes = await fetch(`/api/trackers/${id}`)
-        if (trackerRes.ok) setTracker(await trackerRes.json())
+        if (trackerRes.ok) {
+          const updated = (await trackerRes.json()) as TrackerSummary
+          setTracker(updated)
+          syncTrackerCache(updated)
+        }
       } else {
         const body = await res.json().catch(() => ({ error: "Resume failed" }))
         setPollError((body as { error?: string }).error ?? "Failed to resume polling")
@@ -151,7 +168,9 @@ export function TrackerDetailClient({
         body: JSON.stringify({ pollingPaused: !wasPaused }),
       })
       if (!res.ok) throw new Error("Failed to toggle pause")
-      setTracker(await res.json())
+      const updated = (await res.json()) as TrackerSummary
+      setTracker(updated)
+      syncTrackerCache(updated)
     } catch {
       setTracker((prev) => ({ ...prev, userPausedAt: originalUserPausedAt }))
       setPollError("Failed to toggle pause. Please try again")
@@ -170,7 +189,9 @@ export function TrackerDetailClient({
         body: JSON.stringify({ lastAccessAt: localDateStr() }),
       })
       if (!res.ok) throw new Error("Failed to mark login")
-      setTracker(await res.json())
+      const updated = (await res.json()) as TrackerSummary
+      setTracker(updated)
+      syncTrackerCache(updated)
     } catch {
       setPollError("Failed to mark login today. Please try again.")
     } finally {
@@ -191,7 +212,11 @@ export function TrackerDetailClient({
           fetch(`/api/trackers/${id}`),
           fetch(`/api/trackers/${id}/snapshots?days=0`),
         ])
-        if (trackerRes.ok) setTracker(await trackerRes.json())
+        if (trackerRes.ok) {
+          const updated = (await trackerRes.json()) as TrackerSummary
+          setTracker(updated)
+          syncTrackerCache(updated)
+        }
         if (allTimeRes.ok) setAllTimeSnapshots(await allTimeRes.json())
       }
     } catch {

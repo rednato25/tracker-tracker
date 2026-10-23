@@ -777,5 +777,5 @@ image has not been rebuilt; P01's published-image smoke test remains open.
 P02b-7 is complete as documentation only. The candidate-image Docker matrix and
 P02b-5 now have passing CI evidence. The remaining validation is the **published
 image**: rebuild/deploy it only when authorized, then run the P01 disposable
-fresh-install smoke test against that image. The runtime PostgreSQL-version
-guard and P03 remain after that; neither was started.
+fresh-install smoke test against that image. The PostgreSQL 18 guard is
+already implemented and Docker-verified; P03 was not started.

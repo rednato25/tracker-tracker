@@ -90,6 +90,14 @@ psql_on() {
   docker exec -i "$container" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$database" -Atc "$query"
 }
 
+psql_tcp() {
+  local container="$1"
+  local database="$2"
+  local query="$3"
+  docker exec -i -e PGPASSWORD="$DB_PASSWORD" "$container" \
+    psql -h 127.0.0.1 -U "$DB_USER" -d "$database" -Atc "$query"
+}
+
 psql_query() {
   psql_on "$DB_CONTAINER" "$1" "$2"
 }
@@ -188,8 +196,7 @@ for _ in $(seq 1 60); do
   # Query the actual database rather than relying on pg_isready's socket
   # heuristic; this also proves the POSTGRES_USER/POSTGRES_DB initialization
   # finished before any app container starts.
-  if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -Atc 'select 1' \
-    >/dev/null 2>&1; then
+  if psql_tcp "$DB_CONTAINER" postgres 'select 1' >/dev/null 2>&1; then
     postgres_ready=1
     break
   fi
@@ -290,7 +297,7 @@ docker run -d --name "$PG17_CONTAINER" --network "$NETWORK" \
   postgres:17-alpine >/dev/null
 pg17_ready=0
 for _ in $(seq 1 60); do
-  if psql_on "$PG17_CONTAINER" postgres 'select 1' >/dev/null 2>&1; then
+  if psql_tcp "$PG17_CONTAINER" postgres 'select 1' >/dev/null 2>&1; then
     pg17_ready=1
     break
   fi

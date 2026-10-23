@@ -24,6 +24,7 @@ DB_PASSWORD="tt"
 SESSION_SECRET="ci-docker-validation-session-secret-0123456789abcdef"
 NETWORK="tt-ci-net-$$"
 DB_CONTAINER="tt-ci-db-$$"
+PG17_CONTAINER="tt-ci-pg17-$$"
 TMP="$(mktemp -d)"
 COMPOSE_PROJECT="tt-ci-compose-$$"
 MANAGED=()
@@ -42,6 +43,8 @@ dump_logs() {
   done
   echo "--- $DB_CONTAINER ---"
   docker logs --tail 200 "$DB_CONTAINER" 2>&1 | sanitize || true
+  echo "--- $PG17_CONTAINER ---"
+  docker logs --tail 200 "$PG17_CONTAINER" 2>&1 | sanitize || true
   if [ -f "$COMPOSE_DIR/docker-compose.yml" ]; then
     echo "--- compose ---"
     docker compose --project-name "$COMPOSE_PROJECT" --env-file "$COMPOSE_DIR/.env" \
@@ -60,7 +63,7 @@ cleanup() {
       -f "$COMPOSE_DIR/docker-compose.yml" -f "$COMPOSE_DIR/override.yml" \
       down -v --remove-orphans >/dev/null 2>&1 || true
   fi
-  docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
+  docker rm -f "$DB_CONTAINER" "$PG17_CONTAINER" >/dev/null 2>&1 || true
   docker network rm "$NETWORK" >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
@@ -80,10 +83,15 @@ fail() {
   exit 1
 }
 
+psql_on() {
+  local container="$1"
+  local database="$2"
+  local query="$3"
+  docker exec -i "$container" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$database" -Atc "$query"
+}
+
 psql_query() {
-  local database="$1"
-  local query="$2"
-  docker exec -i "$DB_CONTAINER" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$database" -Atc "$query"
+  psql_on "$DB_CONTAINER" "$1" "$2"
 }
 
 create_database() {
@@ -104,8 +112,9 @@ app_port() {
 start_app() {
   local name="$1"
   local database="$2"
+  local database_host="${3:-$DB_CONTAINER}"
   docker run -d --name "$name" --network "$NETWORK" -p 127.0.0.1::3000 \
-    -e DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_CONTAINER}:5432/${database}" \
+    -e DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${database_host}:5432/${database}" \
     -e NODE_ENV=production \
     -e SESSION_SECRET="$SESSION_SECRET" \
     -e TZ=UTC \
@@ -272,7 +281,32 @@ P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PO
 echo "unmanaged P02a baseline adopted with seeded rows preserved"
 echo "::endgroup::"
 
-# ── 7. P01 Compose/Quick Start path with an explicit candidate override ─────
+# ── 7. Unsupported PostgreSQL major: reject before DDL and startup ──────────
+echo "::group::unsupported PostgreSQL major"
+docker run -d --name "$PG17_CONTAINER" --network "$NETWORK" \
+  -e POSTGRES_USER="$DB_USER" \
+  -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+  -e POSTGRES_DB=postgres \
+  postgres:17-alpine >/dev/null
+pg17_ready=0
+for _ in $(seq 1 60); do
+  if psql_on "$PG17_CONTAINER" postgres 'select 1' >/dev/null 2>&1; then
+    pg17_ready=1
+    break
+  fi
+  sleep 1
+done
+[ "$pg17_ready" -eq 1 ] || fail "PostgreSQL 17 did not become ready"
+psql_on "$PG17_CONTAINER" postgres 'CREATE DATABASE "tt_pg17"' >/dev/null
+PG17_PORT="$(start_app tt-ci-pg17 tt_pg17 "$PG17_CONTAINER")"
+wait_exit tt-ci-pg17
+assert_equal "" "$(psql_on "$PG17_CONTAINER" tt_pg17 "select coalesce(to_regclass('public.schema_migrations')::text, '')")" "PG17 ledger"
+assert_equal 0 "$(psql_on "$PG17_CONTAINER" tt_pg17 "select count(*) from pg_tables where schemaname='public'")" "PG17 application tables"
+assert_log tt-ci-pg17 'UNSUPPORTED_POSTGRES|PostgreSQL 18 is required'
+echo "PostgreSQL 17 refused before DDL and before the server"
+echo "::endgroup::"
+
+# ── 8. P01 Compose/Quick Start path with an explicit candidate override ─────
 echo "::group::Compose candidate override"
 mkdir -p "$COMPOSE_DIR"
 cp docker-compose.yml "$COMPOSE_DIR/docker-compose.yml"

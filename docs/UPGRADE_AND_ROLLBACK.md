@@ -40,7 +40,9 @@ docker compose exec -T db pg_dump -U tracker_tracker tracker_tracker > pre-upgra
 5. The destination migration ledger (`schema_migrations`) is owned by the
    destination. It is not exported and restore never rewrites it.
 
-PostgreSQL 18 is the tested major version. Unknown, drifted or newer schemas
+PostgreSQL 18 is the tested and required major version; the runner reads
+`server_version_num` and rejects 17.x or 19+ before ledger creation, DDL or
+application startup. Unknown, drifted or newer schemas
 fail closed; do not work around that by running `drizzle-kit push`.
 
 ## Backup format compatibility

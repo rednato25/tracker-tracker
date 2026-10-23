@@ -34,8 +34,8 @@ These are explicit, recorded approvals. They are not pending questions.
 P02b-1 recorded all four approvals and implemented the manifest/audit
 foundation. P02b-2/P02b-3 added the ledger, runner and verified adoption.
 P02b-5 implements the production cutover in the working tree; P02b-6 implements
-backup v2 and its authenticated restore checks. P02b-7 (release validation/docs)
-and the runtime PostgreSQL-version guard still follow.
+backup v2 and its authenticated restore checks. P02b-7 (release validation/docs) follows. The runtime PostgreSQL 18 guard is
+implemented in P02b-2 and verified by the Docker PostgreSQL 17 scenario.
 
 ## 1. Current lifecycle
 
@@ -638,6 +638,7 @@ global finding acceptance is used.
 | Restore/background coordination | Restore waits and returns 503 while a background lock is held; guard skips during restore | Node 24 + PostgreSQL 18; passed |
 | Unauthenticated restore | 401 | Node 24 + PostgreSQL 18; passed |
 | Entrypoint success/failure/termination | Migration runs before the app; failure or TERM/INT prevents startup; no push fallback or orphan | Node 24 + POSIX sh/WSL; 4/4 passed in P02b-5 |
+| Unsupported PostgreSQL major | PostgreSQL 17 rejected before ledger/table creation and before server startup | Docker scenario 7; passed |
 | Candidate image startup | Fresh, unmanaged, managed/restart, unknown/ahead and concurrent containers; app health after migration | CI run 40025347574; **passed** on PR head 938f7fb4 |
 | Published image startup | P01 fresh install from the published image | **Open**; published image not rebuilt |
 
@@ -790,4 +791,5 @@ is required. Node 24 is already the CI runtime. P02b-7 is complete as
 documentation only. The next bounded task is the **Docker validation matrix on
 a host with a working daemon**, which also closes the P01 fresh-install smoke
 test against a published image; P02b-5's candidate image is already validated.
-The runtime PostgreSQL-version guard and P03 were not started.
+The runtime PostgreSQL 18 guard is already implemented and Docker-verified;
+P03 was not started.

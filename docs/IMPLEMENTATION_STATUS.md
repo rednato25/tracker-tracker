@@ -75,7 +75,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P02b-1 | done | P02b-0 | branch `feat/p01-fork-distribution` (not deployed) | Approved policy; `db/migrations/0000_baseline.sql` (checksum `59b382583d2a70edf5b1b2ca8488408f3eb83582ea4a4eb6aec501f72e0e9815`); `db/migrations/manifest.json`; `scripts/db/migration-manifest.mjs`; narrow security-audit update; 10 regression tests | Backup v2, production cutover and authenticated restore remain P02b-6/P02b-5. No DB mutation, commit, push or deploy. |
 | P02b-2 | done | P02b-1 | branch `feat/p01-fork-distribution` (not deployed) | `scripts/db/migrate.mjs`; exact ledger; dedicated-session advisory lock; fresh baseline, managed/no-op, rollback, interruption, connection-loss, concurrent and lock-timeout tests; PostgreSQL 18 guard before ledger/DDL; 13/13 PostgreSQL 18 integration cases on Node 24 | P02b-3 followed. Runner is not wired into startup; backup v2 and cutover remain P02b-6/P02b-5. No real installation touched. |
 | P02b-3 | done | P02b-2 | branch `feat/p01-fork-distribution` (not deployed) | `scripts/db/schema-fingerprint.mjs`; production `baseline-fingerprint.json`; canonical/column-order adoption; exact missing-index repair; drift/wrong-index/foreign-ledger rejection; row/ciphertext/sequence preservation; rollback, interruption and concurrent adoption tests; 22/22 PostgreSQL 18 integration cases on Node 24 | No adoption blockers. Backup v2 and cutover remain P02b-6/P02b-5. No real installation touched. |
-| P02b-5 | done | P02b-1, P02b-2, P02b-3 (P02b-4 covered) | branch `feat/p01-fork-distribution` (not deployed) | `docker-entrypoint.sh` runs `scripts/db/migrate.mjs`, exits non-zero on failure and forwards TERM/INT; `Dockerfile` runtime copies `db/migrations` and `scripts/db`; `db:push` removed; audit rejects push in package/CI/entrypoint/Dockerfile; 4/4 entrypoint tests, 22/22 PostgreSQL 18 runner tests, 11/11 manifest tests, 5903 unit tests, TypeScript, lint, audit (38/38) and production build pass on Node 24; baseline checksum unchanged; CI run 40025347574 built PR head `938f7fb4` and passed fresh, unmanaged P02a adoption, managed restart, unknown/ahead refusal, PostgreSQL 17 rejection, concurrent startup and Compose candidate override | Published `latest` image was not rebuilt or tested. No deployment or production access. |
+| P02b-5 | done | P02b-1, P02b-2, P02b-3 (P02b-4 covered) | branch `feat/p01-fork-distribution` (not deployed) | `docker-entrypoint.sh` runs `scripts/db/migrate.mjs`, exits non-zero on failure and forwards TERM/INT; `Dockerfile` runtime copies `db/migrations` and `scripts/db`; `db:push` removed; audit rejects push in package/CI/entrypoint/Dockerfile; 4/4 entrypoint tests, 22/22 PostgreSQL 18 runner tests, 11/11 manifest tests, 5903 unit tests, TypeScript, lint, audit (38/38) and production build pass on Node 24; baseline checksum unchanged; CI run 40030887418 built PR head `465d63c1` and passed fresh, unmanaged P02a adoption, managed restart, unknown/ahead refusal, PostgreSQL 17 rejection, concurrent startup and Compose candidate override | Published `latest` image was not rebuilt or tested. No deployment or production access. |
 | P02b-6 | done | P02b-3 | branch `feat/p01-fork-distribution` (not deployed) | v2 export/validation, v1 import, delivery/checkpoint restore with id/scope remapping, transactional restore + cross-process advisory lock, credential lifecycle verification; 5918 unit tests, 10 authenticated HTTP cases plus setup (PostgreSQL 18), TypeScript, lint, audit (38/38), build | P01's published-image validation remains open. No production access or deployment. |
 | P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. Candidate-image Docker validation is now recorded; P01 published-image validation stays explicitly open. This is not a production-validated release. |
 | P03 | pending | P00, P02 for persistence | — | `satisfaction.ts` already separates account ratio from per-torrent rules; no provenance model | Add `requiredAccountRatio`/`requiredTorrentRatio` and source/freshness without rewriting old values |
@@ -649,8 +649,8 @@ candidate-image equivalent for this PR passed in the Docker job. This work is
 ### Docker candidate validation (PR #1)
 
 `Docker Build & Scan` run
-[40025347574](https://github.com/rednato25/tracker-tracker/actions/runs/40025347574)
-built the actual PR head `938f7fb4` for `linux/amd64` and passed in 4m34s:
+[40030887418](https://github.com/rednato25/tracker-tracker/actions/runs/40030887418)
+built the actual PR head `465d63c1` for `linux/amd64` and passed in 4m34s:
 
 - Fresh database startup with `/api/health` and one baseline ledger row.
 - Managed restart with a no-op migration path and no duplicate ledger row.
@@ -695,6 +695,10 @@ release.
   repo. Replacement coverage already exists in CodeQL (JS/TS security), Trivy
   (candidate image) and Biome (lint), but changing this security policy needs
   owner approval. No exclusion or `continue-on-error` was added.
+- Docker Build & Scan's first attempt at `465d63c1` failed inside Next/Turbopack
+  font resolution (`@vercel/turbopack-next/internal/font/google/font`); a rerun
+  passed every scenario. No source change was made for it, and the failure is
+  reported here rather than hidden.
 - The PostgreSQL 18 guard is **implemented**, not pending:
   `assertPg18()` in `scripts/db/migrate.mjs` reads `server_version_num` before
   any ledger read, adoption or DDL. `e2e/p02b/safety.mjs` also refuses non-18

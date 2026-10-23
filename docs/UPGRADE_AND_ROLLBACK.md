@@ -93,7 +93,7 @@ pre-upgrade v1 backup or the dump.
 ## Validation status
 
 The PR-head candidate image passed the Docker matrix in CI
-([run 40025347574](https://github.com/rednato25/tracker-tracker/actions/runs/40025347574)):
+([run 40030887418](https://github.com/rednato25/tracker-tracker/actions/runs/40030887418)):
 fresh startup and health, older unmanaged P02a adoption, managed restart/no-op,
 unknown and ahead schema refusal, concurrent startup, and a Compose Quick Start
 with an explicit candidate-image override. The published `latest` image was not

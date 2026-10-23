@@ -68,16 +68,16 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | ID | Status | Dependencies | Commit | Validation / evidence | Blocker or next step |
 |---|---|---|---|---|---|
 | P00 | done | — | `e9586d53` (baseline) | This audit, baseline commands above | Smallest next: P01 |
-| P01 | implemented_validation_blocked | P00 | branch `feat/p01-fork-distribution` (not deployed) | GHCR image public; `linux/amd64` index digest `sha256:6266376ff4951857f0be4dd41369bb3f8652353c3a790247891d7b69b7f6d779`; Compose config valid; Quick Start and image reference aligned; upstream attribution kept | Docker daemon is unavailable, so the disposable fresh-install smoke test was not run. Validate on a host with Docker before treating P01 as done. No push/deploy. |
-| P02 | in_progress | P00, P02a, P02b-0, P02b-1, P02b-2, P02b-3, P02b-5, P02b-6, P02b-7 | branch `feat/p01-fork-distribution` (not deployed) | P02b-1–P02b-3, P02b-6 and P02b-7 validated; P02b-5 removes the production push path and wires the runner into the entrypoint/Dockerfile in the working tree | Docker image/startup validation is blocked. The runtime PostgreSQL-version guard remains. P01 is blocked separately. |
+| P01 | implemented_validation_blocked | P00 | branch `feat/p01-fork-distribution` (not deployed) | GHCR image public; `linux/amd64` index digest `sha256:6266376ff4951857f0be4dd41369bb3f8652353c3a790247891d7b69b7f6d779`; Compose config valid; Quick Start and image reference aligned; upstream attribution kept | The candidate-image Compose Quick Start passed in PR #1. The published `latest` image was not rebuilt or tested, so the disposable fresh-install smoke test against that image remains open. No push/deploy. |
+| P02 | in_progress | P00, P02a, P02b-0, P02b-1, P02b-2, P02b-3, P02b-5, P02b-6, P02b-7 | branch `feat/p01-fork-distribution` (not deployed) | P02b-1–P02b-3, P02b-6 and P02b-7 validated; P02b-5 removes the production push path and wires the runner into the entrypoint/Dockerfile in the working tree | The candidate-image Docker matrix passed in PR #1. The runtime PostgreSQL-version guard and P01 published-image validation remain. |
 | P02a | done | P00 | branch `feat/p01-fork-distribution` (not deployed) | `docs/DB_MIGRATION_PLAN.md`; frozen 19-table baseline in `e2e/fixtures/db-baseline-v1/`; fingerprint, seed/check/verify and guard scripts; fixture seeded and verified in a disposable `_p02a` database | Restore route was not executed in P02a; interrupted/concurrent runner behavior is now covered by P02b-2. No production startup, schema or data changed. |
 | P02b-0 | done | P02a | branch `feat/p01-fork-distribution` (not deployed) | Reviewed ledger, concurrency, fingerprint, security-audit finding and validation gaps; exact SQL and startup sequence added to `DB_MIGRATION_PLAN.md`; owner approvals recorded 2026-10-23 | No implementation in P02b-0; P02b-1 followed. |
 | P02b-1 | done | P02b-0 | branch `feat/p01-fork-distribution` (not deployed) | Approved policy; `db/migrations/0000_baseline.sql` (checksum `59b382583d2a70edf5b1b2ca8488408f3eb83582ea4a4eb6aec501f72e0e9815`); `db/migrations/manifest.json`; `scripts/db/migration-manifest.mjs`; narrow security-audit update; 10 regression tests | Backup v2, production cutover and authenticated restore remain P02b-6/P02b-5. No DB mutation, commit, push or deploy. |
 | P02b-2 | done | P02b-1 | branch `feat/p01-fork-distribution` (not deployed) | `scripts/db/migrate.mjs`; exact ledger; dedicated-session advisory lock; fresh baseline, managed/no-op, rollback, interruption, connection-loss, concurrent and lock-timeout tests; 13/13 PostgreSQL 18 integration cases on Node 24 | P02b-3 followed. Runner is not wired into startup; backup v2 and cutover remain P02b-6/P02b-5. No real installation touched. |
 | P02b-3 | done | P02b-2 | branch `feat/p01-fork-distribution` (not deployed) | `scripts/db/schema-fingerprint.mjs`; production `baseline-fingerprint.json`; canonical/column-order adoption; exact missing-index repair; drift/wrong-index/foreign-ledger rejection; row/ciphertext/sequence preservation; rollback, interruption and concurrent adoption tests; 22/22 PostgreSQL 18 integration cases on Node 24 | No adoption blockers. Backup v2 and cutover remain P02b-6/P02b-5. No real installation touched. |
-| P02b-5 | implemented_validation_blocked | P02b-1, P02b-2, P02b-3 (P02b-4 covered) | branch `feat/p01-fork-distribution` (not deployed) | `docker-entrypoint.sh` runs `scripts/db/migrate.mjs`, exits non-zero on failure and forwards TERM/INT; `Dockerfile` runtime copies `db/migrations` and `scripts/db`; `db:push` removed; audit rejects push in package/CI/entrypoint/Dockerfile; 4/4 entrypoint tests, 22/22 PostgreSQL 18 runner tests, 11/11 manifest tests, 5903 unit tests, TypeScript, lint, audit (38/38) and production build pass on Node 24; baseline checksum unchanged | Docker daemon unavailable, so the candidate image and container startup paths (fresh, unmanaged, managed/restart, unknown, concurrent) are not validated. No commit, push, deploy or production access. |
+| P02b-5 | done | P02b-1, P02b-2, P02b-3 (P02b-4 covered) | branch `feat/p01-fork-distribution` (not deployed) | `docker-entrypoint.sh` runs `scripts/db/migrate.mjs`, exits non-zero on failure and forwards TERM/INT; `Dockerfile` runtime copies `db/migrations` and `scripts/db`; `db:push` removed; audit rejects push in package/CI/entrypoint/Dockerfile; 4/4 entrypoint tests, 22/22 PostgreSQL 18 runner tests, 11/11 manifest tests, 5903 unit tests, TypeScript, lint, audit (38/38) and production build pass on Node 24; baseline checksum unchanged; CI run 40023976516 built PR head `27dce3c9` and passed fresh, unmanaged P02a adoption, managed restart, unknown/ahead refusal, concurrent startup and Compose candidate override | Published `latest` image was not rebuilt or tested. No deployment or production access. |
 | P02b-6 | done | P02b-3 | branch `feat/p01-fork-distribution` (not deployed) | v2 export/validation, v1 import, delivery/checkpoint restore with id/scope remapping, transactional restore + cross-process advisory lock, credential lifecycle verification; 5918 unit tests, 10 authenticated HTTP cases plus setup (PostgreSQL 18), TypeScript, lint, audit (38/38), build | Docker image/startup validation remains P02b-5/P01's blocker. No production access, commit, push or deploy. |
-| P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. P01 and P02b-5 Docker validation stay explicitly open; this is not a production-validated release. |
+| P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. Candidate-image Docker validation is now recorded; P01 published-image validation stays explicitly open. This is not a production-validated release. |
 | P03 | pending | P00, P02 for persistence | — | `satisfaction.ts` already separates account ratio from per-torrent rules; no provenance model | Add `requiredAccountRatio`/`requiredTorrentRatio` and source/freshness without rewriting old values |
 | P04 | pending | P03 | — | `computeAlerts` and pure `tracker-events` checks exist, but there is no single deterministic action engine with injected `now` | Build action evaluator; reuse existing checks |
 | P05 | pending | P04 | — | Alerts banner, login timers and status banners exist; no Next action column/filters | Build compact action surface and filters |
@@ -532,17 +532,16 @@ Static packaging inspection (not an image build):
   `59b382583d2a70edf5b1b2ca8488408f3eb83582ea4a4eb6aec501f72e0e9815`,
   matching `manifest.json`; the fingerprint still contains 19 tables.
 
-Blocked / not executed:
+Follow-up: the candidate matrix ran in PR #1 and passed (see
+  "Docker candidate validation" below). The local Docker daemon was unavailable
+  during development, which is why the first evidence came from CI.
 
-- Docker daemon is unavailable (`docker version` cannot reach the named pipe),
-  so no candidate-image build and no container startup test was run. Fresh,
-  unmanaged-baseline, managed/restart, unknown-schema and concurrent-container
-  startup, plus application health, remain unvalidated.
-- P01's fresh-install smoke test remains blocked for the same reason. This
-  evidence does not validate the published image, which was not rebuilt from
-  this checkpoint.
-- No commit, push, deployment, branch switch or production database access was
-  performed.
+Still open:
+
+- The published `latest` image was not rebuilt from this checkpoint.
+- P01's disposable fresh-install smoke test against a published image remains
+  open.
+- No deployment or production database access was performed.
 
 ### P02b-6 implementation and checks
 
@@ -606,9 +605,9 @@ build pass. The injected trigger failure proved the transaction restores the
 pre-restore tracker and client rows; the migration ledger was identical before
 and after each checked success and rejection case.
 
-**Still unvalidated:** Docker image/container validation for P02b-5 and the P01
-fresh-install smoke test. No production access, commit, push, deploy or branch
-switch was performed.
+**Docker follow-up:** the P02b-5 candidate image matrix passed in PR #1. The
+published image and P01 fresh-install smoke test remain open. No production
+access, deployment or release was performed.
 
 
 ### P02b-7 validation consolidation and release documentation
@@ -632,12 +631,44 @@ Node 24 evidence is:
 
 Upgrade, backup-compatibility and rollback procedures are recorded in
 `docs/UPGRADE_AND_ROLLBACK.md`. Release notes are in `CHANGELOG.md` under
-`[Unreleased]`.
+`[Unreleased]`. The Docker job now builds the actual PR head for
+linux/amd64 and runs `e2e/docker/validate-candidate.sh`; PR #1 carries the
+first passing candidate evidence.
 
-**Explicitly open:** Docker image build and container startup (fresh, unmanaged
-baseline, managed/restart, unknown schema, concurrent startup, post-migration
-health) for P02b-5, and the P01 disposable fresh-install smoke test. Docker was
-unavailable for every session. This work is **not** a production-validated
+**Explicitly open:** the published `latest` image was not rebuilt, and the P01
+disposable fresh-install smoke test against a published image has not run. The
+candidate-image equivalent for this PR passed in the Docker job. This work is
+**not** a production-validated release.
+
+### Docker candidate validation (PR #1)
+
+`Docker Build & Scan` run
+[40023976516](https://github.com/rednato25/tracker-tracker/actions/runs/40023976516)
+built the actual PR head `27dce3c9` for `linux/amd64` and passed in 4m34s:
+
+- Fresh database startup with `/api/health` and one baseline ledger row.
+- Managed restart with a no-op migration path and no duplicate ledger row.
+- Unknown schema refused before DDL and before the server started; probe table
+  preserved and no ledger created.
+- Database-ahead ledger refused without applying the unknown version.
+- Two concurrent containers both healthy with one ledger row.
+- Frozen seeded P02a baseline adopted; two trackers and fixture settings
+  preserved; fixture `verify.ts` passed after adoption.
+- Compose Quick Start healthy using an explicit `tracker-tracker:ci` override
+  and the candidate image identity asserted; the published `latest` image was
+  not used.
+
+The same PR also passed CI (`40023976414`), Security Audit (`40023976562`),
+Docs Build (`40023976554`), Knip (`40023976519`), Tracker Validation
+(`40023976607`) and CodeQL (`40023976553`). Two unrelated checks fail on this
+fork: Dependency Review (`40023976494`) because the repository dependency graph
+is disabled, and OSSAR (`40023976466`) because its generated ESLint 9 config
+conflicts with this repo's Biome-only setup. Neither failure was suppressed and
+no assertion was weakened.
+
+Still open: the published `ghcr.io/rednato25/tracker-tracker:latest` image was
+not rebuilt from this checkpoint, and P01's disposable fresh-install smoke test
+against a published image has not run. This is not a production-validated
 release.
 
 ### P02b slices
@@ -654,8 +685,8 @@ release.
    no separate implementation slice is needed unless new migration types change
    the transaction model.
 5. **P02b-5:** entrypoint/Docker cutover and removal of production push.
-   **Implemented in the working tree; validation blocked on the unavailable
-   Docker daemon.**
+   **Done; candidate-image Docker matrix passed in PR #1. Published image
+   remains untested.**
 6. **P02b-6:** backup v2, encrypted lifecycle and authenticated restore.
    **Done in the working tree; contract, authenticated HTTP, rollback and
    ledger-preservation checks pass.**
@@ -684,16 +715,16 @@ release.
 
 ## Database upgrade risks
 
-P02b-1 through P02b-3 and P02b-6 are implemented and validated. P02b-5 removes
-the production push path in the working tree but its Docker image/startup
-validation remains blocked. The remaining risks are:
+P02b-1 through P02b-3, P02b-5 (candidate image) and P02b-6 are implemented and
+validated. P02b-5's published image and P01's published-image smoke test remain
+open. The remaining risks are:
 
-1. **The cutover is committed but not image-validated.** `docker-entrypoint.sh` now runs the runner and `db:push` is removed in the working tree, but no candidate image was built. Until the container smoke tests pass on a Docker host, a column rename is not proven safe in production.
+1. **The cutover is candidate-validated, not published-validated.** `docker-entrypoint.sh` runs the runner and `db:push` is removed; the PR-head image passed the Docker matrix. The published `latest` image has not been rebuilt, so production deployment still needs its own image smoke test and a pre-upgrade dump.
 2. **No schema rollback.** An old image that runs `push --force` is not a safe rollback against a newer schema. Require a pre-upgrade dump and keep the fail-closed unknown/newer-schema behavior.
 3. **Encrypted columns are lifecycle-sensitive.** `trackers.encryptedApiToken`, `trackers.encryptedCredentials`, `encryptedMouseholeToken`, proxy/backup/image keys, notification configs and the scheduler key must be re-keyed and restored through every lifecycle site. New encrypted fields must be added to change-password, recovery, backup/restore, nuke and lockdown paths.
 4. **v1 keeps no durable history.** New exports are v2 and include delivery state plus both checkpoint tables. v1 restores leave them empty and report `unavailable`; cooldowns reset, tracker checkpoints may be derived from restored snapshots, and torrent history cannot be rebuilt. Future durable tables still require payload, validation, restore and version updates.
 5. **Existing installs have unknown baselines.** P02b-3 validates canonical, column-order, missing-runtime-index, drift/rejection and concurrent adoption against the P02a fingerprint while preserving rows, ciphertext and sequence state.
-6. **Do not test against the real database.** P02b-2/P02b-3/P02b-5 used the guarded `_p02b` database and `_p02a` template; P02b-6 used the guarded `_e2e` database, all PostgreSQL 18.1. The future image smoke test must retain the same guards.
+6. **Do not test against the real database.** P02b-2/P02b-3/P02b-5 used the guarded `_p02b` database and `_p02a` template; P02b-6 used the guarded `_e2e` database, all PostgreSQL 18.1. Any future published-image smoke test must retain the same guards.
 7. **Node 26 is outside the tested local runtime for jsdom.** The local Node 26 unit suite still has the 24 `localStorage` failures; Node 24 passed 224 files / 5918 tests. Do not treat Node 26 results as migration evidence.
 8. **Security-audit policy now allows the reviewed manifest and rejects push.** `db:push` is removed, and the audit fails on `drizzle-kit push` in package scripts, CI, the entrypoint or the Dockerfile.
 
@@ -705,13 +736,12 @@ rollback, lock coordination and ledger preservation pass through the real
 authenticated routes on Node 24 and PostgreSQL 18. The full unit suite, lint,
 security audit and production build pass.
 
-The Docker cutover for P02b-5 is **not** validated: no candidate image was
-built or started, so fresh/unmanaged/managed/unknown/concurrent startup and
-application health remain open. P01 is blocked by the same missing daemon.
+The Docker cutover for P02b-5 passed the candidate-image matrix, including
+fresh/unmanaged/managed/unknown/concurrent startup and health. The published
+image has not been rebuilt; P01's published-image smoke test remains open.
 
-P02b-7 is complete as documentation only. The next bounded task is the
-**Docker validation matrix on a host with a working daemon** (candidate image,
-fresh/unmanaged/managed/unknown/concurrent startup, post-migration health), plus
-the P01 fresh-install smoke test. P02b-5 stays
-`implemented_validation_blocked` until those runs succeed. The runtime
-PostgreSQL-version guard and P03 remain after that; neither was started.
+P02b-7 is complete as documentation only. The candidate-image Docker matrix and
+P02b-5 now have passing CI evidence. The remaining validation is the **published
+image**: rebuild/deploy it only when authorized, then run the P01 disposable
+fresh-install smoke test against that image. The runtime PostgreSQL-version
+guard and P03 remain after that; neither was started.

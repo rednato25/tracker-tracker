@@ -3,9 +3,10 @@
 Status: P02b-6 implemented and validated in this checkpoint (backup format
 v2, v1-compatible import, durable delivery/checkpoint restore and authenticated
 HTTP coverage). P02b-7 records the Node 24 evidence, upgrade/rollback procedures
-and release notes. P02b-1–P02b-3 are validated. P02b-5 remains
-`implemented_validation_blocked` because Docker image/container startup cannot
-run while the daemon is unavailable. This checkpoint is committed on the feature branch but undeployed.
+and release notes. P02b-1–P02b-3 are validated. P02b-5's candidate image passed the CI Docker
+matrix; its published image was not rebuilt, so P01's published-image
+fresh-install smoke test remains open. This checkpoint is committed on the
+feature branch but undeployed.
 Operational upgrade, backup-compatibility and rollback procedures are in
 `docs/UPGRADE_AND_ROLLBACK.md`.
 
@@ -488,8 +489,10 @@ Exactly one mechanism is active in the P02b-5 working tree:
 - P02b-1 updated `scripts/security-audit.ts` for the manifest; P02b-5 adds
   rejection of `drizzle-kit push` in package scripts, CI, the entrypoint and
   the Dockerfile, plus the required-runner check.
-- The image has not been built and the container startup paths have not been
-  validated; this remains open until a Docker host is available.
+- The PR-head image was built for linux/amd64 in CI and passed fresh,
+  unmanaged/adopted, managed-restart, unknown/ahead, concurrent and Compose
+  startup. The published `latest` image was not rebuilt.
+- CI run: https://github.com/rednato25/tracker-tracker/actions/runs/40023976516
 
 ## 6. Rollback compatibility
 
@@ -542,7 +545,7 @@ P02b-6 implements this in the working tree.
 2. Update `scripts/security-audit.ts` policy for the approved manifest and
    files. Done in P02b-1; production-push rejection added in P02b-5.
 3. Add the frozen baseline and manifest to the production image. Done in
-   P02b-5 (Dockerfile copies); static inspection only, no image build yet.
+   P02b-5; the candidate image build and startup matrix passed in CI.
 4. Implement the preflight fingerprint, advisory lock, transactional runner,
    ledger, checksum checks and fail-closed diagnostics. Done in P02b-2/P02b-3.
 5. Add baseline adoption for the exact P02a fingerprint, with no DDL and no
@@ -557,8 +560,8 @@ P02b-6 implements this in the working tree.
    schema addition. P02b-6.
 9. Document image/schema rollback and require a pre-upgrade database dump.
    Done; image rollback still requires the container smoke test.
-10. Update `IMPLEMENTATION_STATUS.md` only after the gate passes. P02b-5 is
-    recorded as `implemented_validation_blocked`.
+10. Update `IMPLEMENTATION_STATUS.md` only after the gate passes. P02b-5 has
+    passing candidate-image evidence; only the published-image gate remains.
 
 ## 8a. Security-audit finding review
 
@@ -635,7 +638,8 @@ global finding acceptance is used.
 | Restore/background coordination | Restore waits and returns 503 while a background lock is held; guard skips during restore | Node 24 + PostgreSQL 18; passed |
 | Unauthenticated restore | 401 | Node 24 + PostgreSQL 18; passed |
 | Entrypoint success/failure/termination | Migration runs before the app; failure or TERM/INT prevents startup; no push fallback or orphan | Node 24 + POSIX sh/WSL; 4/4 passed in P02b-5 |
-| Candidate image startup | Fresh, unmanaged, managed/restart, unknown and concurrent containers; app health after migration | Docker host; **blocked — daemon unavailable** |
+| Candidate image startup | Fresh, unmanaged, managed/restart, unknown/ahead and concurrent containers; app health after migration | CI run 40023976516; **passed** on PR head 27dce3c9 |
+| Published image startup | P01 fresh install from the published image | **Open**; published image not rebuilt |
 
 Test harness: a Node-environment suite under `e2e/p02b/` (not the jsdom Vitest
 project) using the P02a safety pattern with a distinct `_p02b` suffix, marker
@@ -659,7 +663,7 @@ environment issue.
 2. ~~Production still runs `drizzle-kit push --force`; runner and push must
    never coexist.~~ P02b-5 removes `db:push`, switches the entrypoint to the
    runner and rejects push in the audit. The image/container validation is
-   still open (`implemented_validation_blocked`).
+   validated on the candidate image; published image remains open.
 3. ~~There is no checksum-verifying ledger; edited/removed applied migrations
    and a database ahead of the app are undetectable today.~~ P02b-2 implements
    the ledger, checksum validation, edited-removal and ahead-of-app rejection.
@@ -694,8 +698,9 @@ environment issue.
     missing runtime covering-index repair are proposed.
 13. Backfills must run after migration and remain idempotent; checkpoint
     backfills are derived state.
-14. P01 and P02b-5 Docker smoke tests are still blocked by the unavailable
-    daemon; no fresh-install or candidate-image startup evidence.
+14. P02b-5's candidate-image matrix passed in CI. P01's published-image
+    fresh-install smoke test remains open because the published image was not
+    rebuilt from this checkpoint.
 
 **Low / documentation**
 
@@ -719,11 +724,11 @@ environment issue.
    suites (failure injection, rollback, connection loss, lock timeout/holder
    diagnostics, two-process tests). No separate implementation is needed unless
    future migration types change the transaction model.
-5. **P02b-5 — cutover:** implemented in the working tree. Entrypoint push
+5. **P02b-5 - cutover:** implemented and candidate-validated. Entrypoint push
    replaced by the runner, Dockerfile stages updated, `db:push` removed and the
-   audit tightened. Node 24 unit/entrypoint/integration/build checks pass.
-   Image build and container smoke tests are blocked by the unavailable Docker
-   daemon.
+   audit tightened. Node 24 unit/entrypoint/integration/build checks pass, and
+   CI run 40023976516 passed the candidate image matrix. The published image
+   remains untested.
 6. **P02b-6 — backup and crypto:** implemented in the working tree. v2
    export/validation, v1 import, durable delivery/checkpoint restore, id/scope
    remapping, advisory-lock coordination, and authenticated HTTP round-trip,
@@ -773,8 +778,8 @@ missing-runtime-index repair, with data/ciphertext/sequence preservation and
 failure/interruption/concurrent tests. P02b-5 removes `db:push`, switches the
 entrypoint to the runner, packages the runner assets in the runtime stage and
 tightens the audit; its Node 24 entrypoint, unit, integration and build checks
-pass. Docker image/container startup validation is blocked because the daemon is
-unavailable, so P02b-5 is `implemented_validation_blocked`. P02b-6 passes
+pass, and the candidate-image Docker matrix passed in CI. The published image
+was not rebuilt. P02b-6 passes
 5918 unit tests, its contract suites, authenticated HTTP export/restore tests
 on PostgreSQL 18 and Node 24, TypeScript, lint, the security audit and the
 production build; the destination migration ledger is preserved on success and
@@ -784,5 +789,5 @@ All four owner decisions are recorded and approved; no further policy approval
 is required. Node 24 is already the CI runtime. P02b-7 is complete as
 documentation only. The next bounded task is the **Docker validation matrix on
 a host with a working daemon**, which also closes the P01 fresh-install smoke
-test; P02b-5 remains `implemented_validation_blocked` until then. The runtime
-PostgreSQL-version guard and P03 were not started.
+test against a published image; P02b-5's candidate image is already validated.
+The runtime PostgreSQL-version guard and P03 were not started.

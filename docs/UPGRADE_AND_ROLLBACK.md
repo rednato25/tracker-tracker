@@ -88,18 +88,20 @@ newer schema. It can drop or rewrite data. Use the pre-upgrade dump:
 Restoring an application backup v2 into an older app is not supported; use a
 pre-upgrade v1 backup or the dump.
 
-## Validation still required
+## Validation status
 
-The following Docker checks are **open** and must run on a host with Docker
-before any production claim:
+The PR-head candidate image passed the Docker matrix in CI
+([run 40023976516](https://github.com/rednato25/tracker-tracker/actions/runs/40023976516)):
+fresh startup and health, older unmanaged P02a adoption, managed restart/no-op,
+unknown and ahead schema refusal, concurrent startup, and a Compose Quick Start
+with an explicit candidate-image override. The published `latest` image was not
+used.
 
-- Candidate image build from this working tree.
-- Fresh database startup and health.
-- Older unmanaged baseline adoption.
-- Managed database restart/no-op.
-- Unknown/newer schema refusal before DDL.
-- Concurrent container startup serialized by the migration lock.
-- Application health after migration.
+The following checks remain **open** before a production claim:
 
-The same missing Docker daemon blocks the P01 disposable fresh-install smoke
-test. No deployment or production database validation has been performed.
+- Rebuild and publish the image only when authorized, then run the P01
+  disposable fresh-install smoke test against that published image.
+- Re-run the same migration and health matrix against the published image.
+- Take and test a pre-upgrade dump on the target installation.
+
+No deployment, release or production database validation has been performed.

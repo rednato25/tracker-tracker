@@ -5,13 +5,14 @@
 // and destroys the session. The user must log back in and re-enter
 // all tracker API tokens.
 
+import { randomBytes } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { authenticate, parseJsonBody } from "@/lib/api-helpers"
 import { clearSession, verifyPassword } from "@/lib/auth"
 import { generateSalt } from "@/lib/crypto"
 import { db } from "@/lib/db"
-import { appSettings, downloadClients, trackers } from "@/lib/db/schema"
+import { appSettings, downloadClients, notificationTargets, trackers } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
 import { PASSWORD_MAX } from "@/lib/limits"
 import { log } from "@/lib/logger"
@@ -81,7 +82,17 @@ export async function POST(request: Request) {
         updatedAt: now,
       })
 
-      // 4. Rotate salt + wipe all encrypted settings fields
+      // 4. Revoke notification destination configs too. The salt rotation
+      // orphans any ciphertext that remains, but leaving enabled targets with
+      // undecryptable configs makes the next dispatch cycle fail forever.
+      await tx.update(notificationTargets).set({
+        encryptedConfig: randomBytes(64).toString("hex"),
+        enabled: false,
+        lastDeliveryError: "Emergency lockdown: notification config revoked",
+        updatedAt: now,
+      })
+
+      // 5. Rotate salt + wipe all encrypted settings fields
       await tx
         .update(appSettings)
         .set({

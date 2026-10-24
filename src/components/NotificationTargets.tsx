@@ -36,7 +36,7 @@ const NOTIFICATION_TYPE_OPTIONS: {
 }[] = [
   { value: "discord", label: "Discord" },
   { value: "gotify", label: "Gotify (coming soon)", disabled: true },
-  { value: "telegram", label: "Telegram (coming soon)", disabled: true },
+  { value: "telegram", label: "Telegram" },
   { value: "slack", label: "Slack (coming soon)", disabled: true },
   { value: "email", label: "Email (coming soon)", disabled: true },
 ]
@@ -110,30 +110,42 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
     }))
   }
 
-  // Webhook config change state
+  // Config change state. The server never returns the stored secret.
   const [changingConfig, setChangingConfig] = useState(!target.hasConfig)
   const [newWebhookUrl, setNewWebhookUrl] = useState("")
+  const [newBotToken, setNewBotToken] = useState("")
+  const [newChatId, setNewChatId] = useState("")
   const [configError, setConfigError] = useState<string | null>(null)
 
+  const isTelegram = draft.type === "telegram"
+  const canSaveConfig = isTelegram
+    ? Boolean(newBotToken.trim() && newChatId.trim())
+    : Boolean(newWebhookUrl.trim())
+
   async function handleSaveConfig() {
-    if (!newWebhookUrl.trim()) return
+    if (!canSaveConfig) return
     setConfigError(null)
     try {
+      const config = isTelegram
+        ? { botToken: newBotToken.trim(), chatId: newChatId.trim() }
+        : { webhookUrl: newWebhookUrl.trim() }
       const res = await fetch(`/api/notifications/${target.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: { webhookUrl: newWebhookUrl.trim() } }),
+        body: JSON.stringify({ type: draft.type, config }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setConfigError(data.error || "Failed to save webhook URL")
+        setConfigError(data.error || "Failed to save notification configuration")
         return
       }
-      onSaved(target.id, { ...target, hasConfig: true })
+      onSaved(target.id, { ...target, type: draft.type, hasConfig: true })
       setChangingConfig(false)
       setNewWebhookUrl("")
+      setNewBotToken("")
+      setNewChatId("")
     } catch {
-      setConfigError("Network error. Could not save webhook URL")
+      setConfigError("Network error. Could not save notification configuration")
     }
   }
 
@@ -210,10 +222,10 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
 
       <div className="border-t border-border" />
 
-      {/* Webhook URL */}
+      {/* Destination configuration */}
       <div className="flex flex-col gap-2">
         <H2 className="uppercase tracking-wider flex items-center gap-2">
-          Webhook URL
+          {isTelegram ? "Telegram bot" : "Webhook URL"}
           <InfoTip
             icon="question"
             size="sm"
@@ -223,22 +235,46 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
         </H2>
         {changingConfig ? (
           <div className="flex flex-col gap-3">
-            <Input
-              label="Webhook URL"
-              value={newWebhookUrl}
-              onChange={(e) => setNewWebhookUrl(e.target.value)}
-              placeholder="https://discord.com/api/webhooks/..."
-              name="notification-webhook-url"
-              autoComplete="off"
-              data-1p-ignore
-            />
+            {isTelegram ? (
+              <>
+                <Input
+                  label="Bot token"
+                  type="password"
+                  value={newBotToken}
+                  onChange={(e) => setNewBotToken(e.target.value)}
+                  placeholder="123456:ABC..."
+                  name="notification-telegram-bot-token"
+                  autoComplete="off"
+                  data-1p-ignore
+                />
+                <Input
+                  label="Chat ID"
+                  value={newChatId}
+                  onChange={(e) => setNewChatId(e.target.value)}
+                  placeholder="-1001234567890 or @channel"
+                  name="notification-telegram-chat-id"
+                  autoComplete="off"
+                  data-1p-ignore
+                />
+              </>
+            ) : (
+              <Input
+                label="Webhook URL"
+                value={newWebhookUrl}
+                onChange={(e) => setNewWebhookUrl(e.target.value)}
+                placeholder="https://discord.com/api/webhooks/..."
+                name="notification-webhook-url"
+                autoComplete="off"
+                data-1p-ignore
+              />
+            )}
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 variant="primary"
                 onClick={handleSaveConfig}
-                disabled={!newWebhookUrl.trim()}
-                text="Save URL"
+                disabled={!canSaveConfig}
+                text="Save configuration"
               />
               {target.hasConfig && (
                 <button
@@ -246,6 +282,8 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
                   onClick={() => {
                     setChangingConfig(false)
                     setNewWebhookUrl("")
+                    setNewBotToken("")
+                    setNewChatId("")
                     setConfigError(null)
                   }}
                   className="ghost-link"
@@ -419,7 +457,9 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
               ? "Sent"
               : webhookStatus === "failed"
                 ? "Failed. Retry"
-                : "Test Webhook"}
+                : isTelegram
+                  ? "Send Test Message"
+                  : "Test Webhook"}
         </Button>
 
         {webhookStatus === "success" && <Badge variant="success">Delivered</Badge>}
@@ -448,10 +488,13 @@ function AddNotificationForm({
   const [name, setName] = useState("New Target")
   const [type, setType] = useState<NotificationTargetType>("discord")
   const [webhookUrl, setWebhookUrl] = useState("")
+  const [botToken, setBotToken] = useState("")
+  const [chatId, setChatId] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const canSubmit = name.trim() && webhookUrl.trim()
+  const isTelegram = type === "telegram"
+  const canSubmit = name.trim() && (isTelegram ? botToken.trim() && chatId.trim() : webhookUrl.trim())
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -464,7 +507,9 @@ function AddNotificationForm({
         body: JSON.stringify({
           name: name.trim(),
           type,
-          config: { webhookUrl: webhookUrl.trim() },
+          config: isTelegram
+            ? { botToken: botToken.trim(), chatId: chatId.trim() }
+            : { webhookUrl: webhookUrl.trim() },
         }),
       })
       if (!res.ok) {
@@ -503,15 +548,39 @@ function AddNotificationForm({
           />
         </div>
       </div>
-      <Input
-        label="Webhook URL"
-        value={webhookUrl}
-        onChange={(e) => setWebhookUrl(e.target.value)}
-        placeholder="https://discord.com/api/webhooks/..."
-        name="new-notification-webhook-url"
-        autoComplete="off"
-        data-1p-ignore
-      />
+      {isTelegram ? (
+        <>
+          <Input
+            label="Bot token"
+            type="password"
+            value={botToken}
+            onChange={(e) => setBotToken(e.target.value)}
+            placeholder="123456:ABC..."
+            name="new-notification-telegram-bot-token"
+            autoComplete="off"
+            data-1p-ignore
+          />
+          <Input
+            label="Chat ID"
+            value={chatId}
+            onChange={(e) => setChatId(e.target.value)}
+            placeholder="-1001234567890 or @channel"
+            name="new-notification-telegram-chat-id"
+            autoComplete="off"
+            data-1p-ignore
+          />
+        </>
+      ) : (
+        <Input
+          label="Webhook URL"
+          value={webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)}
+          placeholder="https://discord.com/api/webhooks/..."
+          name="new-notification-webhook-url"
+          autoComplete="off"
+          data-1p-ignore
+        />
+      )}
       <Notice message={error} />
       <div className="flex items-center gap-3">
         <Button

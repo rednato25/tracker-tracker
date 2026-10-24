@@ -1,6 +1,6 @@
 ---
 title: Webhooks
-description: Get alerts in Discord when your ratio drops, a tracker goes down, or you hit a milestone.
+description: Get alerts in Discord or Telegram when your ratio drops, a tracker goes down, or you hit a milestone.
 ---
 
 # Webhooks
@@ -39,6 +39,20 @@ Keep this URL private, because anyone with it can post to your channel.
 5. Save and click **Test Webhook** to confirm
 
 ![Test notification in Discord](../assets/images/webhooks-discord-test-notif.png)
+
+## Setting Up Telegram
+
+1. In Telegram, open **@BotFather**, create a bot, and copy its token.
+2. Start a chat with the bot (or add it to the destination group/channel).
+3. Get the chat ID: use the numeric ID (for example `-1001234567890`) or an
+   `@channelusername` the bot can post to.
+4. In **Settings → Notifications**, add a target, select **Telegram**, and enter
+   the bot token and chat ID.
+5. Save and click **Send Test Message**.
+
+The bot token is encrypted at rest and is never returned in API responses or
+logs. A rejected token or an invalid chat ID is reported as a configuration
+problem; Tracker Tracker does not keep retrying an invalid credential.
 
 ## Events
 
@@ -88,11 +102,11 @@ Use the **Include tracker name** toggle to hide the tracker name in messages if 
 
 If you disable **Store usernames** in app settings, usernames are masked in alerts too.
 
-Webhook URLs stay encrypted in the database, so they never show up in API responses or logs.
+Discord webhook URLs and Telegram bot tokens stay encrypted in the database, so they never show up in API responses or logs.
 
 ## What the Messages Look Like
 
-Notifications arrive as Discord embeds with a colored sidebar:
+Discord notifications arrive as embeds with a colored sidebar. Telegram receives a plain-text message, so tracker text cannot be interpreted as formatting:
 
 - **Red** is urgent: tracker down, hit-and-run, ratio below minimum, account warning
 - **Amber** is caution: ratio drop, zero active seeds
@@ -101,7 +115,7 @@ Notifications arrive as Discord embeds with a colored sidebar:
 
 ## Troubleshooting
 
-### Webhook shows "Failed"
+### Target shows "Failed"
 
 Open the target card to see the error under the status badge. Common causes:
 
@@ -111,15 +125,15 @@ Open the target card to see the error under the status badge. Common causes:
 
 ### Notifications stopped arriving
 
-After 3 failures, delivery pauses and then resumes on its own. If Discord was just temporarily down, you'll catch up on the next poll.
+After 3 failures, delivery pauses and then resumes on its own. Telegram rate-limit responses use their `retry_after` value, capped by the app. If the service was temporarily down, you'll catch up on the next poll.
 
 ### Getting rate-limited
 
-Discord allows roughly 30 webhook messages per minute per channel. To reduce volume:
+Discord allows roughly 30 webhook messages per minute per channel; Telegram also rate-limits bots. To reduce volume:
 
 - Increase your poll interval in **Settings → General**.
 - Disable events you don't need.
-- Spread targets across multiple Discord channels.
+- Spread targets across multiple destinations.
 
 ### Test works but real notifications don't
 

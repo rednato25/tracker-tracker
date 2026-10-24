@@ -20,4 +20,4 @@ Supports UNIT3D, Gazelle, GGn, Nebulance, MAM, and AvistaZ networks. Over 40 tra
 - **Historical charts**: watch your stats evolve over days, weeks, and months
 - **qBittorrent integration**: per-tracker torrent details, seeding counts, cross-seed stats, and live speeds
 - **Tag group visualizations**: turn qBittorrent tags into donut charts, bar charts, and treemaps
-- **Discord notifications**: alerts when your ratio drops, a tracker goes down, you hit a buffer milestone, or your rank shifts
+- **Discord and Telegram notifications**: alerts when your ratio drops, a tracker goes down, you hit a buffer milestone, or your rank shifts

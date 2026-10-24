@@ -18,7 +18,7 @@ import { notificationTargets } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
 import { SHORT_NAME_MAX } from "@/lib/limits"
 import { log } from "@/lib/logger"
-import { NOTIFY_TOGGLE_KEYS } from "@/lib/notifications/types"
+import { NOTIFY_TOGGLE_KEYS, SUPPORTED_NOTIFICATION_TYPES } from "@/lib/notifications/types"
 import { validateNotificationConfig } from "@/lib/notifications/validate"
 
 export async function PATCH(req: Request, { params }: RouteContext) {
@@ -58,6 +58,25 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     const nameErr = validateMaxLength(fields.name, SHORT_NAME_MAX, "name")
     if (nameErr) return nameErr
     updates.name = fields.name.trim()
+  }
+
+  if ("type" in fields) {
+    if (
+      typeof fields.type !== "string" ||
+      !(SUPPORTED_NOTIFICATION_TYPES as readonly string[]).includes(fields.type)
+    ) {
+      return NextResponse.json(
+        { error: `type must be one of: ${SUPPORTED_NOTIFICATION_TYPES.join(", ")}` },
+        { status: 400 }
+      )
+    }
+    if (fields.type !== existing.type && !("config" in fields)) {
+      return NextResponse.json(
+        { error: "config is required when changing notification type" },
+        { status: 400 }
+      )
+    }
+    updates.type = fields.type
   }
 
   if ("enabled" in fields) {

@@ -93,7 +93,10 @@ const NEW_HASH = "argon2-hash-of-new-password"
 
 const TOTP_SECRET = "JBSWY3DPEHPK3PXP"
 const BACKUP_CODES = JSON.stringify([{ code: "aaaa-bbbb", usedAt: null }])
-const NOTIFICATION_CONFIG = JSON.stringify({ webhookUrl: "https://discord.com/api/webhooks/xyz" })
+const NOTIFICATION_CONFIG = JSON.stringify({
+  botToken: "123456:ABCdefGHIjklMNOpqrsTUVwxyz123456789",
+  chatId: "-1001234567890",
+})
 
 /** Derived once, scrypt is deliberately slow. */
 let oldKey: Buffer
@@ -192,7 +195,7 @@ beforeEach(() => {
     },
   ]
   notificationRows = [
-    { id: 20, name: "discord", encryptedConfig: encrypt(NOTIFICATION_CONFIG, oldKey) },
+    { id: 20, name: "telegram", encryptedConfig: encrypt(NOTIFICATION_CONFIG, oldKey) },
   ]
 
   // The session carries the OLD key, this is what decodeKey() unpacks.
@@ -387,7 +390,7 @@ describe("POST /api/auth/change-password — undecryptable fields", () => {
   it("PINS: an undecryptable notification config is skipped and named in the warning", async () => {
     notificationRows[0] = {
       id: 20,
-      name: "discord",
+      name: "telegram",
       encryptedConfig: encrypt(NOTIFICATION_CONFIG, strangerKey),
     }
 
@@ -396,7 +399,7 @@ describe("POST /api/auth/change-password — undecryptable fields", () => {
     expect(response.status).toBe(200)
     const body = (await response.json()) as { warnings: string[] }
     expect(body.warnings).toContain(
-      "1 notification target(s) could not be re-encrypted and were skipped: discord"
+      "1 notification target(s) could not be re-encrypted and were skipped: telegram"
     )
     expect(writesTo(notificationTargets)).toHaveLength(0)
   })

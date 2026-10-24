@@ -1,6 +1,6 @@
 // src/lib/notifications/types.ts
 
-export const SUPPORTED_NOTIFICATION_TYPES = ["discord"] as const
+export const SUPPORTED_NOTIFICATION_TYPES = ["discord", "telegram"] as const
 export const VALID_NOTIFICATION_TYPES = ["discord", "gotify", "telegram", "slack", "email"] as const
 export type NotificationTargetType = (typeof VALID_NOTIFICATION_TYPES)[number]
 
@@ -117,6 +117,11 @@ export function isDiscordConfig(config: NotificationConfig): config is DiscordCo
   return "webhookUrl" in config && typeof config.webhookUrl === "string"
 }
 
+export function isTelegramConfig(config: NotificationConfig): config is TelegramConfig {
+  return "botToken" in config && "chatId" in config &&
+    typeof config.botToken === "string" && typeof config.chatId === "string"
+}
+
 export function isNotificationConfig(value: unknown): value is NotificationConfig {
   if (!value || typeof value !== "object") return false
   const obj = value as Record<string, unknown>
@@ -154,6 +159,10 @@ export const NOTIFY_TOGGLE_KEYS = [
   "notifyActiveHnrs",
   "notifyDownloadDisabled",
 ] as const
+
+// Telegram bot tokens look like 123456:ABC-DEF...; reject whitespace and
+// obviously malformed values without echoing them.
+export const TELEGRAM_BOT_TOKEN_RE = /^\d{5,}:[A-Za-z0-9_-]{20,}$/
 
 // Discord webhook URL pattern
 export const DISCORD_WEBHOOK_RE = /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/

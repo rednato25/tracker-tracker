@@ -104,7 +104,8 @@ const PLAIN = {
   clientUsername: "qbt-user",
   clientPassword: "qbt-password",
   clientUrlPath: "/proxy/qui-client-key",
-  notificationConfig: '{"webhookUrl":"https://example.com/hook"}',
+  notificationConfig:
+    '{"botToken":"123456:ABCdefGHIjklMNOpqrsTUVwxyz123456789","chatId":"-1001234567890"}',
   proxyPassword: "proxy-secret",
   backupPassword: "backup-secret",
   ptpimgApiKey: "ptpimg-key",

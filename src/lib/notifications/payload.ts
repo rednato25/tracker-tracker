@@ -72,6 +72,17 @@ export function buildDiscordEmbed(input: EmbedInput): DiscordEmbed {
   return embed
 }
 
+/**
+ * Telegram receives plain text, so no MarkdownV2/HTML parser can turn user or
+ * tracker text into markup. Discord's bold markers are removed; other
+ * characters are left literal.
+ */
+export function buildTelegramMessage(input: EmbedInput): string {
+  const embed = buildDiscordEmbed(input)
+  const description = embed.description.replaceAll("**", "")
+  return `${embed.title}\n\n${description}`.slice(0, 4096)
+}
+
 // ---------------------------------------------------------------------------
 // tracker_down fires for every poll failure, but only a connectivity failure
 // means the tracker is unreachable. A rejected key or a changed payload is a

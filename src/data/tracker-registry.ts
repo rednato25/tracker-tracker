@@ -56,7 +56,51 @@ export interface TrackerUserClass {
   path?: string
 }
 
+export type RuleSource = "manual" | "api" | "snapshot" | "unknown"
+
+/** What the timestamp beside a value actually describes. */
+export type RuleTimestampKind = "metric" | "snapshot" | "unknown"
+
+export type RuleFreshness = "fresh" | "stale" | "unknown"
+
+export interface RuleProvenance {
+  source: RuleSource
+  /** ISO 8601 instant with an explicit source. Never inferred from a poll. */
+  verifiedAt: string | null
+  timestampKind: RuleTimestampKind
+  freshness: RuleFreshness
+  note?: string
+}
+
+/**
+ * Provenance is tracked only for fields consumed by actions and the
+ * calculator. An absent block means "not verified", not "verified just now".
+ * A snapshot timestamp describes the snapshot, not independent per-metric
+ * checks, which is why `timestampKind` is separate from `freshness`.
+ */
+export interface TrackerRulesProvenance {
+  accountRatio?: RuleProvenance
+  torrentRatio?: RuleProvenance
+  accountedTransfer?: RuleProvenance
+  hitAndRun?: RuleProvenance
+  login?: RuleProvenance
+  seeding?: RuleProvenance
+}
+
 export interface TrackerRules {
+  /**
+   * Account-wide minimum. 0 = a known "no minimum"; null/undefined = unknown.
+   * Read through `resolveTrackerRules`, not directly, so legacy entries keep
+   * their historical meaning.
+   */
+  requiredAccountRatio?: number | null
+  /**
+   * Per-torrent ratio required for H&R/seed satisfaction. 0 = known "ratio is
+   * not a route"; null/undefined = unknown. This is deliberately separate from
+   * the account minimum.
+   */
+  requiredTorrentRatio?: number | null
+  /** Legacy account-level field. Kept for read compatibility during P03. */
   minimumRatio: number // 0 = no minimum
   seedTimeHours: number // 0 = no minimum
   /**
@@ -75,6 +119,7 @@ export interface TrackerRules {
   fulfillmentPeriodHours?: number // null = not applicable
   hnrBanLimit?: number // null = not applicable
   fullRulesMarkdown?: string[]
+  provenance?: TrackerRulesProvenance
 }
 
 export interface TrackerRegistryEntry {

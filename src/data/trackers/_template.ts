@@ -79,7 +79,10 @@ export const mytracker: TrackerRegistryEntry = {
 
   // ── Rules ───────────────────────────────────────────────────────────
   rules: {
-    minimumRatio: 0, // 0 = no minimum
+    // Prefer the explicit fields for new entries:
+    // requiredAccountRatio: 1.0,   // account-wide minimum; null = unknown
+    // requiredTorrentRatio: 1.0,   // per-torrent H&R ratio; null = unknown
+    minimumRatio: 0, // legacy account minimum; 0 = no minimum
     seedTimeHours: 0, // 0 = no minimum
     loginIntervalDays: 0, // 0 = no login interval policy
     // satisfactionMode: "any",         // optional. "any" = meeting seedTimeHours OR

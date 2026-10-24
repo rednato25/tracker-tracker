@@ -198,6 +198,15 @@ describe("tracker registry", () => {
           expect(r, "rules.minimumRatio must be >= 0").toBeGreaterThanOrEqual(0)
         })
 
+        it("has optional explicit ratios as non-negative numbers", () => {
+          for (const key of ["requiredAccountRatio", "requiredTorrentRatio"] as const) {
+            const value = tracker.rules?.[key]
+            if (value === undefined || value === null) continue
+            expect(value, `rules.${key}`).toBeTypeOf("number")
+            expect(value, `rules.${key}`).toBeGreaterThanOrEqual(0)
+          }
+        })
+
         it("has rules.seedTimeHours as a non-negative integer", () => {
           const r = tracker.rules?.seedTimeHours
           expect(r, "rules.seedTimeHours is required").not.toBeUndefined()
@@ -224,7 +233,9 @@ describe("tracker registry", () => {
           // A mode over no thresholds resolves to no requirement at all, so the
           // entry would silently keep the empty table it was meant to fix.
           const hasThreshold =
-            (tracker.rules?.seedTimeHours ?? 0) > 0 || (tracker.rules?.minimumRatio ?? 0) > 0
+            (tracker.rules?.seedTimeHours ?? 0) > 0 ||
+            (tracker.rules?.minimumRatio ?? 0) > 0 ||
+            (tracker.rules?.requiredTorrentRatio ?? 0) > 0
           expect(
             hasThreshold,
             "rules.satisfactionMode needs a non-zero seedTimeHours or minimumRatio to act on"

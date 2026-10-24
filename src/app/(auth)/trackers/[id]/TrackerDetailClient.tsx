@@ -24,6 +24,7 @@ import { hexToRgba } from "@/lib/color-utils"
 import { computeDelta } from "@/lib/data-transforms"
 import { localDateStr } from "@/lib/formatters"
 import { trackerQueryOptions } from "@/lib/query-options"
+import { resolveAccountRatio } from "@/lib/tracker-rules"
 import type {
   DayRange,
   GazellePlatformMeta,
@@ -369,7 +370,7 @@ export function TrackerDetailClient({
           days={days}
           onDaysChange={setDays}
           delta={delta}
-          minimumRatio={registryEntry?.rules?.minimumRatio}
+          minimumRatio={resolveAccountRatio(null, registryEntry?.rules) ?? undefined}
           bonusName={registryBonusName(registryEntry)}
           statCardSlots={statCardSlots}
           progressSlots={progressSlots}

@@ -78,7 +78,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P02b-5 | done | P02b-1, P02b-2, P02b-3 (P02b-4 covered) | branch `feat/p01-fork-distribution` (not deployed) | `docker-entrypoint.sh` runs `scripts/db/migrate.mjs`, exits non-zero on failure and forwards TERM/INT; `Dockerfile` runtime copies `db/migrations` and `scripts/db`; `db:push` removed; audit rejects push in package/CI/entrypoint/Dockerfile; 4/4 entrypoint tests, 22/22 PostgreSQL 18 runner tests, 11/11 manifest tests, 5918 unit tests, TypeScript, lint, audit (38/38) and production build pass on Node 24; baseline checksum unchanged; CI run 40036272230 built PR head `02af2eac` and passed fresh, unmanaged P02a adoption, managed restart, unknown/ahead refusal, PostgreSQL 17 rejection, concurrent startup and Compose candidate override | Published image digest `sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda` passed the post-publication smoke matrix in PR #2 (run 40038697376). No deployment or real-install access. |
 | P02b-6 | done | P02b-3 | branch `feat/p01-fork-distribution` (not deployed) | v2 export/validation, v1 import, delivery/checkpoint restore with id/scope remapping, transactional restore + cross-process advisory lock, credential lifecycle verification; 5918 unit tests, 10 authenticated HTTP cases plus setup (PostgreSQL 18), TypeScript, lint, audit (38/38), build | Published-image smoke passed in PR #2 (digest `sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda`). No production access or deployment. |
 | P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. Candidate-image and published-image Docker validation passed; the published image was not deployed or installed. This is not a production-validated release. |
-| P03 | pending | P00, P02 for persistence | — | `satisfaction.ts` already separates account ratio from per-torrent rules; no provenance model | Add `requiredAccountRatio`/`requiredTorrentRatio` and source/freshness without rewriting old values |
+| P03 | done | P00, P02 for persistence | branch `feat/p03-rule-provenance` (not merged) | `src/lib/tracker-rules.ts`; explicit `requiredAccountRatio`/`requiredTorrentRatio`; legacy `minimumRatio` read mapping; per-field source/timestamp-kind/freshness provenance; manual login evidence; 5982 unit tests, TypeScript, Biome, audit (38/38), build | Real registry entries remain unverified and are marked unknown unless provenance is supplied. No DB change. No real tracker account accessed. |
 | P04 | pending | P03 | — | `computeAlerts` and pure `tracker-events` checks exist, but there is no single deterministic action engine with injected `now` | Build action evaluator; reuse existing checks |
 | P05 | pending | P04 | — | Alerts banner, login timers and status banners exist; no Next action column/filters | Build compact action surface and filters |
 | P06 | pending | P04, P02 | — | Notification types list includes Telegram, but `SUPPORTED_NOTIFICATION_TYPES` is Discord-only; delivery path rejects others | Add Telegram transport, config validation, encrypted lifecycle and tests |
@@ -720,6 +720,34 @@ database was accessed.
   any ledger read, adoption or DDL. `e2e/p02b/safety.mjs` also refuses non-18
   test databases, and Docker scenario 7 verifies PostgreSQL 17 is rejected
   before mutation and server startup.
+
+### P03 implementation and checks
+
+- `src/lib/tracker-rules.ts` is the read model for account and per-torrent
+  requirements. New fields are `requiredAccountRatio` and
+  `requiredTorrentRatio`; `minimumRatio` remains readable. A legacy
+  `minimumRatio` becomes the account rule, and becomes the torrent rule only
+  when the entry had already declared `satisfactionMode` (the pre-P03
+  behavior). Values are never rewritten in the registry.
+- Missing, known zero and unknown are distinct: `null` is unknown, `0` is a
+  confirmed no-requirement, and an absent rules block is unknown. A tracker with
+  no ratio stays seed-only; an account ratio never satisfies a torrent by itself.
+- Provenance covers account ratio, per-torrent ratio, accounted transfer, H&R,
+  login and seeding. It carries `source`, `verifiedAt`, `timestampKind` and
+  `freshness`. A poll timestamp is marked as snapshot age, not an independent
+  metric verification; real registry entries without a confirmation record stay
+  `unknown` and no dates are invented.
+- `lastAccessAt` is the only login evidence and is marked manual. Snapshot/API
+  data is explicitly not login proof. `satisfaction.ts` now consumes the
+  per-torrent field; tracker health, the register and the info tab read the
+  account field through the resolver and show Unknown versus None.
+- No database or migration change was required.
+- Tests: `src/lib/tracker-rules.test.ts` covers missing/zero/unknown, legacy
+  mapping, explicit overrides, stale snapshots, contradictory live/registry
+  sources, ratio-less trackers, manual login and account-vs-torrent behavior.
+  Full unit suite 225 files / 5982 tests, TypeScript, Biome, audit 38/38 and the
+  production build pass on Node 24. Synthetic rules only; no real account was
+  accessed.
 
 ### P02b slices
 

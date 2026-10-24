@@ -859,10 +859,12 @@ The compact surface is implemented; these P05 roadmap items are explicitly
   `parameters.retry_after` (capped); 401/403 stop with a credential error;
   other API/HTTP/network failures use the existing bounded circuit breaker.
   Ambiguous network failures are not claimed as exactly-once delivery.
-- Existing change-password, backup/restore, lockdown and nuke paths already
-  operate on the whole `encryptedConfig` ciphertext, so the Telegram token is
-  covered without a new lifecycle field. Existing security tests still prove
-  the API never serializes `encryptedConfig`.
+- The generic `encryptedConfig` lifecycle covers Telegram without a new
+  field: change-password and backup/restore re-encrypt it, recovery
+  (`scripts/recover.cjs`) lists `notification_targets.encrypted_config`, nuke
+  randomizes then deletes it, and lockdown now revokes notification configs and
+  disables their targets. Existing security tests still prove the API never
+  serializes `encryptedConfig`.
 - Discord remains unchanged. Telegram is opt-in for new targets only; no
   existing user is auto-enabled. ntfy, digests and later platforms are not
   implemented.

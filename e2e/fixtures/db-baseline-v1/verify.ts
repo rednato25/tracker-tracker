@@ -28,6 +28,7 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 async function main() {
+  const schemaOnly = process.argv.includes("--schema-only")
   process.env.SESSION_SECRET = FIXTURE_SESSION_SECRET
   const { sql, endpoint } = await openFixture({ requireMarker: true })
 
@@ -142,6 +143,12 @@ async function main() {
     `
     assert(fk.count === 1, "delivery-state foreign key is missing")
     console.log("integrity: covering index, unique constraint and foreign key present")
+
+    if (schemaOnly) {
+      console.log("backup: skipped in schema-only mode (pre-migration fixture)")
+      console.log(`verify: ${endpoint.host}/${endpoint.database} passed`)
+      return
+    }
 
     process.env.DATABASE_URL = endpoint.url
     const payload = await generateBackupPayload()

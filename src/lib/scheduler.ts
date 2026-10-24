@@ -7,30 +7,53 @@
 //   download-client-scheduler. Polls download clients for torrent data.
 //   backup-scheduler. Runs automated backups.
 
+import cron, { type ScheduledTask } from "node-cron"
 import { startBackupScheduler, stopBackupScheduler } from "@/lib/backup-scheduler"
 import { ensureIndexes } from "@/lib/db/ensure-indexes"
+import { runDigestIfDue } from "@/lib/digest"
 import {
   ensureClientSchedulerRunning,
   startClientScheduler,
   stopClientScheduler,
 } from "@/lib/download-client-scheduler"
 import { log } from "@/lib/logger"
+import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
 import {
   isTrackerPollingRunning,
   startTrackerPolling,
   stopTrackerPolling,
 } from "@/lib/tracker-scheduler"
 
+let digestTask: ScheduledTask | null = null
+
+function startDigestScheduler(encryptionKey: Buffer): void {
+  if (digestTask) return
+  digestTask = cron.schedule("* * * * *", async () => {
+    try {
+      await withBackgroundRestoreGuard("digest", () => runDigestIfDue(encryptionKey))
+    } catch (err) {
+      log.error(err, "Digest scheduler error")
+    }
+  })
+}
+
+function stopDigestScheduler(): void {
+  digestTask?.stop()
+  digestTask = null
+}
+
 export function startScheduler(encryptionKey: Buffer): void {
   startTrackerPolling(encryptionKey)
   startClientScheduler(encryptionKey)
   startBackupScheduler(encryptionKey)
+  startDigestScheduler(encryptionKey)
 }
 
 export function stopScheduler(): void {
   stopTrackerPolling()
   stopClientScheduler()
   stopBackupScheduler()
+  stopDigestScheduler()
 }
 
 // Graceful shutdown: zero-fill encryption key and stop cron tasks before exit.

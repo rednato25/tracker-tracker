@@ -1105,6 +1105,13 @@ export async function POST(request: Request) {
           encryptedImgbbApiKey,
           draftQuicklinks: (payload.settings.draftQuicklinks as string | null) ?? null,
           dashboardSettings: (payload.settings.dashboardSettings as string | null) ?? null,
+          digestEnabled: (payload.settings.digestEnabled as boolean) ?? false,
+          digestTime: (payload.settings.digestTime as string | null) ?? "09:00",
+          digestTimezone: (payload.settings.digestTimezone as string | null) ?? "UTC",
+          digestEmptyBehavior:
+            (payload.settings.digestEmptyBehavior as string | null) ?? "skip",
+          digestTargetIds: (payload.settings.digestTargetIds as string | null) ?? null,
+          digestState: (payload.settings.digestState as string | null) ?? null,
           // Restored because this .set() names its columns and an omitted one keeps
           // the restoring install's value, off on a fresh install. Vault credentials
           // restore intact either way, but a sheet showing storage off reads as lost

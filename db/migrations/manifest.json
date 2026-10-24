@@ -6,6 +6,11 @@
       "version": "0000_baseline",
       "file": "0000_baseline.sql",
       "sha256": "59b382583d2a70edf5b1b2ca8488408f3eb83582ea4a4eb6aec501f72e0e9815"
+    },
+    {
+      "version": "0001_digest_settings",
+      "file": "0001_digest_settings.sql",
+      "sha256": "a24cf5f971b5832ee48fb3a26db222c8d6e10131e0ed96f034990c95de2760ae"
     }
   ]
 }

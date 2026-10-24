@@ -82,7 +82,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P04 | done | P03 | branch `feat/p04-actions` (not merged) | `src/lib/actions.ts`; deterministic `computeTrackerActions` with injected `now`; account ratio, login, stale/poll/client, H&R and per-torrent seeding actions; stable keys, dedupe and deterministic ordering; P03 provenance on evidence; focused 99 tests, 5998 full tests, TypeScript, Biome, audit 38/38, build | No UI or notification delivery (P05). No database change. Real rules remain unknown unless P03 provenance says otherwise. |
 | P05 | implemented_with_deferrals | P04 | `main @ 05c78300` (merged; not deployed) | `AttentionNeeded` dashboard surface; P04 actions as sole classification; Needs attention/Unknown/Healthy/All filters and counts; stable keys, progressive evidence, tracker/settings links; loading/error/partial-data/all-clear states; 8 UI tests, 2 dashboard e2e tests, 6006 full tests, TypeScript, Biome, audit 38/38, build | Deferred: dense register Next action column, timed snooze/dismiss, and torrent-level rows (no bulk torrent feed without extra requests). Next action is in each attention row; H&R is shown at tracker level. No notifications or torrent mutation. |
 | P06 | done | P05, P02 | `main @ 45a81cc` (merged; not deployed) | Telegram through existing notification targets, dispatch, cooldowns and durable delivery state; encryptedConfig reuse (no schema change); bot-token/chat-id validation and Settings controls; plain-text sendMessage; 5s timeout, circuit breaker, 429 retry_after, API ok:false/401 handling; token redaction; 6 delivery + 3 dispatch + validation tests; 229 files / 6019 tests, TypeScript, Biome, audit 38/38, build | No ntfy, digests or other platforms. No real Telegram call; local fake service only. Discord behavior unchanged. |
-| P07 | done | P06 | branch `feat/p07-ntfy` (not merged) | ntfy through existing target/dispatch/cooldown/durable-state/circuit path; serverUrl/topic/optional token in encryptedConfig; per-target private-network opt-in; JSON publish with Bearer auth; redirect refused; 5s timeout, response cap, 429/401/403 handling; token/topic redaction; 5 delivery + 1 dispatch + 3 validation tests; 230 files / 6028 tests, TypeScript, Biome, audit 38/38, build | No digests, quiet hours or later platforms. No real ntfy message; local fake service only. Discord/Telegram unchanged. |
+| P07 | done | P06 | `main @ 380c5600` (merged; not deployed) | ntfy through existing target/dispatch/cooldown/durable-state/circuit path; serverUrl/topic/optional token in encryptedConfig; per-target private-network opt-in; JSON publish with Bearer auth; redirect refused; 5s timeout, response cap, 429/401/403 handling; token/topic redaction; 5 delivery + 1 dispatch + 3 validation tests; 230 files / 6028 tests, TypeScript, Biome, audit 38/38, build | No digests, quiet hours or later platforms. No real ntfy message; local fake service only. Discord/Telegram unchanged. |
 | P08 | pending | P04 and one new transport | — | No digest or quiet-hours scheduler state | Add digest scheduling/deduplication in the existing scheduler |
 | P09 | pending | P03 | — | `rank-ladder.ts` exists; no goals/requirements evaluator | Implement goals engine before UI |
 | P10 | pending | P09 | — | Registry has user classes/rank paths, but no pilot goal/requirement definitions with provenance | Select 3–5 accessible trackers; encode only verifiable conditions |
@@ -909,6 +909,47 @@ Validation: local fake ntfy service covers JSON/Bearer success, redirect refusal
 Discord; validation covers public/private URLs, topics, credential-bearing URLs
 and header-safe tokens. Full suite 230 files / 6028 tests, TypeScript, Biome,
 security audit 38/38 and production build pass. No real ntfy message was sent.
+
+### P08 notification digests
+
+- New migration `0001_digest_settings` adds app-settings columns for enable,
+  time, IANA timezone, empty behavior, destination ids and a durable JSON state.
+  The frozen baseline is untouched; fresh and existing databases apply the
+  versioned migration through the reviewed runner.
+- Digests are opt-in (`digestEnabled` default false). Immediate Discord,
+  Telegram and ntfy delivery is unchanged; digests reuse the same targets and
+  transports, not a second alert engine.
+- A one-minute task in the existing master scheduler runs the due check behind
+  a PostgreSQL advisory lock. Each target has its own last attempt/success,
+  dedup date and next-attempt backoff in `digest_state`; a restart or concurrent
+  instance cannot send the same local date twice, and missed days collapse to
+  at most today's digest.
+- Time is computed with the configured IANA timezone via `Intl`, including DST
+  transitions. The Settings section shows the timezone used.
+- Rendering groups by tracker/client and separates `ACTION REQUIRED` from
+  `NEEDS VERIFICATION`. It uses the P04 engine's current actions, so resolved
+  items disappear; empty digests are skipped by default or sent only when the
+  user explicitly chooses "send an all-clear summary".
+- Messages are capped at 4096 characters with an explicit omitted-item count.
+  A dashboard link is appended only when `BASE_URL` is an HTTPS URL.
+- Failed or ambiguous deliveries do not mark success or advance the dedup key;
+  retries use bounded exponential backoff per target. No exactly-once claim is
+  made after an ambiguous network failure.
+- Destination selection uses existing target ids; unset means all enabled
+  targets. Digest config and state ride in app-settings backup/restore and are
+  reset by nuke/lockdown according to the existing settings lifecycle.
+
+**Deferred:** quiet hours are not implemented. Immediate notifications are
+neither deferred nor dropped, and no urgency bypass is claimed. This must not
+be read as delivered P08 quiet-hours scope.
+
+Validation: `src/lib/digest.test.ts` covers local-time boundaries, New York
+spring/fall DST, dedup/restart date behavior, retry backoff, empty skip/send,
+confirmed/verification grouping, truncation and dashboard links. A restore
+fixture verifies digest config/state survives backup restore. Full suite 231
+files / 6037 tests, TypeScript, Biome, security audit 38/38 and production build
+pass. Fresh/upgrade database validation is delegated to the PR Docker matrix
+because local PostgreSQL was unavailable; no real notifications were sent.
 
 ### P02b slices
 

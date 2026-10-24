@@ -83,6 +83,11 @@ export const settingsColumns = {
   hasBackupPassword: appSettings.encryptedBackupPassword,
   backupStoragePath: appSettings.backupStoragePath,
   credentialVaultEnabled: appSettings.credentialVaultEnabled,
+  digestEnabled: appSettings.digestEnabled,
+  digestTime: appSettings.digestTime,
+  digestTimezone: appSettings.digestTimezone,
+  digestEmptyBehavior: appSettings.digestEmptyBehavior,
+  digestTargetIds: appSettings.digestTargetIds,
 }
 
 export function fetchSettings() {
@@ -123,6 +128,11 @@ export function serializeSettingsResponse(row: SettingsRow) {
     hasBackupPassword: !!row.hasBackupPassword,
     backupStoragePath: row.backupStoragePath,
     credentialVaultEnabled: row.credentialVaultEnabled,
+    digestEnabled: row.digestEnabled,
+    digestTime: row.digestTime,
+    digestTimezone: row.digestTimezone,
+    digestEmptyBehavior: row.digestEmptyBehavior,
+    digestTargetIds: row.digestTargetIds,
   }
 }
 

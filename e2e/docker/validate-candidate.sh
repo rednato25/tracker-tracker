@@ -222,8 +222,9 @@ create_database tt_fresh
 start_app tt-ci-fresh tt_fresh
 FRESH_PORT="$STARTED_PORT"
 wait_health tt-ci-fresh "$FRESH_PORT"
-assert_equal 1 "$(psql_query tt_fresh 'select count(*) from schema_migrations')" "fresh ledger rows"
+assert_equal 2 "$(psql_query tt_fresh 'select count(*) from schema_migrations')" "fresh ledger rows"
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0000_baseline' and baseline")" "fresh baseline row"
+assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0001_digest_settings'")" "fresh digest migration row"
 assert_equal 19 "$(psql_query tt_fresh "select count(*) from pg_tables where schemaname='public' and tablename <> 'schema_migrations'")" "fresh application tables"
 echo "fresh startup healthy with one baseline ledger row"
 echo "::endgroup::"
@@ -238,7 +239,7 @@ remove_app tt-ci-managed-1
 start_app tt-ci-managed-2 tt_managed
 MANAGED_PORT="$STARTED_PORT"
 wait_health tt-ci-managed-2 "$MANAGED_PORT"
-assert_equal 1 "$(psql_query tt_managed 'select count(*) from schema_migrations')" "managed ledger rows"
+assert_equal 2 "$(psql_query tt_managed 'select count(*) from schema_migrations')" "managed ledger rows"
 assert_log tt-ci-managed-2 '"path": *"noop"'
 echo "managed restart healthy with a no-op migration path"
 echo "::endgroup::"
@@ -263,12 +264,12 @@ start_app tt-ci-ahead-1 tt_ahead
 AHEAD_PORT="$STARTED_PORT"
 wait_health tt-ci-ahead-1 "$AHEAD_PORT"
 remove_app tt-ci-ahead-1
-psql_query tt_ahead "INSERT INTO schema_migrations (version, checksum, app_version, baseline) VALUES ('0001_future', repeat('0', 64), 'ci', false)" >/dev/null
+psql_query tt_ahead "INSERT INTO schema_migrations (version, checksum, app_version, baseline) VALUES ('0002_future', repeat('0', 64), 'ci', false)" >/dev/null
 start_app tt-ci-ahead-2 tt_ahead
 AHEAD_PORT="$STARTED_PORT"
 wait_exit tt-ci-ahead-2
-assert_equal 2 "$(psql_query tt_ahead 'select count(*) from schema_migrations')" "ahead ledger rows"
-assert_equal 0 "$(psql_query tt_ahead "select count(*) from pg_tables where schemaname='public' and tablename='0001_future'")" "ahead migration table"
+assert_equal 3 "$(psql_query tt_ahead 'select count(*) from schema_migrations')" "ahead ledger rows"
+assert_equal 0 "$(psql_query tt_ahead "select count(*) from pg_tables where schemaname='public' and tablename='0002_future'")" "ahead migration table"
 assert_log tt-ci-ahead-2 'DATABASE_AHEAD|ahead of this application'
 echo "database ahead refused without applying the unknown version"
 echo "::endgroup::"
@@ -282,7 +283,7 @@ start_app tt-ci-concurrent-2 tt_concurrent
 CONCURRENT_2_PORT="$STARTED_PORT"
 wait_health tt-ci-concurrent-1 "$CONCURRENT_1_PORT"
 wait_health tt-ci-concurrent-2 "$CONCURRENT_2_PORT"
-assert_equal 1 "$(psql_query tt_concurrent 'select count(*) from schema_migrations')" "concurrent ledger rows"
+assert_equal 2 "$(psql_query tt_concurrent 'select count(*) from schema_migrations')" "concurrent ledger rows"
 echo "both concurrent containers healthy with one ledger row"
 echo "::endgroup::"
 
@@ -293,14 +294,14 @@ P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PO
   P02A_ALLOW_DESTRUCTIVE=1 \
   P02A_ALLOW_REMOTE=1 \
   env -u NODE_ENV pnpm exec tsx e2e/fixtures/db-baseline-v1/seed.ts >/dev/null
+P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PORT}/tt_p02a" \
+  P02A_ALLOW_REMOTE=1 env -u NODE_ENV pnpm exec tsx e2e/fixtures/db-baseline-v1/verify.ts --schema-only >/dev/null
 start_app tt-ci-p02a tt_p02a
 P02A_PORT="$STARTED_PORT"
 wait_health tt-ci-p02a "$P02A_PORT"
-assert_equal 1 "$(psql_query tt_p02a 'select count(*) from schema_migrations')" "P02a ledger rows"
+assert_equal 2 "$(psql_query tt_p02a 'select count(*) from schema_migrations')" "P02a ledger rows"
 assert_equal 2 "$(psql_query tt_p02a 'select count(*) from trackers')" "P02a seeded trackers"
 assert_equal "p02a-fixture" "$(psql_query tt_p02a 'select username from app_settings limit 1')" "P02a settings"
-P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PORT}/tt_p02a" \
-  P02A_ALLOW_REMOTE=1 env -u NODE_ENV pnpm exec tsx e2e/fixtures/db-baseline-v1/verify.ts >/dev/null
 echo "unmanaged P02a baseline adopted with seeded rows preserved"
 echo "::endgroup::"
 
@@ -353,7 +354,7 @@ docker compose --project-name "$COMPOSE_PROJECT" --env-file "$COMPOSE_DIR/.env" 
 assert_equal "$IMAGE" "$(docker inspect tracker-tracker-app --format '{{.Config.Image}}')" "Compose candidate image"
 curl -fsS --max-time 5 "http://127.0.0.1:${COMPOSE_PORT}/api/health" | grep -q '"status":"ok"' ||
   fail "Compose app health check failed"
-assert_equal 1 "$(docker exec tracker-tracker-db psql -U "$DB_USER" -d tracker_tracker -Atc 'select count(*) from schema_migrations')" "Compose ledger rows"
+assert_equal 2 "$(docker exec tracker-tracker-db psql -U "$DB_USER" -d tracker_tracker -Atc 'select count(*) from schema_migrations')" "Compose ledger rows"
 echo "Compose Quick Start healthy with the explicit candidate image"
 docker compose --project-name "$COMPOSE_PROJECT" --env-file "$COMPOSE_DIR/.env" \
   -f "$COMPOSE_DIR/docker-compose.yml" -f "$COMPOSE_DIR/override.yml" down -v --remove-orphans >/dev/null

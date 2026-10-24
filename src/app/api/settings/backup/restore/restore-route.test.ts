@@ -181,6 +181,12 @@ function makeBackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPaylo
       encryptedImgbbApiKey: null,
       draftQuicklinks: null,
       dashboardSettings: null,
+      digestEnabled: true,
+      digestTime: "09:30",
+      digestTimezone: "Europe/Bucharest",
+      digestEmptyBehavior: "send",
+      digestTargetIds: "[1]",
+      digestState: '{"1":{"lastDigestKey":"2026-01-01"}}',
     },
     trackers: [
       {
@@ -1366,6 +1372,41 @@ describe("POST /api/settings/backup/restore — retention prompt state", () => {
 
     // null correctly means "ask", which is right for a backup that never answered.
     expect(recorder.settingsUpdate?.retentionPromptedAt).toBeNull()
+  })
+})
+
+describe("POST /api/settings/backup/restore — P08 digest settings", () => {
+  let recorder: TxRecorder
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(authenticate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      encryptionKey: "ab".repeat(32),
+    })
+    ;(verifyPassword as ReturnType<typeof vi.fn>).mockResolvedValue(true)
+    ;(checkLockout as ReturnType<typeof vi.fn>).mockReturnValue(null)
+    const created = createTx()
+    recorder = created.recorder
+    ;(db.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => fn(created.tx)
+    )
+  })
+
+  it("restores digest configuration and durable schedule state", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+    expect(recorder.settingsUpdate).toMatchObject({
+      digestEnabled: true,
+      digestTime: "09:30",
+      digestTimezone: "Europe/Bucharest",
+      digestEmptyBehavior: "send",
+      digestTargetIds: "[1]",
+      digestState: '{"1":{"lastDigestKey":"2026-01-01"}}',
+    })
   })
 })
 

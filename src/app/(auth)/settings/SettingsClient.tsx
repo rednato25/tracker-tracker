@@ -15,6 +15,7 @@ import { BackupsSection } from "@/components/settings/BackupsSection"
 import { CredentialVaultSection } from "@/components/settings/CredentialVaultSection"
 import { DangerZoneSection } from "@/components/settings/DangerZoneSection"
 import { DataSection } from "@/components/settings/DataSection"
+import { DigestSection } from "@/components/settings/DigestSection"
 import { EventsSection } from "@/components/settings/EventsSection"
 import { ImageHostingSection } from "@/components/settings/ImageHostingSection"
 import { PrivacySection } from "@/components/settings/PrivacySection"
@@ -63,6 +64,11 @@ export interface SettingsData {
   hasOeimgKey: boolean
   hasImgbbKey: boolean
   credentialVaultEnabled: boolean
+  digestEnabled: boolean
+  digestTime: string
+  digestTimezone: string
+  digestEmptyBehavior: string
+  digestTargetIds: string | null
 }
 
 export interface SettingsClientProps {
@@ -147,7 +153,20 @@ export function SettingsClient({
         </>
       )}
 
-      {activeTab === "notifications" && <NotificationTargets />}
+      {activeTab === "notifications" && (
+        <>
+          <NotificationTargets />
+          <DigestSection
+            initialConfig={{
+              enabled: initialSettings.digestEnabled,
+              time: initialSettings.digestTime,
+              timezone: initialSettings.digestTimezone,
+              emptyBehavior: initialSettings.digestEmptyBehavior,
+              targetIds: initialSettings.digestTargetIds,
+            }}
+          />
+        </>
+      )}
 
       {activeTab === "backups" && (
         <BackupsSection

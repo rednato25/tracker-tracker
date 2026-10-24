@@ -939,9 +939,21 @@ security audit 38/38 and production build pass. No real ntfy message was sent.
   targets. Digest config and state ride in app-settings backup/restore and are
   reset by nuke/lockdown according to the existing settings lifecycle.
 
-**Deferred:** quiet hours are not implemented. Immediate notifications are
-neither deferred nor dropped, and no urgency bypass is claimed. This must not
-be read as delivered P08 quiet-hours scope.
+- Quiet hours are opt-in with explicit start/end and IANA timezone, including
+  windows crossing midnight and DST. Routine immediate events are coalesced into
+  the next summary via durable `quietPending` state instead of being sent or
+  dropped. Resolved conditions disappear when the summary is rebuilt; only the
+  current local date is released, so downtime cannot replay a backlog.
+- The only urgency bypass is the explicit `quietHoursCriticalBypass` setting,
+  limited to `hit_and_run` and `tracker_down`. Non-critical events in the same
+  batch remain pending and are summarized after the window.
+- Provider sizing is explicit: Discord uses an embed (4096-character
+  description; no 2000-character content field), Telegram text is capped at
+  4096 characters, and ntfy is capped at 4096 UTF-8 bytes. Truncation preserves
+  the omitted-item count and dashboard link where the budget allows.
+- Restore remaps `digestTargetIds` and every `digestState` key through the new
+  notification-target id map; copying old ids would have pointed at unrelated
+  or missing targets.
 
 Validation: `src/lib/digest.test.ts` covers local-time boundaries, New York
 spring/fall DST, dedup/restart date behavior, retry backoff, empty skip/send,

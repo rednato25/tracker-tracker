@@ -4,6 +4,7 @@ import { sanitizeNetworkError } from "@/lib/error-utils"
 import { NOTIFICATION_COOLDOWN_MAX_MS } from "@/lib/limits"
 import { log } from "@/lib/logger"
 import type { NtfyConfig } from "@/lib/notifications/types"
+import { truncateUtf8 } from "@/lib/utf8"
 import type { DiscordEmbed } from "./payload"
 
 export interface CircuitState {
@@ -87,7 +88,7 @@ export async function deliverNtfyMessage(
       body: JSON.stringify({
         topic: config.topic,
         title: title.slice(0, 128),
-        message: message.slice(0, 4096),
+        message: truncateUtf8(message, 4096),
         priority: 3,
       }),
       signal: AbortSignal.timeout(5_000),

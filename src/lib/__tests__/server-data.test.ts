@@ -273,6 +273,11 @@ describe("serializeSettingsResponse", () => {
     digestTimezone: "UTC",
     digestEmptyBehavior: "skip",
     digestTargetIds: null,
+    quietHoursEnabled: false,
+    quietHoursStart: "22:00",
+    quietHoursEnd: "07:00",
+    quietHoursTimezone: "UTC",
+    quietHoursCriticalBypass: false,
   }
 
   it("converts null hasProxyPassword to false", () => {

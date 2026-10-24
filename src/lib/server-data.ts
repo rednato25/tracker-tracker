@@ -88,6 +88,11 @@ export const settingsColumns = {
   digestTimezone: appSettings.digestTimezone,
   digestEmptyBehavior: appSettings.digestEmptyBehavior,
   digestTargetIds: appSettings.digestTargetIds,
+  quietHoursEnabled: appSettings.quietHoursEnabled,
+  quietHoursStart: appSettings.quietHoursStart,
+  quietHoursEnd: appSettings.quietHoursEnd,
+  quietHoursTimezone: appSettings.quietHoursTimezone,
+  quietHoursCriticalBypass: appSettings.quietHoursCriticalBypass,
 }
 
 export function fetchSettings() {
@@ -133,6 +138,11 @@ export function serializeSettingsResponse(row: SettingsRow) {
     digestTimezone: row.digestTimezone,
     digestEmptyBehavior: row.digestEmptyBehavior,
     digestTargetIds: row.digestTargetIds,
+    quietHoursEnabled: row.quietHoursEnabled,
+    quietHoursStart: row.quietHoursStart,
+    quietHoursEnd: row.quietHoursEnd,
+    quietHoursTimezone: row.quietHoursTimezone,
+    quietHoursCriticalBypass: row.quietHoursCriticalBypass,
   }
 }
 

@@ -21,7 +21,9 @@ import {
   isNtfyConfig,
   isTelegramConfig,
 } from "@/lib/notifications/types"
+import { isQuietHours, quietHoursConfigFromSettings } from "@/lib/quiet-hours"
 import { getTrackerListForDashboard } from "@/lib/server-data"
+import { truncateUtf8 } from "@/lib/utf8"
 
 export interface DigestConfig {
   enabled: boolean
@@ -37,6 +39,7 @@ export interface DigestTargetState {
   lastDigestKey: string | null
   nextAttemptAt: string | null
   failureCount: number
+  quietPending?: boolean
 }
 
 export type DigestState = Record<string, DigestTargetState>
@@ -196,6 +199,36 @@ export function buildDigest(
   return text
 }
 
+function emptyTargetState(): DigestTargetState {
+  return {
+    lastAttemptAt: null,
+    lastSuccessAt: null,
+    lastDigestKey: null,
+    nextAttemptAt: null,
+    failureCount: 0,
+    quietPending: false,
+  }
+}
+
+/** Persist that routine immediate events were coalesced during quiet hours. */
+export async function markQuietPending(targetIds: number[], _now: Date): Promise<void> {
+  if (targetIds.length === 0) return
+  const [settings] = await db.select().from(appSettings).limit(1)
+  if (!settings) return
+  const state = parseState(settings.digestState)
+  for (const targetId of targetIds) {
+    state[String(targetId)] = {
+      ...emptyTargetState(),
+      ...state[String(targetId)],
+      quietPending: true,
+    }
+  }
+  await db
+    .update(appSettings)
+    .set({ digestState: JSON.stringify(state) })
+    .where(eq(appSettings.id, settings.id))
+}
+
 function nextRetry(failureCount: number, now: Date): string {
   const delay = Math.min(RETRY_BASE_MS * 2 ** Math.min(failureCount, 6), RETRY_MAX_MS)
   return new Date(now.getTime() + delay).toISOString()
@@ -221,7 +254,12 @@ async function deliverDigestToTarget(
     return deliverTelegramMessage(target.id, config.botToken, config.chatId, text)
   }
   if (target.type === "ntfy" && isNtfyConfig(config)) {
-    return deliverNtfyMessage(target.id, config, "Tracker Tracker digest", text)
+    return deliverNtfyMessage(
+      target.id,
+      config,
+      "Tracker Tracker digest",
+      truncateUtf8(text, 4096)
+    )
   }
   return { success: false, status: "failed", error: "Invalid notification config" }
 }
@@ -234,7 +272,11 @@ export async function runDigestIfDue(
   const [settings] = await db.select().from(appSettings).limit(1)
   if (!settings) return false
   const config = digestConfigFromSettings(settings)
-  if (!config.enabled) return false
+  const quietConfig = quietHoursConfigFromSettings(settings)
+  const initialQuiet = isQuietHours(quietConfig, now)
+  const initialState = parseState(settings.digestState)
+  const hasPending = Object.values(initialState).some((entry) => entry.quietPending)
+  if (!config.enabled && !hasPending) return false
 
   const conn = await getDbClient().reserve()
   try {
@@ -244,13 +286,37 @@ export async function runDigestIfDue(
     if (!lock?.acquired) return false
 
     try {
-      const state = parseState(settings.digestState)
-      const dueTargets = (
+      const state = initialState
+      const selectedTargets = (
         await db.select().from(notificationTargets).orderBy(notificationTargets.id)
       ).filter((target) => {
         if (!target.enabled) return false
         if (config.targetIds && !config.targetIds.includes(target.id)) return false
-        return isDigestDue(config, state[String(target.id)], now).due
+        return true
+      })
+
+      if (initialQuiet) {
+        let changed = false
+        for (const target of selectedTargets) {
+          const current = state[String(target.id)] ?? emptyTargetState()
+          const digestDue = config.enabled && isDigestDue(config, current, now).due
+          if (digestDue || current.quietPending) {
+            state[String(target.id)] = { ...current, quietPending: true }
+            changed = true
+          }
+        }
+        if (changed) {
+          await db
+            .update(appSettings)
+            .set({ digestState: JSON.stringify(state) })
+            .where(eq(appSettings.id, settings.id))
+        }
+        return false
+      }
+
+      const dueTargets = selectedTargets.filter((target) => {
+        const current = state[String(target.id)]
+        return current?.quietPending === true || (config.enabled && isDigestDue(config, current, now).due)
       })
       if (dueTargets.length === 0) return false
 
@@ -269,20 +335,18 @@ export async function runDigestIfDue(
 
       let attempted = false
       for (const target of dueTargets) {
-        const current = state[String(target.id)] ?? {
-          lastAttemptAt: null,
-          lastSuccessAt: null,
-          lastDigestKey: null,
-          nextAttemptAt: null,
-          failureCount: 0,
-        }
+        const current = state[String(target.id)] ?? emptyTargetState()
         const due = isDigestDue(config, current, now)
-        if (!due.due) continue
+        if (!due.due && !current.quietPending) continue
         attempted = true
         if (text === null) {
           // Explicit skip still records the local date so an empty digest is not
           // re-evaluated every minute. This is not a successful delivery.
-          state[String(target.id)] = { ...current, lastDigestKey: due.key }
+          state[String(target.id)] = {
+            ...current,
+            lastDigestKey: due.key,
+            quietPending: false,
+          }
           continue
         }
         let result: DeliveryResult
@@ -299,6 +363,7 @@ export async function runDigestIfDue(
             lastDigestKey: due.key,
             nextAttemptAt: null,
             failureCount: 0,
+            quietPending: false,
           }
         } else {
           const failures = current.failureCount + 1

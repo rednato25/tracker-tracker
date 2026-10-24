@@ -22,6 +22,11 @@ interface DigestSectionProps {
     timezone: string
     emptyBehavior: string
     targetIds: string | null
+    quietEnabled: boolean
+    quietStart: string
+    quietEnd: string
+    quietTimezone: string
+    quietCriticalBypass: boolean
   }
 }
 
@@ -45,6 +50,13 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
     parseTargetIds(initialConfig.targetIds)
   )
   const [targets, setTargets] = useState<DigestTarget[]>([])
+  const [quietEnabled, setQuietEnabled] = useState(initialConfig.quietEnabled)
+  const [quietStart, setQuietStart] = useState(initialConfig.quietStart)
+  const [quietEnd, setQuietEnd] = useState(initialConfig.quietEnd)
+  const [quietTimezone, setQuietTimezone] = useState(initialConfig.quietTimezone)
+  const [quietCriticalBypass, setQuietCriticalBypass] = useState(
+    initialConfig.quietCriticalBypass
+  )
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -93,6 +105,11 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
           digestEmptyBehavior: emptyBehavior,
           digestTargetIds:
             targetIds === null || selected.length === targets.length ? null : selected,
+          quietHoursEnabled: quietEnabled,
+          quietHoursStart: quietStart,
+          quietHoursEnd: quietEnd,
+          quietHoursTimezone: quietTimezone,
+          quietHoursCriticalBypass: quietCriticalBypass,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
@@ -180,6 +197,47 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
           </p>
         )}
       </div>
+      <div className="border-t border-border" />
+      <H2 className="uppercase tracking-wider">Quiet hours</H2>
+      <Toggle
+        label="Enable quiet hours"
+        checked={quietEnabled}
+        onChange={setQuietEnabled}
+        description="Routine immediate notifications are coalesced into the next summary. Nothing is dropped; resolved items are omitted. Critical bypass is explicit below."
+      />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Input
+          label="Start"
+          type="time"
+          value={quietStart}
+          onChange={(e) => setQuietStart(e.target.value)}
+          name="quiet-hours-start"
+        />
+        <Input
+          label="End"
+          type="time"
+          value={quietEnd}
+          onChange={(e) => setQuietEnd(e.target.value)}
+          name="quiet-hours-end"
+        />
+        <Input
+          label="Timezone"
+          value={quietTimezone}
+          onChange={(e) => setQuietTimezone(e.target.value)}
+          placeholder="UTC"
+          hint="Explicit IANA timezone; handles DST and midnight crossing"
+          name="quiet-hours-timezone"
+        />
+      </div>
+      <Checkbox
+        checked={quietCriticalBypass}
+        onChange={setQuietCriticalBypass}
+        label="Let hit-and-run and tracker-down events bypass quiet hours"
+        disabled={!quietEnabled}
+      />
+      <p className="font-mono text-4xs text-muted">
+        No other event bypasses quiet hours. Non-critical events are summarized after the window.
+      </p>
       <Notice message={message} />
       <Notice message={error} />
       <div className="flex items-center gap-2">

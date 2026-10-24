@@ -7,6 +7,7 @@ import {
   digestConfigFromSettings,
   isDigestDue,
 } from "@/lib/digest"
+import { truncateUtf8 } from "@/lib/utf8"
 
 const config: DigestConfig = {
   enabled: true,
@@ -123,6 +124,13 @@ describe("digest rendering", () => {
     expect(
       buildDigest([], { dateKey: "2026-10-24", timezone: "UTC", emptyBehavior: "send" })
     ).toContain("No active actions")
+  })
+
+  it("keeps the ntfy byte limit for emoji and Romanian diacritics", () => {
+    const text = "ăâîșț🙂".repeat(1000)
+    const trimmed = truncateUtf8(text, 4096)
+    expect(Buffer.byteLength(trimmed, "utf8")).toBeLessThanOrEqual(4096)
+    expect(trimmed.endsWith("…")).toBe(true)
   })
 
   it("truncates predictably with an omitted count and a safe dashboard link", () => {

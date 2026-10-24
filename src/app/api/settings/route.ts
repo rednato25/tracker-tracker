@@ -573,6 +573,42 @@ export async function PATCH(request: Request) {
     }
   }
 
+  // --- Quiet hours ---
+  if (body.quietHoursEnabled !== undefined) {
+    if (typeof body.quietHoursEnabled !== "boolean") {
+      return NextResponse.json({ error: "quietHoursEnabled must be a boolean" }, { status: 400 })
+    }
+    updates.quietHoursEnabled = body.quietHoursEnabled
+  }
+  for (const field of ["quietHoursStart", "quietHoursEnd"] as const) {
+    const value = body[field]
+    if (value === undefined) continue
+    if (typeof value !== "string" || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+      return NextResponse.json({ error: `${field} must be HH:MM in 24-hour time` }, { status: 400 })
+    }
+    updates[field] = value
+  }
+  if (body.quietHoursTimezone !== undefined) {
+    if (typeof body.quietHoursTimezone !== "string" || !body.quietHoursTimezone.trim()) {
+      return NextResponse.json({ error: "quietHoursTimezone must be an IANA timezone" }, { status: 400 })
+    }
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: body.quietHoursTimezone.trim() }).format()
+    } catch {
+      return NextResponse.json({ error: "quietHoursTimezone must be an IANA timezone" }, { status: 400 })
+    }
+    updates.quietHoursTimezone = body.quietHoursTimezone.trim()
+  }
+  if (body.quietHoursCriticalBypass !== undefined) {
+    if (typeof body.quietHoursCriticalBypass !== "boolean") {
+      return NextResponse.json(
+        { error: "quietHoursCriticalBypass must be a boolean" },
+        { status: 400 }
+      )
+    }
+    updates.quietHoursCriticalBypass = body.quietHoursCriticalBypass
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
   }

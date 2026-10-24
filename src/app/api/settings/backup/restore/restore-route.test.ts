@@ -187,6 +187,11 @@ function makeBackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPaylo
       digestEmptyBehavior: "send",
       digestTargetIds: "[1]",
       digestState: '{"1":{"lastDigestKey":"2026-01-01"}}',
+      quietHoursEnabled: true,
+      quietHoursStart: "23:00",
+      quietHoursEnd: "06:00",
+      quietHoursTimezone: "Europe/Bucharest",
+      quietHoursCriticalBypass: true,
     },
     trackers: [
       {
@@ -1404,9 +1409,20 @@ describe("POST /api/settings/backup/restore — P08 digest settings", () => {
       digestTime: "09:30",
       digestTimezone: "Europe/Bucharest",
       digestEmptyBehavior: "send",
-      digestTargetIds: "[1]",
-      digestState: '{"1":{"lastDigestKey":"2026-01-01"}}',
+      quietHoursEnabled: true,
+      quietHoursStart: "23:00",
+      quietHoursEnd: "06:00",
+      quietHoursTimezone: "Europe/Bucharest",
+      quietHoursCriticalBypass: true,
     })
+    const restoredIds = JSON.parse(recorder.settingsUpdate?.digestTargetIds as string) as number[]
+    expect(restoredIds).not.toEqual([1])
+    const restoredState = JSON.parse(recorder.settingsUpdate?.digestState as string) as Record<
+      string,
+      unknown
+    >
+    expect(Object.keys(restoredState)).toEqual([String(restoredIds[0])])
+    expect(restoredState[String(restoredIds[0])]).toEqual({ lastDigestKey: "2026-01-01" })
   })
 })
 

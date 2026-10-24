@@ -69,6 +69,11 @@ export interface SettingsData {
   digestTimezone: string
   digestEmptyBehavior: string
   digestTargetIds: string | null
+  quietHoursEnabled: boolean
+  quietHoursStart: string
+  quietHoursEnd: string
+  quietHoursTimezone: string
+  quietHoursCriticalBypass: boolean
 }
 
 export interface SettingsClientProps {
@@ -163,6 +168,11 @@ export function SettingsClient({
               timezone: initialSettings.digestTimezone,
               emptyBehavior: initialSettings.digestEmptyBehavior,
               targetIds: initialSettings.digestTargetIds,
+              quietEnabled: initialSettings.quietHoursEnabled,
+              quietStart: initialSettings.quietHoursStart,
+              quietEnd: initialSettings.quietHoursEnd,
+              quietTimezone: initialSettings.quietHoursTimezone,
+              quietCriticalBypass: initialSettings.quietHoursCriticalBypass,
             }}
           />
         </>

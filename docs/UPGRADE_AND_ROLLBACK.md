@@ -99,12 +99,16 @@ unknown and ahead schema refusal, PostgreSQL 17 refusal, concurrent startup,
 and a Compose Quick Start with an explicit candidate-image override. The
 published `latest` image was not used.
 
-**Candidate-image validation is the pre-merge gate.** Published-image smoke
-testing happens after the merge that publishes the image; it is not required
-before that merge. After publication, and before a production claim:
+**Candidate-image validation was the pre-merge gate.** The published image was
+built from merged main `0ff13573` at digest
+`sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda`.
+PR #2 then pulled that digest and passed the published-image smoke matrix
+(fresh startup/health, baseline ledger, P02a adoption, managed restart,
+unknown/ahead and PostgreSQL 17 refusal, concurrency, Compose).
 
-- Run the P01 disposable fresh-install smoke test against the published image.
-- Re-run the migration and health matrix against the published image.
+Still required before a production claim:
+
 - Take and test a pre-upgrade dump on the target installation.
+- Upgrade an actual installation under the documented rollback plan.
 
 No deployment, release or production database validation has been performed.

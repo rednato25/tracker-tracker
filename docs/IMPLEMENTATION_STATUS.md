@@ -79,7 +79,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P02b-6 | done | P02b-3 | branch `feat/p01-fork-distribution` (not deployed) | v2 export/validation, v1 import, delivery/checkpoint restore with id/scope remapping, transactional restore + cross-process advisory lock, credential lifecycle verification; 5918 unit tests, 10 authenticated HTTP cases plus setup (PostgreSQL 18), TypeScript, lint, audit (38/38), build | Published-image smoke passed in PR #2 (digest `sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda`). No production access or deployment. |
 | P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. Candidate-image and published-image Docker validation passed; the published image was not deployed or installed. This is not a production-validated release. |
 | P03 | done | P00, P02 for persistence | branch `feat/p03-rule-provenance` (not merged) | `src/lib/tracker-rules.ts`; explicit `requiredAccountRatio`/`requiredTorrentRatio`; legacy `minimumRatio` read mapping; per-field source/timestamp-kind/freshness provenance; manual login evidence; 5982 unit tests, TypeScript, Biome, audit (38/38), build | Real registry entries remain unverified and are marked unknown unless provenance is supplied. No DB change. No real tracker account accessed. |
-| P04 | pending | P03 | — | `computeAlerts` and pure `tracker-events` checks exist, but there is no single deterministic action engine with injected `now` | Build action evaluator; reuse existing checks |
+| P04 | done | P03 | branch `feat/p04-actions` (not merged) | `src/lib/actions.ts`; deterministic `computeTrackerActions` with injected `now`; account ratio, login, stale/poll/client, H&R and per-torrent seeding actions; stable keys, dedupe and deterministic ordering; P03 provenance on evidence; focused 99 tests, 5998 full tests, TypeScript, Biome, audit 38/38, build | No UI or notification delivery (P05). No database change. Real rules remain unknown unless P03 provenance says otherwise. |
 | P05 | pending | P04 | — | Alerts banner, login timers and status banners exist; no Next action column/filters | Build compact action surface and filters |
 | P06 | pending | P04, P02 | — | Notification types list includes Telegram, but `SUPPORTED_NOTIFICATION_TYPES` is Discord-only; delivery path rejects others | Add Telegram transport, config validation, encrypted lifecycle and tests |
 | P07 | pending | P06 transport contract | — | No ntfy transport | Add self-hosted ntfy with strict redirect/network policy |
@@ -753,6 +753,40 @@ database was accessed.
   Full unit suite 225 files / 5982 tests, TypeScript, Biome, audit 38/38 and the
   production build pass on Node 24. Synthetic rules only; no real account was
   accessed.
+
+### P04 action engine
+
+- `src/lib/actions.ts` exposes a pure `computeTrackerActions({ trackers, clients, torrents, now })`.
+  It performs no I/O and does not read the clock, so tests and every surface
+  get the same ordered result for the same input.
+- Supported actions: confirmed account ratio below the account rule, login due,
+  login overdue, missing login evidence, stale data, polling paused, local poll
+  error, explicit authentication rejection, client error, reported H&R,
+  unmet per-torrent seeding obligation, and missing rules/data verification.
+- P03's resolver supplies account and torrent rules plus provenance. Account
+  ratio never feeds `resolveSatisfaction`; per-torrent actions use only the
+  explicit/legacy torrent route.
+- `status` separates `action-required` from `needs-verification`. Unknown
+  rules, missing stats, invalid timestamps and stale snapshots produce
+  verification actions, not violations. Stale snapshots suppress ratio, H&R and
+  ratio-missing actions rather than confirming them.
+- A generic poll message is a local `poll-error` needing verification. Only an
+  explicit 401/403/unauthorized/forbidden/invalid-token signal becomes
+  `auth-error`; expiry is never inferred from a cookie message. Opening a link
+  or polling does not touch confirmed login evidence.
+- Keys are stable (`type:tracker:id[:torrent:hash]`). Equivalent keys dedupe
+  without text affecting identity; sorting is priority, then derivable
+  deadline, then key. Only the login reminder derives a deadline, and it is a
+  reminder date, not a ban date.
+- Resolved conditions disappear on the next pure computation; no database
+  state or computed-action table was added.
+
+Tests: `src/lib/actions.test.ts` covers exact thresholds, known/unknown/missing
+and confirmed-zero rules, fresh versus stale evidence, account/torrent
+separation, login boundaries, generic versus explicit auth errors, H&R/client
+actions, disabled trackers, dedupe/ordering, recovery/reappearance and
+determinism. Focused suites 99 tests; full suite 5998 tests; TypeScript,
+Biome, security audit 38/38 and production build pass on Node 24.
 
 ### P02b slices
 

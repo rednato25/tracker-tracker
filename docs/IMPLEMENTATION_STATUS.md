@@ -80,7 +80,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. Candidate-image and published-image Docker validation passed; the published image was not deployed or installed. This is not a production-validated release. |
 | P03 | done | P00, P02 for persistence | branch `feat/p03-rule-provenance` (not merged) | `src/lib/tracker-rules.ts`; explicit `requiredAccountRatio`/`requiredTorrentRatio`; legacy `minimumRatio` read mapping; per-field source/timestamp-kind/freshness provenance; manual login evidence; 5982 unit tests, TypeScript, Biome, audit (38/38), build | Real registry entries remain unverified and are marked unknown unless provenance is supplied. No DB change. No real tracker account accessed. |
 | P04 | done | P03 | branch `feat/p04-actions` (not merged) | `src/lib/actions.ts`; deterministic `computeTrackerActions` with injected `now`; account ratio, login, stale/poll/client, H&R and per-torrent seeding actions; stable keys, dedupe and deterministic ordering; P03 provenance on evidence; focused 99 tests, 5998 full tests, TypeScript, Biome, audit 38/38, build | No UI or notification delivery (P05). No database change. Real rules remain unknown unless P03 provenance says otherwise. |
-| P05 | pending | P04 | — | Alerts banner, login timers and status banners exist; no Next action column/filters | Build compact action surface and filters |
+| P05 | done | P04 | branch `feat/p05-attention-ui` (not merged) | `AttentionNeeded` dashboard surface; P04 actions as sole classification; Needs attention/Unknown/Healthy/All filters and counts; stable keys, progressive evidence, tracker/settings links; loading/error/partial-data/all-clear states; 8 UI tests, 2 dashboard e2e tests, 6006 full tests, TypeScript, Biome, audit 38/38, build | Dense register column was not changed; next action is shown in each attention row. No dismiss/snooze persistence, notifications or torrent mutation. |
 | P06 | pending | P04, P02 | — | Notification types list includes Telegram, but `SUPPORTED_NOTIFICATION_TYPES` is Discord-only; delivery path rejects others | Add Telegram transport, config validation, encrypted lifecycle and tests |
 | P07 | pending | P06 transport contract | — | No ntfy transport | Add self-hosted ntfy with strict redirect/network policy |
 | P08 | pending | P04 and one new transport | — | No digest or quiet-hours scheduler state | Add digest scheduling/deduplication in the existing scheduler |
@@ -787,6 +787,43 @@ separation, login boundaries, generic versus explicit auth errors, H&R/client
 actions, disabled trackers, dedupe/ordering, recovery/reappearance and
 determinism. Focused suites 99 tests; full suite 5998 tests; TypeScript,
 Biome, security audit 38/38 and production build pass on Node 24.
+
+### P05 attention dashboard
+
+- `src/components/dashboard/AttentionNeeded.tsx` renders the compact
+  Attention needed surface on the dashboard. It consumes
+  `computeTrackerActions` for type, status, priority, deadline, key and
+  evidence; it does not re-derive tracker rules.
+- Counts separate confirmed actions, verification items and clear accounts.
+  Filters are **Needs attention**, **Unknown**, **Healthy** and **All**.
+  "Healthy" means no action and no verification item, never "unknown rules
+  treated as satisfied."
+- Each row shows the affected tracker/client/torrent, the written status
+  (Action required or Needs verification), reason, known deadline/value and one
+  next-action link to the existing tracker page or Settings. Login rows link to
+  the tracker page; opening a link never marks login.
+- Evidence/source, freshness, observed/verified timestamps and the stable key
+  are behind a native `<details>` disclosure. Status uses text and icon, not
+  color alone.
+- Loading withholds all-clear. Error and unavailable client data produce
+  explicit incomplete states. Verification-only data says "No confirmed
+  problems" rather than "All clear." A complete, empty result is the only
+  all-clear.
+- The dashboard passes server time to keep the first render aligned. One
+  existing bulk clients query feeds client actions; there are no per-row
+  requests. No credentials are serialized into actions.
+- No dismiss/snooze state was added: P04 conditions disappear only when
+  recomputed and resolved. No notification, torrent mutation or database table
+  was added.
+
+Validation: `AttentionNeeded.test.tsx` covers confirmed vs verification,
+filters, links, loading/error/partial-data, verification-only wording,
+all-clear gating, evidence disclosure, resolution/reappearance and stable keys.
+`e2e/attention.spec.ts` seeds synthetic trackers in the guarded e2e database
+and verifies the real dashboard in light, dark and 390px mobile layouts;
+screenshots are written to the ignored `test-results/` directory. Full unit
+suite 227 files / 6006 tests, TypeScript, Biome, security audit 38/38 and the
+production build pass.
 
 ### P02b slices
 

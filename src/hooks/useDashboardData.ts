@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react"
 import { usePollingIntervals } from "@/hooks/usePollingIntervals"
 import { useRetentionPromptState } from "@/hooks/useRetentionPrompt"
 import { useUpdateCheck } from "@/hooks/useUpdateCheck"
+import type { ActionClientInput } from "@/lib/actions"
 import type { DashboardAlert } from "@/lib/dashboard"
 import {
   computeAlerts,
@@ -33,6 +34,10 @@ export function selectClientsForAlerts(clients: SafeDownloadClient[]) {
 
 interface DashboardData {
   trackers: TrackerSummary[]
+  clients: ActionClientInput[]
+  clientsLoading: boolean
+  clientsError: boolean
+  trackersError: boolean
   snapshotMap: Map<number, Snapshot[]>
   loading: boolean
   alerts: DashboardAlert[]
@@ -209,6 +214,10 @@ function useDashboardData(options?: UseDashboardDataOptions): DashboardData {
 
   return {
     trackers,
+    clients: clientsQuery.data ?? [],
+    clientsLoading: clientsQuery.isLoading,
+    clientsError: clientsQuery.isError,
+    trackersError: trackersQuery.isError,
     snapshotMap,
     todayData: todayQuery.data ?? null,
     todayLoading: todayQuery.isLoading,

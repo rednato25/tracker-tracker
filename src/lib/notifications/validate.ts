@@ -61,6 +61,50 @@ export function validateNotificationConfig(
       }
       return null
     }
+    case "ntfy": {
+      const rawUrl = config.serverUrl
+      if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+        return "ntfy config requires a serverUrl string"
+      }
+      let url: URL
+      try {
+        url = new URL(rawUrl.trim())
+      } catch {
+        return "Invalid ntfy server URL"
+      }
+      if (url.protocol !== "https:" && url.protocol !== "http:") {
+        return "ntfy server URL must use http or https"
+      }
+      if (url.username || url.password) {
+        return "ntfy server URL must not contain credentials"
+      }
+      if (url.search || url.hash) {
+        return "ntfy server URL must not contain a query or fragment"
+      }
+      const allowPrivate = config.allowPrivateNetwork === true
+      if (config.allowPrivateNetwork !== undefined && typeof config.allowPrivateNetwork !== "boolean") {
+        return "ntfy allowPrivateNetwork must be a boolean"
+      }
+      if (!allowPrivate && isUnsafeNetworkHost(url.hostname)) {
+        return "ntfy server URL points to a private or reserved network address; enable allowPrivateNetwork for a self-hosted server"
+      }
+      const topic = config.topic
+      if (typeof topic !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(topic.trim())) {
+        return "ntfy topic must be 1-64 letters, numbers, underscores or dashes"
+      }
+      if (config.authToken !== undefined) {
+        const token = config.authToken
+        if (
+          typeof token !== "string" ||
+          !token.trim() ||
+          token.length > 512 ||
+          /\s/.test(token)
+        ) {
+          return "ntfy authToken must be a non-empty header-safe string"
+        }
+      }
+      return null
+    }
     default:
       return `Unsupported notification type: ${type}`
   }

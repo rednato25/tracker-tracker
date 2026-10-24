@@ -1,7 +1,7 @@
 // src/lib/notifications/types.ts
 
-export const SUPPORTED_NOTIFICATION_TYPES = ["discord", "telegram"] as const
-export const VALID_NOTIFICATION_TYPES = ["discord", "gotify", "telegram", "slack", "email"] as const
+export const SUPPORTED_NOTIFICATION_TYPES = ["discord", "telegram", "ntfy"] as const
+export const VALID_NOTIFICATION_TYPES = ["discord", "gotify", "telegram", "ntfy", "slack", "email"] as const
 export type NotificationTargetType = (typeof VALID_NOTIFICATION_TYPES)[number]
 
 export const VALID_EVENT_TYPES = [
@@ -41,6 +41,14 @@ export interface TelegramConfig {
   botToken: string
   chatId: string
 }
+
+export interface NtfyConfig {
+  serverUrl: string
+  topic: string
+  authToken?: string
+  /** Explicit per-target opt-in for a homelab/private ntfy server. */
+  allowPrivateNetwork?: boolean
+}
 export interface SlackConfig {
   webhookUrl: string
 }
@@ -54,7 +62,7 @@ export interface EmailConfig {
 }
 
 export type NotificationConfig =
-  DiscordConfig | GotifyConfig | TelegramConfig | SlackConfig | EmailConfig
+  DiscordConfig | GotifyConfig | TelegramConfig | NtfyConfig | SlackConfig | EmailConfig
 
 export interface SnapshotContext {
   trackerId: number
@@ -122,12 +130,18 @@ export function isTelegramConfig(config: NotificationConfig): config is Telegram
     typeof config.botToken === "string" && typeof config.chatId === "string"
 }
 
+export function isNtfyConfig(config: NotificationConfig): config is NtfyConfig {
+  return "serverUrl" in config && "topic" in config &&
+    typeof config.serverUrl === "string" && typeof config.topic === "string"
+}
+
 export function isNotificationConfig(value: unknown): value is NotificationConfig {
   if (!value || typeof value !== "object") return false
   const obj = value as Record<string, unknown>
   if (typeof obj.webhookUrl === "string") return true
   if (typeof obj.serverUrl === "string" && typeof obj.appToken === "string") return true
   if (typeof obj.botToken === "string" && typeof obj.chatId === "string") return true
+  if (typeof obj.serverUrl === "string" && typeof obj.topic === "string") return true
   if (
     typeof obj.host === "string" &&
     typeof obj.port === "number" &&

@@ -11,12 +11,15 @@ import { log } from "@/lib/logger"
 import { decryptNotificationConfig } from "@/lib/notifications/decrypt"
 import {
   deliverDiscordWebhook,
+  deliverNtfyMessage,
   deliverTelegramMessage,
 } from "@/lib/notifications/deliver"
 import {
   type DiscordConfig,
   isDiscordConfig,
+  isNtfyConfig,
   isTelegramConfig,
+  type NtfyConfig,
   type TelegramConfig,
 } from "@/lib/notifications/types"
 
@@ -39,12 +42,14 @@ export async function POST(_req: Request, { params }: RouteContext) {
   const target = rows[0]
   const key = decodeKey(auth)
 
-  let config: DiscordConfig | TelegramConfig
+  let config: DiscordConfig | TelegramConfig | NtfyConfig
   try {
     const raw = decryptNotificationConfig(target, key)
     if (target.type === "discord" && isDiscordConfig(raw)) {
       config = raw
     } else if (target.type === "telegram" && isTelegramConfig(raw)) {
+      config = raw
+    } else if (target.type === "ntfy" && isNtfyConfig(raw)) {
       config = raw
     } else {
       return NextResponse.json({ error: "Invalid notification config shape" }, { status: 422 })
@@ -72,7 +77,14 @@ export async function POST(_req: Request, { params }: RouteContext) {
           (config as TelegramConfig).chatId,
           "Test Notification\n\nThis is a test from Tracker Tracker. If you see this, Telegram delivery is working."
         )
-      : await deliverDiscordWebhook(target.id, (config as DiscordConfig).webhookUrl, [testEmbed])
+      : target.type === "ntfy"
+        ? await deliverNtfyMessage(
+            target.id,
+            config as NtfyConfig,
+            "Test Notification",
+            "This is a test from Tracker Tracker. If you see this, ntfy delivery is working."
+          )
+        : await deliverDiscordWebhook(target.id, (config as DiscordConfig).webhookUrl, [testEmbed])
 
   if (result.success) {
     await db

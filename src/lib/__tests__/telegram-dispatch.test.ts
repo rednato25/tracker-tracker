@@ -14,12 +14,15 @@ vi.mock("@/lib/notifications/decrypt", () => ({
   decryptNotificationConfig: vi.fn((target: { type: string }) =>
     target.type === "telegram"
       ? { botToken: "123456:ABCdefGHIjklMNOpqrsTUVwxyz123456789", chatId: "-1001234567890" }
-      : { webhookUrl: "https://discord.com/api/webhooks/1/abc" }
+      : target.type === "ntfy"
+        ? { serverUrl: "https://ntfy.example.test", topic: "synthetic_topic", authToken: "tk_x" }
+        : { webhookUrl: "https://discord.com/api/webhooks/1/abc" }
   ),
 }))
 vi.mock("@/lib/notifications/deliver", () => ({
   deliverTelegramMessage: vi.fn(),
   deliverDiscordWebhook: vi.fn(),
+  deliverNtfyMessage: vi.fn(),
 }))
 
 function target(overrides: Partial<NotificationTargetRow> = {}): NotificationTargetRow {
@@ -133,6 +136,29 @@ describe("dispatchNotifications Telegram", () => {
       expect.objectContaining({ targetId: 1, trackerId: 10, eventType: "ratio_drop" }),
     ])
     expect(updates).toEqual([expect.objectContaining({ lastDeliveryStatus: "delivered" })])
+  })
+
+  it("sends through ntfy with its own delivery state", async () => {
+    const deliver = await import("@/lib/notifications/deliver")
+    const dispatch = await import("@/lib/notifications/dispatch")
+    vi.mocked(deliver.deliverNtfyMessage).mockResolvedValue({
+      success: true,
+      status: "delivered",
+    })
+
+    await dispatch.dispatchNotifications(ctx(), Buffer.alloc(32), [
+      target({ id: 3, name: "ntfy", type: "ntfy" }),
+    ])
+
+    expect(deliver.deliverNtfyMessage).toHaveBeenCalledWith(
+      3,
+      expect.objectContaining({ topic: "synthetic_topic", authToken: "tk_x" }),
+      "Ratio Drop",
+      expect.stringContaining("Synthetic ratio")
+    )
+    expect(inserts).toEqual([
+      expect.objectContaining({ targetId: 3, trackerId: 10, eventType: "ratio_drop" }),
+    ])
   })
 
   it("does not send during a cooldown and keeps targets independent", async () => {

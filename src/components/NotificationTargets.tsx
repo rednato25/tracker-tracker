@@ -35,6 +35,7 @@ const NOTIFICATION_TYPE_OPTIONS: {
   disabled?: boolean
 }[] = [
   { value: "discord", label: "Discord" },
+  { value: "ntfy", label: "ntfy" },
   { value: "gotify", label: "Gotify (coming soon)", disabled: true },
   { value: "telegram", label: "Telegram" },
   { value: "slack", label: "Slack (coming soon)", disabled: true },
@@ -115,12 +116,19 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
   const [newWebhookUrl, setNewWebhookUrl] = useState("")
   const [newBotToken, setNewBotToken] = useState("")
   const [newChatId, setNewChatId] = useState("")
+  const [newServerUrl, setNewServerUrl] = useState("")
+  const [newTopic, setNewTopic] = useState("")
+  const [newNtfyToken, setNewNtfyToken] = useState("")
+  const [allowPrivate, setAllowPrivate] = useState(false)
   const [configError, setConfigError] = useState<string | null>(null)
 
   const isTelegram = draft.type === "telegram"
+  const isNtfy = draft.type === "ntfy"
   const canSaveConfig = isTelegram
     ? Boolean(newBotToken.trim() && newChatId.trim())
-    : Boolean(newWebhookUrl.trim())
+    : isNtfy
+      ? Boolean(newServerUrl.trim() && newTopic.trim())
+      : Boolean(newWebhookUrl.trim())
 
   async function handleSaveConfig() {
     if (!canSaveConfig) return
@@ -128,7 +136,14 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
     try {
       const config = isTelegram
         ? { botToken: newBotToken.trim(), chatId: newChatId.trim() }
-        : { webhookUrl: newWebhookUrl.trim() }
+        : isNtfy
+          ? {
+              serverUrl: newServerUrl.trim(),
+              topic: newTopic.trim(),
+              authToken: newNtfyToken.trim() || undefined,
+              allowPrivateNetwork: allowPrivate,
+            }
+          : { webhookUrl: newWebhookUrl.trim() }
       const res = await fetch(`/api/notifications/${target.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -144,6 +159,10 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
       setNewWebhookUrl("")
       setNewBotToken("")
       setNewChatId("")
+      setNewServerUrl("")
+      setNewTopic("")
+      setNewNtfyToken("")
+      setAllowPrivate(false)
     } catch {
       setConfigError("Network error. Could not save notification configuration")
     }
@@ -225,7 +244,7 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
       {/* Destination configuration */}
       <div className="flex flex-col gap-2">
         <H2 className="uppercase tracking-wider flex items-center gap-2">
-          {isTelegram ? "Telegram bot" : "Webhook URL"}
+          {isTelegram ? "Telegram bot" : isNtfy ? "ntfy server" : "Webhook URL"}
           <InfoTip
             icon="question"
             size="sm"
@@ -255,6 +274,43 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
                   name="notification-telegram-chat-id"
                   autoComplete="off"
                   data-1p-ignore
+                />
+              </>
+            ) : isNtfy ? (
+              <>
+                <Input
+                  label="Server URL"
+                  value={newServerUrl}
+                  onChange={(e) => setNewServerUrl(e.target.value)}
+                  placeholder="https://ntfy.example.com"
+                  name="notification-ntfy-server-url"
+                  autoComplete="off"
+                  data-1p-ignore
+                />
+                <Input
+                  label="Topic"
+                  value={newTopic}
+                  onChange={(e) => setNewTopic(e.target.value)}
+                  placeholder="tracker-alerts"
+                  name="notification-ntfy-topic"
+                  autoComplete="off"
+                  data-1p-ignore
+                />
+                <Input
+                  label="Access token (optional)"
+                  type="password"
+                  value={newNtfyToken}
+                  onChange={(e) => setNewNtfyToken(e.target.value)}
+                  placeholder="tk_..."
+                  name="notification-ntfy-token"
+                  autoComplete="off"
+                  data-1p-ignore
+                />
+                <Toggle
+                  label="Allow private network"
+                  checked={allowPrivate}
+                  onChange={setAllowPrivate}
+                  description="Required only for a self-hosted ntfy server on a private or local address."
                 />
               </>
             ) : (
@@ -457,7 +513,7 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
               ? "Sent"
               : webhookStatus === "failed"
                 ? "Failed. Retry"
-                : isTelegram
+                : isTelegram || isNtfy
                   ? "Send Test Message"
                   : "Test Webhook"}
         </Button>
@@ -490,11 +546,22 @@ function AddNotificationForm({
   const [webhookUrl, setWebhookUrl] = useState("")
   const [botToken, setBotToken] = useState("")
   const [chatId, setChatId] = useState("")
+  const [serverUrl, setServerUrl] = useState("")
+  const [topic, setTopic] = useState("")
+  const [ntfyToken, setNtfyToken] = useState("")
+  const [allowPrivate, setAllowPrivate] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   const isTelegram = type === "telegram"
-  const canSubmit = name.trim() && (isTelegram ? botToken.trim() && chatId.trim() : webhookUrl.trim())
+  const isNtfy = type === "ntfy"
+  const canSubmit =
+    name.trim() &&
+    (isTelegram
+      ? botToken.trim() && chatId.trim()
+      : isNtfy
+        ? serverUrl.trim() && topic.trim()
+        : webhookUrl.trim())
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -509,7 +576,14 @@ function AddNotificationForm({
           type,
           config: isTelegram
             ? { botToken: botToken.trim(), chatId: chatId.trim() }
-            : { webhookUrl: webhookUrl.trim() },
+            : isNtfy
+              ? {
+                  serverUrl: serverUrl.trim(),
+                  topic: topic.trim(),
+                  authToken: ntfyToken.trim() || undefined,
+                  allowPrivateNetwork: allowPrivate,
+                }
+              : { webhookUrl: webhookUrl.trim() },
         }),
       })
       if (!res.ok) {
@@ -568,6 +642,43 @@ function AddNotificationForm({
             name="new-notification-telegram-chat-id"
             autoComplete="off"
             data-1p-ignore
+          />
+        </>
+      ) : isNtfy ? (
+        <>
+          <Input
+            label="Server URL"
+            value={serverUrl}
+            onChange={(e) => setServerUrl(e.target.value)}
+            placeholder="https://ntfy.example.com"
+            name="new-notification-ntfy-server-url"
+            autoComplete="off"
+            data-1p-ignore
+          />
+          <Input
+            label="Topic"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="tracker-alerts"
+            name="new-notification-ntfy-topic"
+            autoComplete="off"
+            data-1p-ignore
+          />
+          <Input
+            label="Access token (optional)"
+            type="password"
+            value={ntfyToken}
+            onChange={(e) => setNtfyToken(e.target.value)}
+            placeholder="tk_..."
+            name="new-notification-ntfy-token"
+            autoComplete="off"
+            data-1p-ignore
+          />
+          <Toggle
+            label="Allow private network"
+            checked={allowPrivate}
+            onChange={setAllowPrivate}
+            description="Required only for a self-hosted ntfy server on a private or local address."
           />
         </>
       ) : (

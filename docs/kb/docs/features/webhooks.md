@@ -54,6 +54,25 @@ The bot token is encrypted at rest and is never returned in API responses or
 logs. A rejected token or an invalid chat ID is reported as a configuration
 problem; Tracker Tracker does not keep retrying an invalid credential.
 
+## Setting Up ntfy
+
+ntfy works with the public server or a self-hosted instance.
+
+1. In **Settings → Notifications**, add a target and select **ntfy**.
+2. Enter the server URL (for example `https://ntfy.sh` or your self-hosted
+   base URL) and a topic. Topic names are 1–64 letters, numbers, underscores or
+   dashes.
+3. Optionally add an access token. It is sent as a Bearer token and never
+   returned by the API or written to logs.
+4. If the server is on a private/local address, enable **Allow private
+   network** on that target. This is an explicit per-target opt-in; the global
+   URL safety policy is unchanged.
+5. Save and click **Send Test Message**.
+
+Tracker Tracker publishes JSON to the configured server, so the topic is not
+placed in a URL. Redirects are refused rather than followed, preventing the
+access token from being sent to another origin. Use HTTPS for a remote server.
+
 ## Events
 
 Each target subscribes to any combination of these events:
@@ -102,7 +121,7 @@ Use the **Include tracker name** toggle to hide the tracker name in messages if 
 
 If you disable **Store usernames** in app settings, usernames are masked in alerts too.
 
-Discord webhook URLs and Telegram bot tokens stay encrypted in the database, so they never show up in API responses or logs.
+Discord webhook URLs, Telegram bot tokens and ntfy server/topic/token configs stay encrypted in the database, so they never show up in API responses or logs.
 
 ## What the Messages Look Like
 
@@ -129,7 +148,7 @@ After 3 failures, delivery pauses and then resumes on its own. Telegram rate-lim
 
 ### Getting rate-limited
 
-Discord allows roughly 30 webhook messages per minute per channel; Telegram also rate-limits bots. To reduce volume:
+Discord allows roughly 30 webhook messages per minute per channel; Telegram and ntfy also rate-limit. To reduce volume:
 
 - Increase your poll interval in **Settings → General**.
 - Disable events you don't need.

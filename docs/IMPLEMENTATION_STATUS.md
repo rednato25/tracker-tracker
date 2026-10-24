@@ -948,8 +948,8 @@ spring/fall DST, dedup/restart date behavior, retry backoff, empty skip/send,
 confirmed/verification grouping, truncation and dashboard links. A restore
 fixture verifies digest config/state survives backup restore. Full suite 231
 files / 6037 tests, TypeScript, Biome, security audit 38/38 and production build
-pass. Fresh/upgrade database validation is delegated to the PR Docker matrix
-because local PostgreSQL was unavailable; no real notifications were sent.
+pass. Docker run 40092500445 validated fresh startup and P02a adoption through
+migration 0001; no real notifications were sent.
 
 ### P02b slices
 

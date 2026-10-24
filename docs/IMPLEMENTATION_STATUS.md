@@ -84,7 +84,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P06 | done | P05, P02 | `main @ 45a81cc` (merged; not deployed) | Telegram through existing notification targets, dispatch, cooldowns and durable delivery state; encryptedConfig reuse (no schema change); bot-token/chat-id validation and Settings controls; plain-text sendMessage; 5s timeout, circuit breaker, 429 retry_after, API ok:false/401 handling; token redaction; 6 delivery + 3 dispatch + validation tests; 229 files / 6019 tests, TypeScript, Biome, audit 38/38, build | No ntfy, digests or other platforms. No real Telegram call; local fake service only. Discord behavior unchanged. |
 | P07 | done | P06 | `main @ 380c5600` (merged; not deployed) | ntfy through existing target/dispatch/cooldown/durable-state/circuit path; serverUrl/topic/optional token in encryptedConfig; per-target private-network opt-in; JSON publish with Bearer auth; redirect refused; 5s timeout, response cap, 429/401/403 handling; token/topic redaction; 5 delivery + 1 dispatch + 3 validation tests; 230 files / 6028 tests, TypeScript, Biome, audit 38/38, build | No digests, quiet hours or later platforms. No real ntfy message; local fake service only. Discord/Telegram unchanged. |
 | P08 | done | P04, P06, P07 | branch `feat/p08-digests` (not merged) | Migrations 0001/0002; opt-in digest + quiet hours; master-scheduler tick with advisory lock; per-target dedup/backoff; DST-aware timezone; provider-aware truncation; restore id/state remap; 8 digest + 4 quiet + 3 digest-run tests; 232 files / 6046 tests, TypeScript, Biome, audit 38/38, build | Docker run 40096915406 validated fresh + P02a upgrade. No real notifications. |
-| P09 | pending | P03 | — | `rank-ladder.ts` exists; no goals/requirements evaluator | Implement goals engine before UI |
+| P09 | done | P03 | branch `feat/p09-rank-goals` (not merged) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P10 remains. |
 | P10 | pending | P09 | — | Registry has user classes/rank paths, but no pilot goal/requirement definitions with provenance | Select 3–5 accessible trackers; encode only verifiable conditions |
 | P11 | pending | P09–P10 | — | Rank progress UI exists; no custom goals or estimates | Add Next rank, Custom goal, missing conditions and estimates |
 | P12 | pending | P03 | — | No download/headroom calculator | Implement pure calculator with BigInt precision and unknown handling |
@@ -954,6 +954,58 @@ and quiet/digest settings. Full suite 232 files / 6046 tests, TypeScript,
 Biome, audit 38/38 and production build pass. Docker run 40096915406 validated
 fresh startup and P02a adoption through migrations 0001 and 0002. No real
 notifications were sent.
+
+### P08 manual isolated test
+
+On 2026-10-24 the P08 behavior was exercised on the published digest with a
+disposable PostgreSQL 18 database and a local ntfy mock. No production access,
+real tracker requests or real external notifications occurred.
+
+- **Attention needed:** confirmed ratio action, unknown/stale verification and
+  clear row all rendered; inserting a ratio 3.0 snapshot removed the resolved
+  action after refresh.
+- **Digest:** the delivered mock body contained the current P04 actions and
+  `ACTION REQUIRED` / `NEEDS VERIFICATION` groups. Digest success is tracked by
+  `app_settings.digest_state.lastSuccessAt`, not by
+  `notification_targets.last_delivery_at`; the latter is updated by immediate
+  dispatch only.
+- **Quiet hours:** a digest due inside the window was not sent; state showed
+  `quietPending: true`. It was delivered at the window end with the summary
+  rebuilt from current actions.
+- **Restore:** a restored tracker without `last_polled_at` correctly appears as
+  needs-verification, not healthy. Backup/restore round-tripped the three
+  synthetic trackers and snapshots.
+
+### P09 rank-goal evaluator
+
+- `src/lib/rank-goals.ts` is a pure evaluator: no browser, database, tracker
+  request or clock read. `now` is injected for account-age conditions.
+- Structured requirements support numeric comparisons and nested `all`/`any`
+  groups. ALL is unmet when a known condition is false; ANY is met when one
+  condition is true; unknown propagates when a result cannot be established.
+  Empty groups are unknown, not silently met.
+- Every condition reports its id/label, required value, observed value,
+  freshness/source, met/unmet/unknown status and a remaining amount only where
+  mathematically meaningful (gte/lte). Missing values stay `null` and distinct
+  from a confirmed 0. Stale observations are unknown.
+- Account conditions use account observations. Per-torrent conditions are
+  explicitly unknown in this account-rank evaluator; the P03 per-torrent rule is
+  not mixed into account ratio.
+- Current and next rank reuse `buildRankLadder`/`buildRankForest`. Staff/donation
+  classes and unselected branches do not become a numeric next rank. An
+  out-of-ladder current rank yields no inferred next rank.
+- Free-text `userClasses.requirements` is returned unchanged as readable
+  information; prose is never parsed into thresholds, sources or dates.
+- `eligible` is informational only. `promotionApplied` is always false, the
+  observed current rank is never updated, and no ETA/average-percentage chance is
+  produced. Personal goals use the same condition/group evaluator.
+
+Tests: `src/lib/rank-goals.test.ts` covers all-met, one unmet, unknown in ALL and
+ANY, nested groups, exact boundary, zero versus missing, account-age clock
+boundaries, stale observations, manual/non-numeric conditions, per-torrent
+separation, large values, unknown ranks, appointed classes, branch forks and
+personal goals. Full suite 234 files / 6058 tests; TypeScript, Biome, security
+audit 38/38 and production build pass.
 
 ### P02b slices
 

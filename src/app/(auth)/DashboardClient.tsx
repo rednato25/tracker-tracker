@@ -8,6 +8,7 @@ import { DashboardSkeleton } from "@/app/(auth)/DashboardSkeleton"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { AlertsBanner } from "@/components/dashboard/AlertsBanner"
 import { AnalyticsSection } from "@/components/dashboard/AnalyticsSection"
+import { AttentionNeeded } from "@/components/dashboard/AttentionNeeded"
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState"
 import { DayRangeSidebar } from "@/components/dashboard/DayRangeSidebar"
 import { EcosystemStatsSection } from "@/components/dashboard/EcosystemStatsSection"
@@ -28,10 +29,10 @@ import { ChartGridSkeleton } from "@/components/ui/skeletons"
 import { useDashboardData } from "@/hooks/useDashboardData"
 import { usePollingIntervals } from "@/hooks/usePollingIntervals"
 import { useSectionCollapse } from "@/hooks/useSectionCollapse"
+import { computeTrackerActions } from "@/lib/actions"
 import { computeAggregateStats } from "@/lib/dashboard"
 import type { FleetAggregation } from "@/lib/fleet-aggregation"
 import { fleetCachedQueryOptions } from "@/lib/query-options"
-import { getTrackerHealth } from "@/lib/tracker-status"
 import type { Snapshot, TrackerSummary } from "@/types/api"
 import type { TrackerSnapshotSeries } from "@/types/charts"
 
@@ -66,12 +67,15 @@ interface DashboardClientProps {
   snapshotRetentionDays: number | null
   /** Read server-side from two small queries. False skips the Tag Groups fetch entirely. */
   hasTagGroups: boolean
+  /** Server time keeps the first client render aligned with the server. */
+  now: string
 }
 
 export function DashboardClient({
   initialTrackers,
   snapshotRetentionDays,
   hasTagGroups,
+  now,
 }: DashboardClientProps) {
   const data = useDashboardData({ initialTrackers, snapshotRetentionDays })
   const dashSettings = useDashboardSettings()
@@ -105,13 +109,18 @@ export function DashboardClient({
     () => buildTrackerSeries(data.trackers, data.snapshotMap),
     [data.trackers, data.snapshotMap]
   )
-  const attentionCount = useMemo(
+  const actions = useMemo(
     () =>
-      data.trackers.filter((tracker) => {
-        const health = getTrackerHealth(tracker)
-        return health !== "healthy" && health !== "paused-user"
-      }).length,
-    [data.trackers]
+      computeTrackerActions({
+        trackers: data.trackers,
+        clients: data.clients,
+        now: new Date(now),
+      }),
+    [data.trackers, data.clients, now]
+  )
+  const attentionCount = useMemo(
+    () => actions.filter((action) => action.status === "action-required").length,
+    [actions]
   )
 
   // Sections render expanded until localStorage has been read. Charts gate the other way
@@ -129,6 +138,22 @@ export function DashboardClient({
 
   if (data.loading) {
     return <DashboardSkeleton />
+  }
+
+  if (data.trackersError) {
+    return (
+      <div className="mx-auto flex max-w-[1500px] flex-col gap-3 border border-border bg-raised px-4 py-6">
+        <p className="font-mono text-sm text-danger" role="alert">
+          Dashboard data could not be loaded.
+        </p>
+        <p className="font-mono text-xs text-secondary">
+          No clear status is claimed while tracker data is unavailable.
+        </p>
+        <Button variant="secondary" size="sm" onClick={() => void data.refresh()}>
+          Retry
+        </Button>
+      </div>
+    )
   }
 
   if (data.trackers.length === 0) {
@@ -160,6 +185,15 @@ export function DashboardClient({
 
       <div className="mx-auto flex max-w-[1500px] flex-col gap-10 pb-12">
         <TrackerRegister trackers={data.trackers} />
+
+        <AttentionNeeded
+          trackers={data.trackers}
+          actions={actions}
+          loading={data.clientsLoading}
+          error={data.trackersError}
+          clientsUnavailable={data.clientsError}
+          asOf={now}
+        />
 
         {/* Alerts */}
         {data.alerts.length > 0 && (

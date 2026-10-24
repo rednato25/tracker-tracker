@@ -25,6 +25,7 @@ export default async function DashboardPage() {
       initialTrackers={trackers}
       snapshotRetentionDays={settings?.snapshotRetentionDays ?? null}
       hasTagGroups={tagGroups.length > 0}
+      now={new Date().toISOString()}
     />
   )
 }

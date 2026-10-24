@@ -29,7 +29,7 @@ TMP="$(mktemp -d)"
 COMPOSE_PROJECT="tt-ci-compose-$$"
 MANAGED=()
 COMPOSE_DIR="$TMP/compose"
-COMPOSE_PORT=$((32000 + ($ % 2000)))
+COMPOSE_PORT=$((32000 + ($$ % 2000)))
 STARTED_PORT=""
 
 sanitize() {

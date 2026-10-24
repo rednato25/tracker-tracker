@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { NotificationTargetRow } from "@/lib/db/schema"
 import type { NotificationTargetType, SnapshotContext } from "@/lib/notifications/types"
+import { validateNotificationConfig } from "@/lib/notifications/validate"
 
 // Mock DB so dispatch.ts can be imported without a live database connection
 vi.mock("@/lib/db", () => ({
@@ -123,6 +124,27 @@ describe("validateNotificationConfig", () => {
     expect(result).toMatch(/webhookUrl/)
   })
 
+  it("accepts a valid Telegram config without exposing the token", async () => {
+    const token = "123456:ABCdefGHIjklMNOpqrsTUVwxyz123456789"
+    const result = validateNotificationConfig("telegram", { botToken: token, chatId: "-1001234567890" })
+    expect(result).toBeNull()
+  })
+
+  it("rejects malformed Telegram tokens without echoing them", async () => {
+    const token = "not-a-token"
+    const result = validateNotificationConfig("telegram", { botToken: token, chatId: "-1001234567890" })
+    expect(result).toBe("Telegram config requires a valid bot token")
+    expect(result).not.toContain(token)
+  })
+
+  it("rejects Telegram chat IDs that are neither numeric nor @channel", async () => {
+    const result = validateNotificationConfig("telegram", {
+      botToken: "123456:ABCdefGHIjklMNOpqrsTUVwxyz123456789",
+      chatId: "not a chat",
+    })
+    expect(result).toBe("Telegram chatId must be a numeric chat ID or an @channel username")
+  })
+
   it("rejects unknown notification type", async () => {
     const { validateNotificationConfig } = await import("@/lib/notifications/validate")
     const result = validateNotificationConfig(
@@ -130,6 +152,22 @@ describe("validateNotificationConfig", () => {
       {}
     )
     expect(result).toMatch(/not yet supported/)
+  })
+})
+
+describe("buildTelegramMessage", () => {
+  it("sends plain text with literal special characters and no Discord bold markers", async () => {
+    const { buildTelegramMessage } = await import("@/lib/notifications/payload")
+    const text = buildTelegramMessage({
+      eventType: "ratio_drop",
+      trackerName: "Synthetic <Tracker> & Co",
+      includeTrackerName: true,
+      storeUsernames: true,
+      data: { currentRatio: 0.5, previousRatio: 1, minimumRatio: 1 },
+    })
+    expect(text).toContain("Synthetic <Tracker> & Co")
+    expect(text).not.toContain("**")
+    expect(text.length).toBeLessThanOrEqual(4096)
   })
 })
 

@@ -13,15 +13,21 @@ import {
 } from "@/lib/limits"
 import { log } from "@/lib/logger"
 import { decryptNotificationConfig } from "@/lib/notifications/decrypt"
-import { deliverDiscordWebhook } from "@/lib/notifications/deliver"
-import { buildDiscordEmbed } from "@/lib/notifications/payload"
+import {
+  type DeliveryResult,
+  deliverDiscordWebhook,
+  deliverTelegramMessage,
+} from "@/lib/notifications/deliver"
+import { buildDiscordEmbed, buildTelegramMessage } from "@/lib/notifications/payload"
 import {
   type DiscordConfig,
   isDiscordConfig,
+  isTelegramConfig,
   type NotificationEventType,
   type NotificationThresholds,
   parseThresholds,
   type SnapshotContext,
+  type TelegramConfig,
 } from "@/lib/notifications/types"
 import {
   checkActiveHnrs,
@@ -100,24 +106,20 @@ export async function dispatchNotifications(
         : undefined
       const targetThresholds = parseThresholds(target.thresholds)
 
-      // Only Discord is currently supported. Skip unknown types
-      if (target.type !== "discord") {
-        log.warn(
-          `dispatchNotifications: skipping unsupported target type "${target.type}" for "${target.name}" (id=${target.id})`
-        )
-        continue
-      }
-
-      let config: DiscordConfig
+      let discordConfig: DiscordConfig | null = null
+      let telegramConfig: TelegramConfig | null = null
       try {
         const raw = decryptNotificationConfig(target, encryptionKey)
-        if (!isDiscordConfig(raw)) {
+        if (target.type === "discord" && isDiscordConfig(raw)) {
+          discordConfig = raw
+        } else if (target.type === "telegram" && isTelegramConfig(raw)) {
+          telegramConfig = raw
+        } else {
           log.error(
-            `dispatchNotifications: decrypted config is not a valid DiscordConfig for "${target.name}" (id=${target.id})`
+            `dispatchNotifications: decrypted config does not match target type "${target.type}" for "${target.name}" (id=${target.id})`
           )
           continue
         }
-        config = raw
       } catch {
         log.error(
           `dispatchNotifications: cannot decrypt config for notification target "${target.name}" (id=${target.id})`
@@ -135,15 +137,29 @@ export async function dispatchNotifications(
           const snoozedUntil = cooldownMap.get(`${target.id}:${event}`)
           if (snoozedUntil && now < snoozedUntil) continue
 
-          const embed = buildDiscordEmbed({
+          const messageInput = {
             eventType: event,
             trackerName: ctx.trackerName,
             includeTrackerName: target.includeTrackerName,
             storeUsernames: ctx.storeUsernames,
             data: buildEventData(event, ctx, targetThresholds, anniversaryLabel),
-          })
+          }
 
-          const result = await deliverDiscordWebhook(target.id, config.webhookUrl, [embed])
+          let result: DeliveryResult
+          if (discordConfig) {
+            const embed = buildDiscordEmbed(messageInput)
+            result = await deliverDiscordWebhook(target.id, discordConfig.webhookUrl, [embed])
+          } else if (telegramConfig) {
+            const text = buildTelegramMessage(messageInput)
+            result = await deliverTelegramMessage(
+              target.id,
+              telegramConfig.botToken,
+              telegramConfig.chatId,
+              text
+            )
+          } else {
+            continue
+          }
 
           // Track worst-case status for this target: failed > rate_limited > delivered
           if (

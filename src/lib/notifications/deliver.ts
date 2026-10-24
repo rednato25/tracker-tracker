@@ -62,6 +62,82 @@ export interface DeliveryResult {
   error?: string
 }
 
+export async function deliverTelegramMessage(
+  targetId: number,
+  botToken: string,
+  chatId: string,
+  text: string,
+  apiBaseUrl = "https://api.telegram.org"
+): Promise<DeliveryResult> {
+  if (isCircuitOpen(targetId)) {
+    return { success: false, status: "failed", error: "Circuit breaker open, skipping delivery" }
+  }
+
+  // The token is part of the Telegram path, never the query string or a log
+  // field. Never include the URL or raw fetch error in a result/log.
+  const endpoint = `${apiBaseUrl.replace(/\/$/, "")}/bot${encodeURIComponent(botToken)}/sendMessage`
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: text.slice(0, 4096) }),
+      signal: AbortSignal.timeout(5_000),
+      redirect: "error",
+    })
+
+    type TelegramPayload = {
+      ok?: boolean
+      error_code?: number
+      parameters?: { retry_after?: number }
+    }
+    let payload: TelegramPayload | null = null
+    try {
+      payload = (await res.json()) as TelegramPayload
+    } catch {
+      payload = null
+    }
+
+    if (res.ok && payload?.ok === true) {
+      recordSuccess(targetId)
+      return { success: true, status: "delivered" }
+    }
+
+    const retryAfterRaw = Number(
+      payload?.parameters?.retry_after ?? res.headers.get("Retry-After") ?? "60"
+    )
+    if (res.status === 429 || payload?.error_code === 429) {
+      const retryAfter = Math.min(
+        Number.isFinite(retryAfterRaw) ? retryAfterRaw * 1000 : 60_000,
+        NOTIFICATION_COOLDOWN_MAX_MS
+      )
+      recordFailure(targetId, retryAfter)
+      log.warn(
+        { targetId, retryAfterMs: retryAfter },
+        "Telegram rate limit, delivery deferred"
+      )
+      return { success: false, status: "rate_limited", error: "Rate limited by Telegram" }
+    }
+
+    if (payload?.error_code === 401 || payload?.error_code === 403) {
+      log.warn({ targetId }, "Telegram rejected the configured bot credential")
+      recordFailure(targetId)
+      return { success: false, status: "failed", error: "Telegram rejected the bot token" }
+    }
+
+    log.error({ targetId, httpStatus: res.status }, "Telegram delivery failed")
+    recordFailure(targetId)
+    return { success: false, status: "failed", error: "Telegram delivery failed" }
+  } catch (err) {
+    const timedOut =
+      err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")
+    const message = timedOut ? "Telegram delivery timed out" : "Telegram delivery failed"
+    log.error({ targetId, timedOut }, "Telegram delivery failed")
+    recordFailure(targetId)
+    return { success: false, status: "failed", error: message }
+  }
+}
+
 export async function deliverDiscordWebhook(
   targetId: number,
   webhookUrl: string,

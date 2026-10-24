@@ -80,8 +80,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. Candidate-image and published-image Docker validation passed; the published image was not deployed or installed. This is not a production-validated release. |
 | P03 | done | P00, P02 for persistence | branch `feat/p03-rule-provenance` (not merged) | `src/lib/tracker-rules.ts`; explicit `requiredAccountRatio`/`requiredTorrentRatio`; legacy `minimumRatio` read mapping; per-field source/timestamp-kind/freshness provenance; manual login evidence; 5982 unit tests, TypeScript, Biome, audit (38/38), build | Real registry entries remain unverified and are marked unknown unless provenance is supplied. No DB change. No real tracker account accessed. |
 | P04 | done | P03 | branch `feat/p04-actions` (not merged) | `src/lib/actions.ts`; deterministic `computeTrackerActions` with injected `now`; account ratio, login, stale/poll/client, H&R and per-torrent seeding actions; stable keys, dedupe and deterministic ordering; P03 provenance on evidence; focused 99 tests, 5998 full tests, TypeScript, Biome, audit 38/38, build | No UI or notification delivery (P05). No database change. Real rules remain unknown unless P03 provenance says otherwise. |
-| P05 | implemented_with_deferrals | P04 | branch `feat/p05-attention-ui` (not merged) | `AttentionNeeded` dashboard surface; P04 actions as sole classification; Needs attention/Unknown/Healthy/All filters and counts; stable keys, progressive evidence, tracker/settings links; loading/error/partial-data/all-clear states; 8 UI tests, 2 dashboard e2e tests, 6006 full tests, TypeScript, Biome, audit 38/38, build | Deferred: dense register Next action column, timed snooze/dismiss, and torrent-level rows (no bulk torrent feed without extra requests). Next action is in each attention row; H&R is shown at tracker level. No notifications or torrent mutation. |
-| P06 | pending | P04, P02 | — | Notification types list includes Telegram, but `SUPPORTED_NOTIFICATION_TYPES` is Discord-only; delivery path rejects others | Add Telegram transport, config validation, encrypted lifecycle and tests |
+| P05 | implemented_with_deferrals | P04 | `main @ 05c78300` (merged; not deployed) | `AttentionNeeded` dashboard surface; P04 actions as sole classification; Needs attention/Unknown/Healthy/All filters and counts; stable keys, progressive evidence, tracker/settings links; loading/error/partial-data/all-clear states; 8 UI tests, 2 dashboard e2e tests, 6006 full tests, TypeScript, Biome, audit 38/38, build | Deferred: dense register Next action column, timed snooze/dismiss, and torrent-level rows (no bulk torrent feed without extra requests). Next action is in each attention row; H&R is shown at tracker level. No notifications or torrent mutation. |
+| P06 | done | P05, P02 | branch `feat/p06-telegram` (not merged) | Telegram through existing notification targets, dispatch, cooldowns and durable delivery state; encryptedConfig reuse (no schema change); bot-token/chat-id validation and Settings controls; plain-text sendMessage; 5s timeout, circuit breaker, 429 retry_after, API ok:false/401 handling; token redaction; 6 delivery + 3 dispatch + validation tests; 229 files / 6019 tests, TypeScript, Biome, audit 38/38, build | No ntfy, digests or other platforms. No real Telegram call; local fake service only. Discord behavior unchanged. |
 | P07 | pending | P06 transport contract | — | No ntfy transport | Add self-hosted ntfy with strict redirect/network policy |
 | P08 | pending | P04 and one new transport | — | No digest or quiet-hours scheduler state | Add digest scheduling/deduplication in the existing scheduler |
 | P09 | pending | P03 | — | `rank-ladder.ts` exists; no goals/requirements evaluator | Implement goals engine before UI |
@@ -842,6 +842,39 @@ The compact surface is implemented; these P05 roadmap items are explicitly
   obligations, but the dashboard has no bulk torrent feed today. Adding one
   would introduce another request and was outside this compact surface; the
   dashboard shows tracker-level H&R and verification actions.
+
+### P06 Telegram delivery
+
+- Telegram is a second supported type on the existing `notification_targets`
+  row. Its `{ botToken, chatId }` config lives inside the existing
+  AES-256-GCM `encryptedConfig`; no schema or migration change was needed.
+- Settings exposes Telegram in the existing add/edit target flow, with
+  bot-token and chat-ID fields, masked storage, and a **Send Test Message**
+  control. Tokens are never returned by the API or written to logs/errors.
+- Delivery reuses the existing event eligibility, per-target cooldowns and
+  durable `notification_delivery_state`. A send attempt is not recorded as a
+  successful delivery; only `ok: true` writes state.
+- `sendMessage` uses the official fixed HTTPS host, plain text (no parse mode)
+  and a 5s timeout. HTTP 429 and API `error_code: 429` honor
+  `parameters.retry_after` (capped); 401/403 stop with a credential error;
+  other API/HTTP/network failures use the existing bounded circuit breaker.
+  Ambiguous network failures are not claimed as exactly-once delivery.
+- Existing change-password, backup/restore, lockdown and nuke paths already
+  operate on the whole `encryptedConfig` ciphertext, so the Telegram token is
+  covered without a new lifecycle field. Existing security tests still prove
+  the API never serializes `encryptedConfig`.
+- Discord remains unchanged. Telegram is opt-in for new targets only; no
+  existing user is auto-enabled. ntfy, digests and later platforms are not
+  implemented.
+
+Validation: local fake Telegram HTTP service covers success, 429/retry_after,
+API `ok:false`, 401, timeout and circuit opening; dispatch tests cover durable
+state, cooldowns and independent Discord/Telegram targets; validation tests
+cover token/chat-ID rejection without echoing the token and plain-text message
+escaping. The change-password and backup/restore fixtures now carry a Telegram
+config, so the existing generic re-key and restore paths exercise this shape.
+Full unit suite 229 files / 6019 tests, TypeScript, Biome, security
+audit 38/38 and production build pass. No real Telegram message was sent.
 
 ### P02b slices
 

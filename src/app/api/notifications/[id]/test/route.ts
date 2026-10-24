@@ -9,8 +9,16 @@ import { db } from "@/lib/db"
 import { notificationTargets } from "@/lib/db/schema"
 import { log } from "@/lib/logger"
 import { decryptNotificationConfig } from "@/lib/notifications/decrypt"
-import { deliverDiscordWebhook } from "@/lib/notifications/deliver"
-import { type DiscordConfig, isDiscordConfig } from "@/lib/notifications/types"
+import {
+  deliverDiscordWebhook,
+  deliverTelegramMessage,
+} from "@/lib/notifications/deliver"
+import {
+  type DiscordConfig,
+  isDiscordConfig,
+  isTelegramConfig,
+  type TelegramConfig,
+} from "@/lib/notifications/types"
 
 export async function POST(_req: Request, { params }: RouteContext) {
   const auth = await authenticate()
@@ -31,13 +39,16 @@ export async function POST(_req: Request, { params }: RouteContext) {
   const target = rows[0]
   const key = decodeKey(auth)
 
-  let config: DiscordConfig
+  let config: DiscordConfig | TelegramConfig
   try {
     const raw = decryptNotificationConfig(target, key)
-    if (!isDiscordConfig(raw)) {
+    if (target.type === "discord" && isDiscordConfig(raw)) {
+      config = raw
+    } else if (target.type === "telegram" && isTelegramConfig(raw)) {
+      config = raw
+    } else {
       return NextResponse.json({ error: "Invalid notification config shape" }, { status: 422 })
     }
-    config = raw
   } catch {
     log.error(
       { route: "POST /api/notifications/[id]/test", targetId: id },
@@ -53,7 +64,15 @@ export async function POST(_req: Request, { params }: RouteContext) {
     timestamp: new Date().toISOString(),
   }
 
-  const result = await deliverDiscordWebhook(target.id, config.webhookUrl, [testEmbed])
+  const result =
+    target.type === "telegram"
+      ? await deliverTelegramMessage(
+          target.id,
+          (config as TelegramConfig).botToken,
+          (config as TelegramConfig).chatId,
+          "Test Notification\n\nThis is a test from Tracker Tracker. If you see this, Telegram delivery is working."
+        )
+      : await deliverDiscordWebhook(target.id, (config as DiscordConfig).webhookUrl, [testEmbed])
 
   if (result.success) {
     await db

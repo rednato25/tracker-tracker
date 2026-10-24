@@ -3,6 +3,7 @@
 import { sanitizeNetworkError } from "@/lib/error-utils"
 import { NOTIFICATION_COOLDOWN_MAX_MS } from "@/lib/limits"
 import { log } from "@/lib/logger"
+import type { NtfyConfig } from "@/lib/notifications/types"
 import type { DiscordEmbed } from "./payload"
 
 export interface CircuitState {
@@ -60,6 +61,78 @@ export interface DeliveryResult {
   success: boolean
   status: "delivered" | "failed" | "rate_limited"
   error?: string
+}
+
+export async function deliverNtfyMessage(
+  targetId: number,
+  config: NtfyConfig,
+  title: string,
+  message: string
+): Promise<DeliveryResult> {
+  if (isCircuitOpen(targetId)) {
+    return { success: false, status: "failed", error: "Circuit breaker open, skipping delivery" }
+  }
+
+  // The topic and token are never logged. Publish as JSON so the topic is not
+  // placed in a URL or a redirect-visible path.
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  if (config.authToken) headers.Authorization = `Bearer ${config.authToken}`
+
+  try {
+    const res = await fetch(config.serverUrl, {
+      // Never follow a redirect with the Authorization header attached.
+      redirect: "error",
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        topic: config.topic,
+        title: title.slice(0, 128),
+        message: message.slice(0, 4096),
+        priority: 3,
+      }),
+      signal: AbortSignal.timeout(5_000),
+    })
+
+    const body = await res.text()
+    if (body.length > 16_384) {
+      log.error({ targetId }, "ntfy response too large")
+      recordFailure(targetId)
+      return { success: false, status: "failed", error: "ntfy response too large" }
+    }
+
+    if (res.ok) {
+      recordSuccess(targetId)
+      return { success: true, status: "delivered" }
+    }
+
+    const retryAfterRaw = Number(res.headers.get("Retry-After") ?? "60")
+    if (res.status === 429) {
+      const retryAfter = Math.min(
+        Number.isFinite(retryAfterRaw) ? retryAfterRaw * 1000 : 60_000,
+        NOTIFICATION_COOLDOWN_MAX_MS
+      )
+      recordFailure(targetId, retryAfter)
+      log.warn({ targetId, retryAfterMs: retryAfter }, "ntfy rate limit, delivery deferred")
+      return { success: false, status: "rate_limited", error: "Rate limited by ntfy" }
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      log.warn({ targetId }, "ntfy rejected the configured access token")
+      recordFailure(targetId)
+      return { success: false, status: "failed", error: "ntfy rejected the access token" }
+    }
+
+    log.error({ targetId, httpStatus: res.status }, "ntfy delivery failed")
+    recordFailure(targetId)
+    return { success: false, status: "failed", error: "ntfy delivery failed" }
+  } catch (err) {
+    const timedOut =
+      err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")
+    const messageText = timedOut ? "ntfy delivery timed out" : "ntfy delivery failed"
+    log.error({ targetId, timedOut }, "ntfy delivery failed")
+    recordFailure(targetId)
+    return { success: false, status: "failed", error: messageText }
+  }
 }
 
 export async function deliverTelegramMessage(

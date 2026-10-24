@@ -16,15 +16,22 @@ import { decryptNotificationConfig } from "@/lib/notifications/decrypt"
 import {
   type DeliveryResult,
   deliverDiscordWebhook,
+  deliverNtfyMessage,
   deliverTelegramMessage,
 } from "@/lib/notifications/deliver"
-import { buildDiscordEmbed, buildTelegramMessage } from "@/lib/notifications/payload"
+import {
+  buildDiscordEmbed,
+  buildNtfyMessage,
+  buildTelegramMessage,
+} from "@/lib/notifications/payload"
 import {
   type DiscordConfig,
   isDiscordConfig,
+  isNtfyConfig,
   isTelegramConfig,
   type NotificationEventType,
   type NotificationThresholds,
+  type NtfyConfig,
   parseThresholds,
   type SnapshotContext,
   type TelegramConfig,
@@ -108,12 +115,15 @@ export async function dispatchNotifications(
 
       let discordConfig: DiscordConfig | null = null
       let telegramConfig: TelegramConfig | null = null
+      let ntfyConfig: NtfyConfig | null = null
       try {
         const raw = decryptNotificationConfig(target, encryptionKey)
         if (target.type === "discord" && isDiscordConfig(raw)) {
           discordConfig = raw
         } else if (target.type === "telegram" && isTelegramConfig(raw)) {
           telegramConfig = raw
+        } else if (target.type === "ntfy" && isNtfyConfig(raw)) {
+          ntfyConfig = raw
         } else {
           log.error(
             `dispatchNotifications: decrypted config does not match target type "${target.type}" for "${target.name}" (id=${target.id})`
@@ -156,6 +166,14 @@ export async function dispatchNotifications(
               telegramConfig.botToken,
               telegramConfig.chatId,
               text
+            )
+          } else if (ntfyConfig) {
+            const ntfyMessage = buildNtfyMessage(messageInput)
+            result = await deliverNtfyMessage(
+              target.id,
+              ntfyConfig,
+              ntfyMessage.title,
+              ntfyMessage.message
             )
           } else {
             continue

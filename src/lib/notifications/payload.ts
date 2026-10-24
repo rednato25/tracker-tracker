@@ -77,6 +77,14 @@ export function buildDiscordEmbed(input: EmbedInput): DiscordEmbed {
  * tracker text into markup. Discord's bold markers are removed; other
  * characters are left literal.
  */
+export function buildNtfyMessage(input: EmbedInput): { title: string; message: string } {
+  const embed = buildDiscordEmbed(input)
+  return {
+    title: embed.title,
+    message: embed.description.replaceAll("**", ""),
+  }
+}
+
 export function buildTelegramMessage(input: EmbedInput): string {
   const embed = buildDiscordEmbed(input)
   const description = embed.description.replaceAll("**", "")

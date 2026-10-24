@@ -81,8 +81,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P03 | done | P00, P02 for persistence | branch `feat/p03-rule-provenance` (not merged) | `src/lib/tracker-rules.ts`; explicit `requiredAccountRatio`/`requiredTorrentRatio`; legacy `minimumRatio` read mapping; per-field source/timestamp-kind/freshness provenance; manual login evidence; 5982 unit tests, TypeScript, Biome, audit (38/38), build | Real registry entries remain unverified and are marked unknown unless provenance is supplied. No DB change. No real tracker account accessed. |
 | P04 | done | P03 | branch `feat/p04-actions` (not merged) | `src/lib/actions.ts`; deterministic `computeTrackerActions` with injected `now`; account ratio, login, stale/poll/client, H&R and per-torrent seeding actions; stable keys, dedupe and deterministic ordering; P03 provenance on evidence; focused 99 tests, 5998 full tests, TypeScript, Biome, audit 38/38, build | No UI or notification delivery (P05). No database change. Real rules remain unknown unless P03 provenance says otherwise. |
 | P05 | implemented_with_deferrals | P04 | `main @ 05c78300` (merged; not deployed) | `AttentionNeeded` dashboard surface; P04 actions as sole classification; Needs attention/Unknown/Healthy/All filters and counts; stable keys, progressive evidence, tracker/settings links; loading/error/partial-data/all-clear states; 8 UI tests, 2 dashboard e2e tests, 6006 full tests, TypeScript, Biome, audit 38/38, build | Deferred: dense register Next action column, timed snooze/dismiss, and torrent-level rows (no bulk torrent feed without extra requests). Next action is in each attention row; H&R is shown at tracker level. No notifications or torrent mutation. |
-| P06 | done | P05, P02 | branch `feat/p06-telegram` (not merged) | Telegram through existing notification targets, dispatch, cooldowns and durable delivery state; encryptedConfig reuse (no schema change); bot-token/chat-id validation and Settings controls; plain-text sendMessage; 5s timeout, circuit breaker, 429 retry_after, API ok:false/401 handling; token redaction; 6 delivery + 3 dispatch + validation tests; 229 files / 6019 tests, TypeScript, Biome, audit 38/38, build | No ntfy, digests or other platforms. No real Telegram call; local fake service only. Discord behavior unchanged. |
-| P07 | pending | P06 transport contract | — | No ntfy transport | Add self-hosted ntfy with strict redirect/network policy |
+| P06 | done | P05, P02 | `main @ 45a81cc` (merged; not deployed) | Telegram through existing notification targets, dispatch, cooldowns and durable delivery state; encryptedConfig reuse (no schema change); bot-token/chat-id validation and Settings controls; plain-text sendMessage; 5s timeout, circuit breaker, 429 retry_after, API ok:false/401 handling; token redaction; 6 delivery + 3 dispatch + validation tests; 229 files / 6019 tests, TypeScript, Biome, audit 38/38, build | No ntfy, digests or other platforms. No real Telegram call; local fake service only. Discord behavior unchanged. |
+| P07 | done | P06 | branch `feat/p07-ntfy` (not merged) | ntfy through existing target/dispatch/cooldown/durable-state/circuit path; serverUrl/topic/optional token in encryptedConfig; per-target private-network opt-in; JSON publish with Bearer auth; redirect refused; 5s timeout, response cap, 429/401/403 handling; token/topic redaction; 5 delivery + 1 dispatch + 3 validation tests; 230 files / 6028 tests, TypeScript, Biome, audit 38/38, build | No digests, quiet hours or later platforms. No real ntfy message; local fake service only. Discord/Telegram unchanged. |
 | P08 | pending | P04 and one new transport | — | No digest or quiet-hours scheduler state | Add digest scheduling/deduplication in the existing scheduler |
 | P09 | pending | P03 | — | `rank-ladder.ts` exists; no goals/requirements evaluator | Implement goals engine before UI |
 | P10 | pending | P09 | — | Registry has user classes/rank paths, but no pilot goal/requirement definitions with provenance | Select 3–5 accessible trackers; encode only verifiable conditions |
@@ -877,6 +877,38 @@ escaping. The change-password and backup/restore fixtures now carry a Telegram
 config, so the existing generic re-key and restore paths exercise this shape.
 Full unit suite 229 files / 6019 tests, TypeScript, Biome, security
 audit 38/38 and production build pass. No real Telegram message was sent.
+
+### P07 ntfy delivery
+
+- ntfy is a supported target using the existing `encryptedConfig` field:
+  `{ serverUrl, topic, authToken?, allowPrivateNetwork? }`. No schema or
+  migration change.
+- Settings exposes server URL, topic, optional access token and an explicit
+  **Allow private network** opt-in for self-hosted servers. The global URL
+  safety policy is unchanged; private/local ntfy hosts are allowed only when
+  that per-target flag is set. Public servers work without it.
+- Publishing uses ntfy's JSON publish API at the configured server root, with
+  Bearer auth when a token is present. The topic is in the JSON body, not a URL,
+  and is never logged. Redirects use `redirect: "error"`, so the token is never
+  forwarded to another origin.
+- Delivery has a 5s timeout, a 16KB response cap, 429/Retry-After handling,
+  401/403 credential rejection and the existing circuit breaker. Only a
+  confirmed 2xx response records durable delivery state; ambiguous failures are
+  not claimed as exactly-once.
+- Reuses event eligibility, per-target cooldowns and
+  `notification_delivery_state`; no scheduler or alert engine was added.
+  ntfy is opt-in and existing targets are unchanged.
+- The generic `encryptedConfig` lifecycle covers ntfy: change-password and
+  backup/restore re-encrypt it, recovery includes the column, nuke
+  randomizes/deletes it, and lockdown revokes notification configs.
+- Discord and Telegram remain supported; digests, quiet hours and later
+  platforms are not implemented.
+
+Validation: local fake ntfy service covers JSON/Bearer success, redirect refusal,
+401, 429 and timeout; dispatch covers ntfy durable state alongside Telegram and
+Discord; validation covers public/private URLs, topics, credential-bearing URLs
+and header-safe tokens. Full suite 230 files / 6028 tests, TypeScript, Biome,
+security audit 38/38 and production build pass. No real ntfy message was sent.
 
 ### P02b slices
 

@@ -145,6 +145,51 @@ describe("validateNotificationConfig", () => {
     expect(result).toBe("Telegram chatId must be a numeric chat ID or an @channel username")
   })
 
+  it("accepts public and explicitly local ntfy configurations", async () => {
+    expect(
+      validateNotificationConfig("ntfy", {
+        serverUrl: "https://ntfy.sh",
+        topic: "synthetic_topic",
+        authToken: "tk_synthetic",
+      })
+    ).toBeNull()
+    expect(
+      validateNotificationConfig("ntfy", {
+        serverUrl: "http://127.0.0.1:8080",
+        topic: "synthetic_topic",
+        allowPrivateNetwork: true,
+      })
+    ).toBeNull()
+  })
+
+  it("rejects a private ntfy server without the explicit opt-in", async () => {
+    expect(
+      validateNotificationConfig("ntfy", {
+        serverUrl: "http://127.0.0.1:8080",
+        topic: "synthetic_topic",
+      })
+    ).toBe("ntfy server URL points to a private or reserved network address; enable allowPrivateNetwork for a self-hosted server")
+  })
+
+  it("rejects invalid ntfy topics and credential-bearing URLs", async () => {
+    expect(
+      validateNotificationConfig("ntfy", { serverUrl: "https://ntfy.sh", topic: "bad topic" })
+    ).toBe("ntfy topic must be 1-64 letters, numbers, underscores or dashes")
+    expect(
+      validateNotificationConfig("ntfy", {
+        serverUrl: "https://user:pass@ntfy.sh",
+        topic: "synthetic_topic",
+      })
+    ).toBe("ntfy server URL must not contain credentials")
+    expect(
+      validateNotificationConfig("ntfy", {
+        serverUrl: "https://ntfy.sh",
+        topic: "synthetic_topic",
+        authToken: "bad token",
+      })
+    ).toBe("ntfy authToken must be a non-empty header-safe string")
+  })
+
   it("rejects unknown notification type", async () => {
     const { validateNotificationConfig } = await import("@/lib/notifications/validate")
     const result = validateNotificationConfig(

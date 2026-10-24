@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm"
 import { MAM_BONUS_CAP } from "@/data/platform-types"
 import { db } from "@/lib/db"
 import type { NotificationTargetRow } from "@/lib/db/schema"
-import { notificationDeliveryState, notificationTargets } from "@/lib/db/schema"
+import { appSettings, notificationDeliveryState, notificationTargets } from "@/lib/db/schema"
+import { markQuietPending } from "@/lib/digest"
 import {
   BUFFER_MILESTONE_DEFAULT_BYTES,
   RATIO_DROP_DELTA_DEFAULT,
@@ -36,6 +37,7 @@ import {
   type SnapshotContext,
   type TelegramConfig,
 } from "@/lib/notifications/types"
+import { isCriticalQuietEvent, isQuietHours, quietHoursConfigFromSettings } from "@/lib/quiet-hours"
 import {
   checkActiveHnrs,
   checkAnniversaryMilestone,
@@ -98,6 +100,20 @@ export async function dispatchNotifications(
   }
 
   const now = new Date()
+  const [quietSettings] = await db
+    .select({
+      quietHoursEnabled: appSettings.quietHoursEnabled,
+      quietHoursStart: appSettings.quietHoursStart,
+      quietHoursEnd: appSettings.quietHoursEnd,
+      quietHoursTimezone: appSettings.quietHoursTimezone,
+      quietHoursCriticalBypass: appSettings.quietHoursCriticalBypass,
+    })
+    .from(appSettings)
+    .limit(1)
+  const quietConfig = quietSettings
+    ? quietHoursConfigFromSettings(quietSettings)
+    : null
+  const quiet = quietConfig ? isQuietHours(quietConfig, now) : false
 
   for (const target of targets) {
     try {
@@ -106,6 +122,23 @@ export async function dispatchNotifications(
 
       const events = detectEvents(ctx, target)
       if (events.length === 0) continue
+
+      let activeEvents = events
+      if (quiet && quietConfig) {
+        if (!quietConfig.criticalBypass) {
+          await markQuietPending([target.id], now).catch((err) => {
+            log.error(err, "Failed to persist quiet-hours pending state")
+          })
+          continue
+        }
+        activeEvents = events.filter(isCriticalQuietEvent)
+        if (activeEvents.length < events.length) {
+          await markQuietPending([target.id], now).catch((err) => {
+            log.error(err, "Failed to persist quiet-hours pending state")
+          })
+        }
+        if (activeEvents.length === 0) continue
+      }
 
       // Pre-compute anniversary label once per target (avoid double-calling checkAnniversaryMilestone)
       const anniversaryLabel = events.includes("anniversary")
@@ -141,7 +174,7 @@ export async function dispatchNotifications(
       let finalStatus: "delivered" | "failed" | "rate_limited" | null = null
       let finalError: string | null = null
 
-      for (const event of events) {
+      for (const event of activeEvents) {
         try {
           // Cooldown check. In-memory lookup from batched query
           const snoozedUntil = cooldownMap.get(`${target.id}:${event}`)

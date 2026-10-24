@@ -10,6 +10,7 @@ const dbMock = {
 
 vi.mock("@/lib/db", () => ({ db: dbMock }))
 vi.mock("@/lib/logger", () => ({ log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }))
+vi.mock("@/lib/digest", () => ({ markQuietPending: vi.fn() }))
 vi.mock("@/lib/notifications/decrypt", () => ({
   decryptNotificationConfig: vi.fn((target: { type: string }) =>
     target.type === "telegram"
@@ -86,15 +87,18 @@ function ctx(): SnapshotContext {
 let inserts: Record<string, unknown>[] = []
 let updates: Record<string, unknown>[] = []
 let cooldowns: { targetId: number; eventType: string; snoozedUntil: Date | null }[] = []
+let settingsRows: Record<string, unknown>[] = []
 
 beforeEach(() => {
   vi.clearAllMocks()
   inserts = []
   updates = []
   cooldowns = []
+  settingsRows = []
   dbMock.select.mockImplementation(() => ({
     from: () => ({
       where: async () => cooldowns,
+      limit: async () => settingsRows,
     }),
   }))
   dbMock.insert.mockImplementation(() => ({
@@ -159,6 +163,28 @@ describe("dispatchNotifications Telegram", () => {
     expect(inserts).toEqual([
       expect.objectContaining({ targetId: 3, trackerId: 10, eventType: "ratio_drop" }),
     ])
+  })
+
+  it("defers routine events during quiet hours without marking delivery", async () => {
+    settingsRows = [
+      {
+        quietHoursEnabled: true,
+        quietHoursStart: "00:00",
+        quietHoursEnd: "23:59",
+        quietHoursTimezone: "UTC",
+        quietHoursCriticalBypass: false,
+      },
+    ]
+    const deliver = await import("@/lib/notifications/deliver")
+    const dispatch = await import("@/lib/notifications/dispatch")
+    const { markQuietPending } = await import("@/lib/digest")
+
+    await dispatch.dispatchNotifications(ctx(), Buffer.alloc(32), [target()])
+
+    expect(deliver.deliverTelegramMessage).not.toHaveBeenCalled()
+    expect(markQuietPending).toHaveBeenCalledWith([1], expect.any(Date))
+    expect(inserts).toHaveLength(0)
+    expect(updates).toHaveLength(0)
   })
 
   it("does not send during a cooldown and keeps targets independent", async () => {

@@ -268,6 +268,16 @@ describe("serializeSettingsResponse", () => {
     hasBackupPassword: null,
     backupStoragePath: null,
     credentialVaultEnabled: false,
+    digestEnabled: false,
+    digestTime: "09:00",
+    digestTimezone: "UTC",
+    digestEmptyBehavior: "skip",
+    digestTargetIds: null,
+    quietHoursEnabled: false,
+    quietHoursStart: "22:00",
+    quietHoursEnd: "07:00",
+    quietHoursTimezone: "UTC",
+    quietHoursCriticalBypass: false,
   }
 
   it("converts null hasProxyPassword to false", () => {

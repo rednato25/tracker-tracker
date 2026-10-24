@@ -1061,6 +1061,42 @@ export async function POST(request: Request) {
       }
 
       // Update appSettings in place. Never delete + re-insert.
+      const rawDigestTargetIds = payload.settings.digestTargetIds as string | null
+      let restoredDigestTargetIds: string | null = null
+      if (rawDigestTargetIds) {
+        try {
+          const parsed = JSON.parse(rawDigestTargetIds) as unknown
+          if (Array.isArray(parsed)) {
+            const mapped = parsed
+              .map((id) => (typeof id === "number" ? notificationTargetIdMap.get(id) : undefined))
+              .filter((id): id is number => id !== undefined)
+            restoredDigestTargetIds = mapped.length > 0 ? JSON.stringify(mapped) : null
+          }
+        } catch (err) {
+          log.warn({ event: "restore_digest_targets_invalid", error: errMsg(err) }, "Discarding invalid digest target selection")
+          restoredDigestTargetIds = null
+        }
+      }
+
+      let restoredDigestState: string | null = null
+      if (payload.settings.digestState) {
+        try {
+          const parsed = JSON.parse(payload.settings.digestState as string) as Record<
+            string,
+            unknown
+          >
+          const mapped: Record<string, unknown> = {}
+          for (const [oldId, value] of Object.entries(parsed)) {
+            const newId = notificationTargetIdMap.get(Number(oldId))
+            if (newId !== undefined) mapped[String(newId)] = value
+          }
+          restoredDigestState = Object.keys(mapped).length > 0 ? JSON.stringify(mapped) : null
+        } catch (err) {
+          log.warn({ event: "restore_digest_state_invalid", error: errMsg(err) }, "Discarding invalid digest state")
+          restoredDigestState = null
+        }
+      }
+
       await tx
         .update(appSettings)
         .set({
@@ -1105,6 +1141,19 @@ export async function POST(request: Request) {
           encryptedImgbbApiKey,
           draftQuicklinks: (payload.settings.draftQuicklinks as string | null) ?? null,
           dashboardSettings: (payload.settings.dashboardSettings as string | null) ?? null,
+          digestEnabled: (payload.settings.digestEnabled as boolean) ?? false,
+          digestTime: (payload.settings.digestTime as string | null) ?? "09:00",
+          digestTimezone: (payload.settings.digestTimezone as string | null) ?? "UTC",
+          digestEmptyBehavior:
+            (payload.settings.digestEmptyBehavior as string | null) ?? "skip",
+          digestTargetIds: restoredDigestTargetIds,
+          digestState: restoredDigestState,
+          quietHoursEnabled: (payload.settings.quietHoursEnabled as boolean) ?? false,
+          quietHoursStart: (payload.settings.quietHoursStart as string | null) ?? "22:00",
+          quietHoursEnd: (payload.settings.quietHoursEnd as string | null) ?? "07:00",
+          quietHoursTimezone: (payload.settings.quietHoursTimezone as string | null) ?? "UTC",
+          quietHoursCriticalBypass:
+            (payload.settings.quietHoursCriticalBypass as boolean) ?? false,
           // Restored because this .set() names its columns and an omitted one keeps
           // the restoring install's value, off on a fresh install. Vault credentials
           // restore intact either way, but a sheet showing storage off reads as lost

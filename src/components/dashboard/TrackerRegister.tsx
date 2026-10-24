@@ -16,6 +16,7 @@ import {
   formatRatioDisplay,
   formatTimeAgo,
 } from "@/lib/formatters"
+import { resolveAccountRatio } from "@/lib/tracker-rules"
 import { getHealthLabel, getTrackerHealth, type TrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
 
@@ -130,7 +131,7 @@ function readSegments(tracker: TrackerSummary, login: LoginWindow): Tone[] {
   if (!stats) return ["muted", "muted", "muted", "muted"]
 
   const requirement =
-    stats.requiredRatio ?? registryEntryFor(tracker)?.rules?.minimumRatio ?? 1
+    resolveAccountRatio(stats.requiredRatio, registryEntryFor(tracker)?.rules) ?? 1
   const ratioTone: Tone = stats.ratioIsInfinite
     ? "ok"
     : stats.ratio === null

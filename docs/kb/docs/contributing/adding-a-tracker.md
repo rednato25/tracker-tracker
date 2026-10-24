@@ -639,7 +639,12 @@ interface TrackerRules {
 }
 ```
 
-`minimumRatio`, `seedTimeHours`, and `loginIntervalDays` are required even if the tracker has no policy. Use `0` to mean "not enforced."
+`minimumRatio`, `seedTimeHours`, and `loginIntervalDays` remain required for
+read compatibility. Use `0` to mean "not enforced." For new entries, prefer
+`requiredAccountRatio` and `requiredTorrentRatio`: **0 means a confirmed no
+requirement, null means unknown, and an omitted field falls back to the legacy
+value.** The app never copies the account ratio into the per-torrent rule unless
+the entry already declared `satisfactionMode` before P03.
 
 ```typescript
 // From nebulance.ts, ratioless tracker
@@ -664,7 +669,7 @@ rules: {
 
 ### satisfactionMode
 
-`satisfactionMode` says how `seedTimeHours` and `minimumRatio` combine when the app decides whether a single torrent is done seeding. It is optional and deliberately opt-in.
+`satisfactionMode` says how `seedTimeHours` and the per-torrent ratio combine when the app decides whether a single torrent is done seeding. New entries should set `requiredTorrentRatio`; legacy entries that set a mode continue to use `minimumRatio` as the torrent ratio. It is optional and deliberately opt-in.
 
 - `"any"` means either threshold clears a torrent. TorrentLeech states this outright: seed to 1:1, **or** seed for your user class's minimum time.
 - `"all"` means both must be met.
@@ -672,7 +677,7 @@ rules: {
 
 Set it only from the tracker's own wording, and quote that wording in a comment above the rule. Setting `"any"` where the tracker means "and" marks torrents satisfied that are not, which is how hit and runs are earned. Leaving it off is always safe.
 
-A mode needs a non-zero `seedTimeHours` or `minimumRatio` to act on. The registry test suite rejects one that has neither.
+A mode needs a non-zero `seedTimeHours`, `requiredTorrentRatio`, or legacy `minimumRatio` to act on. The registry test suite rejects one that has neither.
 
 ```typescript
 // From torrentleech.ts
@@ -686,6 +691,32 @@ rules: {
   loginIntervalDays: 0,
 }
 ```
+
+### Provenance for action fields
+
+Actions and the calculator read rules through `resolveTrackerRules()` in
+`src/lib/tracker-rules.ts`. It returns the values plus a provenance record for
+account ratio, per-torrent ratio, accounted transfer, H&R, login and seeding:
+
+```typescript
+provenance: {
+  accountRatio: {
+    source: "manual" | "api" | "snapshot" | "unknown",
+    verifiedAt: "2026-01-01T00:00:00.000Z" | null,
+    timestampKind: "metric" | "snapshot" | "unknown",
+    freshness: "fresh" | "stale" | "unknown",
+    note?: string,
+  },
+  // ...
+}
+```
+
+Do not invent `verifiedAt` dates. Without an explicit confirmation record the
+source is `"unknown"`. A poll value may carry a snapshot timestamp; that says
+the snapshot's age, not that every metric was independently verified. A manual
+`lastAccessAt` marker is login evidence; opening the tracker or polling its API
+is not. Tests should use synthetic rules rather than claiming a real tracker was
+verified.
 
 For `fullRulesMarkdown`, use array-join format. It keeps diffs clean and avoids multiline template literal indentation issues:
 

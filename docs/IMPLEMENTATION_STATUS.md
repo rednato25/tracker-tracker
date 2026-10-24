@@ -68,17 +68,17 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | ID | Status | Dependencies | Commit | Validation / evidence | Blocker or next step |
 |---|---|---|---|---|---|
 | P00 | done | — | `e9586d53` (baseline) | This audit, baseline commands above | Smallest next: P01 |
-| P01 | done | P00 | `main @ 0ff13573` (merged; not installed) | GHCR image public; published `linux/amd64` digest `sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda`; Compose config valid; Quick Start and image reference aligned; upstream attribution kept | Candidate-image Compose smoke passed pre-merge; published-image smoke passed in PR #2 (run 40038697376). No deployment or real-install upgrade. |
+| P01 | done | P00 | `main @ 0ff13573` (merged; not installed) | GHCR image public; published `linux/amd64` digests `sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda` (from `0ff13573`) and `sha256:adcec0f2b600d93dd918b2d8de8695bdfb555e9ce242bf8b337b3a1a5384b456` (from `ec3fe17f`); Compose config valid; Quick Start and image reference aligned; upstream attribution kept | Candidate-image Compose smoke passed pre-merge; published-image smoke passed in PR #2 (run 40038697376). No deployment or real-install upgrade. |
 | P02 | done | P00, P02a, P02b-0, P02b-1, P02b-2, P02b-3, P02b-5, P02b-6, P02b-7 | `main @ 0ff13573` (merged; not installed) | P02b-1–P02b-3, P02b-6 and P02b-7 validated; P02b-5 removes the production push path and wires the runner into the entrypoint/Dockerfile | Candidate-image and published-image Docker matrices passed, including PostgreSQL 17 rejection. No deployment or real-install upgrade. |
 | P02a | done | P00 | branch `feat/p01-fork-distribution` (not deployed) | `docs/DB_MIGRATION_PLAN.md`; frozen 19-table baseline in `e2e/fixtures/db-baseline-v1/`; fingerprint, seed/check/verify and guard scripts; fixture seeded and verified in a disposable `_p02a` database | Restore route was not executed in P02a; interrupted/concurrent runner behavior is now covered by P02b-2. No production startup, schema or data changed. |
 | P02b-0 | done | P02a | branch `feat/p01-fork-distribution` (not deployed) | Reviewed ledger, concurrency, fingerprint, security-audit finding and validation gaps; exact SQL and startup sequence added to `DB_MIGRATION_PLAN.md`; owner approvals recorded 2026-10-23 | No implementation in P02b-0; P02b-1 followed. |
 | P02b-1 | done | P02b-0 | branch `feat/p01-fork-distribution` (not deployed) | Approved policy; `db/migrations/0000_baseline.sql` (checksum `59b382583d2a70edf5b1b2ca8488408f3eb83582ea4a4eb6aec501f72e0e9815`); `db/migrations/manifest.json`; `scripts/db/migration-manifest.mjs`; narrow security-audit update; 10 regression tests | Backup v2, production cutover and authenticated restore remain P02b-6/P02b-5. No DB mutation, commit, push or deploy. |
 | P02b-2 | done | P02b-1 | branch `feat/p01-fork-distribution` (not deployed) | `scripts/db/migrate.mjs`; exact ledger; dedicated-session advisory lock; fresh baseline, managed/no-op, rollback, interruption, connection-loss, concurrent and lock-timeout tests; PostgreSQL 18 guard before ledger/DDL; 13/13 PostgreSQL 18 integration cases on Node 24 | P02b-3 followed. Runner is not wired into startup; backup v2 and cutover remain P02b-6/P02b-5. No real installation touched. |
 | P02b-3 | done | P02b-2 | branch `feat/p01-fork-distribution` (not deployed) | `scripts/db/schema-fingerprint.mjs`; production `baseline-fingerprint.json`; canonical/column-order adoption; exact missing-index repair; drift/wrong-index/foreign-ledger rejection; row/ciphertext/sequence preservation; rollback, interruption and concurrent adoption tests; 22/22 PostgreSQL 18 integration cases on Node 24 | No adoption blockers. Backup v2 and cutover remain P02b-6/P02b-5. No real installation touched. |
-| P02b-5 | done | P02b-1, P02b-2, P02b-3 (P02b-4 covered) | branch `feat/p01-fork-distribution` (not deployed) | `docker-entrypoint.sh` runs `scripts/db/migrate.mjs`, exits non-zero on failure and forwards TERM/INT; `Dockerfile` runtime copies `db/migrations` and `scripts/db`; `db:push` removed; audit rejects push in package/CI/entrypoint/Dockerfile; 4/4 entrypoint tests, 22/22 PostgreSQL 18 runner tests, 11/11 manifest tests, 5918 unit tests, TypeScript, lint, audit (38/38) and production build pass on Node 24; baseline checksum unchanged; CI run 40036272230 built PR head `02af2eac` and passed fresh, unmanaged P02a adoption, managed restart, unknown/ahead refusal, PostgreSQL 17 rejection, concurrent startup and Compose candidate override | Published image digest `sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda` passed the post-publication smoke matrix in PR #2 (run 40038697376). No deployment or real-install access. |
+| P02b-5 | done | P02b-1, P02b-2, P02b-3 (P02b-4 covered) | branch `feat/p01-fork-distribution` (not deployed) | `docker-entrypoint.sh` runs `scripts/db/migrate.mjs`, exits non-zero on failure and forwards TERM/INT; `Dockerfile` runtime copies `db/migrations` and `scripts/db`; `db:push` removed; audit rejects push in package/CI/entrypoint/Dockerfile; 4/4 entrypoint tests, 22/22 PostgreSQL 18 runner tests, 11/11 manifest tests, 5918 unit tests, TypeScript, lint, audit (38/38) and production build pass on Node 24; baseline checksum unchanged; CI run 40036272230 built PR head `02af2eac` and passed fresh, unmanaged P02a adoption, managed restart, unknown/ahead refusal, PostgreSQL 17 rejection, concurrent startup and Compose candidate override | Published digest `sha256:9548…f6fdda` passed smoke in PR #2 (run 40038697376); after PR #2 merged, digest `sha256:adcec0…84b456` also passed a main workflow_dispatch (run 40048016089). No deployment or real-install access. |
 | P02b-6 | done | P02b-3 | branch `feat/p01-fork-distribution` (not deployed) | v2 export/validation, v1 import, delivery/checkpoint restore with id/scope remapping, transactional restore + cross-process advisory lock, credential lifecycle verification; 5918 unit tests, 10 authenticated HTTP cases plus setup (PostgreSQL 18), TypeScript, lint, audit (38/38), build | Published-image smoke passed in PR #2 (digest `sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda`). No production access or deployment. |
 | P02b-7 | done | P02b-6 | branch `feat/p01-fork-distribution` (not deployed) | Consolidated Node 24 evidence; `docs/UPGRADE_AND_ROLLBACK.md`; backup v2/v1 limits; upgrade/rollback and Docker-check list; Unreleased release notes | Documentation only. Candidate-image and published-image Docker validation passed; the published image was not deployed or installed. This is not a production-validated release. |
-| P03 | pending | P00, P02 for persistence | — | `satisfaction.ts` already separates account ratio from per-torrent rules; no provenance model | Add `requiredAccountRatio`/`requiredTorrentRatio` and source/freshness without rewriting old values |
+| P03 | done | P00, P02 for persistence | branch `feat/p03-rule-provenance` (not merged) | `src/lib/tracker-rules.ts`; explicit `requiredAccountRatio`/`requiredTorrentRatio`; legacy `minimumRatio` read mapping; per-field source/timestamp-kind/freshness provenance; manual login evidence; 5982 unit tests, TypeScript, Biome, audit (38/38), build | Real registry entries remain unverified and are marked unknown unless provenance is supplied. No DB change. No real tracker account accessed. |
 | P04 | pending | P03 | — | `computeAlerts` and pure `tracker-events` checks exist, but there is no single deterministic action engine with injected `now` | Build action evaluator; reuse existing checks |
 | P05 | pending | P04 | — | Alerts banner, login timers and status banners exist; no Next action column/filters | Build compact action surface and filters |
 | P06 | pending | P04, P02 | — | Notification types list includes Telegram, but `SUPPORTED_NOTIFICATION_TYPES` is Discord-only; delivery path rejects others | Add Telegram transport, config validation, encrypted lifecycle and tests |
@@ -689,14 +689,19 @@ published:
 
 The Release workflow was already `disabled_manually`, so the merge created no
 tag or GitHub Release. Main CI, Security Audit, Docs, CodeQL and GHCR passed.
+PR #2's merge (`ec3fe17f`) triggered a second docs-only image from that commit;
+it was pulled and smoke-tested separately, so both published artifacts have
+evidence. `latest` now points at `ec3fe17f` / `adcec0f2…84b456`.
 
-PR #2 (`test/published-image-smoke`) validated that exact artifact, not the
-candidate. Run
-[40038697376](https://github.com/rednato25/tracker-tracker/actions/runs/40038697376)
-pulled by digest, asserted the local `RepoDigest`, and passed fresh
-startup/health, baseline ledger, P02a adoption, managed restart, unknown/ahead
-refusal, PostgreSQL 17 refusal, concurrent startup and the Compose Quick Start
-with the digest as the explicit image.
+PR #2 validated `0ff13573` / `9548aecb…f6fdda` in run
+[40038697376](https://github.com/rednato25/tracker-tracker/actions/runs/40038697376).
+After the docs-only PR #2 merge published `ec3fe17f` / `adcec0f2…84b456`,
+workflow_dispatch run
+[40048016089](https://github.com/rednato25/tracker-tracker/actions/runs/40048016089)
+validated that artifact too. Both runs pulled by digest, asserted the local
+`RepoDigest`, and passed fresh startup/health, baseline ledger, P02a adoption,
+managed restart, unknown/ahead refusal, PostgreSQL 17 refusal, concurrent
+startup and Compose.
 
 No published image was pulled into the running installation, and no production
 database was accessed.
@@ -720,6 +725,34 @@ database was accessed.
   any ledger read, adoption or DDL. `e2e/p02b/safety.mjs` also refuses non-18
   test databases, and Docker scenario 7 verifies PostgreSQL 17 is rejected
   before mutation and server startup.
+
+### P03 implementation and checks
+
+- `src/lib/tracker-rules.ts` is the read model for account and per-torrent
+  requirements. New fields are `requiredAccountRatio` and
+  `requiredTorrentRatio`; `minimumRatio` remains readable. A legacy
+  `minimumRatio` becomes the account rule, and becomes the torrent rule only
+  when the entry had already declared `satisfactionMode` (the pre-P03
+  behavior). Values are never rewritten in the registry.
+- Missing, known zero and unknown are distinct: `null` is unknown, `0` is a
+  confirmed no-requirement, and an absent rules block is unknown. A tracker with
+  no ratio stays seed-only; an account ratio never satisfies a torrent by itself.
+- Provenance covers account ratio, per-torrent ratio, accounted transfer, H&R,
+  login and seeding. It carries `source`, `verifiedAt`, `timestampKind` and
+  `freshness`. A poll timestamp is marked as snapshot age, not an independent
+  metric verification; real registry entries without a confirmation record stay
+  `unknown` and no dates are invented.
+- `lastAccessAt` is the only login evidence and is marked manual. Snapshot/API
+  data is explicitly not login proof. `satisfaction.ts` now consumes the
+  per-torrent field; tracker health, the register and the info tab read the
+  account field through the resolver and show Unknown versus None.
+- No database or migration change was required.
+- Tests: `src/lib/tracker-rules.test.ts` covers missing/zero/unknown, legacy
+  mapping, explicit overrides, stale snapshots, contradictory live/registry
+  sources, ratio-less trackers, manual login and account-vs-torrent behavior.
+  Full unit suite 225 files / 5982 tests, TypeScript, Biome, audit 38/38 and the
+  production build pass on Node 24. Synthetic rules only; no real account was
+  accessed.
 
 ### P02b slices
 

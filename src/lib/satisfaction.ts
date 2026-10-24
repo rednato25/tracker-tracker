@@ -4,6 +4,7 @@
 //            satisfactionProgress, isSatisfied, remainingSeedSeconds
 
 import type { TrackerRules } from "@/data/tracker-registry"
+import { resolveTrackerRules } from "@/lib/tracker-rules"
 
 /**
  * How a torrent's per-torrent requirements combine.
@@ -36,24 +37,23 @@ export interface SatisfactionRequirement {
  * verified.
  */
 export function resolveSatisfaction(rules?: TrackerRules): SatisfactionRequirement | null {
-  const seedTimeHours = rules?.seedTimeHours ?? 0
+  const resolved = resolveTrackerRules(rules)
+  const seedTimeHours = resolved.seedTimeHours ?? 0
   const requiredSeedSeconds = seedTimeHours > 0 ? seedTimeHours * 3600 : null
 
-  const mode = rules?.satisfactionMode
-  if (!mode) {
-    // Unverified entry: seed time alone, ratio ignored.
-    return requiredSeedSeconds === null
-      ? null
-      : { requiredSeedSeconds, requiredRatio: null, mode: "all" }
-  }
+  // Per-torrent ratio is explicit. Legacy entries that declared a mode still
+  // resolve their old minimumRatio here; account-only entries do not.
+  const resolvedRatio = resolved.requiredTorrentRatio
+  const requiredRatio =
+    resolvedRatio !== null && resolvedRatio > 0 ? resolvedRatio : null
 
-  const minimumRatio = rules?.minimumRatio ?? 0
-  const requiredRatio = minimumRatio > 0 ? minimumRatio : null
-
-  // A declared mode over two absent thresholds is still no requirement.
   if (requiredSeedSeconds === null && requiredRatio === null) return null
 
-  return { requiredSeedSeconds, requiredRatio, mode }
+  return {
+    requiredSeedSeconds,
+    requiredRatio,
+    mode: resolved.satisfactionMode ?? "all",
+  }
 }
 
 /** Fraction of the seed-time requirement met, 0..1. 1 when not required. */

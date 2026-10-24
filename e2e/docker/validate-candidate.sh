@@ -30,6 +30,7 @@ COMPOSE_PROJECT="tt-ci-compose-$$"
 MANAGED=()
 COMPOSE_DIR="$TMP/compose"
 COMPOSE_PORT=$((32000 + ($$ % 2000)))
+STARTED_PORT=""
 
 sanitize() {
   sed -E 's#([A-Za-z][A-Za-z0-9+.-]*://)[^[:space:]]+#\1[redacted]#g'
@@ -135,7 +136,9 @@ start_app() {
     sleep 0.2
   done
   [ -n "$port" ] || fail "could not resolve a host port for $name"
-  echo "$port"
+  # Command substitution would run the function in a subshell, losing MANAGED
+  # entries used by cleanup and failure logs. Hand the port back via a global.
+  STARTED_PORT="$port"
 }
 
 wait_health() {
@@ -171,9 +174,13 @@ wait_exit() {
 assert_log() {
   local name="$1"
   local pattern="$2"
-  if ! docker logs "$name" 2>&1 | grep -Eq "$pattern"; then
-    fail "$name logs did not contain /$pattern/"
-  fi
+  # Docker can report the container exited just before the log driver flushes.
+  # Retry the exact assertion for a short bounded window; do not relax it.
+  for _ in $(seq 1 20); do
+    if docker logs "$name" 2>&1 | grep -Eq "$pattern"; then return 0; fi
+    sleep 0.5
+  done
+  fail "$name logs did not contain /$pattern/"
 }
 
 remove_app() {
@@ -212,7 +219,8 @@ PG_HOST_PORT="$(docker port "$DB_CONTAINER" 5432/tcp | head -n1 | awk -F: '{prin
 # ── 1. Fresh database startup and health ──────────────────────────────────────
 echo "::group::fresh database startup"
 create_database tt_fresh
-FRESH_PORT="$(start_app tt-ci-fresh tt_fresh)"
+start_app tt-ci-fresh tt_fresh
+FRESH_PORT="$STARTED_PORT"
 wait_health tt-ci-fresh "$FRESH_PORT"
 assert_equal 1 "$(psql_query tt_fresh 'select count(*) from schema_migrations')" "fresh ledger rows"
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0000_baseline' and baseline")" "fresh baseline row"
@@ -223,10 +231,12 @@ echo "::endgroup::"
 # ── 2. Managed restart: no duplicate ledger row and no-op path ───────────────
 echo "::group::managed restart"
 create_database tt_managed
-MANAGED_PORT="$(start_app tt-ci-managed-1 tt_managed)"
+start_app tt-ci-managed-1 tt_managed
+MANAGED_PORT="$STARTED_PORT"
 wait_health tt-ci-managed-1 "$MANAGED_PORT"
 remove_app tt-ci-managed-1
-MANAGED_PORT="$(start_app tt-ci-managed-2 tt_managed)"
+start_app tt-ci-managed-2 tt_managed
+MANAGED_PORT="$STARTED_PORT"
 wait_health tt-ci-managed-2 "$MANAGED_PORT"
 assert_equal 1 "$(psql_query tt_managed 'select count(*) from schema_migrations')" "managed ledger rows"
 assert_log tt-ci-managed-2 '"path": *"noop"'
@@ -237,7 +247,8 @@ echo "::endgroup::"
 echo "::group::unknown schema refusal"
 create_database tt_unknown
 psql_query tt_unknown "CREATE TABLE unexpected_schema_probe (id integer)" >/dev/null
-UNKNOWN_PORT="$(start_app tt-ci-unknown tt_unknown)"
+start_app tt-ci-unknown tt_unknown
+UNKNOWN_PORT="$STARTED_PORT"
 wait_exit tt-ci-unknown
 assert_equal "" "$(psql_query tt_unknown "select coalesce(to_regclass('public.schema_migrations')::text, '')")" "unknown schema ledger"
 assert_equal 1 "$(psql_query tt_unknown "select count(*) from pg_tables where schemaname='public' and tablename='unexpected_schema_probe'")" "unknown schema table preserved"
@@ -248,11 +259,13 @@ echo "::endgroup::"
 # ── 4. Database ahead: fail closed without mutation or startup ───────────────
 echo "::group::database ahead refusal"
 create_database tt_ahead
-AHEAD_PORT="$(start_app tt-ci-ahead-1 tt_ahead)"
+start_app tt-ci-ahead-1 tt_ahead
+AHEAD_PORT="$STARTED_PORT"
 wait_health tt-ci-ahead-1 "$AHEAD_PORT"
 remove_app tt-ci-ahead-1
 psql_query tt_ahead "INSERT INTO schema_migrations (version, checksum, app_version, baseline) VALUES ('0001_future', repeat('0', 64), 'ci', false)" >/dev/null
-AHEAD_PORT="$(start_app tt-ci-ahead-2 tt_ahead)"
+start_app tt-ci-ahead-2 tt_ahead
+AHEAD_PORT="$STARTED_PORT"
 wait_exit tt-ci-ahead-2
 assert_equal 2 "$(psql_query tt_ahead 'select count(*) from schema_migrations')" "ahead ledger rows"
 assert_equal 0 "$(psql_query tt_ahead "select count(*) from pg_tables where schemaname='public' and tablename='0001_future'")" "ahead migration table"
@@ -263,8 +276,10 @@ echo "::endgroup::"
 # ── 5. Concurrent startup: one ledger, both healthy ─────────────────────────
 echo "::group::concurrent startup"
 create_database tt_concurrent
-CONCURRENT_1_PORT="$(start_app tt-ci-concurrent-1 tt_concurrent)"
-CONCURRENT_2_PORT="$(start_app tt-ci-concurrent-2 tt_concurrent)"
+start_app tt-ci-concurrent-1 tt_concurrent
+CONCURRENT_1_PORT="$STARTED_PORT"
+start_app tt-ci-concurrent-2 tt_concurrent
+CONCURRENT_2_PORT="$STARTED_PORT"
 wait_health tt-ci-concurrent-1 "$CONCURRENT_1_PORT"
 wait_health tt-ci-concurrent-2 "$CONCURRENT_2_PORT"
 assert_equal 1 "$(psql_query tt_concurrent 'select count(*) from schema_migrations')" "concurrent ledger rows"
@@ -278,7 +293,8 @@ P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PO
   P02A_ALLOW_DESTRUCTIVE=1 \
   P02A_ALLOW_REMOTE=1 \
   env -u NODE_ENV pnpm exec tsx e2e/fixtures/db-baseline-v1/seed.ts >/dev/null
-P02A_PORT="$(start_app tt-ci-p02a tt_p02a)"
+start_app tt-ci-p02a tt_p02a
+P02A_PORT="$STARTED_PORT"
 wait_health tt-ci-p02a "$P02A_PORT"
 assert_equal 1 "$(psql_query tt_p02a 'select count(*) from schema_migrations')" "P02a ledger rows"
 assert_equal 2 "$(psql_query tt_p02a 'select count(*) from trackers')" "P02a seeded trackers"
@@ -305,7 +321,8 @@ for _ in $(seq 1 60); do
 done
 [ "$pg17_ready" -eq 1 ] || fail "PostgreSQL 17 did not become ready"
 psql_on "$PG17_CONTAINER" postgres 'CREATE DATABASE "tt_pg17"' >/dev/null
-PG17_PORT="$(start_app tt-ci-pg17 tt_pg17 "$PG17_CONTAINER")"
+start_app tt-ci-pg17 tt_pg17 "$PG17_CONTAINER"
+PG17_PORT="$STARTED_PORT"
 wait_exit tt-ci-pg17
 assert_equal "" "$(psql_on "$PG17_CONTAINER" tt_pg17 "select coalesce(to_regclass('public.schema_migrations')::text, '')")" "PG17 ledger"
 assert_equal 0 "$(psql_on "$PG17_CONTAINER" tt_pg17 "select count(*) from pg_tables where schemaname='public'")" "PG17 application tables"

@@ -101,10 +101,10 @@ published `latest` image was not used.
 
 **Candidate-image validation was the pre-merge gate.** The published image was
 built from merged main `0ff13573` at digest
-`sha256:9548aecb3231f51cdbddf276526244eda54c5bd6c40f5d0d3d9d920b5ff6fdda`.
-PR #2 then pulled that digest and passed the published-image smoke matrix
-(fresh startup/health, baseline ledger, P02a adoption, managed restart,
-unknown/ahead and PostgreSQL 17 refusal, concurrency, Compose).
+`sha256:9548aecb…f6fdda` and from the docs-only PR #2 merge `ec3fe17f` at
+`sha256:adcec0f2…84b456`. Both digests were pulled and passed the published-image
+smoke matrix (fresh startup/health, baseline ledger, P02a adoption, managed
+restart, unknown/ahead and PostgreSQL 17 refusal, concurrency, Compose).
 
 Still required before a production claim:
 

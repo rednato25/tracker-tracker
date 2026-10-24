@@ -10,6 +10,7 @@
 import type { BadgeVariant } from "@/components/ui/Badge"
 import type { PulseDotStatus } from "@/components/ui/PulseDot"
 import { registryEntryFor } from "@/data/tracker-registry"
+import { resolveAccountRatio } from "@/lib/tracker-rules"
 import type { TrackerSummary } from "@/types/api"
 
 // Ordered loosely by severity, ascending. "warning" and "no-seeds" are
@@ -110,22 +111,9 @@ function resolveRequiredRatio(
   liveRequiredRatio: number | null | undefined,
   tracker: { registrySlug: string | null }
 ): number | null {
-  if (
-    typeof liveRequiredRatio === "number" &&
-    Number.isFinite(liveRequiredRatio) &&
-    liveRequiredRatio >= 0
-  ) {
-    return liveRequiredRatio
-  }
-  const registryMinimum = registryEntryFor(tracker)?.rules?.minimumRatio
-  if (
-    typeof registryMinimum === "number" &&
-    Number.isFinite(registryMinimum) &&
-    registryMinimum >= 0
-  ) {
-    return registryMinimum
-  }
-  return null
+  // Live wins, including a real zero. The shared resolver keeps the legacy
+  // registry fallback account-level and never treats a missing value as zero.
+  return resolveAccountRatio(liveRequiredRatio, registryEntryFor(tracker)?.rules)
 }
 
 function getTrackerHealth(tracker: TrackerSummary): TrackerHealth {

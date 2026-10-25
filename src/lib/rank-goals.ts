@@ -72,6 +72,7 @@ export type RankObservationMap = Partial<Record<RankMetric, RankObservation>>
 export interface RankConditionResult {
   id: string
   kind: "numeric" | "manual" | "non-numeric"
+  metric?: RankMetric
   label: string
   requiredValue: number | null
   observedValue: number | null
@@ -192,6 +193,7 @@ function evaluateCondition(
     return {
       id,
       kind: "numeric",
+      metric: condition.metric,
       label,
       requiredValue: condition.requiredValue,
       observedValue: observationFor(condition.metric, input)?.value ?? null,
@@ -209,6 +211,7 @@ function evaluateCondition(
     return {
       id,
       kind: "numeric",
+      metric: condition.metric,
       label,
       requiredValue: condition.requiredValue,
       observedValue: null,
@@ -225,6 +228,7 @@ function evaluateCondition(
     return {
       id,
       kind: "numeric",
+      metric: condition.metric,
       label,
       requiredValue: condition.requiredValue,
       observedValue: null,
@@ -240,6 +244,7 @@ function evaluateCondition(
     return {
       id,
       kind: "numeric",
+      metric: condition.metric,
       label,
       requiredValue: condition.requiredValue,
       observedValue: observation.value,

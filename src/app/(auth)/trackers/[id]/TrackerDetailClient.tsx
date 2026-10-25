@@ -13,6 +13,7 @@ import { TrackerSettingsSheet } from "@/components/TrackerSettingsSheet"
 import { AnalyticsTab } from "@/components/tracker-detail/AnalyticsTab"
 import type { DebugData } from "@/components/tracker-detail/DebugResponseDialog"
 import { DebugResponseDialog } from "@/components/tracker-detail/DebugResponseDialog"
+import { RankGoalPanel } from "@/components/tracker-detail/RankGoalPanel"
 import { resolveSlots } from "@/components/tracker-detail/resolve-slots"
 import { TrackerDetailHeader } from "@/components/tracker-detail/TrackerDetailHeader"
 import { TrackerInfoTab } from "@/components/tracker-detail/TrackerInfoTab"
@@ -327,6 +328,19 @@ export function TrackerDetailClient({
         snapshots={allTimeSnapshots}
         accentColor={tc}
         joinedAt={tracker.joinedAt}
+      />
+
+      <RankGoalPanel
+        trackerId={tracker.id}
+        registrySlug={tracker.registrySlug}
+        userClasses={registryEntry?.userClasses ?? []}
+        rankPaths={registryEntry?.rankPaths}
+        currentRank={stats?.group ?? null}
+        stats={stats}
+        snapshots={allTimeSnapshots}
+        joinedAt={tracker.joinedAt}
+        lastPolledAt={tracker.lastPolledAt}
+        accentColor={tc}
       />
 
       {/* Shutdown notice. Ranks above the pause/error banners because a defunct

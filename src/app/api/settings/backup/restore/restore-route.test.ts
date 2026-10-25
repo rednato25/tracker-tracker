@@ -192,6 +192,7 @@ function makeBackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPaylo
       quietHoursEnd: "06:00",
       quietHoursTimezone: "Europe/Bucharest",
       quietHoursCriticalBypass: true,
+      rankGoals: '{"1":{"targetRank":"Power User"}}',
     },
     trackers: [
       {
@@ -1414,6 +1415,7 @@ describe("POST /api/settings/backup/restore — P08 digest settings", () => {
       quietHoursEnd: "06:00",
       quietHoursTimezone: "Europe/Bucharest",
       quietHoursCriticalBypass: true,
+      rankGoals: '{"1":{"targetRank":"Power User"}}',
     })
     const restoredIds = JSON.parse(recorder.settingsUpdate?.digestTargetIds as string) as number[]
     expect(restoredIds).not.toEqual([1])

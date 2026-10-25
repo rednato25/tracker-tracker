@@ -1141,6 +1141,7 @@ export async function POST(request: Request) {
           encryptedImgbbApiKey,
           draftQuicklinks: (payload.settings.draftQuicklinks as string | null) ?? null,
           dashboardSettings: (payload.settings.dashboardSettings as string | null) ?? null,
+          rankGoals: (payload.settings.rankGoals as string | null) ?? null,
           digestEnabled: (payload.settings.digestEnabled as boolean) ?? false,
           digestTime: (payload.settings.digestTime as string | null) ?? "09:00",
           digestTimezone: (payload.settings.digestTimezone as string | null) ?? "UTC",

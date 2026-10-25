@@ -59,7 +59,7 @@ test.describe.serial("rank and budget visual evidence", () => {
     expect(trackerId).not.toBeNull()
     await page.goto(`/trackers/${trackerId}`)
     await expect(page.locator("[data-rank-goal-panel]")).toBeVisible()
-    await expect(page.locator("[data-download-budget-panel]")).toBeVisible()
+    await expect(page.locator("[data-download-budget-panel]").first()).toBeVisible()
 
     await page.getByLabel("Download size (GiB)").fill("80")
     await page.getByLabel("How is it charged?").selectOption("1")
@@ -219,7 +219,7 @@ test.describe.serial("rank and budget visual evidence", () => {
     await add("80", "1")
     await expect(page.getByText(/Remaining allowance:/)).toContainText(/65(?:\.0+)? GiB/)
     await expect(page.getByText(/Projected ratio:/)).toContainText(/1\.08/)
-    await page.locator("[data-download-budget-panel]").scrollIntoViewIfNeeded()
+    await page.locator("[data-download-budget-panel]").first().scrollIntoViewIfNeeded()
     await page.screenshot({ path: "test-results/visual-budget-queue-after.png" })
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
@@ -268,7 +268,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       expect(settings.ok()).toBe(true)
       console.log("PROWLARR_STEP settings saved")
       await page.goto("/settings")
-      const section = page.locator("[data-prowlarr-import]")
+      const section = page.locator("[data-prowlarr-import]").first()
       await expect(section).toBeVisible()
       console.log("PROWLARR_STEP section visible")
       await section.getByLabel("Prowlarr URL").fill(prowlarrUrl)

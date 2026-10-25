@@ -87,8 +87,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P09 | done | P03 | `main @ e925ca18` (merged; not deployed) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P11 remains. |
 | P10 | partial pilot coverage | P09 | `main @ a8fca65` (merged; not deployed) | TorrentLeech: account-age and ratio conditions verified from the public wiki; four upload conditions kept explicitly unknown because GB/TB binary-vs-decimal is unresolved. MyAnonaMouse/REDacted have no structured goals. 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | Follow-ups: #11 TorrentLeech units; #12 MAM/REDacted excerpts. No UI, DB or ETA. |
 | P11 | done (visual capture blocked) | P09–P10 | `main @ d1c11333` (merged; not deployed) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Local Postgres/Docker unavailable, so light/dark/mobile screenshots were not captured; follow-up #14. |
-| P12 | done | P03 | branch `feat/p12-download-budget` (not merged) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
-| P13 | pending | P12 | — | No calculator UI or queue integration | Split P13a form and P13b queue |
+| P12 | done | P03 | `main @ 02f0645d` (merged; not deployed) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
+| P13 | done (visual artifacts need review) | P12 | branch `feat/p13-download-budget-ui` (not merged) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6083 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured | P11/P13 mobile artifacts show clipping that may be screenshot capture, not confirmed UI; issue #14 remains open. No P14. |
 | P14 | pending | P02–P03 | — | No Prowlarr import | Add preview/test/select/import with explicit credentials |
 | P15 | pending | P14 | — | No Jackett import | Reuse P14 preview/import contract |
 | P16 | pending | P02, P04; P11 for goals | — | App has session-authenticated internal API routes; no versioned scoped integration API | Add hashed, revocable read-only tokens; no mutations |
@@ -1097,6 +1097,37 @@ fractions, committed traffic, required upload, zero amounts, exact boundaries,
 negative/oversized reserves, unknown/invalid inputs, no-ratio status and
 target-vs-minimum separation. Full suite 237 files / 6078 tests; TypeScript,
 Biome, security audit 38/38 and production build pass.
+
+### P13 download-budget UI and scenario queue
+
+- The tracker-detail budget panel reuses `calculateDownloadBudget`; no formula
+  is duplicated in the UI.
+- It shows accounted upload/download, freshness, tracker minimum separately from
+  the user target, explicit accounting assumption, proposed GiB size, projected
+  ratio, transfer budget and upload needed. Unknown accounting is unavailable;
+  zero charge is a labelled scenario; a target below the minimum is disclosed.
+- The panel states that it is account-ratio arithmetic only and not H&R or
+  overall-safety approval.
+- The planning queue supports add/edit/remove and cumulative calculations with
+  an effective charged fraction. It is local planning state only, separate from
+  committed traffic/reserve; nothing is sent to a tracker or download client and
+  no queue persistence was added.
+- No P14.
+
+Visual evidence: the CI Visual Evidence job runs the existing disposable
+PostgreSQL/Playwright setup and uploaded six artifacts (rank/budget, light/dark/
+mobile) in run 40178324799. The artifacts were downloaded and inspected. The
+rank panel renders its conditions and unknown-unit caveat; the budget panel
+renders its form and arithmetic result. Mobile artifacts show left/bottom
+clipping that may be capture clipping rather than an app defect; issue #14 is
+left open for human visual follow-up. Do not treat generated artifacts as proof
+of visual correctness.
+
+Tests: `DownloadBudgetPanel.test.tsx` covers single results, unknown accounting,
+freeleech scenario, target below minimum, queue add/edit/remove/cumulative,
+stale/unavailable data and no network mutation. Full suite 238 files / 6083
+tests; TypeScript, Biome, security audit 38/38, production build and Docker
+Build & Scan pass.
 
 ### P02b slices
 

@@ -146,12 +146,9 @@ test.describe.serial("rank and budget visual evidence", () => {
     if (!budgetBottom?.visible) throw new Error("Budget panel bottom is not reachable by vertical scroll")
     await page.screenshot({ path: "test-results/visual-budget-mobile-bottom.png" })
 
-    const rankHeight = await rank.evaluate((el) => el.getBoundingClientRect().height)
-    const budgetHeight = await budget.evaluate((el) => el.getBoundingClientRect().height)
-    await page.setViewportSize({ width: 390, height: Math.ceil(rankHeight + 96) })
+    await page.setViewportSize({ width: 390, height: 1200 })
     await scrollMainTo("[data-rank-goal-panel]")
     await rank.screenshot({ path: "test-results/visual-rank-mobile-full.png" })
-    await page.setViewportSize({ width: 390, height: Math.ceil(budgetHeight + 96) })
     await scrollMainTo("[data-download-budget-panel]")
     await budget.screenshot({ path: "test-results/visual-budget-mobile-full.png" })
     await page.setViewportSize({ width: 390, height: 844 })

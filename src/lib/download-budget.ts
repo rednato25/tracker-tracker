@@ -35,6 +35,11 @@ export interface DownloadBudgetResult {
   projectedDownloaded: number | null
   projectedRatio: number | null
   headroom: number | null
+  /** Charged traffic available before the proposed download. */
+  remainingChargedAllowance: number | null
+  /** Charged traffic available after this proposal (the UI's main number). */
+  remainingChargedAfterProposed: number | null
+  /** Physical size allowance at the charged fraction. */
   transferBudget: number | null
   additionalUploadRequired: number | null
   reserveChargedBytes: number
@@ -56,6 +61,8 @@ function unavailable(reason: string, assumptions: string[] = []): DownloadBudget
     projectedDownloaded: null,
     projectedRatio: null,
     headroom: null,
+    remainingChargedAllowance: null,
+    remainingChargedAfterProposed: null,
     transferBudget: null,
     additionalUploadRequired: null,
     reserveChargedBytes: 0,
@@ -105,6 +112,7 @@ export function calculateDownloadBudget(input: DownloadBudgetInput): DownloadBud
   const projectedRatio = projectedDownloaded > 0 ? input.uploaded / projectedDownloaded : null
   const headroom = input.uploaded / target - input.downloaded - committed
   const usableHeadroom = Math.max(0, headroom - reserve)
+  const remainingChargedAfterProposed = Math.max(0, usableHeadroom - chargedBytes)
   const transferBudget =
     chargedFraction > 0 && Number.isFinite(usableHeadroom) ? usableHeadroom / chargedFraction : null
   const additionalUploadRequired =
@@ -118,6 +126,8 @@ export function calculateDownloadBudget(input: DownloadBudgetInput): DownloadBud
     projectedDownloaded,
     projectedRatio,
     headroom,
+    remainingChargedAllowance: usableHeadroom,
+    remainingChargedAfterProposed,
     transferBudget,
     additionalUploadRequired,
     reserveChargedBytes: reserve,

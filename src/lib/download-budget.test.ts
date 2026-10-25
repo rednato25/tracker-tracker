@@ -103,6 +103,26 @@ describe("calculateDownloadBudget", () => {
     expect(calculateDownloadBudget(base({ reserveChargedBytes: -1 })).status).toBe("unavailable")
   })
 
+  it("reports the charged allowance remaining after a queue, not physical size", () => {
+    const totalSize = 300 * GiB
+    const totalCharged = 235 * GiB
+    const result = calculateDownloadBudget({
+      uploaded: 900 * GiB,
+      downloaded: 600 * GiB,
+      size: totalSize,
+      chargedFraction: totalCharged / totalSize,
+      targetRatio: 1,
+      committedDownload: 0,
+      reserveChargedBytes: 0,
+    })
+    expect(result.chargedBytes).toBe(235 * GiB)
+    expect(result.projectedDownloaded).toBe(835 * GiB)
+    expect(result.projectedRatio).toBeCloseTo(900 / 835, 10)
+    expect(result.remainingChargedAllowance).toBe(300 * GiB)
+    expect(result.remainingChargedAfterProposed).toBe(65 * GiB)
+    expect(result.transferBudget).toBeCloseTo((300 * GiB) / (235 / 300), 5)
+  })
+
   it("keeps the user target separate from the tracker minimum", () => {
     const result = calculateDownloadBudget(base({ targetRatio: 2, minimumRatio: 1 }))
     expect(result.targetRatio).toBe(2)

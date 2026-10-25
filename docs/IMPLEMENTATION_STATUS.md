@@ -88,7 +88,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P10 | partial pilot coverage | P09 | `main @ a8fca65` (merged; not deployed) | TorrentLeech: account-age and ratio conditions verified from the public wiki; four upload conditions kept explicitly unknown because GB/TB binary-vs-decimal is unresolved. MyAnonaMouse/REDacted have no structured goals. 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | Follow-ups: #11 TorrentLeech units; #12 MAM/REDacted excerpts. No UI, DB or ETA. |
 | P11 | done | P09–P10 | `main @ d1c11333` (merged; not deployed) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Light/dark/mobile artifacts generated in CI and reviewed; no application clipping found after capture fix. #14 closed. |
 | P12 | done | P03 | `main @ 02f0645d` (merged; not deployed) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
-| P13 | done | P12 | branch `feat/p13-download-budget-ui` (not merged) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6083 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. No P14. |
+| P13 | done | P12 | branch `feat/p13-download-budget-ui` (not merged) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6083 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18 | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. No P14. |
 | P14 | pending | P02–P03 | — | No Prowlarr import | Add preview/test/select/import with explicit credentials |
 | P15 | pending | P14 | — | No Jackett import | Reuse P14 preview/import contract |
 | P16 | pending | P02, P04; P11 for goals | — | App has session-authenticated internal API routes; no versioned scoped integration API | Add hashed, revocable read-only tokens; no mutations |
@@ -1126,11 +1126,20 @@ queue add/edit/remove worked at 390px, vertical scrolling reached the panel
 bottom, and the light/dark/mobile artifacts were inspected. Issue #14 was closed
 only after those checks.
 
+UX correction: the queue preview was showing the physical transfer budget
+(383 GiB) instead of remaining charged allowance (65 GiB). The calculator now
+exposes `remainingChargedAfterProposed`; the prominent result and queue use it,
+while physical budget is secondary. The draft preview now names the actual
+blocker, draft values remain visible after adding, and controls/labels are
+simplified. Regression covers U=900/D=600 with 50/15 freeleech + 155/80 charged
+=> 235 charged, 835 downloaded, ratio 1.08, 65 GiB remaining. PR #18 contains
+the fix; it is not merged.
+
 Tests: `DownloadBudgetPanel.test.tsx` covers single results, unknown accounting,
 freeleech scenario, target below minimum, queue add/edit/remove/cumulative,
-stale/unavailable data and no network mutation. Full suite 238 files / 6083
-tests; TypeScript, Biome, security audit 38/38, production build and Docker
-Build & Scan pass.
+stale/unavailable data, the exact reported queue and no network mutation. Full
+suite 238 files / 6085 tests; TypeScript, Biome, security audit 38/38,
+production build and Docker Build & Scan pass.
 
 ### P02b slices
 

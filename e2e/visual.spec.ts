@@ -81,9 +81,66 @@ test.describe.serial("rank and budget visual evidence", () => {
       () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
     )
     await page.waitForTimeout(300)
+    const metrics = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const node = document.querySelector(selector) as HTMLElement | null
+        if (!node) return null
+        const r = node.getBoundingClientRect()
+        return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom }
+      }
+      const main = document.querySelector("main") as HTMLElement | null
+      const overflows: { tag: string; cls: string; left: number; right: number; width: number }[] = []
+      for (const node of document.querySelectorAll<HTMLElement>("body *")) {
+        const r = node.getBoundingClientRect()
+        if (r.width > 0 && (r.right > window.innerWidth + 1 || r.left < -1)) {
+          overflows.push({ tag: node.tagName, cls: node.className, left: r.left, right: r.right, width: r.width })
+          if (overflows.length >= 12) break
+        }
+      }
+      return {
+        viewport: { innerWidth: window.innerWidth, innerHeight: window.innerHeight, docScrollWidth: document.documentElement.scrollWidth, docClientWidth: document.documentElement.clientWidth },
+        main: main ? { rect: rect("main"), clientWidth: main.clientWidth, scrollWidth: main.scrollWidth, scrollLeft: main.scrollLeft, clientHeight: main.clientHeight, scrollHeight: main.scrollHeight, scrollTop: main.scrollTop, overflowX: getComputedStyle(main).overflowX, overflowY: getComputedStyle(main).overflowY } : null,
+        rank: rect("[data-rank-goal-panel]"),
+        budget: rect("[data-download-budget-panel]"),
+        overflows,
+      }
+    })
+    console.log("MOBILE_DIAGNOSTICS", JSON.stringify(metrics))
+    await page.evaluate(() => {
+      const main = document.querySelector("main")
+      if (main) {
+        main.scrollLeft = 0
+        main.scrollTop = 0
+      }
+      window.scrollTo(0, 0)
+    })
+    await page.screenshot({ path: "test-results/visual-mobile-full.png", fullPage: true })
     await rank.scrollIntoViewIfNeeded()
-    await budget.scrollIntoViewIfNeeded()
     await rank.screenshot({ path: "test-results/visual-rank-mobile.png" })
+    await budget.scrollIntoViewIfNeeded()
     await budget.screenshot({ path: "test-results/visual-budget-mobile.png" })
+
+    await page.getByLabel("Proposed size (GiB)").fill("40")
+    await page.getByLabel("Accounting assumption").selectOption("1")
+    await page.getByRole("button", { name: "Add to scenario" }).click()
+    await page.getByLabel("Proposed size (GiB)").fill("60")
+    await page.getByLabel("Accounting assumption").selectOption("0.5")
+    await page.getByRole("button", { name: "Add to scenario" }).click()
+    await expect(page.getByRole("button", { name: "Edit" }).first()).toBeVisible()
+    await page.getByRole("button", { name: "Edit" }).first().click()
+    await page.getByRole("button", { name: "Remove" }).first().click()
+    await expect(page.getByRole("button", { name: "Remove" })).toHaveCount(1)
+    await budget.scrollIntoViewIfNeeded()
+    await budget.screenshot({ path: "test-results/visual-budget-mobile-queue.png" })
+
+    const bottom = await page.evaluate(() => {
+      const main = document.querySelector("main") as HTMLElement | null
+      const budget = document.querySelector("[data-download-budget-panel]") as HTMLElement | null
+      if (!main || !budget) return null
+      main.scrollTop = main.scrollHeight
+      return { mainScrollTop: main.scrollTop, mainScrollHeight: main.scrollHeight, budgetBottom: budget.getBoundingClientRect().bottom, viewportHeight: window.innerHeight }
+    })
+    console.log("MOBILE_BOTTOM", JSON.stringify(bottom))
+    await page.screenshot({ path: "test-results/visual-mobile-bottom.png" })
   })
 })

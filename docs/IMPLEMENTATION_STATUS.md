@@ -84,8 +84,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P06 | done | P05, P02 | `main @ 45a81cc` (merged; not deployed) | Telegram through existing notification targets, dispatch, cooldowns and durable delivery state; encryptedConfig reuse (no schema change); bot-token/chat-id validation and Settings controls; plain-text sendMessage; 5s timeout, circuit breaker, 429 retry_after, API ok:false/401 handling; token redaction; 6 delivery + 3 dispatch + validation tests; 229 files / 6019 tests, TypeScript, Biome, audit 38/38, build | No ntfy, digests or other platforms. No real Telegram call; local fake service only. Discord behavior unchanged. |
 | P07 | done | P06 | `main @ 380c5600` (merged; not deployed) | ntfy through existing target/dispatch/cooldown/durable-state/circuit path; serverUrl/topic/optional token in encryptedConfig; per-target private-network opt-in; JSON publish with Bearer auth; redirect refused; 5s timeout, response cap, 429/401/403 handling; token/topic redaction; 5 delivery + 1 dispatch + 3 validation tests; 230 files / 6028 tests, TypeScript, Biome, audit 38/38, build | No digests, quiet hours or later platforms. No real ntfy message; local fake service only. Discord/Telegram unchanged. |
 | P08 | done | P04, P06, P07 | `main @ 33f227c5` (merged; not deployed) | Migrations 0001/0002; opt-in digest + quiet hours; master-scheduler tick with advisory lock; per-target dedup/backoff; DST-aware timezone; provider-aware truncation; restore id/state remap; 8 digest + 4 quiet + 3 digest-run tests; 232 files / 6046 tests, TypeScript, Biome, audit 38/38, build | Docker run 40096915406 validated fresh + P02a upgrade. No real notifications. |
-| P09 | done | P03 | branch `feat/p09-rank-goals` (not merged) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P10 remains. |
-| P10 | pending | P09 | — | Registry has user classes/rank paths, but no pilot goal/requirement definitions with provenance | Select 3–5 accessible trackers; encode only verifiable conditions |
+| P09 | done | P03 | `main @ e925ca18` (merged; not deployed) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P11 remains. |
+| P10 | done with unresolved sources | P09 | branch `feat/p10-rank-pilots` (not merged) | TorrentLeech structured pilot from official public wiki (4 promotion classes, ALL conditions); MyAnonaMouse/REDacted kept unresolved with no invented thresholds; source/access metadata; boundary/unit/stale/manual tests; 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | MyAnonaMouse/REDacted official excerpts remain unresolved (login/403). Binary GiB/TiB conversion differs from wiki wording. No UI, DB or ETA. |
 | P11 | pending | P09–P10 | — | Rank progress UI exists; no custom goals or estimates | Add Next rank, Custom goal, missing conditions and estimates |
 | P12 | pending | P03 | — | No download/headroom calculator | Implement pure calculator with BigInt precision and unknown handling |
 | P13 | pending | P12 | — | No calculator UI or queue integration | Split P13a form and P13b queue |
@@ -1007,6 +1007,34 @@ separation, large values, unknown ranks, appointed classes, branch forks and
 personal goals. Full suite 234 files / 6058 tests; TypeScript, Biome, security
 audit 38/38 and production build pass.
 
+### P10 pilot rank definitions
+
+- `src/data/rank-goals.ts` selects three existing ladder entries:
+  **TorrentLeech**, **MyAnonaMouse** and **REDacted**.
+- **TorrentLeech** is the only source-backed pilot. The official public wiki
+  (`https://wiki.torrentleech.org/doku.php/user_classes`) was consulted on
+  2026-10-25. Its own last-modified date (2021-09-03) is recorded separately
+  and is not treated as a fresh verification. The four earned promotion classes
+  encode the wiki's exact AND conditions: account age (gte), uploaded transfer
+  (strictly more than) and ratio (strictly above). VIP/staff classes remain
+  manual/outside the ladder.
+- Transfer units are represented in binary GiB/TiB to match the app's byte
+  display. The wiki says GB/TB, so the exact display convention is listed as
+  unresolved rather than silently treated as proven.
+- **MyAnonaMouse** and **REDacted** keep their existing free-text registry
+  descriptions but have **no structured goals**. Their official wikis were not
+  publicly readable (403/login), and no threshold was inferred from prose.
+  Their required excerpts are listed for a later live-verification pass.
+- The P09 evaluator remains the only calculation path. Eligibility is
+  informational; no observed rank is changed and no promotion is applied.
+- No database, UI, tracker access or ETA implementation.
+
+Tests: `src/data/__tests__/rank-goals.test.ts` covers TorrentLeech ALL
+boundaries, exact threshold semantics, unit conversion, missing/stale values,
+manual VIP/appointed behavior, source-date separation and unresolved pilot
+non-eligibility. Full suite 235 files / 6064 tests; TypeScript, Biome, security
+audit 38/38 and production build pass.
+
 ### P02b slices
 
 1. **P02b-1:** policy, production manifest/baseline, checksum validator,
@@ -1033,7 +1061,7 @@ audit 38/38 and production build pass.
 
 - **P02 is the main structural blocker.** P03, P06, P14, P16 and any new persisted goal/notification state should not create schema without a controlled upgrade and backup/restore path.
 - **P04 blocks the first daily-use delivery.** P05, P06, P08 and the action portion of P16 depend on a stable action model and keys.
-- **P09/P10 block the progress delivery.** P11, P17, P18 and P24 should not duplicate rank logic before the evaluator exists.
+- **P09/P10 now provide the progress foundation.** P11, P17, P18 and P24 must reuse the evaluator and pilot definitions rather than introduce parallel rank logic.
 - **P12 blocks the calculator and comparison tasks.** P13 and P20 depend on the pure function, not on the queue.
 - **P14 blocks P15 and P19.** P21 depends on search; do not build a direct download action first.
 - **P22 blocks P23.** The space candidate task is explicitly optional and must not delete or move data.

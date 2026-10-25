@@ -86,8 +86,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P08 | done | P04, P06, P07 | `main @ 33f227c5` (merged; not deployed) | Migrations 0001/0002; opt-in digest + quiet hours; master-scheduler tick with advisory lock; per-target dedup/backoff; DST-aware timezone; provider-aware truncation; restore id/state remap; 8 digest + 4 quiet + 3 digest-run tests; 232 files / 6046 tests, TypeScript, Biome, audit 38/38, build | Docker run 40096915406 validated fresh + P02a upgrade. No real notifications. |
 | P09 | done | P03 | `main @ e925ca18` (merged; not deployed) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P11 remains. |
 | P10 | partial pilot coverage | P09 | `main @ a8fca65` (merged; not deployed) | TorrentLeech: account-age and ratio conditions verified from the public wiki; four upload conditions kept explicitly unknown because GB/TB binary-vs-decimal is unresolved. MyAnonaMouse/REDacted have no structured goals. 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | Follow-ups: #11 TorrentLeech units; #12 MAM/REDacted excerpts. No UI, DB or ETA. |
-| P11 | done (visual capture blocked) | P09–P10 | branch `feat/p11-rank-goal-ui-v2` (not merged) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Local Postgres/Docker unavailable, so light/dark/mobile screenshots were not captured. No P12. |
-| P12 | pending | P03 | — | No download/headroom calculator | Implement pure calculator with BigInt precision and unknown handling |
+| P11 | done (visual capture blocked) | P09–P10 | `main @ d1c11333` (merged; not deployed) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Local Postgres/Docker unavailable, so light/dark/mobile screenshots were not captured; follow-up #14. |
+| P12 | done | P03 | branch `feat/p12-download-budget` (not merged) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
 | P13 | pending | P12 | — | No calculator UI or queue integration | Split P13a form and P13b queue |
 | P14 | pending | P02–P03 | — | No Prowlarr import | Add preview/test/select/import with explicit credentials |
 | P15 | pending | P14 | — | No Jackett import | Reuse P14 preview/import contract |
@@ -1072,6 +1072,31 @@ unsupported/unresolved trackers and target persistence. Full suite 236 files /
 6070 tests, TypeScript, Biome, security audit 38/38 and production build pass.
 Light/dark/mobile screenshot inspection remains blocked because local
 PostgreSQL and Docker are unavailable; follow-up: https://github.com/rednato25/tracker-tracker/issues/14. Docker CI validates migrations, not rendered UI.
+
+### P12 download-budget calculator
+
+- `src/lib/download-budget.ts` implements the roadmap formulas over accounted
+  upload/download, proposed size, explicit charged fraction, user target ratio,
+  already-committed charged traffic and a charged-traffic reserve.
+- It returns charged bytes, projected downloaded, projected ratio, headroom,
+  physical transfer budget and additional upload required to reach the target.
+  A negative headroom produces a zero budget, not a negative allowance.
+- The tracker minimum ratio and the user-selected target are separate inputs;
+  the calculation uses only the target ratio. Per-torrent seeding/H&R rules are
+  not mixed into the account calculation.
+- Unknown charged fraction, invalid/negative values, unknown amounts and no
+  target make the result unavailable. A zero charged fraction is explicitly
+  `scenario-only`, not unlimited or safe capacity. The result always carries
+  `safetyVerdict: "not-assessed"`.
+- Freeleech/accounting multipliers are accepted only as an explicit fraction;
+  no future upload is credited and no dynamic ratio rule is predicted.
+- Follow-up for dynamic ratio/freeleech-expiry evidence: #15.
+
+Tests: `src/lib/download-budget.test.ts` covers the roadmap example, explicit
+fractions, committed traffic, required upload, zero amounts, exact boundaries,
+negative/oversized reserves, unknown/invalid inputs, no-ratio status and
+target-vs-minimum separation. Full suite 237 files / 6078 tests; TypeScript,
+Biome, security audit 38/38 and production build pass.
 
 ### P02b slices
 

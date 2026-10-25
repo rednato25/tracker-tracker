@@ -85,7 +85,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P07 | done | P06 | `main @ 380c5600` (merged; not deployed) | ntfy through existing target/dispatch/cooldown/durable-state/circuit path; serverUrl/topic/optional token in encryptedConfig; per-target private-network opt-in; JSON publish with Bearer auth; redirect refused; 5s timeout, response cap, 429/401/403 handling; token/topic redaction; 5 delivery + 1 dispatch + 3 validation tests; 230 files / 6028 tests, TypeScript, Biome, audit 38/38, build | No digests, quiet hours or later platforms. No real ntfy message; local fake service only. Discord/Telegram unchanged. |
 | P08 | done | P04, P06, P07 | `main @ 33f227c5` (merged; not deployed) | Migrations 0001/0002; opt-in digest + quiet hours; master-scheduler tick with advisory lock; per-target dedup/backoff; DST-aware timezone; provider-aware truncation; restore id/state remap; 8 digest + 4 quiet + 3 digest-run tests; 232 files / 6046 tests, TypeScript, Biome, audit 38/38, build | Docker run 40096915406 validated fresh + P02a upgrade. No real notifications. |
 | P09 | done | P03 | `main @ e925ca18` (merged; not deployed) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P11 remains. |
-| P10 | done with unresolved sources | P09 | branch `feat/p10-rank-pilots` (not merged) | TorrentLeech structured pilot from official public wiki (4 promotion classes, ALL conditions); MyAnonaMouse/REDacted kept unresolved with no invented thresholds; source/access metadata; boundary/unit/stale/manual tests; 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | MyAnonaMouse/REDacted official excerpts remain unresolved (login/403). Binary GiB/TiB conversion differs from wiki wording. No UI, DB or ETA. |
+| P10 | partial pilot coverage | P09 | branch `feat/p10-rank-pilots` (not merged) | TorrentLeech: account-age and ratio conditions verified from the public wiki; four upload conditions kept explicitly unknown because GB/TB binary-vs-decimal is unresolved. MyAnonaMouse/REDacted have no structured goals. 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | Follow-ups: #11 TorrentLeech units; #12 MAM/REDacted excerpts. No UI, DB or ETA. |
 | P11 | pending | P09–P10 | — | Rank progress UI exists; no custom goals or estimates | Add Next rank, Custom goal, missing conditions and estimates |
 | P12 | pending | P03 | — | No download/headroom calculator | Implement pure calculator with BigInt precision and unknown handling |
 | P13 | pending | P12 | — | No calculator UI or queue integration | Split P13a form and P13b queue |
@@ -1014,25 +1014,32 @@ audit 38/38 and production build pass.
 - **TorrentLeech** is the only source-backed pilot. The official public wiki
   (`https://wiki.torrentleech.org/doku.php/user_classes`) was consulted on
   2026-10-25. Its own last-modified date (2021-09-03) is recorded separately
-  and is not treated as a fresh verification. The four earned promotion classes
-  encode the wiki's exact AND conditions: account age (gte), uploaded transfer
-  (strictly more than) and ratio (strictly above). VIP/staff classes remain
-  manual/outside the ladder.
-- Transfer units are represented in binary GiB/TiB to match the app's byte
-  display. The wiki says GB/TB, so the exact display convention is listed as
-  unresolved rather than silently treated as proven.
+  and is not treated as a fresh verification.
+- The wiki's account-age and ratio conditions are encoded exactly (gte for the
+  minimum registration period, strict greater-than for ratio). Four promotion
+  classes use those verified conditions.
+- The upload thresholds are retained with their required values, but marked
+  `verification: "unresolved"`: the wiki says GB/TB without establishing binary
+  or decimal units. The evaluator reports the upload condition `unknown`, so no
+  fully eligible result can be claimed. The unit caveat is visible on the
+  condition.
+- VIP/staff classes remain manual/outside the ladder.
 - **MyAnonaMouse** and **REDacted** keep their existing free-text registry
   descriptions but have **no structured goals**. Their official wikis were not
   publicly readable (403/login), and no threshold was inferred from prose.
-  Their required excerpts are listed for a later live-verification pass.
+- Follow-up issues: https://github.com/rednato25/tracker-tracker/issues/11
+  (TorrentLeech units) and
+  https://github.com/rednato25/tracker-tracker/issues/12 (MAM/REDacted
+  excerpts).
 - The P09 evaluator remains the only calculation path. Eligibility is
   informational; no observed rank is changed and no promotion is applied.
 - No database, UI, tracker access or ETA implementation.
 
-Tests: `src/data/__tests__/rank-goals.test.ts` covers TorrentLeech ALL
-boundaries, exact threshold semantics, unit conversion, missing/stale values,
-manual VIP/appointed behavior, source-date separation and unresolved pilot
-non-eligibility. Full suite 235 files / 6064 tests; TypeScript, Biome, security
+Tests: `src/data/__tests__/rank-goals.test.ts` covers TorrentLeech verified
+age/ratio boundaries, exact gt/gte semantics, unresolved upload units, a
+regression proving high transfers cannot produce eligibility, missing/stale
+values, manual VIP/appointed behavior, source-date separation and unresolved
+pilot non-eligibility. Full suite 235 files / 6064 tests; TypeScript, Biome, security
 audit 38/38 and production build pass.
 
 ### P02b slices

@@ -38,13 +38,23 @@ function goal(overrides: Partial<Parameters<typeof evaluateRankGoal>[0]> = {}) {
 }
 
 describe("P10 TorrentLeech pilot", () => {
-  it("encodes the published AND conditions with exact boundary semantics", () => {
+  it("keeps the unresolved upload unit from producing eligibility", () => {
     const result = goal()
     expect(result.nextRank).toBe("Power User")
-    expect(result.status).toBe("met")
-    expect(result.progress).toEqual({ met: 3, unmet: 0, unknown: 0, total: 3 })
+    expect(result.status).toBe("unknown")
+    expect(result.progress).toEqual({ met: 2, unmet: 0, unknown: 1, total: 3 })
+    expect(result.eligible).toBe(false)
     expect(result.freeTextRequirement).toContain("200 GB")
     expect(result.promotionApplied).toBe(false)
+    const uploadCondition = result.structuredRequirement?.conditions[1]
+    expect(uploadCondition).toMatchObject({
+      status: "unknown",
+      requiredValue: 200 * GiB,
+    })
+    if (!uploadCondition || "conditions" in uploadCondition) {
+      throw new Error("expected a leaf upload condition")
+    }
+    expect(uploadCondition.reason).toMatch(/GB\/TB|binary or decimal/)
 
     const exactBoundaries = goal({
       joinedAt: "2026-10-11T12:00:00.000Z",
@@ -55,8 +65,12 @@ describe("P10 TorrentLeech pilot", () => {
     })
     expect(exactBoundaries.status).toBe("unmet")
     expect(exactBoundaries.structuredRequirement?.conditions[1]).toMatchObject({
-      status: "unmet",
+      status: "unknown",
       requiredValue: 200 * GiB,
+    })
+    expect(exactBoundaries.structuredRequirement?.conditions[2]).toMatchObject({
+      status: "unmet",
+      requiredValue: 1.1,
     })
   })
 

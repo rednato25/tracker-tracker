@@ -62,6 +62,9 @@ const torrentLeech: PilotRankDefinition = {
           comparison: "gt",
           requiredValue: 200 * GiB,
           scope: "account",
+          verification: "unresolved",
+          note:
+            "The official page says GB/TB without establishing binary or decimal units; the upload condition is not used for eligibility until confirmed.",
           label: "More than 200 GiB uploaded",
         },
         {
@@ -94,6 +97,9 @@ const torrentLeech: PilotRankDefinition = {
           comparison: "gt",
           requiredValue: 1 * TiB,
           scope: "account",
+          verification: "unresolved",
+          note:
+            "The official page says GB/TB without establishing binary or decimal units; the upload condition is not used for eligibility until confirmed.",
           label: "More than 1 TiB uploaded",
         },
         {
@@ -126,6 +132,9 @@ const torrentLeech: PilotRankDefinition = {
           comparison: "gt",
           requiredValue: 10 * TiB,
           scope: "account",
+          verification: "unresolved",
+          note:
+            "The official page says GB/TB without establishing binary or decimal units; the upload condition is not used for eligibility until confirmed.",
           label: "More than 10 TiB uploaded",
         },
         {
@@ -158,6 +167,9 @@ const torrentLeech: PilotRankDefinition = {
           comparison: "gt",
           requiredValue: 50 * TiB,
           scope: "account",
+          verification: "unresolved",
+          note:
+            "The official page says GB/TB without establishing binary or decimal units; the upload condition is not used for eligibility until confirmed.",
           label: "More than 50 TiB uploaded",
         },
         {

@@ -112,7 +112,7 @@ test.describe.serial("rank and budget visual evidence", () => {
         const el = document.querySelector(sel) as HTMLElement | null
         if (!main || !el) return
         main.scrollLeft = 0
-        main.scrollTop += el.getBoundingClientRect().top - 16
+        main.scrollTop += el.getBoundingClientRect().top - 72
       }, selector)
       await page.waitForTimeout(100)
     }
@@ -148,10 +148,10 @@ test.describe.serial("rank and budget visual evidence", () => {
 
     const rankHeight = await rank.evaluate((el) => el.getBoundingClientRect().height)
     const budgetHeight = await budget.evaluate((el) => el.getBoundingClientRect().height)
-    await page.setViewportSize({ width: 390, height: Math.ceil(rankHeight + 48) })
+    await page.setViewportSize({ width: 390, height: Math.ceil(rankHeight + 96) })
     await scrollMainTo("[data-rank-goal-panel]")
     await rank.screenshot({ path: "test-results/visual-rank-mobile-full.png" })
-    await page.setViewportSize({ width: 390, height: Math.ceil(budgetHeight + 48) })
+    await page.setViewportSize({ width: 390, height: Math.ceil(budgetHeight + 96) })
     await scrollMainTo("[data-download-budget-panel]")
     await budget.screenshot({ path: "test-results/visual-budget-mobile-full.png" })
     await page.setViewportSize({ width: 390, height: 844 })

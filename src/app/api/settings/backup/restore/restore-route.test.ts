@@ -192,6 +192,7 @@ function makeBackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPaylo
       quietHoursEnd: "06:00",
       quietHoursTimezone: "Europe/Bucharest",
       quietHoursCriticalBypass: true,
+      rankGoals: '{"1":{"targetRank":"Power User"}}',
     },
     trackers: [
       {
@@ -1423,6 +1424,13 @@ describe("POST /api/settings/backup/restore — P08 digest settings", () => {
     >
     expect(Object.keys(restoredState)).toEqual([String(restoredIds[0])])
     expect(restoredState[String(restoredIds[0])]).toEqual({ lastDigestKey: "2026-01-01" })
+
+    const restoredRankGoals = JSON.parse(
+      recorder.settingsUpdate?.rankGoals as string
+    ) as Record<string, { targetRank: string }>
+    const restoredTrackerIds = Object.keys(restoredRankGoals)
+    expect(restoredTrackerIds).not.toEqual(["1"])
+    expect(restoredRankGoals[restoredTrackerIds[0]]).toEqual({ targetRank: "Power User" })
   })
 })
 

@@ -66,6 +66,7 @@ export const appSettings = pgTable("app_settings", {
   backupStoragePath: varchar("backup_storage_path", { length: 500 }),
   draftQuicklinks: text("draft_quicklinks"),
   dashboardSettings: text("dashboard_settings"),
+  rankGoals: text("rank_goals"),
   digestEnabled: boolean("digest_enabled").default(false).notNull(),
   digestTime: varchar("digest_time", { length: 5 }).default("09:00").notNull(),
   digestTimezone: varchar("digest_timezone", { length: 64 }).default("UTC").notNull(),

@@ -16,6 +16,11 @@
       "version": "0002_quiet_hours",
       "file": "0002_quiet_hours.sql",
       "sha256": "509584c5afd694e9ee18937a9495c081df2874f121ebd46ebe12dfa032e9ae47"
+    },
+    {
+      "version": "0003_rank_goals",
+      "file": "0003_rank_goals.sql",
+      "sha256": "d4144b75bd0ac2bbbd2a632d9fb0622d0e0325d451444f0b57641e958702fd24"
     }
   ]
 }

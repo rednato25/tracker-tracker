@@ -64,6 +64,7 @@ export interface SettingsData {
   hasOeimgKey: boolean
   hasImgbbKey: boolean
   credentialVaultEnabled: boolean
+  rankGoals: string | null
   digestEnabled: boolean
   digestTime: string
   digestTimezone: string

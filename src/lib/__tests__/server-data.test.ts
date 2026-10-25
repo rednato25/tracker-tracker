@@ -268,6 +268,7 @@ describe("serializeSettingsResponse", () => {
     hasBackupPassword: null,
     backupStoragePath: null,
     credentialVaultEnabled: false,
+    rankGoals: null,
     digestEnabled: false,
     digestTime: "09:00",
     digestTimezone: "UTC",

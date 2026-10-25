@@ -609,6 +609,33 @@ export async function PATCH(request: Request) {
     updates.quietHoursCriticalBypass = body.quietHoursCriticalBypass
   }
 
+  // --- Rank goals (target rank per tracker id) ---
+  if (body.rankGoals !== undefined) {
+    if (body.rankGoals === null) {
+      updates.rankGoals = null
+    } else if (typeof body.rankGoals !== "object" || Array.isArray(body.rankGoals)) {
+      return NextResponse.json({ error: "rankGoals must be an object or null" }, { status: 400 })
+    } else {
+      const clean: Record<string, { targetRank: string }> = {}
+      for (const [trackerId, value] of Object.entries(body.rankGoals)) {
+        if (!/^[1-9]\d*$/.test(trackerId)) {
+          return NextResponse.json({ error: "rankGoals keys must be tracker ids" }, { status: 400 })
+        }
+        if (
+          !value ||
+          typeof value !== "object" ||
+          typeof (value as { targetRank?: unknown }).targetRank !== "string" ||
+          !(value as { targetRank: string }).targetRank.trim() ||
+          (value as { targetRank: string }).targetRank.length > 120
+        ) {
+          return NextResponse.json({ error: "rankGoals values must include targetRank" }, { status: 400 })
+        }
+        clean[trackerId] = { targetRank: (value as { targetRank: string }).targetRank.trim() }
+      }
+      updates.rankGoals = JSON.stringify(clean)
+    }
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
   }

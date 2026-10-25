@@ -1097,6 +1097,33 @@ export async function POST(request: Request) {
         }
       }
 
+      let restoredRankGoals: string | null = null
+      if (payload.settings.rankGoals) {
+        try {
+          const parsed = JSON.parse(payload.settings.rankGoals as string) as Record<
+            string,
+            { targetRank?: unknown }
+          >
+          const mapped: Record<string, { targetRank: string }> = {}
+          for (const [oldTrackerId, goal] of Object.entries(parsed)) {
+            const newTrackerId = trackerIdMap.get(Number(oldTrackerId))
+            if (newTrackerId === undefined) continue
+            if (
+              goal &&
+              typeof goal === "object" &&
+              typeof goal.targetRank === "string" &&
+              goal.targetRank.trim()
+            ) {
+              mapped[String(newTrackerId)] = { targetRank: goal.targetRank.trim() }
+            }
+          }
+          restoredRankGoals = Object.keys(mapped).length > 0 ? JSON.stringify(mapped) : null
+        } catch (err) {
+          log.warn({ event: "restore_rank_goals_invalid", error: errMsg(err) }, "Discarding invalid rank goals")
+          restoredRankGoals = null
+        }
+      }
+
       await tx
         .update(appSettings)
         .set({
@@ -1141,6 +1168,7 @@ export async function POST(request: Request) {
           encryptedImgbbApiKey,
           draftQuicklinks: (payload.settings.draftQuicklinks as string | null) ?? null,
           dashboardSettings: (payload.settings.dashboardSettings as string | null) ?? null,
+          rankGoals: restoredRankGoals,
           digestEnabled: (payload.settings.digestEnabled as boolean) ?? false,
           digestTime: (payload.settings.digestTime as string | null) ?? "09:00",
           digestTimezone: (payload.settings.digestTimezone as string | null) ?? "UTC",

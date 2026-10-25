@@ -141,8 +141,6 @@ export function DownloadBudgetPanel({
         { id: `${trackerId}-${Date.now()}-${current.length}`, sizeGiB: size, chargedFraction },
       ])
     }
-    setSize("")
-    setChargedFraction("")
   }
 
   function editEntry(entry: ScenarioEntry) {

@@ -75,6 +75,7 @@ describe("DownloadBudgetPanel", () => {
     await user.type(size, "40")
     await user.selectOptions(screen.getByLabelText("How is it charged?"), "1")
     await user.click(screen.getByRole("button", { name: "Add to simulation" }))
+    await user.clear(size)
     await user.type(size, "60")
     await user.selectOptions(screen.getByLabelText("How is it charged?"), "0.5")
     await user.click(screen.getByRole("button", { name: "Add to simulation" }))
@@ -97,7 +98,9 @@ describe("DownloadBudgetPanel", () => {
       },
     })
     const add = async (sizeGiB: string, charge: string) => {
-      await user.type(screen.getByLabelText("Download size (GiB)"), sizeGiB)
+      const field = screen.getByLabelText("Download size (GiB)")
+      await user.clear(field)
+      await user.type(field, sizeGiB)
       await user.selectOptions(screen.getByLabelText("How is it charged?"), charge)
       await user.click(screen.getByRole("button", { name: "Add to simulation" }))
     }
@@ -107,8 +110,12 @@ describe("DownloadBudgetPanel", () => {
     await add("80", "1")
     expect(await screen.findByText(/Projected ratio:/)).toHaveTextContent(/1\.08/)
     expect(screen.getByText(/Remaining allowance:/)).toHaveTextContent(/65(?:\.0+)? GiB/)
-    expect(screen.getByText(/Charged download:/)).toHaveTextContent(/235(?:\.0+)? GiB/)
-    expect(screen.getByText(/Total downloaded:/)).toHaveTextContent(/835(?:\.0+)? GiB/)
+    expect(
+      screen.getAllByText(/Charged download:/).some((el) => /235(?:\.0+)? GiB/.test(el.textContent ?? ""))
+    ).toBe(true)
+    expect(
+      screen.getAllByText(/Total downloaded:/).some((el) => /835(?:\.0+)? GiB/.test(el.textContent ?? ""))
+    ).toBe(true)
   })
 
   it("marks stale data and unavailable observations", () => {

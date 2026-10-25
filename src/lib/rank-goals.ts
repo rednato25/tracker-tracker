@@ -37,6 +37,9 @@ export interface RankNumericCondition {
   /** Rank conditions are account-level; per-torrent rules stay separate. */
   scope?: "account" | "per-torrent"
   label?: string
+  /** "unresolved" keeps the value visible but prevents a met/unmet claim. */
+  verification?: "verified" | "unresolved"
+  note?: string
 }
 
 export interface RankManualCondition {
@@ -182,6 +185,23 @@ function evaluateCondition(
       source: "unknown",
       remaining: null,
       reason: "Manual or non-numeric condition cannot be evaluated from collected data.",
+    }
+  }
+
+  if (condition.verification === "unresolved") {
+    return {
+      id,
+      kind: "numeric",
+      label,
+      requiredValue: condition.requiredValue,
+      observedValue: observationFor(condition.metric, input)?.value ?? null,
+      status: "unknown",
+      freshness: observationFor(condition.metric, input)?.freshness ?? "unknown",
+      source: observationFor(condition.metric, input)?.source ?? "unknown",
+      remaining: null,
+      reason:
+        condition.note ??
+        "The threshold or its unit is unresolved; this condition cannot establish eligibility.",
     }
   }
 

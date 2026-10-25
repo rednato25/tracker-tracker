@@ -106,6 +106,16 @@ test.describe.serial("rank and budget visual evidence", () => {
       }
     })
     console.log("MOBILE_DIAGNOSTICS", JSON.stringify(metrics))
+    const scrollMainTo = async (selector: string) => {
+      await page.evaluate((sel) => {
+        const main = document.querySelector("main") as HTMLElement | null
+        const el = document.querySelector(sel) as HTMLElement | null
+        if (!main || !el) return
+        main.scrollLeft = 0
+        main.scrollTop += el.getBoundingClientRect().top - 16
+      }, selector)
+      await page.waitForTimeout(100)
+    }
     await page.evaluate(() => {
       const main = document.querySelector("main")
       if (main) {
@@ -114,11 +124,37 @@ test.describe.serial("rank and budget visual evidence", () => {
       }
       window.scrollTo(0, 0)
     })
-    await page.screenshot({ path: "test-results/visual-mobile-full.png", fullPage: true })
-    await rank.scrollIntoViewIfNeeded()
-    await rank.screenshot({ path: "test-results/visual-rank-mobile.png" })
-    await budget.scrollIntoViewIfNeeded()
-    await budget.screenshot({ path: "test-results/visual-budget-mobile.png" })
+    await page.screenshot({ path: "test-results/visual-mobile-full.png" })
+    await scrollMainTo("[data-rank-goal-panel]")
+    await page.screenshot({ path: "test-results/visual-rank-mobile.png" })
+    await scrollMainTo("[data-download-budget-panel]")
+    await page.screenshot({ path: "test-results/visual-budget-mobile-top.png" })
+
+    const budgetBottom = await page.evaluate(() => {
+      const main = document.querySelector("main") as HTMLElement | null
+      const el = document.querySelector("[data-download-budget-panel]") as HTMLElement | null
+      if (!main || !el) return null
+      main.scrollTop += el.getBoundingClientRect().bottom - main.clientHeight + 16
+      return {
+        visible: el.getBoundingClientRect().bottom <= main.clientHeight + 1,
+        mainScrollTop: main.scrollTop,
+        panelBottom: el.getBoundingClientRect().bottom,
+        viewportHeight: main.clientHeight,
+      }
+    })
+    console.log("MOBILE_PANEL_BOTTOM", JSON.stringify(budgetBottom))
+    if (!budgetBottom?.visible) throw new Error("Budget panel bottom is not reachable by vertical scroll")
+    await page.screenshot({ path: "test-results/visual-budget-mobile-bottom.png" })
+
+    const rankHeight = await rank.evaluate((el) => el.getBoundingClientRect().height)
+    const budgetHeight = await budget.evaluate((el) => el.getBoundingClientRect().height)
+    await page.setViewportSize({ width: 390, height: Math.ceil(rankHeight + 48) })
+    await scrollMainTo("[data-rank-goal-panel]")
+    await rank.screenshot({ path: "test-results/visual-rank-mobile-full.png" })
+    await page.setViewportSize({ width: 390, height: Math.ceil(budgetHeight + 48) })
+    await scrollMainTo("[data-download-budget-panel]")
+    await budget.screenshot({ path: "test-results/visual-budget-mobile-full.png" })
+    await page.setViewportSize({ width: 390, height: 844 })
 
     await page.getByLabel("Proposed size (GiB)").fill("40")
     await page.getByLabel("Accounting assumption").selectOption("1")
@@ -130,8 +166,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     await page.getByRole("button", { name: "Edit" }).first().click()
     await page.getByRole("button", { name: "Remove" }).first().click()
     await expect(page.getByRole("button", { name: "Remove" })).toHaveCount(1)
-    await budget.scrollIntoViewIfNeeded()
-    await budget.screenshot({ path: "test-results/visual-budget-mobile-queue.png" })
+    await scrollMainTo("[data-download-budget-panel]")
+    await page.screenshot({ path: "test-results/visual-budget-mobile-queue.png" })
 
     const bottom = await page.evaluate(() => {
       const main = document.querySelector("main") as HTMLElement | null

@@ -60,13 +60,12 @@ test.describe.serial("rank and budget visual evidence", () => {
     await expect(page.locator("[data-rank-goal-panel]")).toBeVisible()
     await expect(page.locator("[data-download-budget-panel]")).toBeVisible()
 
-    await page.getByLabel("Proposed size (GiB)").fill("80")
-    await page.getByLabel("Accounting assumption").selectOption("1")
-    await page.getByLabel("Charged reserve (GiB)").fill("100")
+    await page.getByLabel("Download size (GiB)").fill("80")
+    await page.getByLabel("How is it charged?").selectOption("1")
+    await page.getByText(/Advanced: committed traffic and reserve/).click()
+    await page.getByLabel("Reserve (GiB)").fill("100")
     await expect(page.getByText(/Projected ratio/)).toBeVisible()
 
-    const rank = page.locator("[data-rank-goal-panel]")
-    const budget = page.locator("[data-download-budget-panel]")
     const capturePanel = async (selector: string, path: string) => {
       const box = await page.locator(selector).boundingBox()
       if (!box) throw new Error(`no box for ${selector}`)
@@ -192,5 +191,45 @@ test.describe.serial("rank and budget visual evidence", () => {
     })
     console.log("MOBILE_BOTTOM", JSON.stringify(bottom))
     await page.screenshot({ path: "test-results/visual-mobile-bottom.png" })
+  })
+
+  test("captures the reported queue totals after the UX fix", async ({ page }) => {
+    const sql = e2eSql()
+    try {
+      await sql`
+        update tracker_snapshots
+        set uploaded_bytes = ${900 * GiB}, downloaded_bytes = ${600 * GiB}, ratio = 1.5
+        where tracker_id = ${trackerId}
+      `
+    } finally {
+      await sql.end()
+    }
+    await page.goto(`/trackers/${trackerId}`)
+    await expect(page.locator("[data-download-budget-panel]")).toBeVisible()
+    await page.getByLabel("Your target ratio").fill("1")
+    const add = async (sizeGiB: string, charge: string) => {
+      await page.getByLabel("Download size (GiB)").fill(sizeGiB)
+      await page.getByLabel("How is it charged?").selectOption(charge)
+      await page.getByRole("button", { name: "Add to simulation" }).click()
+    }
+    await add("50", "0")
+    await add("15", "0")
+    await add("155", "1")
+    await add("80", "1")
+    await expect(page.getByText(/Remaining allowance:/)).toContainText(/65(?:\.0+)? GiB/)
+    await expect(page.getByText(/Projected ratio:/)).toContainText(/1\.08/)
+    await page.locator("[data-download-budget-panel]").scrollIntoViewIfNeeded()
+    await page.screenshot({ path: "test-results/visual-budget-queue-after.png" })
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.evaluate(() => {
+      const main = document.querySelector("main")
+      const el = document.querySelector("[data-download-budget-panel]") as HTMLElement | null
+      if (main && el) main.scrollTop += el.getBoundingClientRect().top - 72
+    })
+    await page.screenshot({ path: "test-results/visual-budget-queue-after-mobile.png" })
   })
 })

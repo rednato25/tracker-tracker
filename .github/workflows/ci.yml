@@ -35,3 +35,63 @@ jobs:
 
       - name: Run tests
         run: pnpm test:run
+
+  visual:
+    name: Visual Evidence
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: tracker_tracker_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d tracker_tracker_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: tracker_tracker_e2e
+      DATABASE_URL: postgresql://test:test@localhost:5432/tracker_tracker_e2e
+      SESSION_SECRET: visual-evidence-session-secret-0123456789abcdef
+      E2E_PORT: 3020
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Initialize disposable database
+        run: node scripts/db/migrate.mjs
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Capture rank and budget screenshots
+        run: pnpm exec playwright test e2e/visual.spec.ts --reporter=list
+
+      - name: Upload visual artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-evidence
+          path: test-results/visual-*.png
+          if-no-files-found: error

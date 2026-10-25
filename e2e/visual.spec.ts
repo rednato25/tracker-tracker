@@ -242,8 +242,8 @@ test.describe.serial("rank and budget visual evidence", () => {
           JSON.stringify([
             {
               id: 7,
-              name: "TorrentLeech",
-              implementation: "TorrentLeech",
+              name: "MyAnonaMouse",
+              implementation: "MyAnonaMouse",
               fields: [{ name: "baseUrl", value: "https://trackerleech.example" }],
             },
           ])
@@ -276,16 +276,16 @@ test.describe.serial("rank and budget visual evidence", () => {
       console.log("PROWLARR_STEP fields filled")
       await section.getByRole("button", { name: "Test and preview" }).click()
       console.log("PROWLARR_STEP preview clicked")
-      await expect(section.getByText("TorrentLeech", { exact: true }).first()).toBeVisible({ timeout: 10_000 })
+      await expect(section.getByText("MyAnonaMouse", { exact: true }).first()).toBeVisible({ timeout: 10_000 })
       console.log("PROWLARR_STEP preview visible")
-      await section.getByLabel("Select TorrentLeech").check()
+      await section.getByLabel("Select MyAnonaMouse").check()
       await section.getByRole("button", { name: /Import selected/ }).click()
       await expect(section.getByText(/1 tracker\(s\) created/)).toBeVisible()
       const sql = e2eSql()
       try {
         const [row] = await sql<{ count: number; active: number }[]>`
           select count(*)::int as count, count(*) filter (where is_active)::int as active
-          from trackers where name = 'TorrentLeech'
+          from trackers where name = 'MyAnonaMouse'
         `
         expect(row.count).toBe(1)
         expect(row.active).toBe(0)
@@ -309,7 +309,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       await new Promise<void>((resolve) => server.close(() => resolve()))
       const sql = e2eSql()
       try {
-        await sql`delete from trackers where name = 'TorrentLeech' and is_active = false`
+        await sql`delete from trackers where name = 'MyAnonaMouse' and is_active = false`
       } finally {
         await sql.end()
       }

@@ -269,6 +269,8 @@ test.describe.serial("rank and budget visual evidence", () => {
       await page.goto("/settings")
       const section = page.locator("[data-prowlarr-import]")
       await expect(section).toBeVisible()
+      await section.getByLabel("Prowlarr URL").fill(prowlarrUrl)
+      await section.getByLabel(/Prowlarr API key/).fill("synthetic-prowlarr-key")
       await section.getByRole("button", { name: "Test and preview" }).click()
       await expect(section.getByText("TorrentLeech", { exact: true }).first()).toBeVisible()
       await section.getByLabel("Select TorrentLeech").check()

@@ -86,7 +86,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P08 | done | P04, P06, P07 | `main @ 33f227c5` (merged; not deployed) | Migrations 0001/0002; opt-in digest + quiet hours; master-scheduler tick with advisory lock; per-target dedup/backoff; DST-aware timezone; provider-aware truncation; restore id/state remap; 8 digest + 4 quiet + 3 digest-run tests; 232 files / 6046 tests, TypeScript, Biome, audit 38/38, build | Docker run 40096915406 validated fresh + P02a upgrade. No real notifications. |
 | P09 | done | P03 | `main @ e925ca18` (merged; not deployed) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P11 remains. |
 | P10 | partial pilot coverage | P09 | `main @ a8fca65` (merged; not deployed) | TorrentLeech: account-age and ratio conditions verified from the public wiki; four upload conditions kept explicitly unknown because GB/TB binary-vs-decimal is unresolved. MyAnonaMouse/REDacted have no structured goals. 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | Follow-ups: #11 TorrentLeech units; #12 MAM/REDacted excerpts. No UI, DB or ETA. |
-| P11 | done (visual capture blocked) | P09–P10 | branch `feat/p11-rank-goal-ui-v2` (not merged) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Local Postgres/Docker unavailable, so light/dark/mobile screenshots were not captured. No P12. |
+| P11 | done (visual capture blocked) | P09–P10 | branch `feat/p11-rank-goal-ui-v2` (not merged) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Local Postgres/Docker unavailable, so light/dark/mobile screenshots were not captured. No P12. |
 | P12 | pending | P03 | — | No download/headroom calculator | Implement pure calculator with BigInt precision and unknown handling |
 | P13 | pending | P12 | — | No calculator UI or queue integration | Split P13a form and P13b queue |
 | P14 | pending | P02–P03 | — | No Prowlarr import | Add preview/test/select/import with explicit credentials |
@@ -1056,6 +1056,8 @@ audit 38/38 and production build pass.
   percentage or promotion claim is produced.
 - The selected target is stored under `app_settings.rank_goals` (migration
   `0003_rank_goals`), so it survives restart and app-settings backup/restore.
+  Restore remaps the tracker-ID keys through the new tracker-ID map; a focused
+  fixture proves an old id 1 cannot keep pointing at the wrong restored tracker.
   No separate rank system or database table was added.
 - ETA is limited to a verified upload condition with at least two fresh
   observations spanning a day and a positive recent trend. It reports the basis
@@ -1069,7 +1071,7 @@ non-positive history. `RankGoalPanel.test.tsx` covers verified/unknown-unit,
 unsupported/unresolved trackers and target persistence. Full suite 236 files /
 6070 tests, TypeScript, Biome, security audit 38/38 and production build pass.
 Light/dark/mobile screenshot inspection remains blocked because local
-PostgreSQL and Docker are unavailable; Docker CI still validates migrations.
+PostgreSQL and Docker are unavailable; follow-up: https://github.com/rednato25/tracker-tracker/issues/14. Docker CI validates migrations, not rendered UI.
 
 ### P02b slices
 

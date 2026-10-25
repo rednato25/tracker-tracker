@@ -180,7 +180,7 @@ test.describe.serial("rank and budget visual evidence", () => {
     await page.getByRole("button", { name: "Edit" }).first().click()
     await page.getByRole("button", { name: "Remove" }).first().click()
     await expect(page.getByRole("button", { name: "Remove" })).toHaveCount(1)
-    await scrollMainTo("[data-download-budget-panel]")
+    await scrollMainTo("[data-scenario-queue]")
     await page.screenshot({ path: "test-results/visual-budget-mobile-queue.png" })
 
     const bottom = await page.evaluate(() => {

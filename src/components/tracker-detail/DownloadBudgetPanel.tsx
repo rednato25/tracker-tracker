@@ -275,7 +275,7 @@ export function DownloadBudgetPanel({
             </div>
           )}
           {entries.length > 0 && (
-            <div className="mt-3 border-t border-border pt-2">
+            <div className="mt-3 border-t border-border pt-2" data-scenario-queue>
               <div className="flex items-center justify-between gap-2">
                 <H2 className="uppercase tracking-wider">Scenario queue</H2>
                 <span className="font-mono text-4xs text-muted">Planning only</span>

@@ -67,14 +67,31 @@ test.describe.serial("rank and budget visual evidence", () => {
 
     const rank = page.locator("[data-rank-goal-panel]")
     const budget = page.locator("[data-download-budget-panel]")
-    await rank.screenshot({ path: "test-results/visual-rank-light.png" })
-    await budget.screenshot({ path: "test-results/visual-budget-light.png" })
+    const capturePanel = async (selector: string, path: string) => {
+      const box = await page.locator(selector).boundingBox()
+      if (!box) throw new Error(`no box for ${selector}`)
+      const viewport = page.viewportSize()
+      if (!viewport) throw new Error("no viewport")
+      const x = Math.max(0, box.x - 16)
+      const y = Math.max(0, box.y - 16)
+      await page.screenshot({
+        path,
+        clip: {
+          x,
+          y,
+          width: Math.min(viewport.width - x, box.width + 32),
+          height: Math.min(viewport.height - y, box.height + 32),
+        },
+      })
+    }
+    await capturePanel("[data-rank-goal-panel]", "test-results/visual-rank-light.png")
+    await capturePanel("[data-download-budget-panel]", "test-results/visual-budget-light.png")
 
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
-    await rank.screenshot({ path: "test-results/visual-rank-dark.png" })
-    await budget.screenshot({ path: "test-results/visual-budget-dark.png" })
+    await capturePanel("[data-rank-goal-panel]", "test-results/visual-rank-dark.png")
+    await capturePanel("[data-download-budget-panel]", "test-results/visual-budget-dark.png")
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForFunction(
@@ -148,9 +165,9 @@ test.describe.serial("rank and budget visual evidence", () => {
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await scrollMainTo("[data-rank-goal-panel]")
-    await rank.screenshot({ path: "test-results/visual-rank-mobile-full.png" })
+    await capturePanel("[data-rank-goal-panel]", "test-results/visual-rank-mobile-full.png")
     await scrollMainTo("[data-download-budget-panel]")
-    await budget.screenshot({ path: "test-results/visual-budget-mobile-full.png" })
+    await capturePanel("[data-download-budget-panel]", "test-results/visual-budget-mobile-full.png")
     await page.setViewportSize({ width: 390, height: 844 })
 
     await page.getByLabel("Proposed size (GiB)").fill("40")

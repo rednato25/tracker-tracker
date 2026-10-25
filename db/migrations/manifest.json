@@ -21,6 +21,11 @@
       "version": "0003_rank_goals",
       "file": "0003_rank_goals.sql",
       "sha256": "d4144b75bd0ac2bbbd2a632d9fb0622d0e0325d451444f0b57641e958702fd24"
+    },
+    {
+      "version": "0004_prowlarr",
+      "file": "0004_prowlarr.sql",
+      "sha256": "1c0b75faffbd125b91c57a4448e866afea57d558abe242cb6c579b19712347a0"
     }
   ]
 }

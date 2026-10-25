@@ -66,6 +66,8 @@ export async function scrubAndDeleteAll(): Promise<void> {
       totpBackupCodes: null,
       encryptedProxyPassword: null,
       encryptedBackupPassword: null,
+      encryptedProwlarrApiKey: null,
+      prowlarrUrl: null,
     })
 
     await tx.update(downloadClients).set({

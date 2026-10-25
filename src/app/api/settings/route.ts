@@ -42,6 +42,7 @@ import {
   validateUsername,
 } from "@/lib/limits"
 import { log } from "@/lib/logger"
+import { isUnsafeNetworkHost } from "@/lib/network"
 import { scrubSnapshotUsernames } from "@/lib/privacy-db"
 import { fetchSettings, serializeSettingsResponse } from "@/lib/server-data"
 import { PROXY_HOST_PATTERN, VALID_PROXY_TYPES } from "@/lib/tunnel"
@@ -633,6 +634,59 @@ export async function PATCH(request: Request) {
         clean[trackerId] = { targetRank: (value as { targetRank: string }).targetRank.trim() }
       }
       updates.rankGoals = JSON.stringify(clean)
+    }
+  }
+
+  // --- Prowlarr connection ---
+  if (body.prowlarrUrl !== undefined) {
+    if (body.prowlarrUrl === null || body.prowlarrUrl === "") {
+      updates.prowlarrUrl = null
+    } else if (typeof body.prowlarrUrl !== "string") {
+      return NextResponse.json({ error: "prowlarrUrl must be a URL or null" }, { status: 400 })
+    } else {
+      let parsed: URL
+      try {
+        parsed = new URL(body.prowlarrUrl.trim())
+      } catch {
+        return NextResponse.json({ error: "Invalid Prowlarr URL" }, { status: 400 })
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return NextResponse.json({ error: "Prowlarr URL must use http or https" }, { status: 400 })
+      }
+      if (parsed.username || parsed.password || parsed.search || parsed.hash) {
+        return NextResponse.json(
+          { error: "Prowlarr URL must not contain credentials, query or fragment" },
+          { status: 400 }
+        )
+      }
+      const allowPrivate = body.prowlarrAllowPrivate === true
+      if (!allowPrivate && isUnsafeNetworkHost(parsed.hostname)) {
+        return NextResponse.json(
+          { error: "Prowlarr URL points to a private network; enable private access explicitly" },
+          { status: 400 }
+        )
+      }
+      updates.prowlarrUrl = parsed.toString().replace(/\/$/, "")
+    }
+  }
+  if (body.prowlarrAllowPrivate !== undefined) {
+    if (typeof body.prowlarrAllowPrivate !== "boolean") {
+      return NextResponse.json({ error: "prowlarrAllowPrivate must be a boolean" }, { status: 400 })
+    }
+    updates.prowlarrAllowPrivate = body.prowlarrAllowPrivate
+  }
+  if (body.prowlarrApiKey !== undefined) {
+    if (body.prowlarrApiKey === null || body.prowlarrApiKey === "") {
+      updates.encryptedProwlarrApiKey = null
+    } else if (
+      typeof body.prowlarrApiKey !== "string" ||
+      !body.prowlarrApiKey.trim() ||
+      body.prowlarrApiKey.length > 512 ||
+      /\s/.test(body.prowlarrApiKey)
+    ) {
+      return NextResponse.json({ error: "Prowlarr API key must be a non-empty header-safe string" }, { status: 400 })
+    } else {
+      updates.encryptedProwlarrApiKey = encrypt(body.prowlarrApiKey.trim(), decodeKey(auth))
     }
   }
 

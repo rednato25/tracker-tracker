@@ -2,6 +2,7 @@
 //
 // P11/P13 visual evidence with synthetic data. Runs against the guarded
 // tracker_tracker_e2e database and never contacts a tracker or download client.
+import { createServer } from "node:http"
 import { expect, test } from "@playwright/test"
 import { deriveKey, encrypt } from "../src/lib/crypto"
 import { e2eSql } from "./db"
@@ -231,5 +232,80 @@ test.describe.serial("rank and budget visual evidence", () => {
       if (main && el) main.scrollTop += el.getBoundingClientRect().top - 72
     })
     await page.screenshot({ path: "test-results/visual-budget-queue-after-mobile.png" })
+  })
+
+  test("previews and imports a selected Prowlarr indexer", async ({ page, request }) => {
+    const server = createServer((req, res) => {
+      if (req.url === "/api/v1/indexer") {
+        res.writeHead(200, { "content-type": "application/json" })
+        res.end(
+          JSON.stringify([
+            {
+              id: 7,
+              name: "TorrentLeech",
+              implementation: "TorrentLeech",
+              fields: [{ name: "baseUrl", value: "https://trackerleech.example" }],
+            },
+          ])
+        )
+        return
+      }
+      res.writeHead(404)
+      res.end()
+    })
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+    const address = server.address()
+    if (!address || typeof address === "string") throw new Error("no prowlarr address")
+    const prowlarrUrl = `http://127.0.0.1:${address.port}`
+    try {
+      const settings = await request.patch("/api/settings", {
+        data: {
+          prowlarrUrl,
+          prowlarrApiKey: "synthetic-prowlarr-key",
+          prowlarrAllowPrivate: true,
+        },
+      })
+      expect(settings.ok()).toBe(true)
+      await page.goto("/settings")
+      const section = page.locator("[data-prowlarr-import]")
+      await expect(section).toBeVisible()
+      await section.getByRole("button", { name: "Test and preview" }).click()
+      await expect(section.getByText("TorrentLeech")).toBeVisible()
+      await section.getByLabel("Select TorrentLeech").check()
+      await section.getByRole("button", { name: /Import selected/ }).click()
+      await expect(section.getByText(/1 tracker\(s\) created/)).toBeVisible()
+      const sql = e2eSql()
+      try {
+        const [row] = await sql<{ count: number; active: number }[]>`
+          select count(*)::int as count, count(*) filter (where is_active)::int as active
+          from trackers where name = 'TorrentLeech'
+        `
+        expect(row.count).toBe(1)
+        expect(row.active).toBe(0)
+      } finally {
+        await sql.end()
+      }
+      await section.scrollIntoViewIfNeeded()
+      await section.screenshot({ path: "test-results/visual-prowlarr-light.png" })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await section.screenshot({ path: "test-results/visual-prowlarr-dark.png" })
+      await page.setViewportSize({ width: 390, height: 1200 })
+      await page.waitForFunction(
+        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      )
+      await page.waitForTimeout(300)
+      await section.scrollIntoViewIfNeeded()
+      await section.screenshot({ path: "test-results/visual-prowlarr-mobile.png" })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+      const sql = e2eSql()
+      try {
+        await sql`delete from trackers where name = 'TorrentLeech' and is_active = false`
+      } finally {
+        await sql.end()
+      }
+    }
   })
 })

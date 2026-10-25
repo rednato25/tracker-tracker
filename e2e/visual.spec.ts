@@ -270,7 +270,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       const section = page.locator("[data-prowlarr-import]")
       await expect(section).toBeVisible()
       await section.getByRole("button", { name: "Test and preview" }).click()
-      await expect(section.getByText("TorrentLeech")).toBeVisible()
+      await expect(section.getByText("TorrentLeech", { exact: true }).first()).toBeVisible()
       await section.getByLabel("Select TorrentLeech").check()
       await section.getByRole("button", { name: /Import selected/ }).click()
       await expect(section.getByText(/1 tracker\(s\) created/)).toBeVisible()

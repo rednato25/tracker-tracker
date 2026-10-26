@@ -70,6 +70,37 @@ condition logic.
 - Stale goal links or saved references after a catalogue/tracker change are
   ignored defensively; they do not crash the page.
 
+## Manual acceptance (isolated fixtures, pending owner run)
+
+Use the existing throwaway fixture account and registry fixture; do not contact a
+real tracker. `E2E_TRACKER` is Aither. The pinned catalogue contains a direct
+`aither -> broadcasthenet` route (`tp:aither:broadcasthenet`), so the destination
+is **BroadcasTheNet**, not a guessed tracker.
+
+1. Confirm the isolated fixture instance has the Aither tracker with a registry
+   match, then open `/wishlist`.
+2. Select **BroadcasTheNet** and save. Reload the page; confirm the destination is
+   still selected.
+3. Inspect the direct **Aither → BroadcasTheNet** route. Aither is your fixture
+   account, so the step is marked **Your account**. If a multi-step path appears,
+   an intermediate source you do not own is marked **Scenario** and is not
+   evaluated against your data.
+4. Confirm the unresolved text is shown separately from availability: "Invite
+   forum access", the source invite-class/forum gate, the stale `Nov 2024` source
+   update, and community availability (open/closed/unconfirmed). No step should
+   claim "ready to apply" or a guaranteed invitation.
+5. Hide the route. Reload; confirm it stays hidden and the hidden-path count is
+   shown. Use "Show hidden routes" and confirm the path returns.
+6. Set the viewport to 390px; confirm the Wishlist title clears the navigation
+   control, long source text wraps, and Hide/Show controls remain reachable.
+7. The **goal-link control is legitimately absent** for this fixture route. The
+   community route has no structured condition—only prose, the source gate and
+   undocumented `days`—so there is no exact match with an existing saved rank
+   goal. Its absence is not a UI failure; the control appears only for a
+   validated structured condition that exactly matches a saved goal.
+
+Owner acceptance remains pending until this guide is run on the isolated instance.
+
 ## Persistence, backup and restore
 
 Migration `0006_recruitment_state` adds one nullable `app_settings.recruitment_state`

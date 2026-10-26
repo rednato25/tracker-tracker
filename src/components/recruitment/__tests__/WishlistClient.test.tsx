@@ -186,7 +186,7 @@ describe("WishlistClient", () => {
     await user.click(screen.getByRole("button", { name: "Hide route" }))
     expect(await screen.findByText("Matching routes are hidden")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Show 1 hidden route/ }))
-    expect(await screen.findByText(/1 route\(s\) to BroadcasTheNet/)).toBeInTheDocument()
+    expect(await screen.findByText(/1 route to BroadcasTheNet/)).toBeInTheDocument()
   })
 
   it("explains no known route without claiming no route exists", () => {

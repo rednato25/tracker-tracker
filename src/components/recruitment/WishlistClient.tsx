@@ -517,7 +517,7 @@ export function WishlistClient({
   const unsupportedNames = result.unsupportedOwnedTrackers.map((tracker) => tracker.name)
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-5" data-wishlist-page>
+    <div className="mx-auto flex max-w-5xl flex-col gap-5 pt-14 md:pt-0" data-wishlist-page>
       <div className="flex flex-col gap-1">
         <H1>Wishlist</H1>
         <Paragraph className="max-w-3xl">
@@ -545,7 +545,11 @@ export function WishlistClient({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-2xs text-tertiary">
-          <span>{result.ownedSlugs.length} owned registry account(s)</span>
+          <span>
+            {result.ownedSlugs.length === 1
+              ? "1 owned registry account"
+              : `${result.ownedSlugs.length} owned registry accounts`}
+          </span>
           {saving && <span>Saving…</span>}
           {hiddenCount > 0 && (
             <Button
@@ -617,7 +621,9 @@ export function WishlistClient({
             <div className="flex flex-col gap-1">
               <H2>Known routes</H2>
               <p className="text-xs text-secondary">
-                {visiblePaths.length} route(s) to {desiredName}. Direct routes are shown first.
+                {visiblePaths.length === 1
+                  ? "1 route"
+                  : `${visiblePaths.length} routes`} to {desiredName}. Direct routes are shown first.
               </p>
             </div>
             {result.truncated && (

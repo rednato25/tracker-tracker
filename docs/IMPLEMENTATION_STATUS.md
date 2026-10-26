@@ -89,7 +89,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P11 | done | P09–P10 | `main @ d1c11333` (merged; not deployed) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Light/dark/mobile artifacts generated in CI and reviewed; no application clipping found after capture fix. #14 closed. |
 | P12 | done | P03 | `main @ 02f0645d` (merged; not deployed) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
 | P13 | done | P12 | `main @ 4c94d5ba` + UX fix #18 (not merged) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6083 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18; owner manual acceptance on digest `sha256:8b8cba401ffab275a3c46cb33db7ef0264702c71422de9fe33198dffe0a89690` | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. P14 is implemented in draft; polish #19 remains. |
-| P14 | done | P02–P03 | branch `feat/p14-prowlarr-import` (not merged) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates disabled placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search | Prowlarr key is never returned; imported entries need manual tracker credentials and polling. No P15. |
+| P14 | done | P02–P03 | branch `feat/p14-prowlarr-import` (not merged) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search | Prowlarr key is never returned; imported entries need manual tracker credentials and polling. No P15. |
 | P15 | pending | P14 | — | No Jackett import | Reuse P14 preview/import contract |
 | P16 | pending | P02, P04; P11 for goals | — | App has session-authenticated internal API routes; no versioned scoped integration API | Add hashed, revocable read-only tokens; no mutations |
 | P17 | pending | P09–P10 | — | No recruitment-route dataset/model | Define offline route format with provenance and unknown status |
@@ -1160,20 +1160,24 @@ and moving the physical-size budget into advanced details.
 - Preview normalizes URLs and reuses the registry hostname/name/abbreviation
   matching. It distinguishes ready, already-added, ambiguous and unsupported
   entries; no automatic match for ambiguous names.
-- Selection is explicit. Import creates disabled tracker placeholders only for
-  selected ready entries, does not copy cookies/passkeys/arbitrary credentials,
+- Selection is explicit. Import creates active, user-paused tracker placeholders
+  only for selected ready entries, does not copy cookies/passkeys/arbitrary credentials,
   does not poll, and marks credentials as requiring manual configuration.
-  Repeated imports skip existing slugs and duplicates within the selection.
+  Repeated imports skip existing slugs and duplicates within the selection;
+  imported rows remain visible in the register as PAUSED and require manual
+  credentials/polling configuration.
 - Settings has URL, API key, private-network opt-in, Test and preview, per-row
   selection and Import selected. The Prowlarr API key is not a tracker key.
 - No Jackett, search, download-client actions or P15.
 
 Tests: local fake Prowlarr service covers auth, 401, invalid JSON, private URL
 policy, matching, duplicates and unsupported/ambiguous entries; the authenticated
-Playwright visual run covers preview/import and verifies the created tracker is
-inactive. Full suite 240 files / 6089 tests; TypeScript, Biome, security audit
-38/38 and production build pass. Prowlarr UI screenshots are captured by the
-Visual Evidence job; inspect the PR artifacts before claiming visual correctness.
+Playwright visual run covers preview/import, verifies the created tracker is
+visible and paused, and captures desktop/mobile Prowlarr UI. Full suite 240
+files / 6089 tests; TypeScript, Biome, security audit 38/38 and production build
+pass. Desktop/mobile artifacts were inspected; the imported tracker appears as
+PAUSED in the register and the Prowlarr mobile capture was corrected to the
+viewport. No real Prowlarr or tracker was contacted.
 
 ### P02b slices
 

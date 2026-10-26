@@ -307,7 +307,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       )
       await page.waitForTimeout(300)
       await section.scrollIntoViewIfNeeded()
-      await section.screenshot({ path: "test-results/visual-prowlarr-mobile.png" })
+      await page.screenshot({ path: "test-results/visual-prowlarr-mobile.png" })
       await page.setViewportSize({ width: 1280, height: 900 })
       await page.goto("/")
       await expect(page.getByText("MyAnonaMouse").first()).toBeVisible()

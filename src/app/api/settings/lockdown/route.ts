@@ -12,7 +12,7 @@ import { authenticate, parseJsonBody } from "@/lib/api-helpers"
 import { clearSession, verifyPassword } from "@/lib/auth"
 import { generateSalt } from "@/lib/crypto"
 import { db } from "@/lib/db"
-import { appSettings, downloadClients, notificationTargets, trackers } from "@/lib/db/schema"
+import { appSettings, downloadClients, integrationTokens, notificationTargets, trackers } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
 import { PASSWORD_MAX } from "@/lib/limits"
 import { log } from "@/lib/logger"
@@ -92,7 +92,11 @@ export async function POST(request: Request) {
         updatedAt: now,
       })
 
-      // 5. Rotate salt + wipe all encrypted settings fields
+      // 5. Revoke read-only integration credentials. Their hashes are not
+      // encrypted, so salt rotation alone would leave them usable.
+      await tx.delete(integrationTokens)
+
+      // 6. Rotate salt + wipe all encrypted settings fields
       await tx
         .update(appSettings)
         .set({
@@ -121,7 +125,7 @@ export async function POST(request: Request) {
     )
   }
 
-  // 5. Kill the session
+  // 7. Kill the session
   await clearSession()
 
   log.info({ route: "POST /api/settings/lockdown" }, "emergency lockdown completed")

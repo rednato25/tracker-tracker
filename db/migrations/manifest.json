@@ -26,6 +26,11 @@
       "version": "0004_prowlarr",
       "file": "0004_prowlarr.sql",
       "sha256": "1c0b75faffbd125b91c57a4448e866afea57d558abe242cb6c579b19712347a0"
+    },
+    {
+      "version": "0005_integration_tokens",
+      "file": "0005_integration_tokens.sql",
+      "sha256": "f40d34f85c6c4b16659f6bd13d7c00a1315c66647ee04999c6f8065780c60300"
     }
   ]
 }

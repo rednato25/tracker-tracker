@@ -268,6 +268,7 @@ describe("serializeSettingsResponse", () => {
     hasBackupPassword: null,
     backupStoragePath: null,
     credentialVaultEnabled: false,
+    integrationIdentityMode: "none",
     rankGoals: null,
     prowlarrUrl: null,
     hasProwlarrApiKey: false,

@@ -152,7 +152,9 @@ describe("GET /api/trackers", () => {
     // DISTINCT ON query via db.selectDistinctOn
     ;(db.selectDistinctOn as ReturnType<typeof vi.fn>).mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue([snapshot]),
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([snapshot]),
+        }),
       }),
     })
 
@@ -178,12 +180,8 @@ describe("GET /api/trackers", () => {
     ;(db.select as ReturnType<typeof vi.fn>)
       .mockReturnValueOnce({ from: mockFrom })
       .mockReturnValueOnce({ from: mockSettingsFrom })
-    // DISTINCT ON query via db.selectDistinctOn
-    ;(db.selectDistinctOn as ReturnType<typeof vi.fn>).mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue([]),
-      }),
-    })
+    // No snapshot query is made when there are no trackers, so a queued
+    // selectDistinctOn result here would leak into the next test.
 
     const response = await GET()
     const data = await response.json()
@@ -227,7 +225,9 @@ describe("GET /api/trackers", () => {
     // DISTINCT ON query via db.selectDistinctOn
     ;(db.selectDistinctOn as ReturnType<typeof vi.fn>).mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue([]),
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([]),
+        }),
       }),
     })
 

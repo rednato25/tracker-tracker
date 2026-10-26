@@ -4,7 +4,7 @@
 // tagGroups, tagGroupMembers, clientSnapshots, backupHistory, dismissedAlerts,
 // draftQuicklinks (column on appSettings), notificationTargets, notificationDeliveryState,
 // trackerDailyCheckpoints, torrentDailyCheckpoints, dbSizeHistory, appLiveness,
-// appCoverageGaps
+// appCoverageGaps, integrationTokens
 
 import {
   bigint,
@@ -100,6 +100,15 @@ export const appSettings = pgTable("app_settings", {
    * would make an accidental click unrecoverable.
    */
   credentialVaultEnabled: boolean("credential_vault_enabled").default(false).notNull(),
+  /**
+   * How much tracker identity the read-only integration API may disclose.
+   * "none" is the privacy-preserving default; "trackers" adds tracker names;
+   * "full" adds stored tracker usernames, and only when storeUsernames is on.
+   * This is a response contract, not a storage switch.
+   */
+  integrationIdentityMode: varchar("integration_identity_mode", { length: 10 })
+    .default("none")
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
@@ -563,6 +572,35 @@ export const trackerOutages = pgTable(
   ]
 )
 
+/**
+ * Read-only integration tokens.
+ *
+ * Only a SHA-256 hash of the bearer token is stored. The plaintext is returned
+ * once by the creation route and is never persisted. Revocations keep the row
+ * so the token remains recognizably revoked rather than becoming an unknown
+ * token; the authentication path rejects any non-null revokedAt.
+ *
+ * These rows are deliberately excluded from backups. A restore therefore
+ * deletes every token instead of resurrecting a token that might have been
+ * revoked after the backup was taken.
+ */
+export const integrationTokens = pgTable(
+  "integration_tokens",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    scopes: jsonb("scopes").$type<string[]>().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    lastUsedAt: timestamp("last_used_at"),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (table) => [
+    uniqueIndex("uq_integration_tokens_hash").on(table.tokenHash),
+    index("idx_integration_tokens_revoked").on(table.revokedAt),
+  ]
+)
+
 // â”€â”€ type exports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export type AppSettingsRow = typeof appSettings.$inferSelect
 export type TrackerRow = typeof trackers.$inferSelect
@@ -583,3 +621,4 @@ export type DbSizeHistoryRow = typeof dbSizeHistory.$inferSelect
 export type AppLivenessRow = typeof appLiveness.$inferSelect
 export type AppCoverageGapRow = typeof appCoverageGaps.$inferSelect
 export type TrackerOutageRow = typeof trackerOutages.$inferSelect
+export type IntegrationTokenRow = typeof integrationTokens.$inferSelect

@@ -17,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 type Write = { table: unknown; values: Record<string, unknown> }
 let writes: Write[]
+let deletes: unknown[]
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -33,6 +34,7 @@ vi.mock("@/lib/db/schema", () => ({
   trackerSnapshots: {},
   trackerRoles: {},
   downloadClients: {},
+  integrationTokens: { __table: "integration_tokens" },
   notificationTargets: {},
   notificationDeliveryState: {},
   dismissedAlerts: {},
@@ -68,7 +70,7 @@ vi.mock("@/lib/api-helpers", async (importOriginal) => {
 
 import { POST as LockdownPOST } from "@/app/api/settings/lockdown/route"
 import { db } from "@/lib/db"
-import { trackers } from "@/lib/db/schema"
+import { integrationTokens, trackers } from "@/lib/db/schema"
 import { scrubAndDeleteAll } from "@/lib/nuke"
 
 /** The value written to the vault column by the run under test. */
@@ -81,6 +83,7 @@ function trackerVaultWrite(): Record<string, unknown> {
 beforeEach(() => {
   vi.clearAllMocks()
   writes = []
+  deletes = []
   ;(db.select as ReturnType<typeof vi.fn>).mockReturnValue({
     from: () => ({ limit: () => Promise.resolve([{ id: 1, passwordHash: "hash" }]) }),
   })
@@ -95,7 +98,10 @@ beforeEach(() => {
             return Object.assign(done, { where: () => done })
           },
         }),
-        delete: () => Promise.resolve([]),
+        delete: (table: unknown) => {
+          deletes.push(table)
+          return Promise.resolve([])
+        },
       }
       return cb(tx)
     }
@@ -164,5 +170,20 @@ describe("nuke scrubs trackers.encryptedMouseholeToken", () => {
     const values = trackerVaultWrite()
     expect(values).toHaveProperty("encryptedMouseholeToken")
     expect(values.encryptedMouseholeToken).toBeNull()
+  })
+})
+
+describe("integration tokens are revoked by destructive lifecycle paths", () => {
+  it("emergency lockdown deletes every integration token", async () => {
+    const response = await LockdownPOST(
+      new Request("http://localhost/api/settings/lockdown", { method: "POST" })
+    )
+    expect(response.status).toBe(200)
+    expect(deletes).toContain(integrationTokens)
+  })
+
+  it("nuke deletes every integration token", async () => {
+    await scrubAndDeleteAll()
+    expect(deletes).toContain(integrationTokens)
   })
 })

@@ -11,6 +11,7 @@ import {
   clientUptimeBuckets,
   dismissedAlerts,
   downloadClients,
+  integrationTokens,
   notificationDeliveryState,
   notificationTargets,
   tagGroupMembers,
@@ -105,6 +106,7 @@ export async function scrubAndDeleteAll(): Promise<void> {
     await tx.delete(notificationTargets)
     await tx.delete(downloadClients)
     await tx.delete(trackers)
+    await tx.delete(integrationTokens)
     await tx.delete(appSettings)
   })
 

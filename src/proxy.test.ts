@@ -82,4 +82,30 @@ describe("auth middleware", () => {
     const response = proxy(new NextRequest("http://localhost/api/health"))
     expect(response.status).toBe(200)
   })
+
+  it("lets the versioned integration API reach its bearer-token handler", () => {
+    const response = proxy(
+      new NextRequest("http://localhost/api/integrations/v1/summary", {
+        headers: { authorization: `Bearer tt_int_${"a".repeat(43)}` },
+      })
+    )
+    expect(response.status).toBe(200)
+  })
+
+  it("does not let a bearer token bypass the session gate on admin routes", async () => {
+    const response = proxy(
+      new NextRequest("http://localhost/api/trackers", {
+        headers: { authorization: `Bearer tt_int_${"a".repeat(43)}` },
+      })
+    )
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({ error: "Unauthorized" })
+
+    const tokens = proxy(
+      new NextRequest("http://localhost/api/settings/integration-tokens", {
+        headers: { authorization: `Bearer tt_int_${"a".repeat(43)}` },
+      })
+    )
+    expect(tokens.status).toBe(401)
+  })
 })

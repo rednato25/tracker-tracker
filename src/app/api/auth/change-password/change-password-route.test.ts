@@ -17,7 +17,13 @@ import { authenticate, parseJsonBody } from "@/lib/api-helpers"
 import { clearSession, hashPassword, verifyPassword } from "@/lib/auth"
 import { decrypt, deriveKey, encrypt } from "@/lib/crypto"
 import { db } from "@/lib/db"
-import { appSettings, downloadClients, notificationTargets, trackers } from "@/lib/db/schema"
+import {
+  appSettings,
+  downloadClients,
+  integrationTokens,
+  notificationTargets,
+  trackers,
+} from "@/lib/db/schema"
 import { recordFailedAttempt, resetFailedAttempts } from "@/lib/lockout"
 import { stopScheduler } from "@/lib/scheduler"
 import { clearSchedulerKey } from "@/lib/scheduler-key-store"
@@ -64,6 +70,9 @@ vi.mock("@/lib/db/schema", () => ({
     encryptedPassword: "downloadClients.encryptedPassword",
     encryptedApiKey: "downloadClients.encryptedApiKey",
     encryptedUrlPath: "downloadClients.encryptedUrlPath",
+  },
+  integrationTokens: {
+    id: "integrationTokens.id",
   },
   notificationTargets: {
     id: "notificationTargets.id",
@@ -113,6 +122,8 @@ let clientRows: Row[]
 let notificationRows: Row[]
 /** Every tx.update(...).set(...).where(...) in call order. */
 let writes: Write[]
+let deletedTables: unknown[]
+let revokedTokenRows: { id: number }[]
 /** When set, any write to this table rejects, simulates an in-tx DB failure. */
 let failWritesFor: unknown = null
 
@@ -177,6 +188,8 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks()
   writes = []
+  deletedTables = []
+  revokedTokenRows = []
   failWritesFor = null
 
   settingsRow = makeSettingsRow()
@@ -212,6 +225,13 @@ beforeEach(() => {
   ;(db.transaction as ReturnType<typeof vi.fn>).mockImplementation(
     async (cb: (tx: unknown) => Promise<void>) => {
       const tx = {
+        delete: (table: unknown) => {
+          deletedTables.push(table)
+          return Object.assign(Promise.resolve([]), {
+            returning: () =>
+              Promise.resolve(table === integrationTokens ? revokedTokenRows : []),
+          })
+        },
         update: (table: unknown) => ({
           set: (values: Record<string, unknown>) => ({
             where: () => {
@@ -838,5 +858,20 @@ describe("POST /api/auth/change-password, Mousehole API token", () => {
     const write = writesTo(trackers)[0].values
     expect(decrypt(write.encryptedApiToken as string, newKey)).toBe("alpha-api-token")
     expect(write.encryptedMouseholeToken).toBeNull()
+  })
+})
+
+describe("POST /api/auth/change-password - integration token lifecycle", () => {
+  it("revokes every integration token and tells the user", async () => {
+    revokedTokenRows = [{ id: 1 }, { id: 2 }]
+
+    const response = await post()
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as { success: boolean; warnings: string[] }
+
+    expect(deletedTables).toContain(integrationTokens)
+    expect(body.warnings).toContain(
+      "All read-only integration tokens were revoked by this password change. Create new tokens in Settings > Integrations."
+    )
   })
 })

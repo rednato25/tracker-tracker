@@ -89,8 +89,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P11 | done | P09–P10 | `main @ d1c11333` (merged; not deployed) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Light/dark/mobile artifacts generated in CI and reviewed; no application clipping found after capture fix. #14 closed. |
 | P12 | done | P03 | `main @ 02f0645d` (merged; not deployed) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
 | P13 | done | P12 | `main @ cbca164a` (merged; not deployed) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6085 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18; owner manual acceptance on digest `sha256:8b8cba401ffab275a3c46cb33db7ef0264702c71422de9fe33198dffe0a89690` | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. P14 is implemented in draft; polish #19 remains. |
-| P14 | done | P02–P03 | branch `feat/p14-prowlarr-import` (not merged) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Mobile long preview text polish: #21. No P15. |
-| P15 | pending | P14 | — | No Jackett import | Reuse P14 preview/import contract |
+| P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Mobile long preview text polish: #21. No P15. |
+| P15 | done (visual evidence pending) | P14 | branch `feat/p15-jackett-import` (not merged) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests | No Jackett connection persistence (admin password used per request only). Visual evidence #22. No P16. |
 | P16 | pending | P02, P04; P11 for goals | — | App has session-authenticated internal API routes; no versioned scoped integration API | Add hashed, revocable read-only tokens; no mutations |
 | P17 | pending | P09–P10 | — | No recruitment-route dataset/model | Define offline route format with provenance and unknown status |
 | P18 | pending | P17 and goals UI | — | No wishlist/routes UI | Start with lists, not a graph |
@@ -1179,6 +1179,27 @@ pass. Desktop/mobile artifacts were inspected; the imported tracker appears as
 PAUSED in the register and remains visible. Long Prowlarr preview text still
 clips at the right edge on mobile; this non-blocking polish is tracked as #21.
 No real Prowlarr or tracker was contacted.
+
+### P15 Jackett import
+
+- Jackett discovery uses the documented read-only dashboard flow: POST
+  `/UI/Dashboard` for a cookie, then GET `/api/v2.0/indexers?configured=true`.
+  The admin password is request-scoped and not persisted; indexer secrets are
+  never read or copied.
+- The preview reuses the P14 statuses (ready/already-added/ambiguous/unsupported)
+  and registry hostname/name matching. Ambiguous names are not auto-matched.
+- Selected-only import creates active, user-paused placeholders with a clear
+  "configure tracker credentials" error. Entries remain visible in the register
+  and do not poll. Duplicates and repeated selections are skipped.
+- No Jackett connection storage, migration, backup state or lifecycle change was
+  added because the password is not persisted. No search/download/indexer action.
+- Visual evidence is pending: #22.
+
+Tests: local fake Jackett service covers login cookie, configured indexer list,
+failed login, private URL policy, matching, duplicates, ambiguous/unsupported.
+Full suite 240 files / 6092 tests; TypeScript, Biome, security audit 38/38 and
+production build pass. P15 UI screenshots are not yet captured; do not claim
+visual verification.
 
 ### P02b slices
 

@@ -81,7 +81,8 @@ export async function POST(request: Request) {
           encryptedApiToken: encrypt("prowlarr-import-requires-credentials", connection.key),
           platformType: entry.platform,
           color: entry.color,
-          isActive: false,
+          isActive: true,
+          userPausedAt: new Date(),
           lastError: "Configure tracker API credentials imported from Prowlarr",
           lastErrorAt: new Date(),
         })

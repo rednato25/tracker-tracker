@@ -283,12 +283,15 @@ test.describe.serial("rank and budget visual evidence", () => {
       await expect(section.getByText(/1 tracker\(s\) created/)).toBeVisible()
       const sql = e2eSql()
       try {
-        const [row] = await sql<{ count: number; active: number }[]>`
-          select count(*)::int as count, count(*) filter (where is_active)::int as active
+        const [row] = await sql<{ count: number; active: number; paused: number }[]>`
+          select count(*)::int as count,
+                 count(*) filter (where is_active)::int as active,
+                 count(*) filter (where user_paused_at is not null)::int as paused
           from trackers where name = 'MyAnonaMouse'
         `
         expect(row.count).toBe(1)
-        expect(row.active).toBe(0)
+        expect(row.active).toBe(1)
+        expect(row.paused).toBe(1)
       } finally {
         await sql.end()
       }
@@ -305,11 +308,15 @@ test.describe.serial("rank and budget visual evidence", () => {
       await page.waitForTimeout(300)
       await section.scrollIntoViewIfNeeded()
       await section.screenshot({ path: "test-results/visual-prowlarr-mobile.png" })
+      await page.setViewportSize({ width: 1280, height: 900 })
+      await page.goto("/")
+      await expect(page.getByText("MyAnonaMouse").first()).toBeVisible()
+      await page.screenshot({ path: "test-results/visual-prowlarr-imported-tracker.png" })
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
       const sql = e2eSql()
       try {
-        await sql`delete from trackers where name = 'MyAnonaMouse' and is_active = false`
+        await sql`delete from trackers where name = 'MyAnonaMouse'`
       } finally {
         await sql.end()
       }

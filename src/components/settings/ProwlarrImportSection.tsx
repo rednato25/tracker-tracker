@@ -190,7 +190,7 @@ export function ProwlarrImportSection({
       <Notice message={error} />
       {items.length > 0 && (
         <div className="border-t border-border pt-2">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <H2 className="uppercase tracking-wider">Preview</H2>
             <Button
               size="sm"
@@ -204,7 +204,7 @@ export function ProwlarrImportSection({
             {items.map((item) => (
               <li key={item.indexerId} className="border-t border-border py-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <label className="flex items-start gap-2">
+                  <label className="flex min-w-0 items-start gap-2">
                     <input
                       type="checkbox"
                       className="mt-1"
@@ -213,22 +213,24 @@ export function ProwlarrImportSection({
                       onChange={(e) => toggle(item.indexerId, e.target.checked)}
                       aria-label={`Select ${item.name}`}
                     />
-                    <span>
+                    <span className="min-w-0 break-words">
                       <span className="text-xs text-primary">{item.name}</span>
                       <span className="ml-2 font-mono text-4xs text-muted">{item.implementation}</span>
                       {item.baseUrl && (
-                        <span className="ml-2 font-mono text-4xs text-tertiary">{item.baseUrl}</span>
+                        <span className="ml-2 break-all font-mono text-4xs text-tertiary">
+                          {item.baseUrl}
+                        </span>
                       )}
                     </span>
                   </label>
                   <Badge variant={statusVariant(item.status)}>{item.status.replace("-", " ")}</Badge>
                 </div>
-                <p className="mt-1 font-mono text-4xs text-secondary">
+                <p className="mt-1 break-words font-mono text-4xs text-secondary">
                   {item.matchedName ? `Matched: ${item.matchedName}. ` : ""}
                   {item.reason}
                 </p>
                 {item.credentialNote && (
-                  <p className="font-mono text-4xs text-warn">{item.credentialNote}</p>
+                  <p className="break-words font-mono text-4xs text-warn">{item.credentialNote}</p>
                 )}
               </li>
             ))}

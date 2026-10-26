@@ -31,6 +31,11 @@
       "version": "0005_integration_tokens",
       "file": "0005_integration_tokens.sql",
       "sha256": "f40d34f85c6c4b16659f6bd13d7c00a1315c66647ee04999c6f8065780c60300"
+    },
+    {
+      "version": "0006_recruitment_state",
+      "file": "0006_recruitment_state.sql",
+      "sha256": "2791bfe2d4142764d254ce6d67a23d11b34c8b275cc49c0fdd18e42a2e9da4c2"
     }
   ]
 }

@@ -260,6 +260,7 @@ function evaluateCondition(
   return {
     id,
     kind: "numeric",
+    metric: condition.metric,
     label,
     requiredValue: condition.requiredValue,
     observedValue: observation.value,

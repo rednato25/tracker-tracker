@@ -226,6 +226,7 @@ vi.mock("@/lib/privacy-db", () => ({
 // entry the posted slug names, so these validation tests need a slug that
 // resolves before they can reach the field each one is about.
 vi.mock("@/data/tracker-registry", () => ({
+  TRACKER_REGISTRY: [],
   registryEntryFor: vi.fn(),
   getTrackerBySlug: vi.fn(() => ({
     slug: "example-tracker",

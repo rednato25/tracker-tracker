@@ -471,3 +471,76 @@ test.describe.serial("integration token visual evidence", () => {
     }
   })
 })
+test.describe.serial("wishlist visual evidence", () => {
+  let wishlistTrackerId: number | null = null
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const [tracker] = await sql<{ id: number }[]>`
+        insert into trackers (
+          name, base_url, registry_slug, platform_type, is_active, user_paused_at,
+          joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
+        ) values (
+          'TEST Visual Wishlist', 'https://tt-p18.invalid', 'alpharatio',
+          'unit3d', true, now(), '2025-01-01T00:00:00.000Z', now(),
+          ${encrypt("synthetic-p18-token", key)}, now(), now()
+        ) returning id
+      `
+      wishlistTrackerId = tracker.id
+      await sql`
+        insert into tracker_snapshots (
+          tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio,
+          buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+          required_ratio, warned, freeleech_tokens, is_manual
+        ) values (
+          ${tracker.id}, now(), ${500 * GiB}, ${200 * GiB}, 2.5,
+          ${300 * GiB}, 5, 0, 10, 0, 1, false, 0, false
+        )
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      if (wishlistTrackerId !== null) {
+        await sql`delete from trackers where id = ${wishlistTrackerId}`
+      }
+      await sql`update app_settings set recruitment_state = null`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures desktop light/dark and 390px wishlist layouts", async ({ page }) => {
+    expect(wishlistTrackerId).not.toBeNull()
+    await page.goto("/wishlist")
+    await expect(page.locator("[data-wishlist-page]")).toBeVisible()
+
+    await page.getByRole("button", { name: "Desired tracker" }).click()
+    await page.getByRole("option", { name: "BroadcasTheNet" }).click()
+    await expect(page.getByText("Known routes")).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText("Needs checking").first()).toBeVisible()
+
+    await page.setViewportSize({ width: 1280, height: 1400 })
+    await page.screenshot({ path: "test-results/visual-wishlist-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.screenshot({ path: "test-results/visual-wishlist-dark.png" })
+
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.screenshot({ path: "test-results/visual-wishlist-mobile.png" })
+  })
+})

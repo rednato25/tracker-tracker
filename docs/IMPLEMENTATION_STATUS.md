@@ -92,8 +92,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: FileList imported through Prowlarr | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Owner-reported: imported FileList remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Mobile long preview text polish: #21. No P15. |
 | P15 | done | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: AlphaRatio imported through Jackett | No Jackett connection persistence (admin password used per request only). Owner-reported: imported AlphaRatio remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
 | P16 | done | P02, P04; P11 for goals | PR #24 (merged; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore/recovery invalidation; focused auth/privacy/UI/lifecycle/recovery tests; 6145 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Owner-supplied home-server acceptance on image digest `sha256:02271ad43c65dc5b8a81a0b878747c4b5fbf02ab0fcd94061bee04b8cf4969fb`: migration 0005 applied, health passed, existing login/trackers/mock integrations preserved, summary-only token 200 / actions 403 / post-revocation summary 401 without session cookies, hidden identity excluded names/usernames/secrets, token displayed once and only its hash stored, temporary tokens revoked, production and stopped updater unchanged. Optional expiry is #25. No write scopes, CORS, webhooks, search or downloads; no deployment. |
-| P17 | done (draft PR, not merged) | P09–P10 | draft PR #26 (`feat/p17-recruitment-routes`) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Draft only; not merged or deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. No P18 UI, P19 search, deployment or home-server change. |
-| P18 | pending | P17 and goals UI | — | No wishlist/routes UI | Start with lists, not a graph |
+| P17 | done | P09–P10 | PR #26 (`feat/p17-recruitment-routes`; merged) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Merged; not deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. P18 UI consumes this format separately; no P19 search, deployment or home-server change. |
+| P18 | implementation + CI complete; owner manual acceptance pending | P17 and goals UI | PR #27 (`feat/p18-recruitment-wishlist`; not deployed) | `/wishlist` list UI with saved desired registry slug, direct/bounded multi-step routes, owned vs scenario evaluation, explicit unresolved source text/days/invite gates, separate availability, hide/show paths, exact-match saved-goal links, distinct evidence dates and attribution; migration 0006 single JSON state column with slug references; 25 focused tests; 6190 full tests; light/dark/mobile screenshots inspected | Not deployed. Owner manual acceptance remains pending. All community routes remain eligibility-unknown by P17 design; no "ready to apply", graph, P19 search, applications, recruiter messages, deployment or home-server change. |
 | P19 | pending | P14 | — | No Prowlarr search | Implement read-only search with partial results and cancellation |
 | P20 | pending | P19, P12–P13 | — | No result comparison | Compare charged bytes, ratio impact and obligations; explain recommendations |
 | P21 | pending | P19; P20 recommended | — | qBittorrent client exists; no search-result send flow | Add explicit confirmation and idempotency; never auto-download |
@@ -1345,8 +1345,51 @@ only be investigated further if normal keyboard interaction reproduces it.
   remains the gate. Contract and source coverage: `docs/RECRUITMENT_ROUTES.md`.
 - Limitations: free-text ratio/class/upload/seed-size requirements remain unknown;
   117 upstream names are unresolved; undocumented `days` and source
-  `unlockInviteClass` gates remain unresolved. No P18 UI, P19 search, deployment
-  or home-server change.
+  `unlockInviteClass` gates remain unresolved. P18 UI consumes this separately;
+  no P19 search, deployment or home-server change.
+
+### P18 wishlist and recruitment pathways UI
+
+- Adds `/wishlist` and a Sidebar entry. The page is a compact list, not a graph:
+  save one desired tracker, show direct and bounded multi-step routes from owned
+  accounts, hide/show paths, and link exact-match structured conditions to saved
+  rank goals. No application, message, search or tracker request is sent.
+- Each step shows source → destination, whether it is "Your account" or a
+  "Scenario", structured condition results, original source text, source
+  invite/forum gate, upstream `days` as unresolved, availability separately from
+  eligibility, source update/access/verification dates and attribution.
+- P17 semantics are preserved: all 194 community routes are eligibility-unknown;
+  no threshold is inferred from prose; no `days` → account-age conversion; no
+  "ready to apply", guaranteed admission or completion percentage. Closed routes
+  stay closed; limited/unknown availability stays qualified. No known route is
+  worded as "no route exists".
+- Owned-source steps use stored observations only. Unowned steps are scenarios
+  and later steps are not treated as satisfied by earlier ones. Missing/stale
+  observations stay unknown. Goal links appear only when a validated structured
+  condition matches an existing saved goal exactly.
+- Persistence: migration `0006_recruitment_state` adds one `app_settings`
+  JSON column. It stores desired registry slug, hidden path keys and goal links.
+  All tracker references are slugs, so backup/restore tracker-id remapping cannot
+  break them; stale path/condition references are ignored defensively. Restore
+  sanitizes with the same normalizer.
+- Tests: 25 focused fixtures cover direct/multi-step routes, cycles, closed and
+  stale routes, unknown gates/days, missing/stale observations, unsupported
+  coverage, hidden paths, owned vs scenario, goal-link compatibility, state
+  normalization, API persistence, and backup/restore slug preservation. Full
+  suite on Node 24: 252 files / 6190 tests passed; TypeScript, Biome, security
+  audit 38/38 and production build pass.
+- Visual evidence: authenticated light/dark desktop and 390px mobile artifacts
+  from `e2e/visual.spec.ts` were inspected. Long source text/gates wrap,
+  availability stays separate, and the mobile title clears the nav control after
+  the top-padding fix. Temporary AlphaRatio tracker and wishlist state are removed
+  after capture. Contract: `docs/WISHLIST.md`.
+- Limitations: 117 unresolved upstream names omitted; prose ratio/class/upload/
+  seed-size requirements, undocumented `days` and source gates remain unresolved.
+  No P19 search, private-forum access, applications, deployment or home-server
+  change.
+- Completion state: implementation, automated tests, CI and visual review are
+  complete. **Owner manual acceptance remains pending.** Do not report P18 as
+  owner-accepted until the isolated guide in `docs/WISHLIST.md` is run.
 
 ### P02b slices
 

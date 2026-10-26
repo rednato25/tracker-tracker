@@ -104,6 +104,8 @@ export async function POST(request: Request) {
           encryptedPtpimgApiKey: null,
           encryptedOeimgApiKey: null,
           encryptedImgbbApiKey: null,
+          encryptedProwlarrApiKey: null,
+          prowlarrUrl: null,
           username: null,
         })
         .where(eq(appSettings.id, settings.id))

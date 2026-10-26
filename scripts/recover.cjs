@@ -287,6 +287,7 @@ const MASTER_KEY_SETTINGS_COLUMNS = [
   "encrypted_ptpimg_api_key",
   "encrypted_oeimg_api_key",
   "encrypted_imgbb_api_key",
+  "encrypted_prowlarr_api_key",
 ]
 
 // ─── CLI plumbing ───────────────────────────────────────────────────────────

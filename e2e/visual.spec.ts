@@ -2,6 +2,7 @@
 //
 // P11/P13 visual evidence with synthetic data. Runs against the guarded
 // tracker_tracker_e2e database and never contacts a tracker or download client.
+import { createServer } from "node:http"
 import { expect, test } from "@playwright/test"
 import { deriveKey, encrypt } from "../src/lib/crypto"
 import { e2eSql } from "./db"
@@ -58,7 +59,7 @@ test.describe.serial("rank and budget visual evidence", () => {
     expect(trackerId).not.toBeNull()
     await page.goto(`/trackers/${trackerId}`)
     await expect(page.locator("[data-rank-goal-panel]")).toBeVisible()
-    await expect(page.locator("[data-download-budget-panel]")).toBeVisible()
+    await expect(page.locator("[data-download-budget-panel]").first()).toBeVisible()
 
     await page.getByLabel("Download size (GiB)").fill("80")
     await page.getByLabel("How is it charged?").selectOption("1")
@@ -205,7 +206,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       await sql.end()
     }
     await page.goto(`/trackers/${trackerId}`)
-    await expect(page.locator("[data-download-budget-panel]")).toBeVisible()
+    await expect(page.locator("[data-download-budget-panel]").first()).toBeVisible()
     await page.getByLabel("Your target ratio").fill("1")
     const add = async (sizeGiB: string, charge: string) => {
       await page.getByLabel("Download size (GiB)").fill(sizeGiB)
@@ -218,7 +219,7 @@ test.describe.serial("rank and budget visual evidence", () => {
     await add("80", "1")
     await expect(page.getByText(/Remaining allowance:/)).toContainText(/65(?:\.0+)? GiB/)
     await expect(page.getByText(/Projected ratio:/)).toContainText(/1\.08/)
-    await page.locator("[data-download-budget-panel]").scrollIntoViewIfNeeded()
+    await page.locator("[data-download-budget-panel]").first().scrollIntoViewIfNeeded()
     await page.screenshot({ path: "test-results/visual-budget-queue-after.png" })
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
@@ -231,5 +232,94 @@ test.describe.serial("rank and budget visual evidence", () => {
       if (main && el) main.scrollTop += el.getBoundingClientRect().top - 72
     })
     await page.screenshot({ path: "test-results/visual-budget-queue-after-mobile.png" })
+  })
+
+  test("previews and imports a selected Prowlarr indexer", async ({ page, request }) => {
+    const server = createServer((req, res) => {
+      if (req.url === "/api/v1/indexer") {
+        res.writeHead(200, { "content-type": "application/json" })
+        res.end(
+          JSON.stringify([
+            {
+              id: 7,
+              name: "MyAnonaMouse",
+              implementation: "MyAnonaMouse",
+              fields: [{ name: "baseUrl", value: "https://trackerleech.example" }],
+            },
+          ])
+        )
+        return
+      }
+      res.writeHead(404)
+      res.end()
+    })
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+    const address = server.address()
+    if (!address || typeof address === "string") throw new Error("no prowlarr address")
+    const prowlarrUrl = `http://127.0.0.1:${address.port}`
+    try {
+      const settings = await request.patch("/api/settings", {
+        data: {
+          prowlarrUrl,
+          prowlarrApiKey: "synthetic-prowlarr-key",
+          prowlarrAllowPrivate: true,
+        },
+      })
+      expect(settings.ok()).toBe(true)
+      console.log("PROWLARR_STEP settings saved")
+      await page.goto("/settings")
+      const section = page.locator("[data-prowlarr-import]").first()
+      await expect(section).toBeVisible()
+      console.log("PROWLARR_STEP section visible")
+      await section.getByLabel("Prowlarr URL").fill(prowlarrUrl)
+      await section.getByLabel(/Prowlarr API key/).fill("synthetic-prowlarr-key")
+      console.log("PROWLARR_STEP fields filled")
+      await section.getByRole("button", { name: "Test and preview" }).click()
+      console.log("PROWLARR_STEP preview clicked")
+      await expect(section.getByText("MyAnonaMouse", { exact: true }).first()).toBeVisible({ timeout: 10_000 })
+      console.log("PROWLARR_STEP preview visible")
+      await section.getByLabel("Select MyAnonaMouse").check()
+      await section.getByRole("button", { name: /Import selected/ }).click()
+      await expect(section.getByText(/1 tracker\(s\) created/)).toBeVisible()
+      const sql = e2eSql()
+      try {
+        const [row] = await sql<{ count: number; active: number; paused: number }[]>`
+          select count(*)::int as count,
+                 count(*) filter (where is_active)::int as active,
+                 count(*) filter (where user_paused_at is not null)::int as paused
+          from trackers where name = 'MyAnonaMouse'
+        `
+        expect(row.count).toBe(1)
+        expect(row.active).toBe(1)
+        expect(row.paused).toBe(1)
+      } finally {
+        await sql.end()
+      }
+      await section.scrollIntoViewIfNeeded()
+      await section.screenshot({ path: "test-results/visual-prowlarr-light.png" })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await section.screenshot({ path: "test-results/visual-prowlarr-dark.png" })
+      await page.setViewportSize({ width: 390, height: 1200 })
+      await page.waitForFunction(
+        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      )
+      await page.waitForTimeout(300)
+      await section.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: "test-results/visual-prowlarr-mobile.png" })
+      await page.setViewportSize({ width: 1280, height: 900 })
+      await page.goto("/")
+      await expect(page.getByText("MyAnonaMouse").first()).toBeVisible()
+      await page.screenshot({ path: "test-results/visual-prowlarr-imported-tracker.png" })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+      const sql = e2eSql()
+      try {
+        await sql`delete from trackers where name = 'MyAnonaMouse'`
+      } finally {
+        await sql.end()
+      }
+    }
   })
 })

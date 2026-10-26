@@ -19,6 +19,7 @@ import { DigestSection } from "@/components/settings/DigestSection"
 import { EventsSection } from "@/components/settings/EventsSection"
 import { ImageHostingSection } from "@/components/settings/ImageHostingSection"
 import { PrivacySection } from "@/components/settings/PrivacySection"
+import { ProwlarrImportSection } from "@/components/settings/ProwlarrImportSection"
 import { ProxySection } from "@/components/settings/ProxySection"
 import { SecurityPoliciesSection } from "@/components/settings/SecurityPoliciesSection"
 import { TwoFactorSection } from "@/components/settings/TwoFactorSection"
@@ -65,6 +66,9 @@ export interface SettingsData {
   hasImgbbKey: boolean
   credentialVaultEnabled: boolean
   rankGoals: string | null
+  prowlarrUrl: string | null
+  hasProwlarrApiKey: boolean
+  prowlarrAllowPrivate: boolean
   digestEnabled: boolean
   digestTime: string
   digestTimezone: string
@@ -112,6 +116,12 @@ export function SettingsClient({
           <CredentialVaultSection initialEnabled={initialSettings.credentialVaultEnabled} />
 
           <DataSection initialPollInterval={initialSettings.trackerPollIntervalMinutes ?? 60} />
+
+          <ProwlarrImportSection
+            initialUrl={initialSettings.prowlarrUrl}
+            initialHasKey={initialSettings.hasProwlarrApiKey}
+            initialAllowPrivate={initialSettings.prowlarrAllowPrivate}
+          />
 
           <ImageHostingSection
             initialHasKeys={{

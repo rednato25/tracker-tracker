@@ -52,7 +52,8 @@ function route(overrides: Partial<RecruitmentRouteRecord> = {}): RecruitmentRout
     sourceTrackerId: "alpha",
     destinationTrackerId: "beta",
     requirements: ageRequirement(180),
-    requirementNotes: ["Community prose"],
+    requirementNotes: [],
+    sourceDays: null,
     availability: "open",
     availabilityRaw: "Yes",
     sourceUpdatedAt: "2026-06",
@@ -74,12 +75,14 @@ function override(overrides: Partial<RecruitmentRouteOverride> = {}): Recruitmen
 
 function catalog(
   routes: RecruitmentRouteRecord[],
-  overrides: RecruitmentRouteOverride[] = []
+  overrides: RecruitmentRouteOverride[] = [],
+  sourceGates: RecruitmentCatalog["sourceGates"] = []
 ): RecruitmentCatalog {
   return {
     formatVersion: RECRUITMENT_ROUTE_FORMAT_VERSION,
     source: SOURCE,
     routes,
+    sourceGates,
     overrides,
   }
 }
@@ -98,6 +101,7 @@ describe("real recruitment catalog", () => {
     )
     expect(RECRUITMENT_CATALOG.source.accessedAt).toBe("2026-10-26T00:00:00.000Z")
     expect(RECRUITMENT_CATALOG.routes.length).toBe(194)
+    expect(RECRUITMENT_CATALOG.sourceGates.length).toBe(23)
     expect(RECRUITMENT_CATALOG.overrides).toEqual([])
 
     const validation = validateRecruitmentCatalog(RECRUITMENT_CATALOG, validIds)
@@ -105,15 +109,12 @@ describe("real recruitment catalog", () => {
     expect(validation.valid).toBe(true)
   })
 
-  it("only structures the dataset's explicit account-age days field", () => {
+  it("does not turn the undocumented upstream days value into account age", () => {
     for (const item of RECRUITMENT_CATALOG.routes) {
-      if (!item.requirements) continue
-      expect(item.requirements.mode).toBe("all")
-      expect(item.requirements.conditions.length).toBe(1)
-      const condition = item.requirements.conditions[0]
-      expect("metric" in condition && condition.metric).toBe("accountAgeDays")
-      expect("comparison" in condition && condition.comparison).toBe("gte")
+      expect(item.requirements).toBeNull()
+      expect(item.sourceDays === null || item.sourceDays >= 0).toBe(true)
     }
+    expect(RECRUITMENT_CATALOG.routes.some((item) => item.sourceDays !== null)).toBe(true)
   })
 
   it("keeps free-text-only routes unknown instead of inventing thresholds", () => {
@@ -128,7 +129,7 @@ describe("real recruitment catalog", () => {
       now: NOW,
     })
     expect(result?.eligibility.status).toBe("unknown")
-    expect(result?.eligibility.structured).toBeNull()
+    expect(result?.eligibility.structured?.conditions.length).toBeGreaterThan(0)
     expect(result?.eligibility.requirementNotes.length).toBeGreaterThan(0)
   })
 
@@ -141,11 +142,21 @@ describe("real recruitment catalog", () => {
       observations: { accountAgeDays: observation(5000) },
       now: NOW,
     })
-    expect(result?.eligibility.status).toBe("met")
+    expect(result?.eligibility.status).toBe("unknown")
     expect(result?.availability.status).toBe("closed")
     expect(result?.availability.confirmed).toBe(false)
     expect(result?.invitation.guaranteed).toBe(false)
     expect(result?.invitation.activeRecruiter).toBe("unknown")
+  })
+
+  it("never claims met for a community route with unresolved upstream semantics", () => {
+    for (const item of RECRUITMENT_CATALOG.routes) {
+      const result = evaluateRecruitmentRoute(RECRUITMENT_CATALOG, item.id, {
+        observations: { accountAgeDays: observation(99_999) },
+        now: NOW,
+      })
+      expect(result?.eligibility.status, item.id).toBe("unknown")
+    }
   })
 })
 
@@ -204,7 +215,7 @@ describe("route eligibility", () => {
       now: NOW,
     })
     expect(missing?.eligibility.status).toBe("unknown")
-    expect(missing?.eligibility.reason).toContain("missing, stale or unverified")
+    expect(missing?.eligibility.reason).toContain("missing, stale, unresolved or unverified")
 
     const stale = evaluateRecruitmentRoute(item, "tp:alpha:beta", {
       observations: { accountAgeDays: observation(500, "stale") },
@@ -224,8 +235,78 @@ describe("route eligibility", () => {
       now: NOW,
     })
     expect(result?.eligibility.status).toBe("unknown")
-    expect(result?.eligibility.progress).toEqual({ met: 0, unmet: 0, unknown: 0, total: 0 })
+    expect(result?.eligibility.progress).toEqual({ met: 0, unmet: 0, unknown: 1, total: 1 })
     expect(result?.eligibility.requirementNotes).toEqual(["Invite forum access"])
+  })
+
+  it("keeps a satisfied age condition unknown while mandatory prose is unresolved", () => {
+    const item = catalog([
+      route({ requirements: ageRequirement(180), requirementNotes: ["Ratio >= 2.0 and 10 uploads"] }),
+    ])
+    const result = evaluateRecruitmentRoute(item, "tp:alpha:beta", {
+      observations: { accountAgeDays: observation(500) },
+      now: NOW,
+    })
+
+    expect(result?.eligibility.status).toBe("unknown")
+    expect(result?.eligibility.progress).toEqual({ met: 1, unmet: 0, unknown: 1, total: 2 })
+    expect(result?.eligibility.reason).toContain("unresolved")
+  })
+
+  it("preserves ALL semantics when a known condition is unmet and prose is unknown", () => {
+    const item = catalog([
+      route({ requirements: ageRequirement(180), requirementNotes: ["Ratio >= 2.0"] }),
+    ])
+    const result = evaluateRecruitmentRoute(item, "tp:alpha:beta", {
+      observations: { accountAgeDays: observation(100) },
+      now: NOW,
+    })
+
+    expect(result?.eligibility.status).toBe("unmet")
+    expect(result?.eligibility.progress).toEqual({ met: 0, unmet: 1, unknown: 1, total: 2 })
+  })
+
+  it("keeps an unresolved source invite-class/forum gate as an unknown prerequisite", () => {
+    const item = catalog(
+      [route({ requirements: ageRequirement(30), requirementNotes: [] })],
+      [],
+      [{ trackerId: "alpha", days: 120, text: "Elite: 10 uploads, ratio >= 2" }]
+    )
+    const result = evaluateRecruitmentRoute(item, "tp:alpha:beta", {
+      observations: { accountAgeDays: observation(500) },
+      now: NOW,
+    })
+
+    expect(result?.eligibility.status).toBe("unknown")
+    expect(result?.eligibility.sourceRequirements.inviteGate).toEqual({
+      trackerId: "alpha",
+      days: 120,
+      text: "Elite: 10 uploads, ratio >= 2",
+    })
+    expect(result?.eligibility.progress.unknown).toBe(1)
+    expect(result?.availability.status).toBe("open")
+    expect(result?.invitation.guaranteed).toBe(false)
+  })
+
+  it("keeps the undocumented days value unresolved rather than account age", () => {
+    const item = catalog([
+      route({ requirements: null, requirementNotes: [], sourceDays: 365 }),
+    ])
+    const result = evaluateRecruitmentRoute(item, "tp:alpha:beta", {
+      observations: { accountAgeDays: observation(5000) },
+      now: NOW,
+    })
+
+    expect(result?.eligibility.status).toBe("unknown")
+    expect(result?.eligibility.sourceRequirements).toMatchObject({
+      days: 365,
+      daysSemantics: "unresolved",
+      inviteGate: null,
+    })
+    expect(result?.eligibility.structured?.conditions[0]).toMatchObject({
+      kind: "manual",
+      label: "Community dataset days value",
+    })
   })
 
   it("reuses ALL and ANY semantics", () => {
@@ -299,6 +380,9 @@ describe("availability and evidence", () => {
     })
     expect(result?.availability.status).toBe("unknown")
     expect(result?.availability.raw).toBe("Limited")
+    expect(result?.availability.confirmed).toBe(false)
+    expect(result?.invitation.guaranteed).toBe(false)
+    expect(result?.invitation.activeRecruiter).toBe("unknown")
   })
 
   it("applies a dated override without mutating the original source record", () => {
@@ -314,7 +398,7 @@ describe("availability and evidence", () => {
         override({
           availability: "open",
           requirements: ageRequirement(30),
-          requirementNotes: ["override note"],
+          requirementNotes: [],
           note: "Checked the public invite page.",
         }),
       ]
@@ -325,7 +409,7 @@ describe("availability and evidence", () => {
     })
 
     expect(result?.eligibility.status).toBe("met")
-    expect(result?.eligibility.requirementNotes).toEqual(["override note"])
+    expect(result?.eligibility.requirementNotes).toEqual([])
     expect(result?.eligibility.originalRequirementNotes).toEqual(["base note"])
     expect(result?.availability).toMatchObject({
       status: "open",

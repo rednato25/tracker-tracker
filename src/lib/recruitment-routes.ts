@@ -14,6 +14,7 @@
 import type {
   RankGoalStatus,
   RankGroupResult,
+  RankManualCondition,
   RankObservationMap,
   RankRequirementGroup,
 } from "@/lib/rank-goals"
@@ -47,17 +48,31 @@ export interface RecruitmentRouteRecord {
   sourceTrackerId: string
   destinationTrackerId: string
   /**
-   * Only conditions supported by an explicit source field. `null` means the
-   * source has no structured requirements, not that there are none.
+   * Only conditions supported by an explicit, documented source field. `null`
+   * means the source has no evaluable structured requirements, not that there
+   * are none.
    */
   requirements: RankRequirementGroup | null
   /** Source prose kept readable because it cannot be evaluated safely. */
   requirementNotes: string[]
+  /**
+   * The upstream `days` value. Upstream only labels this unnamed "Days" wait;
+   * it does not document account age, so P17 keeps it unresolved.
+   */
+  sourceDays: number | null
   availability: RecruitmentAvailability
   availabilityRaw: string
   /** `YYYY-MM` at month precision; distinct from access/verification dates. */
   sourceUpdatedAt: string | null
   sourceUpdatedRaw: string | null
+}
+
+export interface RecruitmentSourceGate {
+  trackerId: string
+  /** Upstream wait value; not interpreted as account age. */
+  days: number | null
+  /** Source invite-class/forum gate prose. Always unresolved in P17. */
+  text: string
 }
 
 export interface RecruitmentRouteOverride {
@@ -77,6 +92,7 @@ export interface RecruitmentCatalog {
   formatVersion: typeof RECRUITMENT_ROUTE_FORMAT_VERSION
   source: RecruitmentSourceRecord
   routes: RecruitmentRouteRecord[]
+  sourceGates: RecruitmentSourceGate[]
   overrides: RecruitmentRouteOverride[]
 }
 
@@ -97,6 +113,11 @@ export interface RecruitmentRouteEvaluation {
     structured: RankGroupResult | null
     requirementNotes: string[]
     originalRequirementNotes: string[]
+    sourceRequirements: {
+      days: number | null
+      daysSemantics: "unresolved" | "absent"
+      inviteGate: RecruitmentSourceGate | null
+    }
     reason: string
   }
   availability: {
@@ -135,6 +156,69 @@ export interface RecruitmentRouteEvaluation {
 
 const EMPTY_PROGRESS = { met: 0, unmet: 0, unknown: 0, total: 0 }
 const DAY_MS = 86_400_000
+
+const NO_REQUIREMENT_NOTES = new Set([
+  "none",
+  "no requirement",
+  "no requirements",
+  "removed",
+])
+
+function isMandatoryNote(note: string): boolean {
+  return !NO_REQUIREMENT_NOTES.has(note.trim().toLowerCase())
+}
+
+/**
+ * Mandatory source text, the upstream `days` value and the source invite gate
+ * are unresolved prerequisites. They are inserted as manual UNKNOWN leaves so
+ * ALL/ANY keeps the conservative result: a known unmet condition still wins,
+ * otherwise any unresolved mandatory condition prevents `met`.
+ */
+function unresolvedPrerequisites(
+  route: RecruitmentRouteRecord,
+  effectiveNotes: string[],
+  sourceGate: RecruitmentSourceGate | null
+): RankManualCondition[] {
+  const manual: RankManualCondition[] = []
+  if (route.sourceDays !== null && route.sourceDays > 0) {
+    manual.push({
+      kind: "manual",
+      id: "source-days",
+      label: "Community dataset days value",
+      description: `The upstream dataset lists ${route.sourceDays} days but does not document whether that means account age, waiting time or another gate. It is not evaluated.`,
+    })
+  }
+  for (const [index, note] of effectiveNotes.entries()) {
+    if (!isMandatoryNote(note)) continue
+    manual.push({
+      kind: "manual",
+      id: `source-requirement-${index}`,
+      label: "Unresolved source requirement",
+      description: note,
+    })
+  }
+  if (sourceGate) {
+    manual.push({
+      kind: "manual",
+      id: "source-invite-gate",
+      label: "Source invite-class or forum gate",
+      description: `${sourceGate.text}${sourceGate.days === null ? "" : ` (upstream wait: ${sourceGate.days} days; not evaluated as account age)`}`,
+    })
+  }
+  return manual
+}
+
+function buildEffectiveRequirements(
+  structured: RankRequirementGroup | null,
+  unresolved: RankManualCondition[]
+): RankRequirementGroup | null {
+  if (unresolved.length === 0) return structured
+  return {
+    mode: "all",
+    conditions: structured ? [structured, ...unresolved] : unresolved,
+  }
+}
+
 
 function parseMonthStart(value: string | null): Date | null {
   if (!value) return null
@@ -196,8 +280,8 @@ function evaluateStructured(
     structured.status === "met"
       ? "All structured requirements are met; this says nothing about an active recruiter or invitation."
       : structured.status === "unmet"
-        ? "At least one structured requirement is unmet."
-        : "A structured observation is missing, stale or unverified, so eligibility remains unknown."
+        ? "At least one known mandatory requirement is unmet."
+        : "A mandatory requirement is missing, stale, unresolved or unverified, so eligibility remains unknown."
   return { status: structured.status, structured, progress: structured.progress, reason }
 }
 
@@ -213,7 +297,11 @@ export function evaluateRecruitmentRoute(
   const effectiveRequirements =
     override && "requirements" in override ? (override.requirements ?? null) : route.requirements
   const requirementNotes = override?.requirementNotes ?? route.requirementNotes
-  const eligibility = evaluateStructured(effectiveRequirements, input)
+  const sourceGate =
+    catalog.sourceGates.find((candidate) => candidate.trackerId === route.sourceTrackerId) ?? null
+  const unresolved = unresolvedPrerequisites(route, requirementNotes, sourceGate)
+  const requirements = buildEffectiveRequirements(effectiveRequirements, unresolved)
+  const eligibility = evaluateStructured(requirements, input)
 
   const sourceUpdated = parseMonthStart(route.sourceUpdatedAt)
   const verified = override ? parseInstant(override.verifiedAt) : null
@@ -234,6 +322,11 @@ export function evaluateRecruitmentRoute(
       structured: eligibility.structured,
       requirementNotes,
       originalRequirementNotes: route.requirementNotes,
+      sourceRequirements: {
+        days: route.sourceDays,
+        daysSemantics: route.sourceDays === null ? "absent" : "unresolved",
+        inviteGate: sourceGate,
+      },
       reason: eligibility.reason,
     },
     availability: {
@@ -338,6 +431,21 @@ export function validateRecruitmentCatalog(
   const routeIds = new Set<string>()
   const pairs = new Set<string>()
   const overrideIds = new Set<string>()
+  const gateIds = new Set<string>()
+
+  for (const gate of catalog.sourceGates) {
+    if (gateIds.has(gate.trackerId)) {
+      errors.push(`duplicate source gate: ${gate.trackerId}`)
+    }
+    gateIds.add(gate.trackerId)
+    if (!trackerIds.has(gate.trackerId)) {
+      errors.push(`source gate references unknown tracker: ${gate.trackerId}`)
+    }
+    if (gate.days !== null && (!Number.isSafeInteger(gate.days) || gate.days < 0)) {
+      errors.push(`source gate ${gate.trackerId}: days must be a non-negative integer or null`)
+    }
+    if (!gate.text.trim()) errors.push(`source gate ${gate.trackerId}: missing text`)
+  }
 
   for (const route of catalog.routes) {
     if (!route.id.trim()) errors.push("route has an empty id")
@@ -361,8 +469,19 @@ export function validateRecruitmentCatalog(
     if (route.sourceUpdatedAt && !parseMonthStart(route.sourceUpdatedAt)) {
       errors.push(`${route.id}: sourceUpdatedAt must be YYYY-MM`)
     }
-    if (!route.requirements && route.requirementNotes.length === 0) {
-      warnings.push(`${route.id}: no structured requirements and no readable notes`)
+    if (
+      route.sourceDays !== null &&
+      (!Number.isSafeInteger(route.sourceDays) || route.sourceDays < 0)
+    ) {
+      errors.push(`${route.id}: sourceDays must be a non-negative integer or null`)
+    }
+    if (
+      !route.requirements &&
+      route.requirementNotes.length === 0 &&
+      route.sourceDays === null &&
+      !gateIds.has(route.sourceTrackerId)
+    ) {
+      warnings.push(`${route.id}: no structured requirements and no readable source prerequisites`)
     }
   }
 

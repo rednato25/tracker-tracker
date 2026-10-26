@@ -8,8 +8,9 @@
 //
 // Only routes whose source and destination resolve to a production tracker
 // registry slug are included. Unresolved community names are omitted rather
-// than guessed. The free-text "reqs" value is retained as a readable note; only
-// the explicit "days" field becomes a structured account-age condition.
+// than guessed. The free-text "reqs" value is retained as a readable note.
+// The upstream "days" field is retained as unresolved: upstream documents only
+// an unnamed wait, not account age, so P17 does not turn it into a threshold.
 //
 // Regenerate only from the pinned snapshot. Never fetch this at render time.
 
@@ -244,22 +245,8 @@ export const RECRUITMENT_ROUTES: RecruitmentRouteRecord[] = RAW_ROUTES.map(
     id: `tp:${sourceTrackerId}:${destinationTrackerId}`,
     sourceTrackerId,
     destinationTrackerId,
-    requirements:
-      days > 0
-        ? {
-            mode: "all",
-            conditions: [
-              {
-                kind: "numeric",
-                id: "source-account-age",
-                metric: "accountAgeDays",
-                comparison: "gte",
-                requiredValue: days,
-                label: `Minimum source account age: ${days} days (community data)`,
-              },
-            ],
-          }
-        : null,
+    requirements: null,
+    sourceDays: days > 0 ? days : null,
     requirementNotes: reqs.trim() ? [reqs.trim()] : [],
     availability,
     availabilityRaw,

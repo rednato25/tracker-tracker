@@ -25,7 +25,9 @@ the **194 edges** whose source and destination both resolve to a production
 tracker registry slug. Names that do not resolve are omitted rather than guessed:
 117 community names remain unresolved, including trackers outside the current
 production registry and draft-only entries. The static catalog lives in
-`src/data/recruitment-routes.ts`; nothing fetches the dataset at render time.
+`src/data/recruitment-routes.ts`; 23 source-side invite/class/forum gates from
+the same snapshot live in `src/data/recruitment-gates.ts`. Nothing fetches the
+dataset at render time.
 
 ## Format
 
@@ -33,11 +35,18 @@ Each route has a stable ID (`tp:<source-slug>:<destination-slug>`), registry
 source/destination IDs, structured requirements, readable notes, availability,
 source update date, and source attribution from the catalog.
 
-Structured requirements exist only where the source field is explicit. The
-upstream `days` value becomes one `accountAgeDays` `gte` condition. Every other
-`reqs` string stays a readable note, even when it mentions ratio, uploads or a
-class. Prose is never parsed into invented thresholds. A route with no
-structured requirements evaluates as `unknown`, not `met`.
+Structured requirements exist only where the source field is explicit **and its
+meaning is documented**. Upstream's `days` field is only described as an unnamed
+"Days" wait/sort value; it is not documented as account age. P17 therefore keeps
+`sourceDays` as an unresolved prerequisite rather than converting it into an
+`accountAgeDays` threshold. This follows the upstream API/source, not Yata's
+different interpretation.
+
+Every `reqs` string stays a readable note, even when it mentions ratio, uploads
+or a class. Prose is never parsed into invented thresholds. Mandatory prose,
+unresolved `sourceDays`, and a source invite-class/forum gate are inserted as
+manual `unknown` leaves. A route with only these prerequisites evaluates as
+`unknown`, not `met`.
 
 Three dates are intentionally distinct:
 
@@ -57,13 +66,18 @@ dated override. A recently accessed page is never reported as recently verified.
 
 - `eligibility` is `met`, `unmet` or `unknown`, with ALL/ANY progress and the
   existing rank-condition semantics reused. Missing or stale observations remain
-  unknown.
+  unknown. Mandatory prose, unresolved `sourceDays`, and the source
+  invite-class/forum gate are unresolved manual leaves. Under ALL, a known unmet
+  condition still wins (`unmet`); otherwise any unresolved leaf makes the overall
+  result `unknown`. `sourceRequirements` exposes the gate and
+  `daysSemantics: "unresolved" | "absent"`.
 - `availability` is `open`, `closed` or `unknown` from the community `active`
   field. `Limited` maps to unknown rather than a guessed open state. Community
   availability is always `confirmed: false`.
 - `invitation.guaranteed` is always `false`; `activeRecruiter` and `admission`
   are always `unknown`. Meeting requirements never proves a recruiter exists,
-  guarantees an invitation, or implies admission.
+  guarantees an invitation, or implies admission. Unknown availability is never
+  presented as ready-to-apply.
 
 ## Local overrides
 
@@ -72,7 +86,10 @@ change, not a new editor UI or database table. Every override requires an author
 authoring date, provenance URL and verification date. It may replace availability,
 structured requirements or readable notes. Evaluation exposes the effective
 values plus `originalStatus` / `originalRequirementNotes`, so the community source
-record is preserved. Overrides win only for the fields they declare.
+record is preserved. Overrides win only for the fields they declare. An override
+can turn reviewed prose into structured requirements, or clear it, but
+`sourceDays` and the source invite gate remain unresolved unless the source has
+no such prerequisite.
 
 Validation rejects duplicate route IDs/pairs, unknown tracker slugs, self-routes,
 malformed dates, duplicate overrides, and overrides missing an author or
@@ -90,21 +107,28 @@ Using the shipped catalog and a synthetic observation of 5,000 account-age days:
 
 | Route | Eligibility | Availability | Evidence |
 | --- | --- | --- | --- |
-| `tp:broadcasthenet:passthepopcorn` | `met` (age >= 365) | `closed` | source fresh (`Aug 2026`), independently verified `unknown` |
-| `tp:alpharatio:broadcasthenet` | `unknown` (only `Invite forum access`) | `open` | source fresh (`Mar 2026`), independently verified `unknown` |
-| `tp:luminarr:nebulance` | `met` if age >= 90 | `unknown` (`Limited`) | source fresh (`Jun 2026`) |
-| `tp:aither:broadcasthenet` | `unknown` | `open` | source stale (`Nov 2024`), independently verified `unknown` |
+| `tp:broadcasthenet:passthepopcorn` | `unknown` (days + gate + prose unresolved) | `closed` | source fresh (`Aug 2026`), independently verified `unknown` |
+| `tp:alpharatio:broadcasthenet` | `unknown` (source gate + `Invite forum access`) | `open` | source fresh (`Mar 2026`), independently verified `unknown` |
+| `tp:luminarr:nebulance` | `unknown` (days + source gate) | `unknown` (`Limited`) | source fresh (`Jun 2026`) |
+| `tp:aither:broadcasthenet` | `unknown` (source gate + prose) | `open` | source stale (`Nov 2024`), independently verified `unknown` |
 
-The closed route is the key guard: eligibility can be met while recruitment is
-closed and no recruiter is known.
+Every shipped community route is `unknown` for eligibility because its `days`,
+prose or source gate is unresolved. A closed route remains closed even if a
+future override resolves all requirements. Synthetic regressions additionally
+prove: age met + mandatory prose unknown => overall `unknown`; age unmet +
+mandatory prose unknown => overall `unmet`; and source gate unknown => overall
+`unknown` even with a met structured age.
 
 ## Limitations
 
+- Upstream `days` semantics are undocumented beyond "Days"; P17 does not
+  interpret them as account age or any other threshold.
 - Community `reqs` prose is not structured; class, ratio, upload and seed-size
   requirements remain unknown until a local override supplies validated structured
   data.
+- Source `unlockInviteClass` gates are preserved as unresolved prerequisites; they
+  are not evaluated or treated as satisfied.
 - 117 upstream names are unresolved and omitted; no aliases are guessed.
-- Source-level `unlockInviteClass` data is not modeled in P17.
 - No automatic applications, messages, scraping, credentials or effect on tracker
   polling. No runtime dataset fetch, migration or backup change.
 - P18 UI, P19 search and deployment are out of scope.

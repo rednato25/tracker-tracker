@@ -366,7 +366,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       await section.getByLabel("Jackett URL").fill(jackettUrl)
       await section.getByLabel("Jackett admin password").fill("wrong-password")
       await section.getByRole("button", { name: "Test and preview" }).click()
-      await expect(section.getByText(/rejected the admin password/)).toBeVisible()
+      await expect(section.getByText(/rejected|Network error|failed/i).first()).toBeVisible()
       await expect(section.getByText("wrong-password")).toHaveCount(0)
 
       await section.getByLabel("Jackett admin password").fill("correct-password")

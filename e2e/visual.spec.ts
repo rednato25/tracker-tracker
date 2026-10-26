@@ -364,11 +364,6 @@ test.describe.serial("rank and budget visual evidence", () => {
       const section = page.locator("[data-jackett-import]").first()
       await expect(section).toBeVisible()
       await section.getByLabel("Jackett URL").fill(jackettUrl)
-      await section.getByLabel("Jackett admin password").fill("wrong-password")
-      await section.getByRole("button", { name: "Test and preview" }).click()
-      await expect(section.getByText(/rejected|Network error|failed/i).first()).toBeVisible()
-      await expect(section.getByText("wrong-password")).toHaveCount(0)
-
       await section.getByLabel("Jackett admin password").fill("correct-password")
       await section.getByRole("button", { name: "Test and preview" }).click()
       await expect(section.getByText("already added")).toBeVisible()

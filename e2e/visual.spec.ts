@@ -322,4 +322,101 @@ test.describe.serial("rank and budget visual evidence", () => {
       }
     }
   })
+
+  test("previews and imports a selected Jackett indexer", async ({ page }) => {
+    const server = createServer((req, res) => {
+      if (req.url === "/UI/Dashboard" && req.method === "POST") {
+        let body = ""
+        req.on("data", (chunk) => (body += chunk))
+        req.on("end", () => {
+          if (body.includes("wrong-password")) {
+            res.writeHead(200, { "content-type": "text/html" })
+            res.end("login")
+            return
+          }
+          res.setHeader("set-cookie", "Jackett=session; Path=/")
+          res.writeHead(302, { location: "/UI/Dashboard" })
+          res.end()
+        })
+        return
+      }
+      if (req.url === "/api/v2.0/indexers?configured=true") {
+        res.writeHead(200, { "content-type": "application/json" })
+        res.end(
+          JSON.stringify([
+            { id: "mam", name: "MyAnonaMouse", type: "MyAnonaMouse", site_link: "https://www.myanonamouse.net" },
+            { id: "tl", name: "TorrentLeech", type: "TorrentLeech", site_link: "https://trackerleech.example" },
+            { id: "amb", name: "REDacted", type: "REDacted", site_link: "https://www.myanonamouse.net" },
+            { id: "unknown", name: "Unknown Indexer", type: "Unknown", site_link: "https://unknown.example" },
+          ])
+        )
+        return
+      }
+      res.writeHead(404)
+      res.end()
+    })
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+    const address = server.address()
+    if (!address || typeof address === "string") throw new Error("no jackett address")
+    const jackettUrl = `http://127.0.0.1:${address.port}`
+    try {
+      await page.goto("/settings")
+      const section = page.locator("[data-jackett-import]").first()
+      await expect(section).toBeVisible()
+      await section.getByLabel("Jackett URL").fill(jackettUrl)
+      await section.getByLabel("Jackett admin password").fill("wrong-password")
+      await section.getByRole("button", { name: "Test and preview" }).click()
+      await expect(section.getByText(/rejected the admin password/)).toBeVisible()
+      await expect(section.getByText("wrong-password")).toHaveCount(0)
+
+      await section.getByLabel("Jackett admin password").fill("correct-password")
+      await section.getByRole("button", { name: "Test and preview" }).click()
+      await expect(section.getByText("already added")).toBeVisible()
+      await expect(section.getByText("ambiguous")).toBeVisible()
+      await expect(section.getByText("unsupported")).toBeVisible()
+      await expect(section.getByLabel("Select MyAnonaMouse")).toBeEnabled()
+      await section.getByLabel("Select MyAnonaMouse").check()
+      await section.getByRole("button", { name: /Import selected/ }).click()
+      await expect(section.getByText(/1 tracker\(s\) created/)).toBeVisible()
+
+      const sql = e2eSql()
+      try {
+        const [row] = await sql<{ count: number; active: number; paused: number }[]>`
+          select count(*)::int as count,
+                 count(*) filter (where is_active)::int as active,
+                 count(*) filter (where user_paused_at is not null)::int as paused
+          from trackers where name = 'MyAnonaMouse'
+        `
+        expect(row).toEqual({ count: 1, active: 1, paused: 1 })
+      } finally {
+        await sql.end()
+      }
+
+      await section.scrollIntoViewIfNeeded()
+      await section.screenshot({ path: "test-results/visual-jackett-light.png" })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await section.screenshot({ path: "test-results/visual-jackett-dark.png" })
+      await page.setViewportSize({ width: 390, height: 1200 })
+      await page.waitForFunction(
+        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      )
+      await page.waitForTimeout(300)
+      await section.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: "test-results/visual-jackett-mobile.png" })
+      await page.setViewportSize({ width: 1280, height: 900 })
+      await page.goto("/")
+      await expect(page.getByText("MyAnonaMouse").first()).toBeVisible()
+      await page.screenshot({ path: "test-results/visual-jackett-imported-tracker.png" })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+      const sql = e2eSql()
+      try {
+        await sql`delete from trackers where name = 'MyAnonaMouse'`
+      } finally {
+        await sql.end()
+      }
+    }
+  })
 })

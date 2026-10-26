@@ -117,7 +117,9 @@ does not accept integration tokens and does not contact a tracker.
 - Visual evidence: `visual-wishlist-light.png`, `visual-wishlist-dark.png`,
   `visual-wishlist-mobile.png` from the authenticated E2E run, using a temporary
   owned AlphaRatio row and the real pinned catalogue. The test removes the row and
-  clears the wishlist state afterwards.
+  clears the wishlist state afterwards. Light/dark desktop and 390px mobile views
+  were inspected: long source text and gate details wrap, availability and
+  eligibility remain separate, and the mobile title clears the navigation control.
 
 ## Limitations
 

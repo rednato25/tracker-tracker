@@ -1379,8 +1379,10 @@ only be investigated further if normal keyboard interaction reproduces it.
   suite on Node 24: 252 files / 6190 tests passed; TypeScript, Biome, security
   audit 38/38 and production build pass.
 - Visual evidence: authenticated light/dark desktop and 390px mobile artifacts
-  from `e2e/visual.spec.ts`; temporary AlphaRatio tracker and wishlist state are
-  removed after capture. Contract: `docs/WISHLIST.md`.
+  from `e2e/visual.spec.ts` were inspected. Long source text/gates wrap,
+  availability stays separate, and the mobile title clears the nav control after
+  the top-padding fix. Temporary AlphaRatio tracker and wishlist state are removed
+  after capture. Contract: `docs/WISHLIST.md`.
 - Limitations: 117 unresolved upstream names omitted; prose ratio/class/upload/
   seed-size requirements, undocumented `days` and source gates remain unresolved.
   No P19 search, private-forum access, applications, deployment or home-server

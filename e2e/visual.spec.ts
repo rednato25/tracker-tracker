@@ -366,6 +366,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       await section.getByLabel("Jackett URL").fill(jackettUrl)
       await section.getByLabel("Jackett admin password").fill("correct-password")
       await section.getByRole("button", { name: "Test and preview" }).click()
+      console.log("JACKETT_TEXT", await section.innerText())
       await expect(section.getByText("already added")).toBeVisible()
       await expect(section.getByText("ambiguous")).toBeVisible()
       await expect(section.getByText("unsupported")).toBeVisible()

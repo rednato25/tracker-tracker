@@ -64,7 +64,10 @@ export async function fetchJackettIndexers(
     signal: AbortSignal.timeout(TIMEOUT_MS),
   })
   const setCookies = login.headers.getSetCookie?.() ?? []
-  const cookie = setCookies.map((value) => value.split(";")[0]).join("; ")
+  const fallbackCookie = login.headers.get("set-cookie")
+  const cookie = (setCookies.length > 0 ? setCookies : fallbackCookie ? [fallbackCookie] : [])
+    .map((value) => value.split(";")[0])
+    .join("; ")
   if (!cookie) throw new Error("Jackett rejected the admin password")
 
   const response = await fetch(`${url}/api/v2.0/indexers?configured=true`, {

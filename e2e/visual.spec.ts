@@ -477,13 +477,18 @@ test.describe.serial("wishlist visual evidence", () => {
   test.beforeAll(async () => {
     const sql = e2eSql()
     try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
       const [tracker] = await sql<{ id: number }[]>`
         insert into trackers (
           name, base_url, registry_slug, platform_type, is_active, user_paused_at,
           joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
         ) values (
           'TEST Visual Wishlist', 'https://tt-p18.invalid', 'alpharatio',
-          'unit3d', true, now(), '2025-01-01T00:00:00.000Z', now(), null, now(), now()
+          'unit3d', true, now(), '2025-01-01T00:00:00.000Z', now(),
+          ${encrypt("synthetic-p18-token", key)}, now(), now()
         ) returning id
       `
       wishlistTrackerId = tracker.id

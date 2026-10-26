@@ -206,7 +206,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       await sql.end()
     }
     await page.goto(`/trackers/${trackerId}`)
-    await expect(page.locator("[data-download-budget-panel]")).toBeVisible()
+    await expect(page.locator("[data-download-budget-panel]").first()).toBeVisible()
     await page.getByLabel("Your target ratio").fill("1")
     const add = async (sizeGiB: string, charge: string) => {
       await page.getByLabel("Download size (GiB)").fill(sizeGiB)

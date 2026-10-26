@@ -6,6 +6,11 @@ import { torrentleech } from "@/data/trackers/torrentleech"
 import type { Snapshot, TrackerLatestStats } from "@/types/api"
 
 const GiB = 1024 ** 3
+const HOUR_MS = 60 * 60 * 1000
+const DAY_MS = 24 * HOUR_MS
+const RECENT_POLL = new Date(Date.now() - HOUR_MS).toISOString()
+const EARLIER_POLL = new Date(Date.now() - 25 * DAY_MS).toISOString()
+const JOINED_AT = new Date(Date.now() - 16 * DAY_MS).toISOString()
 
 const stats: TrackerLatestStats = {
   ratio: 1.2,
@@ -27,7 +32,7 @@ const stats: TrackerLatestStats = {
 
 const snapshots = [
   {
-    polledAt: "2026-10-01T12:00:00.000Z",
+    polledAt: EARLIER_POLL,
     uploadedBytes: String(100 * GiB),
     downloadedBytes: "0",
     bufferBytes: "0",
@@ -46,7 +51,7 @@ const snapshots = [
     isManual: false,
   },
   {
-    polledAt: "2026-10-25T12:00:00.000Z",
+    polledAt: RECENT_POLL,
     uploadedBytes: String(250 * GiB),
     downloadedBytes: "0",
     bufferBytes: "0",
@@ -75,8 +80,8 @@ function renderPanel(registrySlug = "torrentleech") {
       currentRank="Registered"
       stats={stats}
       snapshots={snapshots}
-      joinedAt="2026-10-10T12:00:00.000Z"
-      lastPolledAt="2026-10-25T12:00:00.000Z"
+      joinedAt={JOINED_AT}
+      lastPolledAt={RECENT_POLL}
       accentColor="#2ecc71"
     />
   )

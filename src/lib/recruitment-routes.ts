@@ -382,7 +382,8 @@ export function findRecruitmentPaths(
   routes: RecruitmentRouteRecord[],
   fromTrackerId: string,
   toTrackerId: string,
-  maxHops = 6
+  maxHops = 6,
+  maxPaths = Number.POSITIVE_INFINITY
 ): RecruitmentPath[] {
   if (maxHops < 1 || fromTrackerId === toTrackerId) return []
   const bySource = new Map<string, RecruitmentRouteRecord[]>()
@@ -396,8 +397,9 @@ export function findRecruitmentPaths(
   const visited = new Set<string>([fromTrackerId])
 
   const walk = (current: string, routeIds: string[], hops: number) => {
-    if (hops >= maxHops) return
+    if (hops >= maxHops || paths.length >= maxPaths) return
     for (const route of bySource.get(current) ?? []) {
+      if (paths.length >= maxPaths) return
       const destination = route.destinationTrackerId
       if (visited.has(destination)) continue
       const next = [...routeIds, route.id]

@@ -194,6 +194,8 @@ function makeBackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPaylo
       quietHoursTimezone: "Europe/Bucharest",
       quietHoursCriticalBypass: true,
       rankGoals: '{"1":{"targetRank":"Power User"}}',
+      recruitmentState:
+        '{"version":1,"desiredTrackerSlug":"torrentleech","hiddenPathKeys":["tp:alpharatio:broadcasthenet"],"goalLinks":[{"routeId":"tp:torrentleech:broadcasthenet","conditionId":"source-age","sourceTrackerSlug":"torrentleech","goalTrackerSlug":"torrentleech","targetRank":"Power User","metric":"accountAgeDays","comparison":"gte","requiredValue":14}]}',
     },
     trackers: [
       {
@@ -1433,6 +1435,21 @@ describe("POST /api/settings/backup/restore — P08 digest settings", () => {
     const restoredTrackerIds = Object.keys(restoredRankGoals)
     expect(restoredTrackerIds).not.toEqual(["1"])
     expect(restoredRankGoals[restoredTrackerIds[0]]).toEqual({ targetRank: "Power User" })
+
+    const restoredRecruitment = JSON.parse(
+      recorder.settingsUpdate?.recruitmentState as string
+    ) as {
+      desiredTrackerSlug: string
+      hiddenPathKeys: string[]
+      goalLinks: { goalTrackerSlug: string; routeId: string }[]
+    }
+    // Wishlist references are slugs, so the tracker-id remap above cannot break them.
+    expect(restoredRecruitment.desiredTrackerSlug).toBe("torrentleech")
+    expect(restoredRecruitment.hiddenPathKeys).toEqual(["tp:alpharatio:broadcasthenet"])
+    expect(restoredRecruitment.goalLinks[0]).toMatchObject({
+      goalTrackerSlug: "torrentleech",
+      routeId: "tp:torrentleech:broadcasthenet",
+    })
   })
 })
 

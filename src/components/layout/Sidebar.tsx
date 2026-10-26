@@ -1,4 +1,4 @@
-﻿// src/components/layout/Sidebar.tsx
+// src/components/layout/Sidebar.tsx
 
 "use client"
 
@@ -106,6 +106,7 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
 
   const navItems = [
     { href: "/", label: "Dashboard", active: pathname === "/" },
+    { href: "/wishlist", label: "Wishlist", active: pathname.startsWith("/wishlist") },
     { href: "/settings", label: "Settings", active: pathname.startsWith("/settings") },
   ]
 
@@ -400,7 +401,7 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
                   className="inline-flex items-center gap-1 border border-rail-line bg-rail-raised px-1.5 py-0.5 text-4xs font-mono text-warn hover:border-warn transition-colors duration-150"
                 >
                   <Tooltip content={`Update available: v${latestVersion}`}>
-                    <span className="flex items-center gap-1">v{latestVersion} ↑</span>
+                    <span className="flex items-center gap-1">v{latestVersion} ?</span>
                   </Tooltip>
                 </a>
               )}

@@ -52,6 +52,10 @@ import {
 import { checkLockout, recordFailedAttempt, resetFailedAttempts } from "@/lib/lockout"
 import { log } from "@/lib/logger"
 import { NOTIFY_TOGGLE_KEYS } from "@/lib/notifications/types"
+import {
+  normalizeRecruitmentState,
+  serializeRecruitmentState,
+} from "@/lib/recruitment-state"
 import { acquireRestoreLock, RestoreBusyError } from "@/lib/restore-lock"
 import { ensureSchedulerRunning, stopScheduler } from "@/lib/scheduler"
 
@@ -1174,6 +1178,11 @@ export async function POST(request: Request) {
           draftQuicklinks: (payload.settings.draftQuicklinks as string | null) ?? null,
           dashboardSettings: (payload.settings.dashboardSettings as string | null) ?? null,
           rankGoals: restoredRankGoals,
+          recruitmentState: payload.settings.recruitmentState
+            ? serializeRecruitmentState(
+                normalizeRecruitmentState(payload.settings.recruitmentState)
+              )
+            : null,
           prowlarrUrl: (payload.settings.prowlarrUrl as string | null) ?? null,
           encryptedProwlarrApiKey:
             (payload.settings.encryptedProwlarrApiKey as string | null) ?? null,

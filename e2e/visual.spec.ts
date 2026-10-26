@@ -1,4 +1,4 @@
-﻿// e2e/visual.spec.ts
+// e2e/visual.spec.ts
 //
 // P11/P13 visual evidence with synthetic data. Runs against the guarded
 // tracker_tracker_e2e database and never contacts a tracker or download client.
@@ -58,17 +58,17 @@ test.describe.serial("rank and budget visual evidence", () => {
   test("captures the rank goal and download budget panels", async ({ page }) => {
     expect(trackerId).not.toBeNull()
     await page.goto(`/trackers/${trackerId}`)
-    await expect(page.locator("[data-rank-goal-panel]")).toBeVisible()
+    await expect(page.locator("[data-rank-goal-panel]").first()).toBeVisible()
     await expect(page.locator("[data-download-budget-panel]").first()).toBeVisible()
 
-    await page.getByLabel("Download size (GiB)").fill("80")
-    await page.getByLabel("How is it charged?").selectOption("1")
-    await page.getByText(/Advanced: committed traffic and reserve/).click()
-    await page.getByLabel("Reserve (GiB)").fill("100")
-    await expect(page.getByText(/Projected ratio/)).toBeVisible()
+    await page.getByLabel("Download size (GiB)").first().fill("80")
+    await page.getByLabel("How is it charged?").first().selectOption("1")
+    await page.getByText(/Advanced: committed traffic and reserve/).first().click()
+    await page.getByLabel("Reserve (GiB)").first().fill("100")
+    await expect(page.getByText(/Projected ratio/).first()).toBeVisible()
 
     const capturePanel = async (selector: string, path: string) => {
-      const box = await page.locator(selector).boundingBox()
+      const box = await page.locator(selector).first().boundingBox()
       if (!box) throw new Error(`no box for ${selector}`)
       const viewport = page.viewportSize()
       if (!viewport) throw new Error("no viewport")
@@ -410,6 +410,61 @@ test.describe.serial("rank and budget visual evidence", () => {
       const sql = e2eSql()
       try {
         await sql`delete from trackers where name = 'MyAnonaMouse'`
+      } finally {
+        await sql.end()
+      }
+    }
+  })
+})
+test.describe.serial("integration token visual evidence", () => {
+  test("captures desktop light/dark and mobile token management", async ({ page }) => {
+    try {
+      await page.goto("/settings")
+      await page.getByRole("tab", { name: "Integrations" }).click()
+
+      const section = page.locator('section[aria-labelledby="integrations-heading"]')
+      await expect(section).toBeVisible()
+      await expect(section.getByText("Create a token")).toBeVisible()
+
+      await section.getByLabel("Token name").fill("Visual Widget")
+      await section.getByRole("button", { name: "Create token" }).click()
+      await expect(section.getByText("Copy this token now")).toBeVisible()
+
+      // The artifact is public. Blur the one-time value even though this token is
+      // deleted in the finally block; layout, scopes and warnings stay inspectable.
+      await page.addStyleTag({
+        content: "[data-integration-token]{filter:blur(7px);user-select:none}",
+      })
+
+      const sql = e2eSql()
+      try {
+        const rows = await sql<{ count: number }[]>`
+          select count(*)::int as count from integration_tokens
+          where name = 'Visual Widget' and revoked_at is null
+        `
+        expect(rows[0]?.count).toBe(1)
+      } finally {
+        await sql.end()
+      }
+
+      await section.scrollIntoViewIfNeeded()
+      await section.screenshot({ path: "test-results/visual-integrations-light.png" })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await section.screenshot({ path: "test-results/visual-integrations-dark.png" })
+
+      await page.setViewportSize({ width: 390, height: 1200 })
+      await page.waitForFunction(
+        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      )
+      await page.waitForTimeout(300)
+      await section.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: "test-results/visual-integrations-mobile.png" })
+    } finally {
+      const sql = e2eSql()
+      try {
+        await sql`delete from integration_tokens where name = 'Visual Widget'`
       } finally {
         await sql.end()
       }

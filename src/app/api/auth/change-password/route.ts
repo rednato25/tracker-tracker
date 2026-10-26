@@ -15,7 +15,7 @@ import { authenticate, decodeKey, parseJsonBody } from "@/lib/api-helpers"
 import { clearSession, hashPassword, verifyPassword } from "@/lib/auth"
 import { decrypt, deriveKey, encrypt, reencrypt } from "@/lib/crypto"
 import { db } from "@/lib/db"
-import { appSettings, downloadClients, notificationTargets, trackers } from "@/lib/db/schema"
+import { appSettings, downloadClients, integrationTokens, notificationTargets, trackers } from "@/lib/db/schema"
 import { PASSWORD_MAX, PASSWORD_MIN } from "@/lib/limits"
 import { recordFailedAttempt, resetFailedAttempts } from "@/lib/lockout"
 import { log } from "@/lib/logger"
@@ -397,6 +397,17 @@ export async function POST(request: Request) {
           .update(notificationTargets)
           .set({ encryptedConfig: encrypt(plainConfig, newKey) })
           .where(eq(notificationTargets.id, id))
+      }
+
+      // A password change is a credential-rotation event, so every bearer
+      // credential issued for the read-only integration API is invalidated.
+      const revokedIntegrationTokens = await tx
+        .delete(integrationTokens)
+        .returning({ id: integrationTokens.id })
+      if (revokedIntegrationTokens.length > 0) {
+        warnings.push(
+          "All read-only integration tokens were revoked by this password change. Create new tokens in Settings > Integrations."
+        )
       }
 
       await tx

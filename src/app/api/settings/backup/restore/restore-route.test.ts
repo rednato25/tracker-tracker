@@ -51,6 +51,7 @@ vi.mock("@/lib/db/schema", () => ({
   clientUptimeBuckets: { __table: "client_uptime_buckets" },
   dismissedAlerts: { __table: "dismissed_alerts" },
   downloadClients: { __table: "download_clients", id: "download_clients.id" },
+  integrationTokens: { __table: "integration_tokens" },
   notificationDeliveryState: { __table: "notification_delivery_state" },
   notificationTargets: { __table: "notification_targets" },
   tagGroupMembers: { __table: "tag_group_members" },
@@ -1129,6 +1130,7 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     // then restored from the payload. app_liveness is deliberately neither: it
     // describes the running process rather than the data.
     expect(recorder.deletes.map((t) => (t as { __table: string }).__table)).toEqual([
+      "integration_tokens",
       "dismissed_alerts",
       "app_coverage_gaps",
       "client_uptime_buckets",

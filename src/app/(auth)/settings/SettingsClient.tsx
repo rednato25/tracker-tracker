@@ -18,6 +18,7 @@ import { DataSection } from "@/components/settings/DataSection"
 import { DigestSection } from "@/components/settings/DigestSection"
 import { EventsSection } from "@/components/settings/EventsSection"
 import { ImageHostingSection } from "@/components/settings/ImageHostingSection"
+import { IntegrationsSection } from "@/components/settings/IntegrationsSection"
 import { JackettImportSection } from "@/components/settings/JackettImportSection"
 import { PrivacySection } from "@/components/settings/PrivacySection"
 import { ProwlarrImportSection } from "@/components/settings/ProwlarrImportSection"
@@ -28,12 +29,13 @@ import { TagGroups } from "@/components/TagGroups"
 import { TabBar } from "@/components/ui/TabBar"
 import type { QbitmanageTagConfig } from "@/types/api"
 
-type SettingsTab = "general" | "clients" | "notifications" | "backups" | "events" | "about"
+type SettingsTab = "general" | "clients" | "notifications" | "integrations" | "backups" | "events" | "about"
 
 const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
   { key: "general", label: "General" },
   { key: "clients", label: "Download Clients" },
   { key: "notifications", label: "Notifications" },
+  { key: "integrations", label: "Integrations" },
   { key: "backups", label: "Backups" },
   { key: "events", label: "Events" },
   { key: "about", label: "About" },
@@ -66,6 +68,7 @@ export interface SettingsData {
   hasOeimgKey: boolean
   hasImgbbKey: boolean
   credentialVaultEnabled: boolean
+  integrationIdentityMode: "none" | "trackers" | "full"
   rankGoals: string | null
   prowlarrUrl: string | null
   hasProwlarrApiKey: boolean
@@ -190,6 +193,10 @@ export function SettingsClient({
             }}
           />
         </>
+      )}
+
+      {activeTab === "integrations" && (
+        <IntegrationsSection initialIdentityMode={initialSettings.integrationIdentityMode} />
       )}
 
       {activeTab === "backups" && (

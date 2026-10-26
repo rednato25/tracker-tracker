@@ -3,7 +3,16 @@ import { type NextRequest, NextResponse } from "next/server"
 import { shouldSecureCookies } from "@/lib/cookie-security"
 
 const PUBLIC_EXACT = ["/login", "/setup", "/api/health"]
-const PUBLIC_PREFIX = ["/api/auth/", "/_next/", "/img/", "/favicon"]
+const PUBLIC_PREFIX = [
+  "/api/auth/",
+  // P16 integration routes authenticate a bearer token inside the handler.
+  // Keeping the session proxy out of this prefix is the point: a homelab widget
+  // has no session cookie.
+  "/api/integrations/v1/",
+  "/_next/",
+  "/img/",
+  "/favicon",
+]
 const SESSION_COOKIE = "tt_session"
 const MAX_AGE_COOKIE = "tt_max_age"
 const MAX_COOKIE_AGE = 60 * 60 * 24 * 30 // 30-day hard cap

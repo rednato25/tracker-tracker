@@ -26,6 +26,7 @@ import {
   clientUptimeBuckets,
   dismissedAlerts,
   downloadClients,
+  integrationTokens,
   notificationDeliveryState,
   notificationTargets,
   tagGroupMembers,
@@ -38,6 +39,7 @@ import {
   trackers,
 } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
+import { normalizeIntegrationIdentityMode } from "@/lib/integration-scopes"
 import {
   BACKUP_PASSWORD_MAX,
   BACKUP_RESTORE_MAX_BYTES,
@@ -378,6 +380,9 @@ export async function POST(request: Request) {
       await acquireRestoreLock(tx)
 
       // Delete all existing data in FK-safe order (children before parents)
+      // Integration tokens are intentionally not backed up; a restore grants no
+      // previously issued token a second life.
+      await tx.delete(integrationTokens)
       await tx.delete(dismissedAlerts)
       // app_liveness is intentionally absent here and from the backup payload:
       // it belongs to the running process, not to the data being restored. See
@@ -1192,6 +1197,9 @@ export async function POST(request: Request) {
           // passkeys. Backups predating this column restore as off, the fail-closed
           // default.
           credentialVaultEnabled: (payload.settings.credentialVaultEnabled as boolean) ?? false,
+          integrationIdentityMode: normalizeIntegrationIdentityMode(
+            payload.settings.integrationIdentityMode
+          ),
           // passwordHash: never updated from backup
           // encryptionSalt: never updated from backup
           encryptedSchedulerKey: null,

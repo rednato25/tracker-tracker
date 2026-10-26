@@ -392,6 +392,15 @@ describe("column coverage", () => {
     expect(MASTER_KEY_SETTINGS_COLUMNS).not.toContain("encrypted_scheduler_key")
   })
 
+  it("leaves hashed integration tokens and the identity setting untouched", () => {
+    // Token hashes are not encrypted with the master key. Recovery therefore
+    // neither re-keys nor revokes them; only an explicit revoke, password change,
+    // lockdown, nuke or restore invalidates integration access.
+    const tables = (MASTER_KEY_TABLES as Array<{ table: string }>).map((spec) => spec.table)
+    expect(tables).not.toContain("integration_tokens")
+    expect(MASTER_KEY_SETTINGS_COLUMNS).not.toContain("integration_identity_mode")
+  })
+
   it("does not touch encryption_salt", () => {
     // Reusing the salt verbatim is what lets the new password reach the old data.
     expect([...declared].some((c) => c.endsWith("encryption_salt"))).toBe(false)

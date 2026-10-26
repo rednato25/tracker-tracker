@@ -19,6 +19,7 @@ import { db } from "@/lib/db"
 import { appSettings } from "@/lib/db/schema"
 import { QBITMANAGE_KEYS } from "@/lib/download-clients/qbt/qbitmanage-defaults"
 import { errMsg } from "@/lib/error-utils"
+import { isIntegrationIdentityMode } from "@/lib/integration-scopes"
 import {
   BACKUP_PASSWORD_MAX,
   BACKUP_RETENTION_MAX,
@@ -294,6 +295,17 @@ export async function PATCH(request: Request) {
     if (!body.storeUsernames && body.scrubExisting) {
       await scrubSnapshotUsernames()
     }
+  }
+
+  // --- Integration API identity disclosure ---
+  if (body.integrationIdentityMode !== undefined) {
+    if (!isIntegrationIdentityMode(body.integrationIdentityMode)) {
+      return NextResponse.json(
+        { error: "integrationIdentityMode must be one of: none, trackers, full" },
+        { status: 400 }
+      )
+    }
+    updates.integrationIdentityMode = body.integrationIdentityMode
   }
 
   // --- Credential vault opt-in gate ---

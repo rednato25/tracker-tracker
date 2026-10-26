@@ -89,9 +89,9 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P11 | done | P09–P10 | `main @ d1c11333` (merged; not deployed) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Light/dark/mobile artifacts generated in CI and reviewed; no application clipping found after capture fix. #14 closed. |
 | P12 | done | P03 | `main @ 02f0645d` (merged; not deployed) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
 | P13 | done | P12 | `main @ cbca164a` (merged; not deployed) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6085 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18; owner manual acceptance on digest `sha256:8b8cba401ffab275a3c46cb33db7ef0264702c71422de9fe33198dffe0a89690` | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. P14 is implemented in draft; polish #19 remains. |
-| P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Mobile long preview text polish: #21. No P15. |
-| P15 | done | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker | No Jackett connection persistence (admin password used per request only). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
-| P16 | pending | P02, P04; P11 for goals | — | App has session-authenticated internal API routes; no versioned scoped integration API | Add hashed, revocable read-only tokens; no mutations |
+| P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: FileList imported through Prowlarr | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Owner-reported: imported FileList remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Mobile long preview text polish: #21. No P15. |
+| P15 | done | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: AlphaRatio imported through Jackett | No Jackett connection persistence (admin password used per request only). Owner-reported: imported AlphaRatio remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
+| P16 | done | P02, P04; P11 for goals | PR #24 (`feat/p16-integration-api`; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore invalidation; focused auth/privacy/UI/lifecycle tests; 6142 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Draft only; not merged or deployed. No write scopes, token expiry, CORS, webhooks, search or downloads. No P17, real integration access, home-server change or updater restart. |
 | P17 | pending | P09–P10 | — | No recruitment-route dataset/model | Define offline route format with provenance and unknown status |
 | P18 | pending | P17 and goals UI | — | No wishlist/routes UI | Start with lists, not a graph |
 | P19 | pending | P14 | — | No Prowlarr search | Implement read-only search with partial results and cancellation |
@@ -1207,6 +1207,77 @@ and the PAUSED register state were inspected. On mobile the long preview URL and
 credential notes still clip at the right edge; this is the shared preview
 wrapping polish tracked in #21, not a P15 blocker. No real Jackett or tracker was
 contacted.
+
+### P14/P15 owner manual acceptance (owner-reported, 2026-10-26)
+
+The owner confirmed both import flows on the isolated home-server instance using
+the already-published image digest
+`sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`:
+
+- FileList was imported through the Prowlarr flow; AlphaRatio through the Jackett
+  flow.
+- Both imported trackers remained visible and PAUSED, with no account metrics
+  and no automatic polling.
+- Existing entries were identified as already added.
+- Tracker credentials were not copied into the imported placeholders.
+
+This is owner-reported acceptance from the isolated instance, not new automated
+evidence. The fake-service tests and the authenticated Playwright artifacts
+remain the automated evidence. The minor mobile long-text wrapping issue stays
+in #21; the completed import implementation was not reopened.
+
+### P16 read-only integration API
+
+- Adds `/api/integrations/v1/summary`, `/actions` and `/history`. They read
+  stored tracker snapshots and run the existing P04 evaluator; no route performs
+  a poll, search, download, connection test or tracker/client request.
+- Scope vocabulary is `summary:read`, `actions:read` and `history:read`.
+  Migration `0005_integration_tokens` adds only `integration_tokens` and
+  `app_settings.integration_identity_mode` (default `none`).
+- Tokens are `tt_int_` plus 32 random bytes. Only SHA-256 hashes, names, scopes
+  and timestamps are stored; plaintext is returned once by the session-only
+  creation route. Revocation is immediate and keeps a revoked marker.
+  `Authorization: Bearer` is the only accepted transport; token-looking query
+  parameters return 400. Up to 20 active tokens may exist.
+- Integration tokens cannot reach admin, mutation, backup, log/secret export or
+  credential routes: those keep the session gate, and the proxy exposes only the
+  `/api/integrations/v1/` prefix without a cookie.
+- Responses are explicitly shaped. They omit base URLs, registry slugs, raw
+  errors, cookies, passkeys, credentials and private configuration. Identity
+  disclosure is explicit: `none` (default, name and username absent), `trackers`
+  (name only), `full` (name plus stored username only when username storage is on
+  and the value is not redacted). Numeric tracker ids remain for stable cursors.
+- Summary is capped at 200 trackers; actions at 200; history requires
+  `1 <= days <= 90` and `1 <= limit <= 500`, with an ISO cursor. Oversized values
+  return 400 rather than being silently clamped. `unknown`/`stale`/`current` and
+  `needs-verification` evidence are preserved.
+- Lifecycle: password change and lockdown revoke every token; nuke deletes them.
+  Backups deliberately exclude tokens, and restore deletes every token, so a
+  restore cannot reactivate access revoked after the backup. A successful
+  `tt-recover --apply` also deletes every token inside its existing password
+  reset/re-key transaction; failed recovery rolls that deletion back. `--check`
+  and dry runs write nothing. Full contract and curl examples:
+  `docs/INTEGRATION_API.md`.
+- Settings > Integrations creates/lists/revokes tokens and selects the identity
+  mode. Creation shows the token once; the list never fetches plaintext or hashes.
+  Desktop light/dark/mobile visual evidence is captured by the authenticated E2E
+  run with a synthetic token that is deleted afterwards.
+- Limitations: no write scopes, token expiry, CORS policy, webhooks, search,
+  downloads or torrent-level history. Optional expiry is deduplicated in #25.
+  No P17, deployment, real integration or home-server change.
+
+Tests: focused route/auth/privacy/UI/lifecycle tests cover missing, invalid and
+revoked tokens, insufficient scopes, query-string rejection, explicit response
+fields, bounded summary/actions/history, oversized parameters, token creation
+one-time display and revocation, password change, lockdown, nuke and restore.
+A recovery regression proves a previously valid token is rejected after a
+successful reset and remains valid when the transaction fails and rolls back.
+Full suite on Node 24: 246 files / 6142 tests passed. TypeScript, Biome and
+security audit 38/38 pass; production build and Docker candidate migration
+validation are covered by PR CI. The authenticated visual run captured desktop
+light/dark and mobile token management with the synthetic one-time token blurred
+and deleted afterwards; the captured views were inspected and showed no layout
+break at 390px, including the active token row and revoke confirmation.
 
 ### P02b slices
 

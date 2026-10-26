@@ -25,7 +25,7 @@
 
 import "server-only"
 
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm"
 import { DEFAULT_TRACKER_COLOR } from "@/lib/constants"
 import { db } from "@/lib/db"
 import {
@@ -40,6 +40,7 @@ import {
 } from "@/lib/db/schema"
 import { parseQbitmanageTags } from "@/lib/download-clients/qbt/qbitmanage-defaults"
 import { localDateStr } from "@/lib/formatters"
+import { normalizeIntegrationIdentityMode } from "@/lib/integration-scopes"
 import { SNAPSHOT_QUERY_MAX } from "@/lib/limits"
 import { createPrivacyMaskSync } from "@/lib/privacy-db"
 import { serializeTrackerResponse } from "@/lib/tracker-serializer"
@@ -83,6 +84,7 @@ export const settingsColumns = {
   hasBackupPassword: appSettings.encryptedBackupPassword,
   backupStoragePath: appSettings.backupStoragePath,
   credentialVaultEnabled: appSettings.credentialVaultEnabled,
+  integrationIdentityMode: appSettings.integrationIdentityMode,
   rankGoals: appSettings.rankGoals,
   prowlarrUrl: appSettings.prowlarrUrl,
   prowlarrAllowPrivate: appSettings.prowlarrAllowPrivate,
@@ -137,6 +139,7 @@ export function serializeSettingsResponse(row: SettingsRow) {
     hasBackupPassword: !!row.hasBackupPassword,
     backupStoragePath: row.backupStoragePath,
     credentialVaultEnabled: row.credentialVaultEnabled,
+    integrationIdentityMode: normalizeIntegrationIdentityMode(row.integrationIdentityMode),
     rankGoals: row.rankGoals,
     prowlarrUrl: row.prowlarrUrl,
     prowlarrAllowPrivate: row.prowlarrAllowPrivate,
@@ -323,15 +326,29 @@ export const trackerColumns = {
  * Fetches all trackers with their latest snapshot for the dashboard.
  * Applies privacy masking at response time. Never returns encryptedApiToken.
  */
-export async function getTrackerListForDashboard(): Promise<TrackerSummary[]> {
-  const [allTrackers, [privacySettings], latestSnapshots] = await Promise.all([
-    db.select(trackerColumns).from(trackers).orderBy(trackers.createdAt),
+export async function getTrackerListForDashboard(limit?: number): Promise<TrackerSummary[]> {
+  const [allTrackers, [privacySettings]] = await Promise.all([
+    limit === undefined
+      ? db.select(trackerColumns).from(trackers).orderBy(trackers.createdAt)
+      : db
+          .select(trackerColumns)
+          .from(trackers)
+          .orderBy(trackers.createdAt)
+          .limit(limit + 1),
     db.select({ storeUsernames: appSettings.storeUsernames }).from(appSettings).limit(1),
-    db
-      .selectDistinctOn([trackerSnapshots.trackerId])
-      .from(trackerSnapshots)
-      .orderBy(trackerSnapshots.trackerId, desc(trackerSnapshots.polledAt)),
   ])
+
+  // Bound the snapshot lookup to the trackers actually returned. The extra row
+  // (limit + 1) lets the caller detect truncation without a count query.
+  const trackerIds = allTrackers.map((tracker) => tracker.id)
+  const latestSnapshots =
+    trackerIds.length === 0
+      ? []
+      : await db
+          .selectDistinctOn([trackerSnapshots.trackerId])
+          .from(trackerSnapshots)
+          .where(inArray(trackerSnapshots.trackerId, trackerIds))
+          .orderBy(trackerSnapshots.trackerId, desc(trackerSnapshots.polledAt))
 
   // Enforce masking at response time
   // Fallback true = "store usernames" = no masking. Matches createPrivacyMask()

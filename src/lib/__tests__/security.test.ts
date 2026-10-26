@@ -109,6 +109,7 @@ vi.mock("@/lib/db/schema", () => ({
   trackerSnapshots: {},
   trackerRoles: {},
   downloadClients: {},
+  integrationTokens: {},
   tagGroups: {},
   tagGroupMembers: {},
   clientSnapshots: {},

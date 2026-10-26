@@ -18,6 +18,7 @@ import { DataSection } from "@/components/settings/DataSection"
 import { DigestSection } from "@/components/settings/DigestSection"
 import { EventsSection } from "@/components/settings/EventsSection"
 import { ImageHostingSection } from "@/components/settings/ImageHostingSection"
+import { JackettImportSection } from "@/components/settings/JackettImportSection"
 import { PrivacySection } from "@/components/settings/PrivacySection"
 import { ProwlarrImportSection } from "@/components/settings/ProwlarrImportSection"
 import { ProxySection } from "@/components/settings/ProxySection"
@@ -122,6 +123,8 @@ export function SettingsClient({
             initialHasKey={initialSettings.hasProwlarrApiKey}
             initialAllowPrivate={initialSettings.prowlarrAllowPrivate}
           />
+
+          <JackettImportSection />
 
           <ImageHostingSection
             initialHasKeys={{

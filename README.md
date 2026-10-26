@@ -233,7 +233,7 @@ docker exec tracker-tracker-db sh -c \
   'pg_dump -U "$POSTGRES_USER" tracker_tracker' > tracker-tracker-backup.sql
 ```
 
-**Do not edit `password_hash` by hand.** Every secret in the database (tracker API tokens, download client credentials, notification configs, your TOTP secret) is encrypted with a key derived from your master password. `UPDATE app_settings SET password_hash = ...` lets you log in with a key that decrypts nothing, and orphans all of it permanently with no error message. `tt-recover` recovers the real encryption key, re-encrypts every secret under the new password, clears the lockout counter, and rewrites the hash in a single transaction.
+**Do not edit `password_hash` by hand.** Every secret in the database (tracker API tokens, download client credentials, notification configs, your TOTP secret) is encrypted with a key derived from your master password. `UPDATE app_settings SET password_hash = ...` lets you log in with a key that decrypts nothing, and orphans all of it permanently with no error message. `tt-recover` recovers the real encryption key, re-encrypts every secret under the new password, clears the lockout counter, and rewrites the hash in a single transaction. A successful `--apply` also revokes all read-only integration tokens in that same transaction; a failed recovery rolls the revocation back. `--check` and the dry run change nothing.
 
 Two things it needs, and one thing it refuses:
 

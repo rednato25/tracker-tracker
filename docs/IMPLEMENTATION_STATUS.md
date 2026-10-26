@@ -91,7 +91,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P13 | done | P12 | `main @ cbca164a` (merged; not deployed) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6085 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18; owner manual acceptance on digest `sha256:8b8cba401ffab275a3c46cb33db7ef0264702c71422de9fe33198dffe0a89690` | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. P14 is implemented in draft; polish #19 remains. |
 | P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: FileList imported through Prowlarr | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Owner-reported: imported FileList remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Mobile long preview text polish: #21. No P15. |
 | P15 | done | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: AlphaRatio imported through Jackett | No Jackett connection persistence (admin password used per request only). Owner-reported: imported AlphaRatio remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
-| P16 | implemented (draft PR, not merged) | P02, P04; P11 for goals | draft PR #24 (`feat/p16-integration-api`; not merged) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore invalidation; focused auth/privacy/UI/lifecycle tests; 6142 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Draft only; not merged or deployed. No write scopes, token expiry, CORS, webhooks, search or downloads. No P17, real integration access, home-server change or updater restart. |
+| P16 | done | P02, P04; P11 for goals | PR #24 (`feat/p16-integration-api`; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore invalidation; focused auth/privacy/UI/lifecycle tests; 6142 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Draft only; not merged or deployed. No write scopes, token expiry, CORS, webhooks, search or downloads. No P17, real integration access, home-server change or updater restart. |
 | P17 | pending | P09–P10 | — | No recruitment-route dataset/model | Define offline route format with provenance and unknown status |
 | P18 | pending | P17 and goals UI | — | No wishlist/routes UI | Start with lists, not a graph |
 | P19 | pending | P14 | — | No Prowlarr search | Implement read-only search with partial results and cancellation |
@@ -1253,21 +1253,25 @@ in #21; the completed import implementation was not reopened.
   `needs-verification` evidence are preserved.
 - Lifecycle: password change and lockdown revoke every token; nuke deletes them.
   Backups deliberately exclude tokens, and restore deletes every token, so a
-  restore cannot reactivate access revoked after the backup. The recovery CLI
-  does not re-key hashes; tokens remain valid until explicitly revoked.
-  Full contract and curl examples: `docs/INTEGRATION_API.md`.
+  restore cannot reactivate access revoked after the backup. A successful
+  `tt-recover --apply` also deletes every token inside its existing password
+  reset/re-key transaction; failed recovery rolls that deletion back. `--check`
+  and dry runs write nothing. Full contract and curl examples:
+  `docs/INTEGRATION_API.md`.
 - Settings > Integrations creates/lists/revokes tokens and selects the identity
   mode. Creation shows the token once; the list never fetches plaintext or hashes.
   Desktop light/dark/mobile visual evidence is captured by the authenticated E2E
   run with a synthetic token that is deleted afterwards.
 - Limitations: no write scopes, token expiry, CORS policy, webhooks, search,
-  downloads or torrent-level history. No P17, deployment, real integration or
-  home-server change.
+  downloads or torrent-level history. Optional expiry is deduplicated in #25.
+  No P17, deployment, real integration or home-server change.
 
 Tests: focused route/auth/privacy/UI/lifecycle tests cover missing, invalid and
 revoked tokens, insufficient scopes, query-string rejection, explicit response
 fields, bounded summary/actions/history, oversized parameters, token creation
 one-time display and revocation, password change, lockdown, nuke and restore.
+A recovery regression proves a previously valid token is rejected after a
+successful reset and remains valid when the transaction fails and rolls back.
 Full suite on Node 24: 246 files / 6142 tests passed. TypeScript, Biome and
 security audit 38/38 pass; production build and Docker candidate migration
 validation are covered by PR CI. The authenticated visual run captured desktop

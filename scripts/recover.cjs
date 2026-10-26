@@ -745,33 +745,28 @@ async function main() {
       return EXIT_OK
     }
 
-    // 5. One transaction. Either the password and every secret move together, or
-    //    nothing moves. A partial write here is the orphaning scenario.
+    // 5. One transaction. Either the password, every secret and integration
+    //    token revocation move together, or nothing moves. A partial write here
+    //    is the orphaning scenario.
     const newHash = await argon2.hash(newPassword)
     const rewrapped = wrapMasterKey(newKey, wrappingKey)
 
-    await sql.begin(async (tx) => {
-      for (const u of updates) {
-        await tx`UPDATE ${tx(u.table)} SET ${tx(u.set, Object.keys(u.set))} WHERE id = ${u.id}`
-      }
-
-      const finalSet = { ...settingsSet }
-      finalSet.password_hash = newHash
-      finalSet.failed_login_attempts = 0
-      finalSet.locked_until = null
-      finalSet.encrypted_scheduler_key = rewrapped
-      if (args.disableTotp) {
-        finalSet.totp_secret = null
-        finalSet.totp_backup_codes = null
-      }
-
-      await tx`UPDATE app_settings SET ${tx(finalSet, Object.keys(finalSet))} WHERE id = ${settings.id}`
+    const { revokedTokenCount } = await commitRecovery(sql, {
+      updates,
+      settingsSet,
+      settings,
+      newHash,
+      rewrapped,
+      disableTotp: args.disableTotp,
     })
 
     out(
       "\n[ok] COMMITTED.\n\n" +
         "  The master password is reset and every readable secret is re-encrypted\n" +
         "  under it. The lockout counter is cleared, so you can log in immediately.\n" +
+        (revokedTokenCount > 0
+          ? `  ${revokedTokenCount} read-only integration token(s) were revoked.\n`
+          : "") +
         (args.disableTotp ? "  TOTP is disabled. Set it up again from Settings.\n" : "") +
         "\n  Restart the app so the scheduler reloads the re-wrapped key:\n" +
         "    docker compose restart tracker-tracker-app\n" +
@@ -796,8 +791,44 @@ async function main() {
   }
 }
 
-// Exported for src/lib/__tests__/reset-password.test.ts. Everything here is
-// pure: no environment reads except deriveWrappingKey(), no database.
+/**
+ * Commit the password reset, all re-keyed secrets and integration-token
+ * revocation in ONE transaction. Exported so the regression test can prove the
+ * DELETE participates in the same commit/rollback boundary as the password.
+ *
+ * A token hash is independent of the master key, so re-keying alone would leave
+ * an existing bearer credential usable after recovery. Deleting the rows here
+ * makes successful recovery a credential-rotation event; a failed recovery
+ * rolls the DELETE back with everything else.
+ */
+async function commitRecovery(sql, plan) {
+  let revokedTokenCount = 0
+  await sql.begin(async (tx) => {
+    for (const u of plan.updates) {
+      await tx`UPDATE ${tx(u.table)} SET ${tx(u.set, Object.keys(u.set))} WHERE id = ${u.id}`
+    }
+
+    const finalSet = { ...plan.settingsSet }
+    finalSet.password_hash = plan.newHash
+    finalSet.failed_login_attempts = 0
+    finalSet.locked_until = null
+    finalSet.encrypted_scheduler_key = plan.rewrapped
+    if (plan.disableTotp) {
+      finalSet.totp_secret = null
+      finalSet.totp_backup_codes = null
+    }
+
+    await tx`UPDATE app_settings SET ${tx(finalSet, Object.keys(finalSet))} WHERE id = ${plan.settings.id}`
+
+    const revoked = await tx`DELETE FROM integration_tokens RETURNING id`
+    revokedTokenCount = Array.isArray(revoked) ? revoked.length : 0
+  })
+  return { revokedTokenCount }
+}
+
+// Exported for src/lib/__tests__/reset-password.test.ts and the recovery
+// regression. The pure helpers read no environment except deriveWrappingKey()
+// and use no database; commitRecovery takes an injected transaction client.
 module.exports = {
   ERR_NO_SCHEDULER_KEY,
   LOCKDOWN_SENTINEL,
@@ -806,6 +837,7 @@ module.exports = {
   PASSWORD_MAX,
   PASSWORD_MIN,
   buildConnectionString,
+  commitRecovery,
   decrypt,
   deriveKey,
   deriveWrappingKey,

@@ -248,14 +248,18 @@ credential-bearing URLs, regardless of identity mode.
 - **Backup:** integration tokens are deliberately excluded from backup payloads.
 - **Restore:** every integration token is deleted. A restore can therefore never
   resurrect a token that was revoked after the backup was taken.
-- **Recovery CLI:** token hashes are independent of the master password and
-  encryption salt, so recovery does not re-key them. Existing tokens remain
-  valid until revoked; run lockdown or revoke them explicitly if recovery was
-  triggered by a credential compromise.
+- **Recovery CLI:** a successful `tt-recover --apply` revokes every integration
+  token in the same transaction that resets the password and re-keys secrets.
+  The token hashes are independent of the master key, so re-keying alone would
+  leave them usable; the explicit delete makes recovery a credential-rotation
+  event. A failed recovery rolls the delete back and leaves tokens untouched.
+  `--check` and the dry run write nothing. Recreate tokens from Settings >
+  Integrations after recovery.
 
 ## Limitations
 
 - Same-instance, same-origin by default; no CORS policy is added by this task.
-- No token expiry timestamps; revocation is explicit and immediate.
+- No token expiry timestamps; revocation is explicit and immediate. Optional
+  expiry is tracked separately in #25.
 - No write scopes, webhooks, search, download actions or live polling.
 - History is snapshot metadata only; it is not a torrent-level feed.

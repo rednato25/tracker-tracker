@@ -91,8 +91,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P13 | done | P12 | `main @ cbca164a` (merged; not deployed) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6085 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18; owner manual acceptance on digest `sha256:8b8cba401ffab275a3c46cb33db7ef0264702c71422de9fe33198dffe0a89690` | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. P14 is implemented in draft; polish #19 remains. |
 | P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: FileList imported through Prowlarr | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Owner-reported: imported FileList remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Mobile long preview text polish: #21. No P15. |
 | P15 | done | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: AlphaRatio imported through Jackett | No Jackett connection persistence (admin password used per request only). Owner-reported: imported AlphaRatio remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
-| P16 | done | P02, P04; P11 for goals | PR #24 (`feat/p16-integration-api`; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore invalidation; focused auth/privacy/UI/lifecycle tests; 6142 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Draft only; not merged or deployed. No write scopes, token expiry, CORS, webhooks, search or downloads. No P17, real integration access, home-server change or updater restart. |
-| P17 | pending | P09–P10 | — | No recruitment-route dataset/model | Define offline route format with provenance and unknown status |
+| P16 | done | P02, P04; P11 for goals | PR #24 (merged; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore/recovery invalidation; focused auth/privacy/UI/lifecycle/recovery tests; 6145 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Owner-supplied home-server acceptance on image digest `sha256:02271ad43c65dc5b8a81a0b878747c4b5fbf02ab0fcd94061bee04b8cf4969fb`: migration 0005 applied, health passed, existing login/trackers/mock integrations preserved, summary-only token 200 / actions 403 / post-revocation summary 401 without session cookies, hidden identity excluded names/usernames/secrets, token displayed once and only its hash stored, temporary tokens revoked, production and stopped updater unchanged. Optional expiry is #25. No write scopes, CORS, webhooks, search or downloads; no deployment. |
+| P17 | done (draft PR, not merged) | P09–P10 | draft PR #26 (`feat/p17-recruitment-routes`) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Draft only; not merged or deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. No P18 UI, P19 search, deployment or home-server change. |
 | P18 | pending | P17 and goals UI | — | No wishlist/routes UI | Start with lists, not a graph |
 | P19 | pending | P14 | — | No Prowlarr search | Implement read-only search with partial results and cancellation |
 | P20 | pending | P19, P12–P13 | — | No result comparison | Compare charged bytes, ratio impact and obligations; explain recommendations |
@@ -1264,7 +1264,7 @@ in #21; the completed import implementation was not reopened.
   run with a synthetic token that is deleted afterwards.
 - Limitations: no write scopes, token expiry, CORS policy, webhooks, search,
   downloads or torrent-level history. Optional expiry is deduplicated in #25.
-  No P17, deployment, real integration or home-server change.
+  No deployment, real integration or home-server change.
 
 Tests: focused route/auth/privacy/UI/lifecycle tests cover missing, invalid and
 revoked tokens, insufficient scopes, query-string rejection, explicit response
@@ -1278,6 +1278,75 @@ validation are covered by PR CI. The authenticated visual run captured desktop
 light/dark and mobile token management with the synthetic one-time token blurred
 and deleted afterwards; the captured views were inspected and showed no layout
 break at 390px, including the active token row and revoke confirmation.
+
+### P16 owner-supplied home-server acceptance (2026-10-26)
+
+The owner supplied isolated home-server verification on the published digest
+`sha256:02271ad43c65dc5b8a81a0b878747c4b5fbf02ab0fcd94061bee04b8cf4969fb`:
+
+- Migration `0005_integration_tokens` applied successfully and health passed.
+- Existing login, trackers and mock integrations were preserved.
+- A summary-only token returned 200 from summary, 403 from actions, and 401 from
+  summary after revocation, all without session cookies.
+- The hidden-identity response excluded tracker names, usernames and secrets.
+- The token was displayed once; the database stored only its hash.
+- All temporary test tokens were revoked.
+- Production and its stopped updater were unchanged.
+
+This is owner-supplied home-server evidence, not a check performed by the
+assistant. The automated evidence remains the unit/route/UI tests, CI checks and
+authenticated Playwright artifacts. A headless typing observation was not treated
+as proof of a user-facing defect and no speculative UI fix was made; it should
+only be investigated further if normal keyboard interaction reproduces it.
+
+### P17 recruitment-route data and evaluation
+
+- Adds a versioned offline format and deterministic evaluator in
+  `src/lib/recruitment-routes.ts`, with no UI, network fetch, database access,
+  automated application or recruiter message.
+- Uses the native `trackerpathways` dataset (MIT), pinned at commit
+  `5e3b206ed1352b56a685b90ec8da3757f702c3eb`; attribution and the full MIT notice
+  are in `src/data/recruitment-routes.ts`, `docs/RECRUITMENT_ROUTES.md` and
+  `docs/THIRD_PARTY_NOTICES.md`. Yata-Dash is GPL-3.0; its converted
+  `routes.json` was not copied.
+- Real coverage: 598 upstream edges; 194 edges whose source and destination both
+  resolve to a production registry slug. 117 unresolved community names are
+  omitted rather than guessed. 549 upstream edges are community-marked open, 37
+  closed and 12 unknown/limited; the included subset preserves closed and unknown
+  examples. 23 source-side `unlockInviteClass` gates are preserved as unresolved
+  prerequisites.
+- Semantic correction: upstream documents `days` only as an unnamed "Days"
+  wait/sort value, not account age. P17 therefore keeps `sourceDays` unresolved
+  instead of evaluating `accountAgeDays`. There are no structured requirements in
+  the shipped community catalog. Mandatory prose, unresolved days and a source
+  invite-class/forum gate become manual UNKNOWN leaves; under ALL a known unmet
+  condition still yields `unmet`, otherwise any unresolved leaf yields `unknown`.
+  Every shipped community route is therefore `unknown` for eligibility; no
+  community route can claim `met`. Validated local overrides may add structured
+  requirements, but do not silently resolve the source gate or undocumented days.
+- Eligibility (ALL/ANY, met/unmet/unknown) is separate from community
+  availability (open/closed/unknown) and from invitation/admission, which are
+  always unguaranteed and the active recruiter is always `unknown`.
+- Dates stay distinct: per-route `sourceUpdatedAt` (month precision), catalog
+  `sourceAccessedAt`, and `lastVerifiedAt` (null for community data; set only by a
+  dated local override). Source freshness is separate from independent evidence
+  freshness.
+- Local overrides are reviewed code in `src/data/recruitment-overrides.ts` with
+  author, authored date, provenance URL and verification date. They preserve the
+  original record and are empty by default; no editor UI or migration.
+- Bounded DFS path search uses a visited set and maximum hops, so cycles cannot
+  loop forever.
+- Tests: 20 focused deterministic fixtures cover duplicate/invalid IDs and
+  references, duplicate pairs, cycles, hop bounds, closed/withdrawn routes, stale
+  evidence, missing requirements/observations, ALL/ANY combinations, override
+  precedence/provenance, unresolved source gates/days, satisfied-age-plus-prose
+  remaining unknown, unmet-plus-unknown remaining unmet, and eligibility vs
+  availability. Full suite on Node 24: 248 files / 6165 tests passed; required CI
+  remains the gate. Contract and source coverage: `docs/RECRUITMENT_ROUTES.md`.
+- Limitations: free-text ratio/class/upload/seed-size requirements remain unknown;
+  117 upstream names are unresolved; undocumented `days` and source
+  `unlockInviteClass` gates remain unresolved. No P18 UI, P19 search, deployment
+  or home-server change.
 
 ### P02b slices
 

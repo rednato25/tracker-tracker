@@ -58,17 +58,17 @@ test.describe.serial("rank and budget visual evidence", () => {
   test("captures the rank goal and download budget panels", async ({ page }) => {
     expect(trackerId).not.toBeNull()
     await page.goto(`/trackers/${trackerId}`)
-    await expect(page.locator("[data-rank-goal-panel]")).toBeVisible()
+    await expect(page.locator("[data-rank-goal-panel]").first()).toBeVisible()
     await expect(page.locator("[data-download-budget-panel]").first()).toBeVisible()
 
-    await page.getByLabel("Download size (GiB)").fill("80")
-    await page.getByLabel("How is it charged?").selectOption("1")
-    await page.getByText(/Advanced: committed traffic and reserve/).click()
-    await page.getByLabel("Reserve (GiB)").fill("100")
-    await expect(page.getByText(/Projected ratio/)).toBeVisible()
+    await page.getByLabel("Download size (GiB)").first().fill("80")
+    await page.getByLabel("How is it charged?").first().selectOption("1")
+    await page.getByText(/Advanced: committed traffic and reserve/).first().click()
+    await page.getByLabel("Reserve (GiB)").first().fill("100")
+    await expect(page.getByText(/Projected ratio/).first()).toBeVisible()
 
     const capturePanel = async (selector: string, path: string) => {
-      const box = await page.locator(selector).boundingBox()
+      const box = await page.locator(selector).first().boundingBox()
       if (!box) throw new Error(`no box for ${selector}`)
       const viewport = page.viewportSize()
       if (!viewport) throw new Error("no viewport")

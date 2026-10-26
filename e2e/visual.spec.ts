@@ -530,23 +530,17 @@ test.describe.serial("wishlist visual evidence", () => {
     await expect(page.getByText("Needs checking").first()).toBeVisible()
 
     await page.setViewportSize({ width: 1280, height: 1400 })
-    await page.locator("[data-wishlist-page]").screenshot({
-      path: "test-results/visual-wishlist-light.png",
-    })
+    await page.screenshot({ path: "test-results/visual-wishlist-light.png" })
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
-    await page.locator("[data-wishlist-page]").screenshot({
-      path: "test-results/visual-wishlist-dark.png",
-    })
+    await page.screenshot({ path: "test-results/visual-wishlist-dark.png" })
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
       () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
     )
     await page.waitForTimeout(300)
-    await page.locator("[data-wishlist-page]").screenshot({
-      path: "test-results/visual-wishlist-mobile.png",
-    })
+    await page.screenshot({ path: "test-results/visual-wishlist-mobile.png" })
   })
 })

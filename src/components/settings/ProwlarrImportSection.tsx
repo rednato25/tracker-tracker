@@ -202,7 +202,7 @@ export function ProwlarrImportSection({
           </div>
           <ul className="mt-1">
             {items.map((item) => (
-              <li key={item.indexerId} className="border-t border-border py-2">
+              <li key={item.indexerId} className="w-full border-t border-border py-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <label className="flex min-w-0 items-start gap-2">
                     <input
@@ -225,12 +225,12 @@ export function ProwlarrImportSection({
                   </label>
                   <Badge variant={statusVariant(item.status)}>{item.status.replace("-", " ")}</Badge>
                 </div>
-                <p className="mt-1 break-words font-mono text-4xs text-secondary">
+                <p className="mt-1 w-full break-words font-mono text-4xs text-secondary">
                   {item.matchedName ? `Matched: ${item.matchedName}. ` : ""}
                   {item.reason}
                 </p>
                 {item.credentialNote && (
-                  <p className="break-words font-mono text-4xs text-warn">{item.credentialNote}</p>
+                  <p className="w-full break-all font-mono text-4xs text-warn">{item.credentialNote}</p>
                 )}
               </li>
             ))}

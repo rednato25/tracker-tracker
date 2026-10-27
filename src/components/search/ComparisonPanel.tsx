@@ -47,7 +47,7 @@ export function ComparisonPanel({ results }: { results: SelectedSearchResult[] }
   }, [parsedTarget, results])
 
   return (
-    <Card elevation="raised" className="flex flex-col gap-4" data-comparison-panel>
+    <Card elevation="raised" className="flex scroll-mt-16 flex-col gap-4" data-comparison-panel>
       <div className="flex flex-col gap-1">
         <H2>Compare selected results</H2>
         <p className="text-xs text-secondary">

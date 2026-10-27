@@ -691,12 +691,25 @@ test.describe.serial("Prowlarr search visual evidence", () => {
       })
       await page.screenshot({ path: "test-results/visual-search-dark.png" })
 
+      const compareBoxes = page.getByRole("checkbox", { name: "Compare" })
+      await compareBoxes.nth(0).check()
+      await compareBoxes.nth(1).check()
+      await page.getByLabel("Your target ratio").fill("1.5")
+      await expect(page.getByText("Compare selected results")).toBeVisible()
+      await page.locator("[data-comparison-panel]").scrollIntoViewIfNeeded()
+      await page.screenshot({ path: "test-results/visual-comparison-light.png" })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.screenshot({ path: "test-results/visual-comparison-dark.png" })
+
       await page.setViewportSize({ width: 390, height: 1200 })
       await page.waitForFunction(
         () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
       )
       await page.waitForTimeout(300)
-      await page.screenshot({ path: "test-results/visual-search-mobile.png" })
+      await page.locator("[data-comparison-panel]").scrollIntoViewIfNeeded()
+      await page.screenshot({ path: "test-results/visual-comparison-mobile.png" })
     } finally {
       await request.patch("/api/settings", {
         data: { prowlarrUrl: null, prowlarrApiKey: null },

@@ -4,6 +4,7 @@
 
 import { H1, H2, Paragraph, Subtext } from "@typography"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { ComparisonPanel } from "@/components/search/ComparisonPanel"
 import { Badge, Button, Card, Checkbox, Input, Notice } from "@/components/ui"
 import { formatBytesNum, formatCount } from "@/lib/formatters"
 import type {
@@ -39,6 +40,7 @@ interface LastSearch {
 }
 
 const PAGE_LIMIT = 10
+const COMPARE_LIMIT = 8
 
 function ownershipLabel(choice: ProwlarrSearchIndexer | null): string {
   if (!choice) return "Unknown indexer"
@@ -85,6 +87,10 @@ function factorLabel(result: SearchResult): string {
   return result.downloadFactorLabel ?? "Unknown"
 }
 
+function resultKey(result: SearchResult, index: number): string {
+  return `${result.indexerId}:${result.title}:${result.publishDate ?? "unknown"}:${index}`
+}
+
 export function SearchClient() {
   const [indexers, setIndexers] = useState<ProwlarrSearchIndexer[]>([])
   const [indexerError, setIndexerError] = useState<string | null>(null)
@@ -94,6 +100,7 @@ export function SearchClient() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [coverage, setCoverage] = useState<SearchCoverage | null>(null)
   const [lastSearch, setLastSearch] = useState<LastSearch | null>(null)
+  const [compareIds, setCompareIds] = useState<string[]>([])
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searchNotice, setSearchNotice] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
@@ -149,6 +156,7 @@ export function SearchClient() {
     setSearchError(null)
     setSearchNotice(null)
     setResults([])
+    setCompareIds([])
     setCoverage(null)
     try {
       const res = await fetch("/api/search", {
@@ -187,6 +195,13 @@ export function SearchClient() {
     void runSearch(1, search)
   }
 
+  function toggleCompare(id: string, checked: boolean) {
+    setCompareIds((current) => {
+      if (checked) return current.length >= COMPARE_LIMIT ? current : [...current, id]
+      return current.filter((item) => item !== id)
+    })
+  }
+
   function cancelSearch() {
     abortRef.current?.abort()
     requestIdRef.current++
@@ -196,6 +211,9 @@ export function SearchClient() {
     )
   }
 
+  const selectedResults = results
+    .map((result, index) => ({ ...result, id: resultKey(result, index) }))
+    .filter((result) => compareIds.includes(result.id))
   const page = coverage ? Math.floor(coverage.offset / coverage.limit) + 1 : 1
   const dirty =
     !lastSearch ||
@@ -369,9 +387,18 @@ export function SearchClient() {
                   className="flex flex-col gap-2 border border-border bg-raised px-3 py-3"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 break-words font-mono text-xs text-primary">
-                      {result.title}
-                    </p>
+                    <div className="flex min-w-0 items-start gap-2">
+                      <Checkbox
+                        checked={compareIds.includes(resultKey(result, index))}
+                        onChange={(checked) => toggleCompare(resultKey(result, index), checked)}
+                        disabled={!compareIds.includes(resultKey(result, index)) && compareIds.length >= COMPARE_LIMIT}
+                      >
+                        <span className="text-2xs text-secondary">Compare</span>
+                      </Checkbox>
+                      <p className="min-w-0 break-words font-mono text-xs text-primary">
+                        {result.title}
+                      </p>
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       <Badge variant={ownershipVariant(result.indexer)}>
                         {ownershipLabel(result.indexer)}
@@ -410,6 +437,8 @@ export function SearchClient() {
               ))}
             </ul>
           )}
+
+          {selectedResults.length > 0 && <ComparisonPanel results={selectedResults} />}
 
           <div className="flex flex-wrap items-center gap-2">
             <Button

@@ -99,6 +99,10 @@ export async function POST(request: Request) {
         registrySlug: tracker.registrySlug,
         userPausedAt: tracker.userPausedAt,
         hasStats: tracker.latestStats !== null,
+        uploadedBytes: tracker.latestStats?.uploadedBytes ?? null,
+        downloadedBytes: tracker.latestStats?.downloadedBytes ?? null,
+        requiredRatio: tracker.latestStats?.requiredRatio ?? null,
+        lastPolledAt: tracker.lastPolledAt,
       }))
     )
     const selected = choices.filter((choice) => indexerIds.includes(choice.indexerId))

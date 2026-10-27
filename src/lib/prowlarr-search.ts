@@ -27,12 +27,25 @@ export type ProwlarrOwnership =
   | "ambiguous"
   | "unsupported"
 
+export interface ProwlarrAccountSnapshot {
+  trackerId: number
+  name: string
+  uploadedBytes: string | null
+  downloadedBytes: string | null
+  requiredRatio: number | null
+  lastPolledAt: string | null
+}
+
 export interface ProwlarrOwnedTracker {
   id: number
   name: string
   registrySlug: string | null
   userPausedAt: string | null
   hasStats: boolean
+  uploadedBytes?: string | null
+  downloadedBytes?: string | null
+  requiredRatio?: number | null
+  lastPolledAt?: string | null
 }
 
 export interface ProwlarrSearchIndexer {
@@ -43,6 +56,7 @@ export interface ProwlarrSearchIndexer {
   trackerName: string | null
   ownership: ProwlarrOwnership
   accountName: string | null
+  account?: ProwlarrAccountSnapshot | null
   reason: string
 }
 
@@ -138,6 +152,16 @@ export function buildProwlarrSearchIndexers(
       trackerName: match.matched.name,
       ownership: placeholder ? "placeholder" : "owned",
       accountName: account.name,
+      account: placeholder
+        ? null
+        : {
+            trackerId: account.id,
+            name: account.name,
+            uploadedBytes: account.uploadedBytes ?? null,
+            downloadedBytes: account.downloadedBytes ?? null,
+            requiredRatio: account.requiredRatio ?? null,
+            lastPolledAt: account.lastPolledAt ?? null,
+          },
       reason: placeholder
         ? "This is an imported PAUSED placeholder with no stats; it is not a configured or healthy account."
         : "Matched owned tracker account.",

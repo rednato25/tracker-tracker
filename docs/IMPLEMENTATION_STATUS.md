@@ -100,6 +100,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P22 | deferred | P03 and existing qBittorrent | - | Fleet analytics and satisfaction exist; no storage/seeding report | Deferred: storage cleanup is not a current priority; no destructive actions. |
 | P23 | deferred | P22 | - | No space-release candidate classification | Deferred: storage cleanup is not a current priority; optional and destructive actions remain out of scope. |
 | P24 | deferred (monitoring only) | P09 and pilot sources | - | Seedbonus data and detail display exist; no verified exchange rules or planner | Retain only relevant bonus monitoring/planning. Defer exchange comparison/spending until verified per-tracker sources exist. |
+| P25 | implementation + automated checks complete; owner manual acceptance pending | P03, P12/P18 data conventions | draft PR pending (`feat/p25-monitoring-register`) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile rows; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Draft only; not deployed. Owner acceptance pending. No rank summary, digest expansion, bonus exchange planner, P21-P23, deployment or home-server change. |
 | GATE | pending | Relevant tasks | — | No release gate run for a delivery | Run after each delivery; do not treat this audit as a gate |
 
 ## P02a — database baseline preparation
@@ -1525,6 +1526,31 @@ gaps and bounded next task are in `docs/PRODUCT_PRIORITIES.md`. Summary:
   register with accounted upload/download, current bonus points and compact
   missing/stale markers from `latestStats`/`lastPolledAt`; no new adapters,
   schema, polling or inferred metrics.
+
+### P25 monitoring-register completion
+
+- Adds accounted upload, accounted download and current bonus points to the
+  existing `TrackerRegister` as a compact "Accounted" desktop column and three
+  mobile rows. Uses `latestStats` and the existing `lastPolledAt` freshness
+  policy; no adapters, schema, polling, API integration or derived values.
+- Confirmed zero renders as `0 MiB` / `0`; missing fields render `—` and
+  distinguish "not reported in the latest snapshot" from "no snapshot yet".
+  Existing metadata is not expanded into invented support claims.
+- Values from a snapshot older than two hours remain visible with a `*` stale
+  marker; a snapshot with unknown age gets `?`. Accessible titles explain that
+  the poll timestamp is not independent verification. Account transfer totals
+  are labelled separately from client speed/seeding.
+- Bonus points remain tracker-specific, show per row and are never summed; no
+  exchange values are inferred. Existing privacy/masking settings and row order
+  are unchanged.
+- Tests: 6 focused register tests cover populated values, confirmed zero, missing
+  fields/no snapshot, stale and unknown-age snapshots, formatting and no
+  username leakage. Full suite on Node 24: 258 files / 6243 tests passed.
+- Visual evidence: authenticated light/dark desktop and 390px mobile register
+  screenshots with fresh, stale and missing synthetic states.
+- Limitations: no unsupported/available capability metadata is invented; missing
+  adapter fields remain missing. No rank-summary changes, digest expansion, bonus
+  exchange planner, P21-P23, deployment or home-server change.
 
 ### P02b slices
 

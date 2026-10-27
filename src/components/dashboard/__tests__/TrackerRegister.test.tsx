@@ -1,0 +1,143 @@
+import { render, screen } from "@testing-library/react"
+import { describe, expect, it } from "vitest"
+import { TrackerRegister } from "@/components/dashboard/TrackerRegister"
+import type { TrackerSummary } from "@/types/api"
+
+const NOW = new Date("2026-10-27T12:00:00.000Z")
+const GIB = 1024 ** 3
+const TIB = 1024 ** 4
+
+function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
+  return {
+    id: 1,
+    name: "AlphaRatio",
+    baseUrl: "https://alpharatio.invalid",
+    registrySlug: "alpharatio",
+    platformType: "unit3d",
+    isActive: true,
+    lastPolledAt: "2026-10-27T11:00:00.000Z",
+    lastError: null,
+    lastErrorAt: null,
+    consecutiveFailures: 0,
+    pausedAt: null,
+    userPausedAt: null,
+    color: "#123456",
+    qbtTag: null,
+    mouseholeUrl: null,
+    hasMouseholeToken: false,
+    useProxy: false,
+    countCrossSeedUnsatisfied: false,
+    hideUnreadBadges: false,
+    isFavorite: false,
+    sortOrder: 1,
+    joinedAt: "2025-01-01T00:00:00.000Z",
+    lastAccessAt: null,
+    remoteUserId: null,
+    platformMeta: null,
+    createdAt: "2025-01-01T00:00:00.000Z",
+    latestStats: {
+      ratio: 2,
+      ratioIsInfinite: false,
+      uploadedBytes: String(1 * TIB),
+      downloadedBytes: String(500 * GIB),
+      bufferBytes: String(500 * GIB),
+      seedingCount: 3,
+      leechingCount: 0,
+      requiredRatio: 1,
+      warned: false,
+      freeleechTokens: 0,
+      hitAndRuns: 0,
+      seedbonus: 1234,
+      shareScore: null,
+      username: "owner-name",
+      group: "Power User",
+    },
+    ...overrides,
+  }
+}
+
+describe("TrackerRegister accounted metrics", () => {
+  it("renders populated uploaded, downloaded and tracker bonus values", () => {
+    render(<TrackerRegister trackers={[tracker()]} now={NOW} />)
+    expect(screen.getAllByText(/1\.00 TiB/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/500\.00 GiB/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText("1,234").length).toBeGreaterThan(0)
+    expect(screen.getByText(/Accounted values and bonus are from the latest stored snapshot/)).toBeInTheDocument()
+    expect(screen.queryByLabelText("stale snapshot")).not.toBeInTheDocument()
+  })
+
+  it("distinguishes confirmed zero from missing values", () => {
+    render(
+      <TrackerRegister
+        trackers={[
+          tracker({
+            latestStats: {
+              ...tracker().latestStats!,
+              uploadedBytes: "0",
+              downloadedBytes: "0",
+              seedbonus: 0,
+            },
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getAllByText("0 MiB").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("0").length).toBeGreaterThan(0)
+  })
+
+  it("shows missing values with the snapshot distinction and never presents unsupported as zero", () => {
+    render(<TrackerRegister trackers={[tracker({ latestStats: null })]} now={NOW} />)
+    expect(screen.getAllByTitle("No snapshot yet; this value is missing.").length).toBeGreaterThan(0)
+    expect(screen.queryByText("0 MiB")).not.toBeInTheDocument()
+
+    render(
+      <TrackerRegister
+        trackers={[
+          tracker({
+            latestStats: {
+              ...tracker().latestStats!,
+              uploadedBytes: null,
+              downloadedBytes: null,
+              seedbonus: null,
+            },
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getAllByTitle("Not reported in the latest snapshot.").length).toBeGreaterThan(0)
+  })
+
+  it("marks a stale snapshot while keeping the stored values and age explanation", () => {
+    render(
+      <TrackerRegister
+        trackers={[tracker({ lastPolledAt: "2026-10-27T08:00:00.000Z" })]}
+        now={NOW}
+      />
+    )
+    expect(screen.getAllByLabelText("stale snapshot").length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle(/is stale \(older than 2 hours\)/).length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle(/Snapshot polled .* ago/).length).toBeGreaterThan(0)
+  })
+
+  it("marks unknown snapshot age without pretending the values are fresh", () => {
+    render(<TrackerRegister trackers={[tracker({ lastPolledAt: null })]} now={NOW} />)
+    expect(screen.getAllByLabelText("snapshot age unknown").length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle(/freshness cannot be confirmed/).length).toBeGreaterThan(0)
+  })
+
+  it("does not expose username or sum bonus across independent tracker rows", () => {
+    const other = tracker({
+      id: 2,
+      name: "BetaRatio",
+      latestStats: { ...tracker().latestStats!, seedbonus: 2, username: "other-name" },
+    })
+    render(<TrackerRegister trackers={[tracker(), other]} now={NOW} />)
+    expect(screen.queryByText("owner-name")).not.toBeInTheDocument()
+    expect(screen.queryByText("other-name")).not.toBeInTheDocument()
+    expect(screen.getAllByText("1,234").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("2").length).toBeGreaterThan(0)
+    expect(screen.queryByText("1,236")).not.toBeInTheDocument()
+  })
+})

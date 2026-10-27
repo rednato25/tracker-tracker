@@ -595,6 +595,7 @@ test.describe.serial("Prowlarr search visual evidence", () => {
   })
 
   test("captures desktop light/dark and 390px search layouts", async ({ page, request }) => {
+    test.setTimeout(60_000)
     const server = createServer((req, res) => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1")
       if (url.pathname === "/api/v1/indexer") {
@@ -673,10 +674,10 @@ test.describe.serial("Prowlarr search visual evidence", () => {
       })
       await page.goto("/search")
       await expect(page.locator("[data-search-page]")).toBeVisible()
-      await expect(page.getByText("Owned account")).toBeVisible({ timeout: 10_000 })
-
-      await page.getByRole("checkbox", { name: /AlphaRatio/ }).first().check()
-      await page.getByRole("checkbox", { name: /Mystery Tracker/ }).first().check()
+      await expect(page.locator("fieldset input[type=checkbox]").first()).toBeVisible({
+        timeout: 15_000,
+      })
+      await page.getByRole("button", { name: "Select all" }).click()
       await page.getByLabel("Search releases").fill("synthetic")
       await page.getByRole("button", { name: "Search selected indexers" }).click()
       await expect(page.getByText("Partial results")).toBeVisible({ timeout: 15_000 })

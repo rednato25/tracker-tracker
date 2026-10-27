@@ -1,7 +1,9 @@
 # P20 Manual Acceptance (isolated synthetic fixtures)
 
-Owner acceptance is pending. Run only on the throwaway instance with the existing
-fake Prowlarr test harness. Do not modify a home server, point at real Prowlarr,
+Owner accepted this fixture on isolated image digest
+`sha256:4b2c3489a8d0fd4fe460abbe7b2692c95aa2b5ff7ecca833d9b9c4f016275856`.
+The guide remains reproducible on the throwaway instance with the existing fake
+Prowlarr test harness. Do not modify a home server, point at real Prowlarr,
 or insert plaintext into encrypted columns.
 
 ## Fixture
@@ -64,4 +66,4 @@ The exact arithmetic regression lives in
 regression in `src/lib/__tests__/prowlarr-search.test.ts`. Automated CI and the
 authenticated comparison screenshots remain separate evidence.
 
-Record owner acceptance only after this run.
+Owner acceptance is recorded above; keep this guide for regression runs.

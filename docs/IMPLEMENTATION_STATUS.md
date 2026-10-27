@@ -95,11 +95,11 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P17 | done | P09–P10 | PR #26 (`feat/p17-recruitment-routes`; merged) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Merged; not deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. P18 UI consumes this format separately and P19 search is a separate surface; no deployment or home-server change. |
 | P18 | done | P17 and goals UI | PR #27 (`feat/p18-recruitment-wishlist`; merged; not deployed) | `/wishlist` list UI with saved desired registry slug, direct/bounded multi-step routes, owned vs scenario evaluation, explicit unresolved source text/days/invite gates, separate availability, hide/show paths, exact-match saved-goal links, distinct evidence dates and attribution; migration 0006 single JSON state column with slug references; 25 focused tests; 6190 full tests; light/dark/mobile screenshots inspected | Owner-supplied isolated-home-server acceptance on image digest `sha256:5a8084bddcc7bba0bd23e3b532cdece211239196d3e72c115443ee6ffb499d95`: migration 0006 applied, health/data preserved, destination and hidden paths survived reload, account/scenario/unresolved/availability labels remained distinct, desktop and 390px checks passed. Automated evidence remains separate. No multiple destinations, graph, applications or deployment. |
 | P19 | done | P14 | PR #28 (`feat/p19-prowlarr-search`; merged; not deployed) | Authenticated `/search` UI and read-only Prowlarr `/api/v1/search`; per-indexer requests for partial coverage; registry/ownership mapping with placeholder distinction; explicit submission, loading/empty/partial/all-failed states; Prowlarr limit/offset paging; bounded timeout/size/concurrency/results; cancellation and stale-response guard; safe response fields and factor only from explicit flags | Owner accepted the isolated manual guide on image digest `sha256:cd60b6a89358a29eb0c3debe65bac3153a972610ca0a2dc0145be89aae9d494f`. Automated evidence remains separate. No download/grab/magnet/client action or P21 send; P20 comparison consumes this surface. Prowlarr HTTP 200 is only API success, not proof underlying indexer success; no result cache. |
-| P20 | implementation + automated/visual checks complete; owner manual acceptance pending | P19, P12�P13 | PR #29 (`feat/p20-result-comparison`; not deployed) | Search-result Compare selection; independent alternatives; user target ratio separate from tracker minimum; account mapping/freshness; size, explicit factor, charged bytes, projected ratio, remaining allowance and additional upload via the P12 calculator; freeleech/neutralleech as zero-charge scenario; stale/missing/ambiguous unavailable; seeding obligations separate unknown; no ranking or best/safest label; 12 focused tests; 6237 full tests; comparison screenshots inspected | Not deployed. Owner manual acceptance remains pending. No quality/language inference, release equivalence, future upload credit, download/grab/client action or P21 send. Contract: `docs/COMPARISON.md`; guide `docs/P20_MANUAL_ACCEPTANCE.md`. |
-| P21 | pending | P19; P20 recommended | — | qBittorrent client exists; no search-result send flow | Add explicit confirmation and idempotency; never auto-download |
-| P22 | pending | P03 and existing qBittorrent | — | Fleet/torrent analytics and satisfaction exist; no storage/seeding report | Add report without exposing paths or claiming physical recovery |
-| P23 | pending | P22 | — | No space-release candidate classification | Optional; destructive actions are out of scope |
-| P24 | pending | P09 and pilot sources | — | No bonus-points planner | Compare verified exchanges per tracker; never spend automatically |
+| P20 | done | P19, P12-P13 | PR #29 (`feat/p20-result-comparison`; merged; not deployed) | Search-result Compare selection; independent alternatives; user target ratio separate from tracker minimum; account mapping/freshness; size, explicit factor, charged bytes, projected ratio, remaining allowance and additional upload via the P12 calculator; freeleech/neutralleech as zero-charge scenario; stale/missing/ambiguous unavailable; seeding obligations separate unknown; no ranking or best/safest label; 12 focused tests; 6237 full tests; comparison screenshots inspected | Owner-supplied isolated acceptance on image digest `sha256:4b2c3489a8d0fd4fe460abbe7b2692c95aa2b5ff7ecca833d9b9c4f016275856`. Normal-charge 1.0 is deterministic fixture/calculator evidence, separate from deployed Prowlarr UI evidence (0/0.5 or unknown only). Automated/visual evidence remains separate. No quality/language inference, release equivalence, future upload credit, download/grab/client action or P21 send. |
+| P21 | deferred | P19 | - | Read-only search/comparison exists; no torrent-add flow | Out of current scope. Do not implement torrent-add, grab, magnet, download or client mutation. |
+| P22 | deferred | P03 and existing qBittorrent | - | Fleet analytics and satisfaction exist; no storage/seeding report | Deferred: storage cleanup is not a current priority; no destructive actions. |
+| P23 | deferred | P22 | - | No space-release candidate classification | Deferred: storage cleanup is not a current priority; optional and destructive actions remain out of scope. |
+| P24 | deferred (monitoring only) | P09 and pilot sources | - | Seedbonus data and detail display exist; no verified exchange rules or planner | Retain only relevant bonus monitoring/planning. Defer exchange comparison/spending until verified per-tracker sources exist. |
 | GATE | pending | Relevant tasks | — | No release gate run for a delivery | Run after each delivery; do not treat this audit as a gate |
 
 ## P02a — database baseline preparation
@@ -1501,9 +1501,30 @@ it through intermediates. No route data was changed.
   estimate or release equivalence. No P21 grab/download/client action, deployment
   or home-server change.
 - Completion state: implementation, automated tests, CI and visual review are
-  complete. **Owner manual acceptance remains pending.** Guide:
-  `docs/P20_MANUAL_ACCEPTANCE.md`. Do not report P20 as owner-accepted before that
-  run.
+  complete. The owner accepted the isolated manual fixture on image digest
+  `sha256:4b2c3489a8d0fd4fe460abbe7b2692c95aa2b5ff7ecca833d9b9c4f016275856`.
+  Normal-charge 1.0 is deterministic fixture/calculator evidence; deployed
+  Prowlarr UI evidence is limited to explicit 0/0.5 or unknown. Keep those
+  evidence classes separate. Guide: `docs/P20_MANUAL_ACCEPTANCE.md`.
+
+### Product direction revision (2026-10-27)
+
+Tracker Tracker is the account-monitoring/progression dashboard; Prowlarr and
+qBittorrent own searching and adding torrents. The maintained priority table,
+gaps and bounded next task are in `docs/PRODUCT_PRIORITIES.md`. Summary:
+
+- **P21:** deferred/out of current scope. No torrent-add/grab/download/client
+  mutation actions.
+- **P22/P23:** deferred. Storage cleanup and space-release candidates are not a
+  current priority; no destructive actions.
+- **P24:** narrowed to bonus monitoring/planning only until verified per-tracker
+  exchange rules exist. No automatic point spending.
+- Search/comparison (P19/P20) remains available, optional and read-only; do not
+  remove or redesign it now.
+- Recommended next bounded implementation: complete the existing monitoring
+  register with accounted upload/download, current bonus points and compact
+  missing/stale markers from `latestStats`/`lastPolledAt`; no new adapters,
+  schema, polling or inferred metrics.
 
 ### P02b slices
 

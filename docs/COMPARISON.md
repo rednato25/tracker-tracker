@@ -72,7 +72,7 @@ queued commitments/reserve are included in this comparison.
   download controls.
 - 12 P20-focused tests; full suite on Node 24: 257 files / 6237 tests passed.
 - Deterministic manual fixture and walkthrough: `docs/P20_MANUAL_ACCEPTANCE.md`.
-- P20 has no owner acceptance yet.
+- Owner accepted the isolated manual fixture on image digest `sha256:4b2c3489a8d0fd4fe460abbe7b2692c95aa2b5ff7ecca833d9b9c4f016275856`. Normal-charge 1.0 is deterministic fixture/calculator evidence, separate from deployed Prowlarr UI evidence (0/0.5 or unknown only).
 
 ## Limitations
 

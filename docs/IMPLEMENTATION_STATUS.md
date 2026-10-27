@@ -1493,7 +1493,10 @@ it through intermediates. No route data was changed.
   duplicate titles, future-upload non-crediting and separate obligations. Full
   suite on Node 24: 257 files / 6235 tests passed. Contract: `docs/COMPARISON.md`.
 - Visual evidence: local fake Prowlarr only; light/dark desktop and 390px mobile
-  selected-result comparison with a freeleech row and missing metadata row.
+  selected-result comparison with a freeleech row and missing metadata row. The
+  captured views were inspected: concrete arithmetic, zero-charge qualification,
+  unknown metadata/unavailable arithmetic, separate tracker minimum and seeding
+  obligation, and no download controls.
 - Limitations: no quality/language model, release-level H&R/seeding data, speed
   estimate or release equivalence. No P21 grab/download/client action, deployment
   or home-server change.

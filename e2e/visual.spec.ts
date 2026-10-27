@@ -701,8 +701,11 @@ test.describe.serial("Prowlarr search visual evidence", () => {
       await expect(page.locator("[data-comparison-panel]")).toBeVisible()
       await page.evaluate(() => {
         document.documentElement.dataset.theme = "light"
+        document
+          .querySelector("[data-comparison-panel]")
+          ?.scrollIntoView({ block: "start" })
       })
-      await page.locator("[data-comparison-panel]").scrollIntoViewIfNeeded()
+      await page.waitForTimeout(200)
       await page.screenshot({ path: "test-results/visual-comparison-light.png" })
       await page.evaluate(() => {
         document.documentElement.dataset.theme = "dark"
@@ -714,7 +717,12 @@ test.describe.serial("Prowlarr search visual evidence", () => {
         () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
       )
       await page.waitForTimeout(300)
-      await page.locator("[data-comparison-panel]").scrollIntoViewIfNeeded()
+      await page.evaluate(() => {
+        document
+          .querySelector("[data-comparison-panel]")
+          ?.scrollIntoView({ block: "start" })
+      })
+      await page.waitForTimeout(200)
       await page.screenshot({ path: "test-results/visual-comparison-mobile.png" })
     } finally {
       await request.patch("/api/settings", {

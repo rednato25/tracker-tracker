@@ -66,7 +66,10 @@ queued commitments/reserve are included in this comparison.
 - UI tests cover selection, target input, concrete values, unavailable rows,
   scenario labelling and the absence of download/client actions.
 - Visual evidence: local fake Prowlarr only; light/dark desktop and 390px mobile
-  comparison layouts, with a freeleech row and a missing-metadata row.
+  comparison layouts, with a freeleech row and a missing-metadata row. The
+  captured views were inspected for concrete arithmetic, zero-charge
+  qualification, unknown/unavailable rows, separate target/minimum and no
+  download controls.
 - 10 P20-focused tests; full suite on Node 24: 257 files / 6235 tests passed.
 - P20 has no owner acceptance yet.
 

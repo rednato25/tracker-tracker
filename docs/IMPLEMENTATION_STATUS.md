@@ -94,7 +94,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P16 | done | P02, P04; P11 for goals | PR #24 (merged; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore/recovery invalidation; focused auth/privacy/UI/lifecycle/recovery tests; 6145 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Owner-supplied home-server acceptance on image digest `sha256:02271ad43c65dc5b8a81a0b878747c4b5fbf02ab0fcd94061bee04b8cf4969fb`: migration 0005 applied, health passed, existing login/trackers/mock integrations preserved, summary-only token 200 / actions 403 / post-revocation summary 401 without session cookies, hidden identity excluded names/usernames/secrets, token displayed once and only its hash stored, temporary tokens revoked, production and stopped updater unchanged. Optional expiry is #25. No write scopes, CORS, webhooks, search or downloads; no deployment. |
 | P17 | done | P09–P10 | PR #26 (`feat/p17-recruitment-routes`; merged) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Merged; not deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. P18 UI consumes this format separately and P19 search is a separate surface; no deployment or home-server change. |
 | P18 | done | P17 and goals UI | PR #27 (`feat/p18-recruitment-wishlist`; merged; not deployed) | `/wishlist` list UI with saved desired registry slug, direct/bounded multi-step routes, owned vs scenario evaluation, explicit unresolved source text/days/invite gates, separate availability, hide/show paths, exact-match saved-goal links, distinct evidence dates and attribution; migration 0006 single JSON state column with slug references; 25 focused tests; 6190 full tests; light/dark/mobile screenshots inspected | Owner-supplied isolated-home-server acceptance on image digest `sha256:5a8084bddcc7bba0bd23e3b532cdece211239196d3e72c115443ee6ffb499d95`: migration 0006 applied, health/data preserved, destination and hidden paths survived reload, account/scenario/unresolved/availability labels remained distinct, desktop and 390px checks passed. Automated evidence remains separate. No multiple destinations, graph, applications or deployment. |
-| P19 | done (draft PR, not merged) | P14 | draft PR #28 (`feat/p19-prowlarr-search`) | Authenticated `/search` UI and read-only Prowlarr `/api/v1/search`; per-indexer requests for partial coverage; registry/ownership mapping with placeholder distinction; explicit submission, loading/empty/partial/all-failed states; Prowlarr limit/offset paging; bounded timeout/size/concurrency/results; cancellation and stale-response guard; safe response fields and factor only from explicit flags | Draft only; not merged or deployed. No download/grab/magnet/client action, P20 comparison or P21 send. Prowlarr 200-empty ambiguity documented; no result cache. |
+| P19 | implementation + automated/visual checks complete; owner manual acceptance pending | P14 | PR #28 (`feat/p19-prowlarr-search`; not deployed) | Authenticated `/search` UI and read-only Prowlarr `/api/v1/search`; per-indexer requests for partial coverage; registry/ownership mapping with placeholder distinction; explicit submission, loading/empty/partial/all-failed states; Prowlarr limit/offset paging; bounded timeout/size/concurrency/results; cancellation and stale-response guard; safe response fields and factor only from explicit flags | Not deployed. Owner manual acceptance remains pending. No download/grab/magnet/client action, P20 comparison or P21 send. Prowlarr HTTP 200 is only API success, not proof underlying indexer success; no result cache. |
 | P20 | pending | P19, P12–P13 | — | No result comparison | Compare charged bytes, ratio impact and obligations; explain recommendations |
 | P21 | pending | P19; P20 recommended | — | qBittorrent client exists; no search-result send flow | Add explicit confirmation and idempotency; never auto-download |
 | P22 | pending | P03 and existing qBittorrent | — | Fleet/torrent analytics and satisfaction exist; no storage/seeding report | Add report without exposing paths or claiming physical recovery |
@@ -1453,9 +1453,19 @@ it through intermediates. No route data was changed.
   title clears navigation. No real Prowlarr/tracker/client is contacted. Contract:
   `docs/SEARCH.md`.
 - API limitation: Prowlarr's controller can return HTTP 200 with an empty list
-  when an upstream indexer fails internally; the UI reports actual response
-  coverage and never infers that every indexer succeeded from an aggregate 200.
-  No result cache is used.
+  when an upstream indexer fails internally. **HTTP 200 is a successful Prowlarr
+  API response, not proof that the underlying indexer search succeeded.** The UI
+  reports actual response coverage and never infers that every indexer succeeded
+  from an aggregate 200. No result cache is used.
+- Accounting flags are taken from the official Prowlarr `IndexerFlag.cs` at the
+  pinned source commit: freeleech = download does not count; neutralleech =
+  download and upload do not count; halfleech = 50% download. Neutralleech is not
+  upload credit, and a zero download factor never implies H&R compliance or
+  overall download safety. Missing/conflicting flags remain unknown.
+- Completion state: implementation, automated tests, CI and visual review are
+  complete. **Owner manual acceptance remains pending.** Manual mock requirements
+  and walkthrough: `docs/P19_MANUAL_ACCEPTANCE.md`. Do not report P19 as
+  owner-accepted before that run.
 - No P20 comparison, P21 grab/download/client mutation, deployment or home-server
   change.
 

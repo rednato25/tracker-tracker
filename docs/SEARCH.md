@@ -27,11 +27,17 @@ Servarr search page:
 - `indexerFlags` can explicitly say `freeleech`, `neutralleech` or `halfleech`.
   Only then is a download factor shown (`0`, `0`, `0.5`). Missing, malformed or
   conflicting flags remain unknown. `doubleupload` is not a download factor.
+  Official Prowlarr `IndexerFlag.cs` at the pinned commit defines these as:
+  `freeleech` = download does not count toward ratio; `neutralleech` = download
+  **and upload** do not count toward ratio; `halfleech` = release counts 50% to
+  ratio. A zero download factor is not upload credit, H&R compliance, or overall
+  download safety; P19 exposes only the download accounting factor.
 - Prowlarr's controller catches upstream search exceptions and can return HTTP
-  200 with an empty list. Per-indexer requests distinguish transport/HTTP
-  failures, but a 200 empty response cannot tell “no releases” from an internal
-  indexer failure. The UI reports actual response coverage and never claims all
-  indexers succeeded.
+  200 with an empty list. **HTTP 200 means the Prowlarr API request succeeded; it
+  is not proof that the underlying indexer search succeeded.** Per-indexer
+  requests distinguish transport/HTTP failures, but a 200 empty response cannot
+  tell â€œno releasesâ€ from an internal indexer failure. The UI reports actual
+  response coverage and never claims all indexers succeeded.
 
 ## Endpoint behavior
 
@@ -93,6 +99,7 @@ contain route names, counts and safe error classes only.
 - 35 P19-focused tests plus the full suite on Node 24: 255 files / 6225 tests passed.
 - Visual evidence uses a local fake Prowlarr service only. It captures light/dark
   desktop and 390px mobile. No real Prowlarr, tracker or client is contacted.
+- Owner manual mock requirements and walkthrough: `docs/P19_MANUAL_ACCEPTANCE.md`.
 
 ## Limitations
 

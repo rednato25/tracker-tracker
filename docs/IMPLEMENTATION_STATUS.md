@@ -100,7 +100,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P22 | deferred | P03 and existing qBittorrent | - | Fleet analytics and satisfaction exist; no storage/seeding report | Deferred: storage cleanup is not a current priority; no destructive actions. |
 | P23 | deferred | P22 | - | No space-release candidate classification | Deferred: storage cleanup is not a current priority; optional and destructive actions remain out of scope. |
 | P24 | deferred (monitoring only) | P09 and pilot sources | - | Seedbonus data and detail display exist; no verified exchange rules or planner | Retain only relevant bonus monitoring/planning. Defer exchange comparison/spending until verified per-tracker sources exist. |
-| P25 | implementation + automated checks complete; owner manual acceptance pending | P03, P12/P18 data conventions | draft PR #31 (`feat/p25-monitoring-register`) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile rows; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Draft only; not deployed. Owner acceptance pending. No rank summary, digest expansion, bonus exchange planner, P21-P23, deployment or home-server change. |
+| P25 | implementation + automated/visual checks complete; owner manual acceptance pending | P03, P12/P18 data conventions | draft PR #31 (`feat/p25-monitoring-register`) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile rows; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Draft only; not deployed. Owner acceptance pending. No rank summary, digest expansion, bonus exchange planner, P21-P23, deployment or home-server change. |
 | GATE | pending | Relevant tasks | — | No release gate run for a delivery | Run after each delivery; do not treat this audit as a gate |
 
 ## P02a — database baseline preparation
@@ -1547,7 +1547,10 @@ gaps and bounded next task are in `docs/PRODUCT_PRIORITIES.md`. Summary:
   fields/no snapshot, stale and unknown-age snapshots, formatting and no
   username leakage. Full suite on Node 24: 258 files / 6243 tests passed.
 - Visual evidence: authenticated light/dark desktop and 390px mobile register
-  screenshots with fresh, stale and missing synthetic states.
+  screenshots with fresh, stale and missing synthetic states. The captured views
+  were inspected: aligned account totals, confirmed-zero/missing distinction,
+  stale/unknown-age markers, separate client speed/seeding context, tracker-local
+  bonus balances and reachable mobile controls.
 - Limitations: no unsupported/available capability metadata is invented; missing
   adapter fields remain missing. No rank-summary changes, digest expansion, bonus
   exchange planner, P21-P23, deployment or home-server change.

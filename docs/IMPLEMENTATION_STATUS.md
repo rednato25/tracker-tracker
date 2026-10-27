@@ -1448,8 +1448,10 @@ it through intermediates. No route data was changed.
   URL refusal and no search on page load. Full suite on Node 24: 255 files /
   6225 tests passed.
 - Visual evidence: local fake Prowlarr only, light/dark desktop and 390px mobile,
-  with a partial-result response. No real Prowlarr/tracker/client is contacted.
-  Contract: `docs/SEARCH.md`.
+  with a partial-result response. The captured views were inspected: partial
+  coverage, unknown size/seeders/date/factor, no download controls, and the mobile
+  title clears navigation. No real Prowlarr/tracker/client is contacted. Contract:
+  `docs/SEARCH.md`.
 - API limitation: Prowlarr's controller can return HTTP 200 with an empty list
   when an upstream indexer fails internally; the UI reports actual response
   coverage and never infers that every indexer succeeded from an aggregate 200.

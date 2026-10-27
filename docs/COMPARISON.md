@@ -70,7 +70,8 @@ queued commitments/reserve are included in this comparison.
   captured views were inspected for concrete arithmetic, zero-charge
   qualification, unknown/unavailable rows, separate target/minimum and no
   download controls.
-- 10 P20-focused tests; full suite on Node 24: 257 files / 6235 tests passed.
+- 12 P20-focused tests; full suite on Node 24: 257 files / 6237 tests passed.
+- Deterministic manual fixture and walkthrough: `docs/P20_MANUAL_ACCEPTANCE.md`.
 - P20 has no owner acceptance yet.
 
 ## Limitations

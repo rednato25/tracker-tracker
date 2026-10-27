@@ -84,6 +84,44 @@ describe("buildProwlarrSearchIndexers", () => {
     expect(choices[1].reason).toContain("not a configured or healthy account")
   })
 
+  it("exposes only the explicit account snapshot fields needed for comparison", () => {
+    const choices = buildProwlarrSearchIndexers(
+      [INDEXER],
+      [
+        {
+          id: 1,
+          name: "My Alpha",
+          registrySlug: "alpharatio",
+          userPausedAt: null,
+          hasStats: true,
+          uploadedBytes: "900",
+          downloadedBytes: "600",
+          requiredRatio: 1,
+          lastPolledAt: "2026-10-27T11:00:00.000Z",
+        },
+      ]
+    )
+    const account = choices[0].account
+    expect(account).toEqual({
+      trackerId: 1,
+      name: "My Alpha",
+      uploadedBytes: "900",
+      downloadedBytes: "600",
+      requiredRatio: 1,
+      lastPolledAt: "2026-10-27T11:00:00.000Z",
+    })
+    expect(Object.keys(account ?? {}).sort()).toEqual([
+      "downloadedBytes",
+      "lastPolledAt",
+      "name",
+      "requiredRatio",
+      "trackerId",
+      "uploadedBytes",
+    ])
+    expect(JSON.stringify(choices[0])).not.toContain("encrypted")
+    expect(JSON.stringify(choices[0])).not.toContain("baseUrl")
+  })
+
   it("reports no-account separately from an unsupported indexer", () => {
     const choices = buildProwlarrSearchIndexers(
       [INDEXER, { ...INDEXER, id: 8, name: "Mystery Tracker", fields: [] }],

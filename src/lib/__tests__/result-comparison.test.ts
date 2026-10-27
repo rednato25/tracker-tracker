@@ -150,6 +150,40 @@ describe("compareSearchResults", () => {
     }
   })
 
+  it("keeps selected alternatives independent for the documented 900/600 fixture", () => {
+    const GiB = 1024 ** 3
+    const account = {
+      trackerId: 1,
+      name: "My AlphaRatio",
+      uploadedBytes: String(900 * GiB),
+      downloadedBytes: String(600 * GiB),
+      requiredRatio: 1,
+      lastPolledAt: "2026-10-27T11:00:00.000Z",
+    }
+    const candidates = [
+      candidate({ id: "normal", title: "Synthetic.Normal", sizeBytes: 80 * GiB, downloadFactor: 1 }),
+      candidate({ id: "half", title: "Synthetic.Half", sizeBytes: 80 * GiB, downloadFactor: 0.5 }),
+      candidate({ id: "free", title: "Synthetic.Free", sizeBytes: 80 * GiB, downloadFactor: 0 }),
+      candidate({ id: "unknown", title: "Synthetic.Unknown", sizeBytes: 80 * GiB, downloadFactor: null }),
+    ].map((item) => ({ ...item, indexer: indexer({ account }) }))
+
+    const result = compareSearchResults({ candidates, targetRatio: 1, now: NOW })
+    const [normal, half, free, unknown] = result.rows
+
+    expect(normal.chargedBytes).toBe(80 * GiB)
+    expect(normal.budget?.projectedRatio).toBeCloseTo(900 / 680, 6)
+    expect(normal.budget?.remainingChargedAfterProposed).toBe(220 * GiB)
+    expect(half.chargedBytes).toBe(40 * GiB)
+    expect(half.budget?.projectedRatio).toBeCloseTo(900 / 640, 6)
+    expect(half.budget?.remainingChargedAfterProposed).toBe(260 * GiB)
+    expect(free.chargedBytes).toBe(0)
+    expect(free.status).toBe("scenario-only")
+    expect(free.budget?.projectedRatio).toBeCloseTo(1.5, 6)
+    expect(free.budget?.remainingChargedAfterProposed).toBe(300 * GiB)
+    expect(unknown.status).toBe("unavailable")
+    expect(unknown.budget).toBeNull()
+  })
+
   it("does not merge similar titles or infer equivalence", () => {
     const result = compareSearchResults({
       candidates: [

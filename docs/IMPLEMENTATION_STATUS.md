@@ -95,7 +95,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P17 | done | P09–P10 | PR #26 (`feat/p17-recruitment-routes`; merged) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Merged; not deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. P18 UI consumes this format separately and P19 search is a separate surface; no deployment or home-server change. |
 | P18 | done | P17 and goals UI | PR #27 (`feat/p18-recruitment-wishlist`; merged; not deployed) | `/wishlist` list UI with saved desired registry slug, direct/bounded multi-step routes, owned vs scenario evaluation, explicit unresolved source text/days/invite gates, separate availability, hide/show paths, exact-match saved-goal links, distinct evidence dates and attribution; migration 0006 single JSON state column with slug references; 25 focused tests; 6190 full tests; light/dark/mobile screenshots inspected | Owner-supplied isolated-home-server acceptance on image digest `sha256:5a8084bddcc7bba0bd23e3b532cdece211239196d3e72c115443ee6ffb499d95`: migration 0006 applied, health/data preserved, destination and hidden paths survived reload, account/scenario/unresolved/availability labels remained distinct, desktop and 390px checks passed. Automated evidence remains separate. No multiple destinations, graph, applications or deployment. |
 | P19 | done | P14 | PR #28 (`feat/p19-prowlarr-search`; merged; not deployed) | Authenticated `/search` UI and read-only Prowlarr `/api/v1/search`; per-indexer requests for partial coverage; registry/ownership mapping with placeholder distinction; explicit submission, loading/empty/partial/all-failed states; Prowlarr limit/offset paging; bounded timeout/size/concurrency/results; cancellation and stale-response guard; safe response fields and factor only from explicit flags | Owner accepted the isolated manual guide on image digest `sha256:cd60b6a89358a29eb0c3debe65bac3153a972610ca0a2dc0145be89aae9d494f`. Automated evidence remains separate. No download/grab/magnet/client action or P21 send; P20 comparison consumes this surface. Prowlarr HTTP 200 is only API success, not proof underlying indexer success; no result cache. |
-| P20 | done (draft PR, not merged) | P19, P12–P13 | draft PR #29 (`feat/p20-result-comparison`) | Search-result Compare selection; independent alternatives; user target ratio separate from tracker minimum; account mapping/freshness; size, explicit factor, charged bytes, projected ratio, remaining allowance and additional upload via the P12 calculator; freeleech/neutralleech as zero-charge scenario; stale/missing/ambiguous unavailable; seeding obligations separate unknown; no ranking or best/safest label | Draft only; not merged or deployed. No quality/language inference, release equivalence, future upload credit, download/grab/client action or P21 send. Contract: `docs/COMPARISON.md`. |
+| P20 | implementation + automated/visual checks complete; owner manual acceptance pending | P19, P12�P13 | PR #29 (`feat/p20-result-comparison`; not deployed) | Search-result Compare selection; independent alternatives; user target ratio separate from tracker minimum; account mapping/freshness; size, explicit factor, charged bytes, projected ratio, remaining allowance and additional upload via the P12 calculator; freeleech/neutralleech as zero-charge scenario; stale/missing/ambiguous unavailable; seeding obligations separate unknown; no ranking or best/safest label; 12 focused tests; 6237 full tests; comparison screenshots inspected | Not deployed. Owner manual acceptance remains pending. No quality/language inference, release equivalence, future upload credit, download/grab/client action or P21 send. Contract: `docs/COMPARISON.md`; guide `docs/P20_MANUAL_ACCEPTANCE.md`. |
 | P21 | pending | P19; P20 recommended | — | qBittorrent client exists; no search-result send flow | Add explicit confirmation and idempotency; never auto-download |
 | P22 | pending | P03 and existing qBittorrent | — | Fleet/torrent analytics and satisfaction exist; no storage/seeding report | Add report without exposing paths or claiming physical recovery |
 | P23 | pending | P22 | — | No space-release candidate classification | Optional; destructive actions are out of scope |
@@ -1488,10 +1488,10 @@ it through intermediates. No route data was changed.
 - No ranking, opaque score or universal “best/safest” label; unknown values are
   not sorted as cheapest. Similar titles/sizes are not merged. Quality, language
   and release-group preferences are left to the user and explicitly not inferred.
-- Tests: 10 P20-focused pure/UI tests plus the existing search suite cover
+- Tests: 12 P20-focused pure/UI tests plus the existing search suite cover
   arithmetic, target/minimum separation, factors, stale/missing/ambiguous inputs,
   duplicate titles, future-upload non-crediting and separate obligations. Full
-  suite on Node 24: 257 files / 6235 tests passed. Contract: `docs/COMPARISON.md`.
+  suite on Node 24: 257 files / 6237 tests passed. Contract: `docs/COMPARISON.md`.
 - Visual evidence: local fake Prowlarr only; light/dark desktop and 390px mobile
   selected-result comparison with a freeleech row and missing metadata row. The
   captured views were inspected: concrete arithmetic, zero-charge qualification,
@@ -1500,6 +1500,10 @@ it through intermediates. No route data was changed.
 - Limitations: no quality/language model, release-level H&R/seeding data, speed
   estimate or release equivalence. No P21 grab/download/client action, deployment
   or home-server change.
+- Completion state: implementation, automated tests, CI and visual review are
+  complete. **Owner manual acceptance remains pending.** Guide:
+  `docs/P20_MANUAL_ACCEPTANCE.md`. Do not report P20 as owner-accepted before that
+  run.
 
 ### P02b slices
 

@@ -15,6 +15,14 @@ const INDEXERS: ProwlarrSearchIndexer[] = [
     trackerName: "AlphaRatio",
     ownership: "owned",
     accountName: "My AlphaRatio",
+    account: {
+      trackerId: 1,
+      name: "My AlphaRatio",
+      uploadedBytes: "1000",
+      downloadedBytes: "500",
+      requiredRatio: 1,
+      lastPolledAt: "2026-10-26T11:00:00.000Z",
+    },
     reason: "Matched owned tracker account.",
   },
   {
@@ -165,6 +173,37 @@ describe("SearchClient", () => {
     expect(screen.getByText("Seeders: Unknown")).toBeInTheDocument()
     expect(screen.getByText("Published: Unknown")).toBeInTheDocument()
     expect(screen.getByText("Unknown")).toBeInTheDocument()
+  })
+
+  it("compares independently selected results with a user target ratio", async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input) === "/api/search/indexers") return json({ indexers: INDEXERS })
+      if (init?.method === "POST") {
+        return json(
+          searchResponse({
+            results: [
+              result(),
+              result({ title: "Example.Release.Other", sizeBytes: 2048 }),
+            ],
+          })
+        )
+      }
+      throw new Error("unexpected")
+    })
+    const user = userEvent.setup()
+    render(<SearchClient />)
+    await screen.findByText("Owned account")
+    await user.click(screen.getByRole("checkbox", { name: /AlphaRatio/ }))
+    await user.type(screen.getByLabelText("Search releases"), "example")
+    await user.click(screen.getByRole("button", { name: "Search selected indexers" }))
+    await screen.findByText("Example.Release.2026.1080p")
+    const compareBoxes = screen.getAllByRole("checkbox", { name: "Compare" })
+    await user.click(compareBoxes[0])
+    await user.click(compareBoxes[1])
+    expect(screen.getByText("Compare selected results")).toBeInTheDocument()
+    await user.type(screen.getByLabelText("Your target ratio"), "1.5")
+    expect(screen.getAllByText(/Projected ratio:/).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/download action/i)).not.toBeInTheDocument()
   })
 
   it("shows partial coverage and all-failed states distinctly", async () => {

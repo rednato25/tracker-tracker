@@ -691,12 +691,39 @@ test.describe.serial("Prowlarr search visual evidence", () => {
       })
       await page.screenshot({ path: "test-results/visual-search-dark.png" })
 
+      await expect(page.locator("[data-search-results] input[type=checkbox]")).toHaveCount(2)
+      const compareLabels = page.locator("[data-search-results]").getByText("Compare", { exact: true })
+      await compareLabels.nth(0).click()
+      await compareLabels.nth(1).click()
+      await page
+        .locator('[data-comparison-panel] input[name="comparison-target-ratio"]')
+        .fill("1.5")
+      await expect(page.locator("[data-comparison-panel]")).toBeVisible()
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "light"
+        document
+          .querySelector("[data-comparison-panel]")
+          ?.scrollIntoView({ block: "start" })
+      })
+      await page.waitForTimeout(200)
+      await page.screenshot({ path: "test-results/visual-comparison-light.png" })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.screenshot({ path: "test-results/visual-comparison-dark.png" })
+
       await page.setViewportSize({ width: 390, height: 1200 })
       await page.waitForFunction(
         () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
       )
       await page.waitForTimeout(300)
-      await page.screenshot({ path: "test-results/visual-search-mobile.png" })
+      await page.evaluate(() => {
+        document
+          .querySelector("[data-comparison-panel]")
+          ?.scrollIntoView({ block: "start" })
+      })
+      await page.waitForTimeout(200)
+      await page.screenshot({ path: "test-results/visual-comparison-mobile.png" })
     } finally {
       await request.patch("/api/settings", {
         data: { prowlarrUrl: null, prowlarrApiKey: null },

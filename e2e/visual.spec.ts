@@ -808,9 +808,13 @@ test.describe.serial("monitoring register visual evidence", () => {
   test("captures light/dark desktop and 390px register layouts", async ({ page }) => {
     await page.goto("/")
     await expect(page.locator("#register")).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText("TEST Register Fresh")).toBeVisible()
-    await expect(page.getByText("1,234").first()).toBeVisible()
-    await expect(page.getByLabel("stale snapshot").first()).toBeVisible()
+    await expect(
+      page.locator("#register").getByText("TEST Register Fresh").first()
+    ).toBeVisible()
+    await expect(page.locator("#register").getByText("1,234").first()).toBeVisible()
+    await expect(
+      page.locator("#register").getByLabel("stale snapshot").first()
+    ).toBeVisible()
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
       document.querySelector("#register")?.scrollIntoView({ block: "start" })

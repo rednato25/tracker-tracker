@@ -699,6 +699,9 @@ test.describe.serial("Prowlarr search visual evidence", () => {
         .locator('[data-comparison-panel] input[name="comparison-target-ratio"]')
         .fill("1.5")
       await expect(page.locator("[data-comparison-panel]")).toBeVisible()
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "light"
+      })
       await page.locator("[data-comparison-panel]").scrollIntoViewIfNeeded()
       await page.screenshot({ path: "test-results/visual-comparison-light.png" })
       await page.evaluate(() => {

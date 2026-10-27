@@ -213,7 +213,7 @@ export function compareSearchResults(input: {
     rows,
     summary: {
       selected: rows.length,
-      available: rows.filter((row) => row.status === "available").length,
+      available: rows.filter((row) => row.status !== "unavailable").length,
       scenarioOnly: rows.filter((row) => row.status === "scenario-only").length,
       unavailable: rows.filter((row) => row.status === "unavailable").length,
     },

@@ -29,9 +29,9 @@ comparison are optional surfaces, not the product centre.
 - **Monitoring/progression:** per-tracker account health, rank progress, wishlist
   and useful Telegram digests are the current priorities.
 
-## Recommended next implementation (P25 candidate)
+## Adopted next implementation (P25)
 
-**Bounded task: complete the monitoring register.** Add three fields to the
+**Adopted as P25: complete the monitoring register.** Add three fields to the
 existing dashboard `TrackerRegister` row — accounted upload, accounted download
 and current bonus points — plus a compact missing/stale marker on those metric
 cells. Reuse `latestStats` and `lastPolledAt`; do not add adapters, schema,

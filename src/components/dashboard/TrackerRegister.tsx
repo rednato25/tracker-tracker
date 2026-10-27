@@ -36,6 +36,9 @@ interface RegisterRow {
   ratio: string
   buffer: string
   seeding: string
+  uploaded: MetricReadout
+  downloaded: MetricReadout
+  bonus: MetricReadout
   login: LoginWindow
   rank: string
   shortAge: string | null
@@ -44,6 +47,21 @@ interface RegisterRow {
   segments: Tone[]
   passed: number
 }
+
+interface MetricReadout {
+  text: string
+  title: string
+  marker: "*" | "?" | null
+}
+
+interface SnapshotReadout {
+  hasStats: boolean
+  state: "fresh" | "stale" | "unknown"
+  polledAt: string | null
+  age: string | null
+}
+
+const SNAPSHOT_STALE_MS = 2 * 60 * 60 * 1000
 
 const TONE_MARK: Record<Tone, string> = {
   ok: "bg-success",
@@ -150,6 +168,84 @@ function readSegments(tracker: TrackerSummary, login: LoginWindow): Tone[] {
   return [ratioTone, bufferTone, seedTone, login.tone]
 }
 
+function readSnapshot(tracker: TrackerSummary, now: Date): SnapshotReadout {
+  if (!tracker.latestStats) {
+    return { hasStats: false, state: "unknown", polledAt: null, age: null }
+  }
+  if (!tracker.lastPolledAt) {
+    return { hasStats: true, state: "unknown", polledAt: null, age: null }
+  }
+  const polled = new Date(tracker.lastPolledAt)
+  if (Number.isNaN(polled.getTime())) {
+    return { hasStats: true, state: "unknown", polledAt: tracker.lastPolledAt, age: null }
+  }
+  const ageMs = Math.max(0, now.getTime() - polled.getTime())
+  return {
+    hasStats: true,
+    state: ageMs > SNAPSHOT_STALE_MS ? "stale" : "fresh",
+    polledAt: tracker.lastPolledAt,
+    age: formatTimeAgo(tracker.lastPolledAt),
+  }
+}
+
+function readMetric(
+  value: string | number | null | undefined,
+  format: (value: string | number) => string,
+  snapshot: SnapshotReadout
+): MetricReadout {
+  if (value === null || value === undefined || value === "") {
+    return {
+      text: "\u2014",
+      title: snapshot.hasStats
+        ? "Not reported in the latest snapshot."
+        : "No snapshot yet; this value is missing.",
+      marker: null,
+    }
+  }
+
+  const text = format(value)
+  const baseTitle = `${text} from the latest stored snapshot; this is not independent verification of the metric.`
+  if (snapshot.state === "stale") {
+    return {
+      text,
+      title: `${baseTitle} Snapshot polled ${snapshot.age ?? "some time"} ago and is stale (older than 2 hours).`,
+      marker: "*",
+    }
+  }
+  if (snapshot.state === "unknown") {
+    return {
+      text,
+      title: `${baseTitle} Snapshot poll time is unknown, so freshness cannot be confirmed.`,
+      marker: "?",
+    }
+  }
+  return { text, title: baseTitle, marker: null }
+}
+
+function MetricValue({ readout }: { readout: MetricReadout }) {
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-0.5 font-mono tabular-nums",
+        readout.marker ? "text-secondary" : "text-primary"
+      )}
+      title={readout.title}
+    >
+      {readout.text}
+      {readout.marker && (
+        <span
+          role="img"
+          className="text-warn"
+          aria-label={readout.marker === "*" ? "stale snapshot" : "snapshot age unknown"}
+          title={readout.title}
+        >
+          {readout.marker}
+        </span>
+      )}
+    </span>
+  )
+}
+
 function compactAge(value: string | null): string | null {
   if (!value) return null
   return value
@@ -161,7 +257,7 @@ function compactAge(value: string | null): string | null {
     .trim()
 }
 
-function buildRows(trackers: TrackerSummary[]): RegisterRow[] {
+function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
   return trackers.map((tracker) => {
     const health = getTrackerHealth(tracker)
     const login = readLoginWindow(tracker)
@@ -173,6 +269,8 @@ function buildRows(trackers: TrackerSummary[]): RegisterRow[] {
     const abbreviation =
       registryEntryFor(tracker)?.abbreviation ?? tracker.platformType.toUpperCase()
     const ratio = formatRatioDisplay(tracker.latestStats?.ratio ?? null)
+    const snapshot = readSnapshot(tracker, now)
+    const stats = tracker.latestStats
 
     return {
       tracker,
@@ -182,6 +280,17 @@ function buildRows(trackers: TrackerSummary[]): RegisterRow[] {
       ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}×` : ratio,
       buffer: buffer.display,
       seeding: formatCount(tracker.latestStats?.seedingCount),
+      uploaded: readMetric(
+        stats?.uploadedBytes,
+        (value) => formatBytesFromString(String(value)),
+        snapshot
+      ),
+      downloaded: readMetric(
+        stats?.downloadedBytes,
+        (value) => formatBytesFromString(String(value)),
+        snapshot
+      ),
+      bonus: readMetric(stats?.seedbonus, (value) => formatCount(Number(value)), snapshot),
       login,
       rank: tracker.latestStats?.group ?? "—",
       shortAge: compactAge(formatAccountAge(tracker.joinedAt)),
@@ -362,14 +471,20 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
   )
 }
 
-function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
-  const rows = buildRows(trackers)
+function TrackerRegister({
+  trackers,
+  now = new Date(),
+}: {
+  trackers: TrackerSummary[]
+  now?: Date
+}) {
+  const rows = buildRows(trackers, now)
   const healthy = rows.filter((row) => row.statusTone === "ok").length
   const watch = rows.filter((row) => row.statusTone === "warn").length
   const critical = rows.filter((row) => row.statusTone === "crit").length
 
   return (
-    <section id="register" className="flex flex-col gap-4">
+    <section id="register" className="flex scroll-mt-16 flex-col gap-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <h1 className="font-cond text-4xl font-semibold leading-none tracking-[-0.01em] text-primary">
@@ -441,8 +556,8 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
       </div>
 
       <div className="hidden border border-border bg-raised min-[1280px]:block">
-        <div className="grid h-8 grid-cols-[1.6fr_.62fr_.8fr_.72fr_.9fr_1fr_1.25fr] items-center border-b border-border-emphasis bg-elevated px-1">
-          {["Account", "Ratio", "Buffer", "Seeding", "Login due", "Rank", "Viability"].map(
+        <div className="grid h-8 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1">
+          {["Account", "Ratio", "Buffer", "Accounted", "Seeding", "Login due", "Rank", "Viability"].map(
             (label) => (
               <span
                 key={label}
@@ -459,7 +574,7 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
               <Link
                 href={`/trackers/${row.tracker.id}`}
                 className={clsx(
-                  "grid h-12 grid-cols-[1.6fr_.62fr_.8fr_.72fr_.9fr_1fr_1.25fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
+                  "grid h-12 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
                   row.statusTone === "crit" && "bg-danger-dim",
                   row.statusTone === "warn" && "bg-warn-dim"
                 )}
@@ -470,8 +585,25 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
                 <span className="px-3 font-mono text-3xs tabular-nums text-primary">
                   {row.ratio}
                 </span>
-                <span className="px-3 font-mono text-3xs tabular-nums text-secondary">
+                <span className="whitespace-nowrap px-3 font-mono text-3xs tabular-nums text-secondary">
                   {row.buffer}
+                </span>
+                <span
+                  className="flex flex-col gap-[1px] px-3 font-mono text-3xs tabular-nums"
+                  title="Accounted transfer totals and tracker-specific bonus points from the latest snapshot; not client speed."
+                >
+                  <span className="flex items-center justify-between gap-1.5">
+                    <span className="text-4xs text-tertiary">UP</span>
+                    <MetricValue readout={row.uploaded} />
+                  </span>
+                  <span className="flex items-center justify-between gap-1.5">
+                    <span className="text-4xs text-tertiary">DN</span>
+                    <MetricValue readout={row.downloaded} />
+                  </span>
+                  <span className="flex items-center justify-between gap-1.5">
+                    <span className="text-4xs text-tertiary">BON</span>
+                    <MetricValue readout={row.bonus} />
+                  </span>
                 </span>
                 <span className="px-3 font-mono text-3xs tabular-nums text-secondary">
                   {row.seeding}
@@ -534,6 +666,20 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
                     <span className="slot-label">Seeding</span>
                     <span className="font-mono text-3xs text-secondary">{row.seeding}</span>
                   </span>
+                  <span className="col-span-2 grid grid-cols-3 gap-2 border-t border-border-soft pt-2">
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="slot-label">Uploaded</span>
+                      <MetricValue readout={row.uploaded} />
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="slot-label">Downloaded</span>
+                      <MetricValue readout={row.downloaded} />
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="slot-label">Bonus (pts)</span>
+                      <MetricValue readout={row.bonus} />
+                    </span>
+                  </span>
                   <span
                     className="flex items-baseline justify-between gap-2"
                     title={row.login.reason}
@@ -553,6 +699,12 @@ function TrackerRegister({ trackers }: { trackers: TrackerSummary[] }) {
           ))}
         </ul>
       </div>
+
+      <p className="font-mono text-3xs text-tertiary">
+        Accounted values and bonus are from the latest stored snapshot, not client speed.{" "}
+        {"\u2014"} no data {"\u00b7"} * stale snapshot (&gt;2h) {"\u00b7"} ? snapshot age
+        unknown. Bonus points are tracker-specific.
+      </p>
 
       <RegisterFoot rows={rows} />
     </section>

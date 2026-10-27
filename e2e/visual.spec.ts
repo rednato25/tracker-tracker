@@ -731,3 +731,110 @@ test.describe.serial("Prowlarr search visual evidence", () => {
     }
   })
 })
+test.describe.serial("monitoring register visual evidence", () => {
+  const ids: number[] = []
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const rows = [
+        {
+          name: "TEST Register Fresh",
+          slug: "alpharatio",
+          polled: new Date(),
+          upload: 1 * 1024 ** 4,
+          download: 500 * 1024 ** 3,
+          bonus: 1234,
+        },
+        {
+          name: "TEST Register Stale",
+          slug: "aither",
+          polled: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          upload: 2 * 1024 ** 4,
+          download: 1 * 1024 ** 4,
+          bonus: 50,
+        },
+        {
+          name: "TEST Register Missing",
+          slug: "broadcasthenet",
+          polled: null,
+          upload: 0,
+          download: 0,
+          bonus: 0,
+        },
+      ]
+      for (const row of rows) {
+        const [tracker] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active,
+            joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
+          ) values (
+            ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, 'unit3d', true,
+            '2025-01-01T00:00:00.000Z', ${row.polled}, ${encrypt("synthetic-p25-token", key)}, now(), now()
+          ) returning id
+        `
+        ids.push(tracker.id)
+        if (row.polled !== null) {
+          await sql`
+            insert into tracker_snapshots (
+              tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio,
+              buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+              required_ratio, warned, freeleech_tokens, is_manual
+            ) values (
+              ${tracker.id}, ${row.polled}, ${row.upload}, ${row.download}, 2,
+              ${row.upload - row.download}, 5, 0, ${row.bonus}, 0, 1, false, 0, false
+            )
+          `
+        }
+      }
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      for (const id of ids) await sql`delete from trackers where id = ${id}`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures light/dark desktop and 390px register layouts", async ({ page }) => {
+    await page.goto("/")
+    await expect(page.locator("#register")).toBeVisible({ timeout: 15_000 })
+    await expect(
+      page.locator("#register").getByText("TEST Register Fresh").first()
+    ).toBeVisible()
+    await expect(page.locator("#register").getByText("1,234").first()).toBeVisible()
+    await expect(
+      page.locator("#register").getByLabel("stale snapshot").first()
+    ).toBeVisible()
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+      document.querySelector("#register")?.scrollIntoView({ block: "start" })
+    })
+    await page.waitForTimeout(200)
+    await page.locator("#register").screenshot({ path: "test-results/visual-register-light.png" })
+
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.locator("#register").screenshot({ path: "test-results/visual-register-dark.png" })
+
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.evaluate(() => {
+      document.querySelector("#register")?.scrollIntoView({ block: "start" })
+    })
+    await page.locator("#register").screenshot({ path: "test-results/visual-register-mobile.png" })
+  })
+})

@@ -484,7 +484,7 @@ function TrackerRegister({
   const critical = rows.filter((row) => row.statusTone === "crit").length
 
   return (
-    <section id="register" className="flex flex-col gap-4">
+    <section id="register" className="flex scroll-mt-16 flex-col gap-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <h1 className="font-cond text-4xl font-semibold leading-none tracking-[-0.01em] text-primary">
@@ -556,7 +556,7 @@ function TrackerRegister({
       </div>
 
       <div className="hidden border border-border bg-raised min-[1280px]:block">
-        <div className="grid h-8 grid-cols-[1.55fr_.55fr_.7fr_1.15fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1">
+        <div className="grid h-8 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1">
           {["Account", "Ratio", "Buffer", "Accounted", "Seeding", "Login due", "Rank", "Viability"].map(
             (label) => (
               <span
@@ -574,7 +574,7 @@ function TrackerRegister({
               <Link
                 href={`/trackers/${row.tracker.id}`}
                 className={clsx(
-                  "grid h-12 grid-cols-[1.55fr_.55fr_.7fr_1.15fr_.55fr_.8fr_.9fr_1.05fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
+                  "grid h-12 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
                   row.statusTone === "crit" && "bg-danger-dim",
                   row.statusTone === "warn" && "bg-warn-dim"
                 )}
@@ -585,7 +585,7 @@ function TrackerRegister({
                 <span className="px-3 font-mono text-3xs tabular-nums text-primary">
                   {row.ratio}
                 </span>
-                <span className="px-3 font-mono text-3xs tabular-nums text-secondary">
+                <span className="whitespace-nowrap px-3 font-mono text-3xs tabular-nums text-secondary">
                   {row.buffer}
                 </span>
                 <span
@@ -666,17 +666,19 @@ function TrackerRegister({
                     <span className="slot-label">Seeding</span>
                     <span className="font-mono text-3xs text-secondary">{row.seeding}</span>
                   </span>
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="slot-label">Uploaded</span>
-                    <MetricValue readout={row.uploaded} />
-                  </span>
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="slot-label">Downloaded</span>
-                    <MetricValue readout={row.downloaded} />
-                  </span>
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="slot-label">Bonus (pts)</span>
-                    <MetricValue readout={row.bonus} />
+                  <span className="col-span-2 grid grid-cols-3 gap-2 border-t border-border-soft pt-2">
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="slot-label">Uploaded</span>
+                      <MetricValue readout={row.uploaded} />
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="slot-label">Downloaded</span>
+                      <MetricValue readout={row.downloaded} />
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="slot-label">Bonus (pts)</span>
+                      <MetricValue readout={row.bonus} />
+                    </span>
                   </span>
                   <span
                     className="flex items-baseline justify-between gap-2"

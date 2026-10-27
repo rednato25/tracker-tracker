@@ -691,11 +691,14 @@ test.describe.serial("Prowlarr search visual evidence", () => {
       })
       await page.screenshot({ path: "test-results/visual-search-dark.png" })
 
-      const compareBoxes = page.getByRole("checkbox", { name: "Compare" })
+      await expect(page.locator("[data-search-results] input[type=checkbox]")).toHaveCount(2)
+      const compareBoxes = page.locator("[data-search-results] input[type=checkbox]")
       await compareBoxes.nth(0).check()
       await compareBoxes.nth(1).check()
-      await page.getByLabel("Your target ratio").fill("1.5")
-      await expect(page.getByText("Compare selected results")).toBeVisible()
+      await page
+        .locator('[data-comparison-panel] input[name="comparison-target-ratio"]')
+        .fill("1.5")
+      await expect(page.locator("[data-comparison-panel]")).toBeVisible()
       await page.locator("[data-comparison-panel]").scrollIntoViewIfNeeded()
       await page.screenshot({ path: "test-results/visual-comparison-light.png" })
       await page.evaluate(() => {

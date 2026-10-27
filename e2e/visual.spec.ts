@@ -544,3 +544,162 @@ test.describe.serial("wishlist visual evidence", () => {
     await page.screenshot({ path: "test-results/visual-wishlist-mobile.png" })
   })
 })
+test.describe.serial("Prowlarr search visual evidence", () => {
+  let searchTrackerId: number | null = null
+  let searchServer: ReturnType<typeof createServer> | null = null
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const [tracker] = await sql<{ id: number }[]>`
+        insert into trackers (
+          name, base_url, registry_slug, platform_type, is_active,
+          joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
+        ) values (
+          'TEST Visual Search', 'https://tt-p19.invalid', 'alpharatio', 'unit3d', true,
+          '2025-01-01T00:00:00.000Z', now(), ${encrypt("synthetic-p19-token", key)}, now(), now()
+        ) returning id
+      `
+      searchTrackerId = tracker.id
+      await sql`
+        insert into tracker_snapshots (
+          tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio,
+          buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+          required_ratio, warned, freeleech_tokens, is_manual
+        ) values (
+          ${tracker.id}, now(), ${500 * GiB}, ${200 * GiB}, 2.5,
+          ${300 * GiB}, 5, 0, 10, 0, 1, false, 0, false
+        )
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    if (searchServer) {
+      await new Promise<void>((resolve) => searchServer?.close(() => resolve()))
+    }
+    const sql = e2eSql()
+    try {
+      if (searchTrackerId !== null) {
+        await sql`delete from trackers where id = ${searchTrackerId}`
+      }
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures desktop light/dark and 390px search layouts", async ({ page, request }) => {
+    const server = createServer((req, res) => {
+      const url = new URL(req.url ?? "/", "http://127.0.0.1")
+      if (url.pathname === "/api/v1/indexer") {
+        res.writeHead(200, { "content-type": "application/json" })
+        res.end(
+          JSON.stringify([
+            {
+              id: 101,
+              name: "AlphaRatio",
+              implementation: "AlphaRatio",
+              fields: [{ name: "baseUrl", value: "https://alpharatio.cc" }],
+            },
+            {
+              id: 102,
+              name: "Mystery Tracker",
+              implementation: "Unknown",
+              fields: [],
+            },
+          ])
+        )
+        return
+      }
+      if (url.pathname === "/api/v1/search" && url.searchParams.get("indexerIds") === "101") {
+        res.writeHead(200, { "content-type": "application/json" })
+        res.end(
+          JSON.stringify([
+            {
+              indexerId: 101,
+              indexer: "AlphaRatio",
+              title: "Synthetic.Release.2026.1080p",
+              size: 2 * GiB,
+              seeders: 17,
+              leechers: 2,
+              publishDate: "2026-10-26T12:00:00.000Z",
+              protocol: "torrent",
+              indexerFlags: ["freeleech"],
+              downloadUrl: "https://prowlarr.invalid/download?apikey=must-not-leak",
+              magnetUrl: "magnet:?xt=urn:btih:must-not-leak",
+              guid: "must-not-leak",
+            },
+            {
+              indexerId: 101,
+              indexer: "AlphaRatio",
+              title: "Synthetic.Unknown.Metadata.2025.1080p",
+              size: 0,
+              seeders: null,
+              publishDate: "0001-01-01T00:00:00.000Z",
+              protocol: "torrent",
+              indexerFlags: [],
+            },
+          ])
+        )
+        return
+      }
+      if (url.pathname === "/api/v1/search") {
+        res.writeHead(429, { "content-type": "application/json" })
+        res.end(JSON.stringify({ error: "rate limited" }))
+        return
+      }
+      res.writeHead(404)
+      res.end()
+    })
+    searchServer = server
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+    const address = server.address()
+    if (!address || typeof address === "string") throw new Error("no Prowlarr address")
+    const prowlarrUrl = `http://127.0.0.1:${address.port}`
+
+    try {
+      await request.patch("/api/settings", {
+        data: {
+          prowlarrUrl,
+          prowlarrApiKey: "synthetic-prowlarr-key",
+          prowlarrAllowPrivate: true,
+        },
+      })
+      await page.goto("/search")
+      await expect(page.locator("[data-search-page]")).toBeVisible()
+      await expect(page.getByText("Owned account")).toBeVisible({ timeout: 10_000 })
+
+      await page.getByRole("checkbox", { name: /AlphaRatio/ }).first().check()
+      await page.getByRole("checkbox", { name: /Mystery Tracker/ }).first().check()
+      await page.getByLabel("Search releases").fill("synthetic")
+      await page.getByRole("button", { name: "Search selected indexers" }).click()
+      await expect(page.getByText("Partial results")).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText("Synthetic.Release.2026.1080p")).toBeVisible()
+      await expect(page.getByText("Synthetic.Unknown.Metadata.2025.1080p")).toBeVisible()
+
+      await page.setViewportSize({ width: 1280, height: 1400 })
+      await page.screenshot({ path: "test-results/visual-search-light.png" })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.screenshot({ path: "test-results/visual-search-dark.png" })
+
+      await page.setViewportSize({ width: 390, height: 1200 })
+      await page.waitForFunction(
+        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      )
+      await page.waitForTimeout(300)
+      await page.screenshot({ path: "test-results/visual-search-mobile.png" })
+    } finally {
+      await request.patch("/api/settings", {
+        data: { prowlarrUrl: null, prowlarrApiKey: null },
+      })
+    }
+  })
+})

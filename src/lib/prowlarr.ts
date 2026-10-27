@@ -1,4 +1,4 @@
-﻿// src/lib/prowlarr.ts
+// src/lib/prowlarr.ts
 //
 // P14 read-only Prowlarr import helpers. The Prowlarr API key authenticates
 // Prowlarr only; tracker credentials are never copied from indexer fields.
@@ -113,6 +113,21 @@ function indexerBaseUrl(indexer: ProwlarrIndexer): string | null {
   return null
 }
 
+export interface ProwlarrIndexerMatch {
+  candidates: TrackerRegistryEntry[]
+  matched: TrackerRegistryEntry | null
+  ambiguous: boolean
+}
+
+export function matchProwlarrIndexer(indexer: ProwlarrIndexer): ProwlarrIndexerMatch {
+  const candidates = TRACKER_REGISTRY.filter((entry) => matches(indexer, entry))
+  return {
+    candidates,
+    matched: candidates.length === 1 ? candidates[0] : null,
+    ambiguous: candidates.length > 1,
+  }
+}
+
 function matches(indexer: ProwlarrIndexer, entry: TrackerRegistryEntry): boolean {
   const name = indexer.name.trim().toLowerCase()
   if (name === entry.name.toLowerCase() || name === entry.slug.toLowerCase()) return true
@@ -133,8 +148,9 @@ export function buildProwlarrPreview(
 
   return indexers.map((indexer) => {
     const baseUrl = indexerBaseUrl(indexer)
-    const candidates = TRACKER_REGISTRY.filter((entry) => matches(indexer, entry))
-    const matched = candidates.length === 1 ? candidates[0] : null
+    const match = matchProwlarrIndexer(indexer)
+    const candidates = match.candidates
+    const matched = match.matched
     const credentialNote =
       "Prowlarr credentials are not copied. Configure the tracker API credential after import."
 

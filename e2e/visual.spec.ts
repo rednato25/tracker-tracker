@@ -692,9 +692,9 @@ test.describe.serial("Prowlarr search visual evidence", () => {
       await page.screenshot({ path: "test-results/visual-search-dark.png" })
 
       await expect(page.locator("[data-search-results] input[type=checkbox]")).toHaveCount(2)
-      const compareBoxes = page.locator("[data-search-results] input[type=checkbox]")
-      await compareBoxes.nth(0).check()
-      await compareBoxes.nth(1).check()
+      const compareLabels = page.locator("[data-search-results]").getByText("Compare", { exact: true })
+      await compareLabels.nth(0).click()
+      await compareLabels.nth(1).click()
       await page
         .locator('[data-comparison-panel] input[name="comparison-target-ratio"]')
         .fill("1.5")

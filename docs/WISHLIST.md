@@ -70,36 +70,39 @@ condition logic.
 - Stale goal links or saved references after a catalogue/tracker change are
   ignored defensively; they do not crash the page.
 
-## Manual acceptance (isolated fixtures, pending owner run)
+## Manual acceptance (owner-confirmed on isolated fixtures)
 
-Use the existing throwaway fixture account and registry fixture; do not contact a
-real tracker. `E2E_TRACKER` is Aither. The pinned catalogue contains a direct
-`aither -> broadcasthenet` route (`tp:aither:broadcasthenet`), so the destination
-is **BroadcasTheNet**, not a guessed tracker.
+The tested catalogue has a direct registry route
+`alpharatio -> broadcasthenet` (`tp:alpharatio:broadcasthenet`). Use the
+**AlphaRatio** fixture tracker as the owned source and **BroadcasTheNet** as the
+destination; both exact registry slugs are `alpharatio` and `broadcasthenet`.
+Aither reaches this destination through intermediates, so do not expect a direct
+Aither step. No route data was changed to fit this guide.
 
-1. Confirm the isolated fixture instance has the Aither tracker with a registry
-   match, then open `/wishlist`.
+1. Confirm the isolated fixture instance has AlphaRatio with a registry match,
+   then open `/wishlist`.
 2. Select **BroadcasTheNet** and save. Reload the page; confirm the destination is
    still selected.
-3. Inspect the direct **Aither → BroadcasTheNet** route. Aither is your fixture
-   account, so the step is marked **Your account**. If a multi-step path appears,
-   an intermediate source you do not own is marked **Scenario** and is not
-   evaluated against your data.
+3. Inspect the direct **AlphaRatio to BroadcasTheNet** route. AlphaRatio is your
+   fixture account, so that step is marked **Your account**. If a multi-step path
+   through Aither or another source appears, an unowned intermediate is marked
+   **Scenario** and is not evaluated against your data.
 4. Confirm the unresolved text is shown separately from availability: "Invite
-   forum access", the source invite-class/forum gate, the stale `Nov 2024` source
-   update, and community availability (open/closed/unconfirmed). No step should
-   claim "ready to apply" or a guaranteed invitation.
+   forum access", the source invite-class/forum gate, the stale source update, and
+   community availability (open/closed/unconfirmed). No step should claim "ready
+   to apply" or a guaranteed invitation.
 5. Hide the route. Reload; confirm it stays hidden and the hidden-path count is
    shown. Use "Show hidden routes" and confirm the path returns.
 6. Set the viewport to 390px; confirm the Wishlist title clears the navigation
    control, long source text wraps, and Hide/Show controls remain reachable.
 7. The **goal-link control is legitimately absent** for this fixture route. The
-   community route has no structured condition—only prose, the source gate and
-   undocumented `days`—so there is no exact match with an existing saved rank
+   community route has no structured condition - only prose, the source gate and
+   undocumented `days` - so there is no exact match with an existing saved rank
    goal. Its absence is not a UI failure; the control appears only for a
    validated structured condition that exactly matches a saved goal.
 
-Owner acceptance remains pending until this guide is run on the isolated instance.
+The owner confirmed this flow on the isolated instance. The automated checks
+remain separate evidence.
 
 ## Persistence, backup and restore
 
@@ -157,7 +160,7 @@ does not accept integration tokens and does not contact a tracker.
 - 117 unresolved upstream tracker names remain omitted; no aliases are guessed.
 - Prose ratio/class/upload/seed-size requirements remain unknown.
 - Upstream `days` and `unlockInviteClass` gates remain unresolved.
-- No graph visualization, P19 search, private-forum access, recruiter messages,
-  applications or automatic actions.
+- No graph visualization; P19 search is a separate surface. No private-forum
+  access, recruiter messages, applications or automatic actions.
 - Removing a tracker can leave a stale saved goal link; it is ignored and cannot
   crash the page.

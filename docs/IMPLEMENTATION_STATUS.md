@@ -92,9 +92,9 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: FileList imported through Prowlarr | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Owner-reported: imported FileList remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Mobile long preview text polish: #21. No P15. |
 | P15 | done | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: AlphaRatio imported through Jackett | No Jackett connection persistence (admin password used per request only). Owner-reported: imported AlphaRatio remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
 | P16 | done | P02, P04; P11 for goals | PR #24 (merged; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore/recovery invalidation; focused auth/privacy/UI/lifecycle/recovery tests; 6145 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Owner-supplied home-server acceptance on image digest `sha256:02271ad43c65dc5b8a81a0b878747c4b5fbf02ab0fcd94061bee04b8cf4969fb`: migration 0005 applied, health passed, existing login/trackers/mock integrations preserved, summary-only token 200 / actions 403 / post-revocation summary 401 without session cookies, hidden identity excluded names/usernames/secrets, token displayed once and only its hash stored, temporary tokens revoked, production and stopped updater unchanged. Optional expiry is #25. No write scopes, CORS, webhooks, search or downloads; no deployment. |
-| P17 | done | P09–P10 | PR #26 (`feat/p17-recruitment-routes`; merged) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Merged; not deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. P18 UI consumes this format separately; no P19 search, deployment or home-server change. |
-| P18 | implementation + CI complete; owner manual acceptance pending | P17 and goals UI | PR #27 (`feat/p18-recruitment-wishlist`; not deployed) | `/wishlist` list UI with saved desired registry slug, direct/bounded multi-step routes, owned vs scenario evaluation, explicit unresolved source text/days/invite gates, separate availability, hide/show paths, exact-match saved-goal links, distinct evidence dates and attribution; migration 0006 single JSON state column with slug references; 25 focused tests; 6190 full tests; light/dark/mobile screenshots inspected | Not deployed. Owner manual acceptance remains pending. All community routes remain eligibility-unknown by P17 design; no "ready to apply", graph, P19 search, applications, recruiter messages, deployment or home-server change. |
-| P19 | pending | P14 | — | No Prowlarr search | Implement read-only search with partial results and cancellation |
+| P17 | done | P09–P10 | PR #26 (`feat/p17-recruitment-routes`; merged) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Merged; not deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. P18 UI consumes this format separately and P19 search is a separate surface; no deployment or home-server change. |
+| P18 | done | P17 and goals UI | PR #27 (`feat/p18-recruitment-wishlist`; merged; not deployed) | `/wishlist` list UI with saved desired registry slug, direct/bounded multi-step routes, owned vs scenario evaluation, explicit unresolved source text/days/invite gates, separate availability, hide/show paths, exact-match saved-goal links, distinct evidence dates and attribution; migration 0006 single JSON state column with slug references; 25 focused tests; 6190 full tests; light/dark/mobile screenshots inspected | Owner-supplied isolated-home-server acceptance on image digest `sha256:5a8084bddcc7bba0bd23e3b532cdece211239196d3e72c115443ee6ffb499d95`: migration 0006 applied, health/data preserved, destination and hidden paths survived reload, account/scenario/unresolved/availability labels remained distinct, desktop and 390px checks passed. Automated evidence remains separate. No multiple destinations, graph, applications or deployment. |
+| P19 | implementation + automated/visual checks complete; owner manual acceptance pending | P14 | PR #28 (`feat/p19-prowlarr-search`; not deployed) | Authenticated `/search` UI and read-only Prowlarr `/api/v1/search`; per-indexer requests for partial coverage; registry/ownership mapping with placeholder distinction; explicit submission, loading/empty/partial/all-failed states; Prowlarr limit/offset paging; bounded timeout/size/concurrency/results; cancellation and stale-response guard; safe response fields and factor only from explicit flags | Not deployed. Owner manual acceptance remains pending. No download/grab/magnet/client action, P20 comparison or P21 send. Prowlarr HTTP 200 is only API success, not proof underlying indexer success; no result cache. |
 | P20 | pending | P19, P12–P13 | — | No result comparison | Compare charged bytes, ratio impact and obligations; explain recommendations |
 | P21 | pending | P19; P20 recommended | — | qBittorrent client exists; no search-result send flow | Add explicit confirmation and idempotency; never auto-download |
 | P22 | pending | P03 and existing qBittorrent | — | Fleet/torrent analytics and satisfaction exist; no storage/seeding report | Add report without exposing paths or claiming physical recovery |
@@ -1346,7 +1346,7 @@ only be investigated further if normal keyboard interaction reproduces it.
 - Limitations: free-text ratio/class/upload/seed-size requirements remain unknown;
   117 upstream names are unresolved; undocumented `days` and source
   `unlockInviteClass` gates remain unresolved. P18 UI consumes this separately;
-  no P19 search, deployment or home-server change.
+  P19 search is delivered separately; no deployment or home-server change.
 
 ### P18 wishlist and recruitment pathways UI
 
@@ -1385,11 +1385,89 @@ only be investigated further if normal keyboard interaction reproduces it.
   after capture. Contract: `docs/WISHLIST.md`.
 - Limitations: 117 unresolved upstream names omitted; prose ratio/class/upload/
   seed-size requirements, undocumented `days` and source gates remain unresolved.
-  No P19 search, private-forum access, applications, deployment or home-server
-  change.
+  P19 search is a separate surface; no private-forum access, applications,
+  deployment or home-server change.
+### P18 owner-supplied home-server acceptance (2026-10-27)
+
+The owner confirmed the isolated instance on the published digest
+`sha256:5a8084bddcc7bba0bd23e3b532cdece211239196d3e72c115443ee6ffb499d95`:
+
+- Migration `0006_recruitment_state` applied and health passed; existing data was
+  preserved.
+- The selected wishlist destination and hidden paths survived a page reload.
+- Account/scenario labels, unresolved requirements and recruitment availability
+  remained visually distinct.
+- Desktop and 390px mobile checks passed.
+
+This is owner-supplied home-server evidence, not an assistant-run check. The
+automated evidence remains the focused tests, CI and authenticated Playwright
+screenshots. The manual guide was corrected to the tested route identity: the
+tested catalogue has a direct `alpharatio -> broadcasthenet` route; Aither reaches
+it through intermediates. No route data was changed.
+
+### P19 read-only Prowlarr search
+
+- Adds `/search` and a Sidebar entry. No search is issued on page view; the page
+  only loads the Prowlarr indexer list. Submitting the form contacts the selected
+  indexers through Prowlarr explicitly.
+- Verified against Prowlarr `GET /api/v1/search` (`query`, `type=search`,
+  `indexerIds`, `limit`, `offset`) at upstream commit
+  `0dc20d8495bad9951c3fafe53f32b6e1c70fcf3b`. The implementation makes one
+  request per selected indexer; a transport failure/timeout on one indexer does
+  not hide successful results from others.
+- Shows indexer and matched tracker, release title, size, seeders, publication
+  date and protocol when supplied. Missing size (including Prowlarr's `size=0`
+  fallback), seeders, date or download factor stays `Unknown`. Download factor is
+  shown only for exactly one explicit `freeleech`, `neutralleech` or `halfleech`
+  indexer flag; `doubleupload` is not a download factor. Similar names/sizes are
+  never treated as equivalent, and duplicate rows are not silently merged.
+- Ownership mapping distinguishes owned accounts, no-account indexers, ambiguous
+  registry matches and unsupported indexers. An imported PAUSED placeholder with
+  no stats is labelled “Paused placeholder” and is not treated as configured or
+  healthy.
+- Bounds: query 1-200 printable characters; 1-10 unique indexers; limit 1-20
+  (UI 10); offset 0-500; 10s timeout per indexer; 1 MiB response ceiling;
+  concurrency 3; 200-result response cap. Prowlarr limit/offset are per indexer,
+  so paging is labelled as per-indexer offset, not a global cursor.
+- Privacy and safety: API key only in `X-Api-Key`; redirects refused; private
+  host requires the existing explicit opt-in. Response fields are allow-listed;
+  download/magnet/info/comment URLs, guids, raw payloads and secrets are not
+  returned or rendered. Logs contain route names, counts and safe error classes
+  only. P16 integration tokens cannot authorize `/api/search`; it stays behind the
+  session gate.
+- States: loading indexers, load failure/retry/configuration link, explicit
+  search loading with Cancel, successful empty, partial results with actual
+  coverage and failed indexer names, all-indexers-failed as failure rather than
+  empty, and per-indexer paging. A request sequence guard plus AbortController
+  prevents canceled/older responses from replacing newer searches; cancellation
+  is described as page-local.
+- Tests: 35 P19-focused unit/route/UI/proxy tests cover auth, selection, success,
+  empty, partial, all-failed, timeout, malformed JSON, HTTP 429, oversized
+  response, limits, duplicate titles, missing factor/fields, ambiguous/placeholder
+  mappings, secret redaction, cancellation/stale response, concurrency, private
+  URL refusal and no search on page load. Full suite on Node 24: 255 files /
+  6225 tests passed.
+- Visual evidence: local fake Prowlarr only, light/dark desktop and 390px mobile,
+  with a partial-result response. The captured views were inspected: partial
+  coverage, unknown size/seeders/date/factor, no download controls, and the mobile
+  title clears navigation. No real Prowlarr/tracker/client is contacted. Contract:
+  `docs/SEARCH.md`.
+- API limitation: Prowlarr's controller can return HTTP 200 with an empty list
+  when an upstream indexer fails internally. **HTTP 200 is a successful Prowlarr
+  API response, not proof that the underlying indexer search succeeded.** The UI
+  reports actual response coverage and never infers that every indexer succeeded
+  from an aggregate 200. No result cache is used.
+- Accounting flags are taken from the official Prowlarr `IndexerFlag.cs` at the
+  pinned source commit: freeleech = download does not count; neutralleech =
+  download and upload do not count; halfleech = 50% download. Neutralleech is not
+  upload credit, and a zero download factor never implies H&R compliance or
+  overall download safety. Missing/conflicting flags remain unknown.
 - Completion state: implementation, automated tests, CI and visual review are
-  complete. **Owner manual acceptance remains pending.** Do not report P18 as
-  owner-accepted until the isolated guide in `docs/WISHLIST.md` is run.
+  complete. **Owner manual acceptance remains pending.** Manual mock requirements
+  and walkthrough: `docs/P19_MANUAL_ACCEPTANCE.md`. Do not report P19 as
+  owner-accepted before that run.
+- No P20 comparison, P21 grab/download/client mutation, deployment or home-server
+  change.
 
 ### P02b slices
 

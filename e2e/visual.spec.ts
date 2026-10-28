@@ -931,6 +931,24 @@ test.describe.serial("rank goal summary visual evidence", () => {
       path: "test-results/visual-rank-summary-dark.png",
     })
 
+    await page.goto(`/trackers/${ids[0]}#rank-goal`)
+    const rankPanel = page.locator("#main-content #rank-goal")
+    await expect(rankPanel).toBeVisible({ timeout: 15_000 })
+    await rankPanel.getByRole("button", { name: "Clear target" }).click()
+    await expect(rankPanel.getByLabel("Target rank")).toHaveValue("")
+    await expect(rankPanel.getByText(/No saved target for this tracker/)).toBeVisible()
+    await expect(rankPanel.getByText(/Suggested next rank:/)).toBeVisible()
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+      document.querySelector("#rank-goal")?.scrollIntoView({ block: "start" })
+    })
+    await page.waitForTimeout(200)
+    await rankPanel.screenshot({ path: "test-results/visual-rank-target-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await rankPanel.screenshot({ path: "test-results/visual-rank-target-dark.png" })
+
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
       () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null

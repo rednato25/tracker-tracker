@@ -1,4 +1,4 @@
-﻿import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { RankGoalPanel } from "@/components/tracker-detail/RankGoalPanel"
@@ -71,7 +71,7 @@ const snapshots = [
   },
 ] as Snapshot[]
 
-function renderPanel(registrySlug = "torrentleech") {
+function renderPanel(registrySlug = "torrentleech", polledAt = RECENT_POLL) {
   return render(
     <RankGoalPanel
       trackerId={1}
@@ -81,13 +81,16 @@ function renderPanel(registrySlug = "torrentleech") {
       stats={stats}
       snapshots={snapshots}
       joinedAt={JOINED_AT}
-      lastPolledAt={RECENT_POLL}
+      lastPolledAt={polledAt}
       accentColor="#2ecc71"
     />
   )
 }
 
+let rankGoalsResponse: string | null = null
+
 beforeEach(() => {
+  rankGoalsResponse = null
   vi.restoreAllMocks()
   vi.stubGlobal(
     "fetch",
@@ -96,7 +99,7 @@ beforeEach(() => {
         return Promise.resolve(new Response("{}", { status: 200 }))
       }
       return Promise.resolve(
-        new Response(JSON.stringify({ rankGoals: null }), { status: 200 })
+        new Response(JSON.stringify({ rankGoals: rankGoalsResponse }), { status: 200 })
       )
     })
   )
@@ -104,8 +107,9 @@ beforeEach(() => {
 
 describe("RankGoalPanel", () => {
   it("shows verified values, an unknown upload unit and no eligibility", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel()
-    await waitFor(() => expect(screen.getByText(/2 met · 0 unmet · 1 unknown/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/2 met/)).toBeInTheDocument())
     expect(screen.getByText(/Upload requirement is unknown/)).toBeInTheDocument()
     expect(screen.queryByText(/promotion still depends/)).not.toBeInTheDocument()
     expect(screen.getByText(/Upload estimate:/)).toHaveTextContent(/unit unresolved/)
@@ -122,16 +126,68 @@ describe("RankGoalPanel", () => {
     expect(screen.getByText(/Structured rank progress is unavailable/)).toBeInTheDocument()
   })
 
-  it("persists a selected target rank", async () => {
+  it("shows an explicit no-target state and a non-persisted next-rank suggestion", async () => {
+    renderPanel()
+    expect(await screen.findByText(/No saved target for this tracker/)).toBeInTheDocument()
+    expect(screen.getByLabelText("Target rank")).toHaveValue("")
+    expect(screen.getByText(/Suggested next rank: Power User \(not saved\)/)).toBeInTheDocument()
+    expect(fetch).not.toHaveBeenCalledWith(
+      "/api/settings",
+      expect.objectContaining({ method: "PATCH" })
+    )
+  })
+
+  it("saves a selected target and preserves another tracker goal", async () => {
+    rankGoalsResponse = JSON.stringify({ "99": { targetRank: "Power User" } })
     const user = userEvent.setup()
     renderPanel()
     await waitFor(() => expect(screen.getByLabelText("Target rank")).toBeInTheDocument())
     await user.selectOptions(screen.getByLabelText("Target rank"), "Super User")
-    await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith(
-        "/api/settings",
-        expect.objectContaining({ method: "PATCH" })
-      )
-    )
+    await waitFor(() => {
+      const patch = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === "PATCH")
+      expect(patch).toBeDefined()
+      const body = JSON.parse(String(patch?.[1]?.body)) as {
+        rankGoals: Record<string, { targetRank: string }>
+      }
+      expect(body.rankGoals["1"]).toEqual({ targetRank: "Super User" })
+      expect(body.rankGoals["99"]).toEqual({ targetRank: "Power User" })
+    })
+  })
+
+  it("clears only this tracker goal and reloads without a target", async () => {
+    rankGoalsResponse = JSON.stringify({
+      "1": { targetRank: "Power User" },
+      "99": { targetRank: "Power User" },
+    })
+    const user = userEvent.setup()
+    const first = renderPanel()
+    await waitFor(() => expect(screen.getByLabelText("Target rank")).toHaveValue("Power User"))
+    await user.click(screen.getByRole("button", { name: "Clear target" }))
+    await waitFor(() => {
+      const patch = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === "PATCH")
+      const body = JSON.parse(String(patch?.[1]?.body)) as {
+        rankGoals: Record<string, { targetRank: string }>
+      }
+      expect(body.rankGoals["1"]).toBeUndefined()
+      expect(body.rankGoals["99"]).toEqual({ targetRank: "Power User" })
+    })
+    expect(screen.getByLabelText("Target rank")).toHaveValue("")
+    first.unmount()
+    rankGoalsResponse = JSON.stringify({ "99": { targetRank: "Power User" } })
+    renderPanel()
+    await waitFor(() => expect(screen.getByLabelText("Target rank")).toHaveValue(""))
+    expect(screen.getByText(/No saved target for this tracker/)).toBeInTheDocument()
+  })
+
+  it("keeps a stale ratio unknown without blaming the unresolved upload unit", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
+    renderPanel("torrentleech", new Date(Date.now() - 25 * HOUR_MS).toISOString())
+    const ratioLabel = await screen.findByText("Ratio above 1.1")
+    const row = ratioLabel.closest("li")
+    expect(row).not.toBeNull()
+    if (!row) return
+    expect(within(row).getByText("Unknown")).toBeInTheDocument()
+    expect(within(row).getAllByText(/stale/i).length).toBeGreaterThan(0)
+    expect(within(row).queryByText(/upload/i)).not.toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@
 import { H2 } from "@typography"
 import { useEffect, useMemo, useState } from "react"
 import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
 import type { PilotRankDefinition } from "@/data/rank-goals"
 import { pilotRankDefinition } from "@/data/rank-goals"
@@ -10,8 +11,10 @@ import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatRatio } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
+  evaluateRankGoal,
   evaluateRequirementGroup,
   type RankConditionResult,
+  type RankGoalInput,
   type RankGroupResult,
   type RankNumericCondition,
   type RankObservationMap,
@@ -168,9 +171,9 @@ export function RankGoalPanel({
         }
         setSavedGoals(parsed)
         const saved = parsed[String(trackerId)]?.targetRank
-        setTarget(saved && targetOptions.includes(saved) ? saved : (targetOptions[0] ?? null))
+        setTarget(saved && targetOptions.includes(saved) ? saved : null)
       })
-      .catch(() => setTarget(targetOptions[0] ?? null))
+      .catch(() => setTarget(null))
       .finally(() => setLoaded(true))
   }, [trackerId, targetOptions])
 
@@ -201,17 +204,23 @@ export function RankGoalPanel({
     }
   }, [stats, lastPolledAt])
 
+  const savedTarget = savedGoals[String(trackerId)]?.targetRank ?? null
+  const targetInvalid = Boolean(savedTarget && !targetOptions.includes(savedTarget))
+  const goalInput = useMemo<RankGoalInput>(
+    () => ({
+      userClasses,
+      rankPaths,
+      currentRank,
+      observations: observationMap,
+      now: now ?? new Date(0),
+      joinedAt,
+      structuredGoals: pilot?.goals,
+    }),
+    [userClasses, rankPaths, currentRank, observationMap, now, joinedAt, pilot]
+  )
   const goal = target ? pilot?.goals[target] : undefined
-  const result = goal && now
-    ? evaluateRequirementGroup(goal, {
-        userClasses,
-        rankPaths,
-        currentRank,
-        observations: observationMap,
-        now,
-        joinedAt,
-      })
-    : null
+  const result = goal && now ? evaluateRequirementGroup(goal, goalInput) : null
+  const suggestion = !target && now ? evaluateRankGoal(goalInput).nextRank : null
   const conditions = groupConditions(result)
   const upload = goal ? findUploadCondition(goal) : null
   const age = goal ? findAgeCondition(goal) : null
@@ -236,6 +245,7 @@ export function RankGoalPanel({
   const eligible = result?.status === "met"
 
   async function chooseTarget(nextTarget: string) {
+    const previous = target
     setTarget(nextTarget)
     setSaving(true)
     setError(null)
@@ -250,12 +260,42 @@ export function RankGoalPanel({
         body: JSON.stringify({ rankGoals: updated }),
       })
       if (!res.ok) {
+        setTarget(previous)
         setError("Could not save the selected rank goal")
         return
       }
       setSavedGoals(updated)
     } catch {
+      setTarget(previous)
       setError("Network error. Could not save the selected rank goal")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function clearTarget() {
+    if (!savedTarget) {
+      setTarget(null)
+      return
+    }
+    const updated = { ...savedGoals }
+    delete updated[String(trackerId)]
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rankGoals: updated }),
+      })
+      if (!res.ok) {
+        setError("Could not clear the selected rank goal")
+        return
+      }
+      setSavedGoals(updated)
+      setTarget(null)
+    } catch {
+      setError("Network error. Could not clear the selected rank goal")
     } finally {
       setSaving(false)
     }
@@ -287,30 +327,76 @@ export function RankGoalPanel({
             Observed current rank: {currentRank ?? "unknown"}
           </p>
         </div>
-        <label className="flex flex-col gap-1">
-          <span className="font-cond text-4xs uppercase tracking-[0.12em] text-secondary">
-            Target rank
-          </span>
-          <select
-            className="border border-border bg-field px-3 py-2 font-mono text-xs text-primary"
-            value={target ?? ""}
-            onChange={(e) => void chooseTarget(e.target.value)}
-            disabled={saving || !loaded}
-            aria-label="Target rank"
-          >
-            {targetOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="font-cond text-4xs uppercase tracking-[0.12em] text-secondary">
+              Target rank
+            </span>
+            <select
+              className="border border-border bg-field px-3 py-2 font-mono text-xs text-primary"
+              value={target ?? ""}
+              onChange={(e) => {
+                if (e.target.value) void chooseTarget(e.target.value)
+              }}
+              disabled={saving || !loaded}
+              aria-label="Target rank"
+            >
+              <option value="">Choose a target</option>
+              {targetOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          {savedTarget && (
+            <Button
+              size="sm"
+              variant="ghost"
+              text="Clear target"
+              onClick={() => void clearTarget()}
+              disabled={saving}
+            />
+          )}
+        </div>
       </div>
 
       {!loaded || !now ? (
         <p className="mt-3 font-mono text-xs text-secondary" role="status">
           Loading rank evidence…
         </p>
+      ) : !target ? (
+        <div className="mt-3 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="default">Choose a target</Badge>
+            <span className="font-mono text-4xs text-secondary">
+              No saved target for this tracker.
+            </span>
+          </div>
+          {targetInvalid && savedTarget && (
+            <p className="font-mono text-4xs text-warn">
+              Saved target "{savedTarget}" is no longer available in this ladder. Clear it or
+              choose another.
+            </p>
+          )}
+          {suggestion && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-4xs text-secondary">
+                Suggested next rank: {suggestion} (not saved).
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                text={`Use ${suggestion} as target`}
+                onClick={() => void chooseTarget(suggestion)}
+                disabled={saving}
+              />
+            </div>
+          )}
+          <p className="font-mono text-4xs text-tertiary">
+            Selecting a suggestion saves it explicitly; no automatic target is persisted.
+          </p>
+        </div>
       ) : (
         <>
           <div className="mt-3 flex flex-wrap items-center gap-2">

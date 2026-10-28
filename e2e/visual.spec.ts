@@ -812,25 +812,27 @@ test.describe.serial("monitoring register visual evidence", () => {
 
   test("captures light/dark desktop and 390px register layouts", async ({ page }) => {
     await page.goto("/")
-    await expect(page.locator("#register")).toBeVisible({ timeout: 15_000 })
+    // Next may retain a hidden previous route tree outside the app shell. Only
+    // the copy under #main-content is the active application page.
+    const register = page.locator("#main-content #register")
+    await expect(register).toHaveCount(1)
+    await expect(register).toBeVisible({ timeout: 15_000 })
+    await expect(register.getByText("TEST Register Fresh").filter({ visible: true })).toBeVisible()
+    await expect(register.getByText("1,234").filter({ visible: true })).toBeVisible()
     await expect(
-      page.locator("#register").getByText("TEST Register Fresh").first()
-    ).toBeVisible()
-    await expect(page.locator("#register").getByText("1,234").first()).toBeVisible()
-    await expect(
-      page.locator("#register").getByLabel("stale snapshot").first()
+      register.getByLabel("stale snapshot").filter({ visible: true })
     ).toBeVisible()
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
-      document.querySelector("#register")?.scrollIntoView({ block: "start" })
+      document.querySelector("#main-content #register")?.scrollIntoView({ block: "start" })
     })
     await page.waitForTimeout(200)
-    await page.locator("#register").screenshot({ path: "test-results/visual-register-light.png" })
+    await register.screenshot({ path: "test-results/visual-register-light.png" })
 
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
-    await page.locator("#register").screenshot({ path: "test-results/visual-register-dark.png" })
+    await register.screenshot({ path: "test-results/visual-register-dark.png" })
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
@@ -838,9 +840,9 @@ test.describe.serial("monitoring register visual evidence", () => {
     )
     await page.waitForTimeout(300)
     await page.evaluate(() => {
-      document.querySelector("#register")?.scrollIntoView({ block: "start" })
+      document.querySelector("#main-content #register")?.scrollIntoView({ block: "start" })
     })
-    await page.locator("#register").screenshot({ path: "test-results/visual-register-mobile.png" })
+    await register.screenshot({ path: "test-results/visual-register-mobile.png" })
   })
 })
 test.describe.serial("rank goal summary visual evidence", () => {

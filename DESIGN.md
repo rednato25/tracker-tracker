@@ -2,211 +2,312 @@
 
 The dashboard must show in 3 seconds: total uploaded, total downloaded, overall ratio, and how far each tracker is from its next rank.
 
-Status: active. Surface mode: **Operate**. Visual world: **Cold Vault**.
+Status: active. Surface mode: **Operate**. Visual world: **Night Grid**
+(Yata-inspired).
+
+Reference: [Yata-Dash](https://github.com/Yata-Dash/Yata-Dash) at
+`d4692e33d2a72b22d828de956cbd468fc3075949`, GPL-3.0. The reference audit and
+surface briefs live in `docs/YATA_REFERENCE_NOTES.md`. No Yata code, CSS or
+assets are copied by this document.
 
 ## Direction contract
 
-**Thesis.** A working account register for a cold-storage vault. It refuses the
-dashboard-card grid and the neon control room.
+**Thesis.** A calm, instrument-grade night dashboard: dark layered surfaces,
+precise rules, vivid data inks and one violet interaction accent. It is dense
+enough for an operator and quiet enough to read at a glance.
 
-**Own-world.** Mineral-white paper, a deep green-black rail, oxide/amber/green
-state inks, Barlow and Barlow Condensed for the working voice, Roboto Mono for
-measurements, hairline rules, square stamps, no shadows and no pills.
+**Own-world.** Near-black blue ground, stepped blue-black surfaces, 1px borders,
+three slate text levels, one violet accent, Yata's metric color mapping, Geist
+and Geist Mono. Cards are flat panels with a 2px top signal rule, not floating
+glass. Numbers carry the color; labels stay quiet.
 
-**Story.** The operator sees which accounts are viable, which are losing
-condition, and what leaves next. The register is the product, not a set of cards.
+**Story.** The operator sees the fleet total, the accounts that need attention,
+and the distance to the next rank without opening a detail page. Tracker cards
+and the register are two views of the same truth.
 
-**First viewport.** A 248px dark vault rail with navigation and a compact drawer
-index. The main column carries a 56px top bar, a 34px register title, a four-cell
-account strip (total uploaded, total downloaded, overall ratio, need attention),
-and a full-width account register. The primary action sits top right; the
-signature four-segment status strip lives in the last column of every row. Ranks
-and attention follow the register; fleet activity, leaderboard, ecosystem, tag
-groups and chart cards start collapsed.
+**First viewport.** A 58px sticky top bar with the Tracker Tracker identity,
+Dashboard (Grid | Table), Pathways and Settings. Beneath it, one 1600px content
+frame starts with a five-tile totals row: uploaded, downloaded, buffer, overall
+ratio and need attention. Sparklines use existing snapshot history only. The
+dashboard body follows as tracker cards or the existing register, restyled.
+
+## Shape briefs
+
+The four shaped surfaces are documented in `docs/YATA_REFERENCE_NOTES.md`:
+
+- **Dashboard** — totals row plus Grid | Table, answering "what needs attention
+  and how far is the next rank".
+- **Tracker card** — header, six-metric stat grid, current/required rank bars.
+- **Pathways** — searchable target, best-path card, route chips, requirement bars,
+  collapsed other routes.
+- **Page shell** — one sticky top bar, one page width, shared navigation.
 
 ## Tokens
 
-### Surfaces
+### Dark reference theme
 
 | Token | Value | Use |
 |---|---|---|
-| `--color-rail` | `#1b2a24` | Sidebar, vault rail |
-| `--color-rail-raised` | `#24372e` | Active nav, rail controls |
-| `--color-rail-line` | `#34483d` | Rail rules |
-| `--color-base` | `#eef2ed` | Page ground |
-| `--color-raised` | `#f8faf6` | Registers, panels, cards |
-| `--color-elevated` | `#e3e9e2` | Table heads, nested bands |
-| `--color-control-bg` | `#f4f7f2` | Inputs and controls |
+| `--color-bg` | `#0d0f14` | Page ground, top bar base |
+| `--color-surface` | `#13161e` | Cards, tiles, table body |
+| `--color-surface-2` | `#1a1e2a` | Nested panels, table heads, controls |
+| `--color-surface-3` | `#1f2433` | Hover, tracks, inset bands |
+| `--color-border` | `#252b3b` | Default 1px rule |
+| `--color-border-strong` | `#2e3548` | Control and focus-adjacent rules |
+| `--color-text` | `#e2e8f0` | Headings and primary values |
+| `--color-text-2` | `#94a3b8` | Body and secondary labels |
+| `--color-text-3` | `#8492ad` | Metadata; Yata's `#64748b` lifted for AA at 12px |
+| `--color-accent` | `#6d56eb` | Solid primary action fill |
+| `--color-accent-hover` | `#5a44d4` | Primary action hover |
+| `--color-accent-text` | `#9b8cff` | Accent text and links on dark |
+| `--color-on-accent` | `#ffffff` | Text on the accent fill |
+| `--color-accent-bg` | `rgba(109, 86, 235, 0.14)` | Selected row, active nav, soft accent |
+| `--color-focus` | `#9b8cff` | Keyboard focus ring |
 
-### Ink
+Yata's exact `--bg`, surfaces, borders, text levels and accent are the source.
+`--color-text-3` and `--color-accent-text` are the only dark adjustments: the
+Yata tertiary slate and the raw accent fail 4.5:1 as small text on the dark
+ground, so text uses the lifted values while the exact Yata accent remains the
+solid fill color.
+
+### Light theme derived from the reference
 
 | Token | Value | Use |
 |---|---|---|
-| `--color-primary` | `#17211c` | Headings, figures |
-| `--color-secondary` | `#526159` | Body and labels |
-| `--color-tertiary` | `#58675e` | Metadata |
-| `--color-muted` | `#617067` | Disabled, placeholders |
+| `--color-bg` | `#f6f7fb` | Page ground |
+| `--color-surface` | `#ffffff` | Cards, tiles, table body |
+| `--color-surface-2` | `#eef1f7` | Nested panels, table heads, controls |
+| `--color-surface-3` | `#e4e8f2` | Hover, tracks, inset bands |
+| `--color-border` | `#d5dae6` | Default 1px rule |
+| `--color-border-strong` | `#bcc4d6` | Control and focus-adjacent rules |
+| `--color-text` | `#141824` | Headings and primary values |
+| `--color-text-2` | `#4b5366` | Body and secondary labels |
+| `--color-text-3` | `#60687c` | Metadata; AA on every light surface |
+| `--color-accent` | `#5b45d6` | Solid primary action fill |
+| `--color-accent-hover` | `#4a35c4` | Primary action hover |
+| `--color-accent-text` | `#5b45d6` | Accent text and links |
+| `--color-on-accent` | `#ffffff` | Text on the accent fill |
+| `--color-accent-bg` | `rgba(91, 69, 214, 0.08)` | Selected row, active nav |
+| `--color-focus` | `#5b45d6` | Keyboard focus ring |
 
-### Status and data
+Light is a derived parity theme, not a filter. The light palette is cool,
+slightly blue-tinted paper that keeps the same hierarchy and data colors.
 
-| Token | Value | Meaning |
-|---|---|---|
-| `--color-accent` | `#9e3f1f` | Primary action, selection, due |
-| `--color-success` | `#2f6f5e` | Healthy, viable |
-| `--color-warn` | `#8a5a12` | Watch, nearing a limit |
-| `--color-danger` | `#9f3428` | Critical, breached |
-| `--color-upload` | `#2f6f5e` | Upload series |
-| `--color-download` | `#2f5f83` / dark `#8fc7e8` | Download series; distinct from accent/due |
-| `--color-positive` | `#2f6f5e` | Positive deltas |
-| `--color-negative` | `#9f3428` | Negative deltas |
-| `--color-neutral` | `#58675e` | Neutral series |
+Contrast checks for the shipped pairs:
 
-The ordinal chart scale is crimson, ochre, cold green, slate blue, umber, plum.
+- Dark: primary text 15.5:1 on `bg`, secondary 7.5:1, tertiary 6.1:1, accent text
+  6.9:1, accent fill with white text 5.0:1.
+- Light: primary text 16.5:1 on `bg`, secondary 7.2:1, tertiary 5.2:1, accent
+  text 6.0:1, accent fill with white text 6.4:1.
+- Metric-colored text is only placed on `surface` and `surface-2`, where every
+  mapped color clears 4.5:1. `surface-3` is for rules, tracks and empty bars, not
+  small colored text.
+
+### Metric colors
+
+These tokens are global. The same hue follows each metric into totals, cards,
+tables, charts, sparklines, details and pathways.
+
+| Metric | Dark | Light | Rule |
+|---|---|---|---|
+| Uploaded | `#22c55e` | `#166534` | Green, always |
+| Downloaded | `#a855f7` | `#7e22ce` | Data violet, always; never used for controls or the accent |
+| Buffer | `#3b82f6` | `#1d4ed8` | Blue, always |
+| Ratio | `#22c55e` / `#f59e0b` / `#ef4444` | `#166534` / `#854d0e` / `#b91c1c` | Yata ratio ramp: green at 10+, amber at 1+, red below 1; when the tracker's required ratio is known, red only below it and a ratio at/above the requirement is never red |
+| Seeding | `#3b82f6` | `#1d4ed8` | Blue, always |
+| Bonus | `#f97316` | `#c2410c` | Orange, always |
+| Need attention | `#ef4444` when above zero, `#22c55e` at zero | `#b91c1c` / `#166534` | Written count plus color |
+
+Green, amber and red are semantic state colors for availability, health and
+eligibility. Purple is reserved for downloaded data. The interaction accent is
+the only violet used for controls.
 
 ### Type
 
-- **Barlow** — interface and body. Workhorse, slightly industrial, legible at 11–13px.
-- **Barlow Condensed** — labels, buttons, column heads, stamps. Uppercase with
-  `0.12–0.16em` tracking.
-- **Roboto Mono** — figures, ids, timestamps, counts. Tabular numerals.
-
-Page title: Barlow Condensed 36px/1.0, weight 600. Dashboard section heads and
-column heads: 12px condensed, uppercase. Values: 13–14px mono with tabular
-numerals; the top strip uses display numerals. No visible dashboard text below
-12px. The 10px floor may remain only in non-dashboard chrome.
+- **Geist** for interface and body text, loaded with `next/font`.
+- **Geist Mono** for every number, value, date, count, ratio and duration, loaded
+  with `next/font`. Numerals are tabular.
+- Minimum visible size: **12px**. Never ship 10px or 11px interface text.
+- Page title: 28px / 32px, 650.
+- Section title: 18px / 24px, 600.
+- Card title: 15px / 20px, 600.
+- Body: 13px / 18px, 400–500.
+- Labels and table heads: 12px, uppercase, 0.06em tracking, 500.
+- Values: 14px / 20px mono; totals: 24px / 28px mono, 650.
+- Long names wrap; do not truncate the only identifier.
 
 ### Shape and elevation
 
-- Radii: 2px (stamps and tags), 4px (controls), 6px (sheets), 8px (dialogs).
-- Elevation is a **one-pixel rule**, never a glow. Floating surfaces get one soft
-  offset shadow and one edge; nothing else.
-- Cards are ruled sheets. Do not stack shadows, halos, or gradients.
+- Card and tile radius: 10px. Control radius: 6px. Chip radius: 6px.
+- 1px borders at all times. A 2px top signal rule on totals and card accents.
+- No glow, no gradient fills, no stacked shadows. Overlays get one soft shadow.
+- Focus is a 2px ring in `--color-focus` with a 1px offset.
 
 ## Layout
 
-- App shell: 248px fixed rail; fluid main column; 56px top bar.
-- Content max width: 1500px; page padding 16px mobile / 24px desktop.
-- Register rows: 48px desktop, auto-height stacked rows below 768px.
-- Summary strip: four cells separated by hairlines.
-- Main scroll is the `main` element; the rail and top bar stay fixed in place.
+- One page width for every surface: 1600px maximum, centered, with 24px desktop
+  and 16px mobile gutters. Header contents share the same frame.
+- Sticky top bar: 58px. Main is the scroll container; the header stays put.
+- Totals row: 5 columns at wide widths, 3 at medium, 2 at narrow.
+- Dashboard grid: 3 card columns at 1280px+, 2 at 768px+, 1 below. The table is
+  the same model at higher density and may scroll horizontally below 900px.
+- Tracker cards use a 3-column stat grid; target bars sit below the stats.
+- Page sections use one vertical rhythm: 24px between major bands, 16px inside
+  cards, 12px between rows.
+- 390px is a first-class layout: no horizontal scroll, 44px touch targets and a
+  header whose title clears the menu trigger.
 
-## Components
+## Components and patterns
 
-### Account register
+### Page shell and header
 
-The dashboard's primary read. Columns: Account, Ratio, Buffer, Accounted,
-Seeding, Login due, Rank, Status. The top strip reports total uploaded, total
-downloaded, overall ratio and need attention; totals count only snapshots and
-carry the shared stale marker. Rows preserve the user's order and carry a 6px
-status square plus a written status label when the account is not healthy. Critical rows
-tint `--color-danger-dim`; watch rows tint `--color-warn-dim`. The register shows
-every account; the page scrolls, and the Today band follows the full register.
-The rail is a deep forest green in light mode, not near-black; drawer controls
-default to collapsed so the rail reads as navigation, not a control panel.
+- Tracker Tracker identity at the left. Keep the product name and mark; do not
+  use the Yata name or logo.
+- Primary navigation: **Dashboard** with a Grid | Table segmented control,
+  **Pathways**, **Settings**. Secondary tools (search, docs, add tracker,
+  session) live in a right-side utility group or overflow menu.
+- Active navigation uses the accent background and a 2px accent underline; it is
+  never only color.
+- The header is sticky and translucent over the page ground, with a 1px bottom
+  border. No second navigation rail.
 
-### Viability strip
+### Totals tile row
 
-Four equal segments, each a separate check: ratio, buffer, seeding, login window.
-Green is viable, amber is close to a limit, red is failing, muted is unknown. The
-mono `n/4` label is the non-color readout. Do not turn this into a sparkline or a
-continuous percentage.
+- Exactly five tiles: uploaded, downloaded, buffer, overall ratio, need attention.
+- Each tile: 12px uppercase label, large mono value, optional delta, and a
+  sparkline drawn from existing snapshot history.
+- A sparkline appears only when at least two real points exist. Need attention
+  shows a count and a written state; do not fabricate a series for it.
+- Unknown totals show `—` and `?`, never `0`. Stale totals carry `*` and the
+  "Needs checking" text.
+- The top signal rule and value use the metric color.
 
-### Status marks
+### Dashboard views
 
-A 6px square plus a condensed uppercase label. Never a colored pill, never a
-border-left thicker than 1px. Status is always written as well as colored.
+- **Grid** is the tracker card grid. **Table** is the existing register restyled,
+  not a new table with different semantics. Both use the same totals row and the
+  same metric colors.
+- The Grid | Table choice is a view toggle, not a route. Preserve the current
+  register columns, ordering and row expansion behavior.
+- Do not add a seedbox strip, per-tracker health score or time-to-next-rank
+  estimate.
 
-### Buttons
+### Tracker card
 
-Condensed uppercase, 10–11px, `0.1em` tracking. Primary is solid oxide; secondary
-is a ruled sheet; ghost is text-only; danger is solid crimson. No scale bounce on
-press; state changes are color and border only.
+- Header: health dot plus written state, tracker name, host, class chip and
+  account age. The account age is a real duration or `Unknown`.
+- Stat grid: uploaded, downloaded, buffer, ratio, seeding, bonus. Values use the
+  metric tokens; labels stay secondary.
+- Target bars: one row per active requirement, labelled `current / required`.
+  Fill uses the requirement state color, not a generic progress color. Unknown
+  current or required values show `?`; stale values show `*`.
+- Rank targets come from the registry and saved rank goals. There is no ETA, no
+  promotion date and no invented threshold.
+- One-of groups are labelled "One of"; all-of groups stack normally.
 
-### Inputs, selects, toggles
+### Register table
 
-Flat control ground with a 1px rule. Focus is a 1px oxide ring. Toggles are
-squared-off tracks with a small square thumb; no pill switches. Labels are
-condensed uppercase micro-type above the field.
+- Restyle the existing register with the Night Grid tokens: surface body, 1px
+  rules, 12px uppercase heads, mono values, hover row tint, accent focus.
+- Keep the existing columns, sorting, row expansion and empty states.
+- Status is written as well as colored. The table does not become a second
+  product.
 
-### Cards, tables, tabs
+### Pathways page
 
-Cards are bordered sheets with 16px padding. Tables use condensed column heads
-and mono cells; no zebra striping. Tabs are an underline row, not a sliding pill.
+- Searchable target picker, saved-target chips, and one best-path card.
+- The best-path card starts with a **Best path** badge, route chips from the
+  owned source to the target, and total time left.
+- Requirement bars show `current / required` from existing route data. Unknown
+  values use `?`; community-only values use `*` and "Needs checking"; no bar is
+  invented from prose.
+- Route chips use surface-2 with a 1px border and the accent only for the active
+  target. They are selectors, not decorative pills.
+- Source text, `reqs`, evidence and stale notices stay behind the existing Details
+  disclosure. Other routes stay collapsed, maximum five.
+- No seedbox bar, no Yata target headline copy, no promotion estimate.
 
-### Dialogs and sheets
+### Controls
 
-A sheet surface with one edge and one soft shadow. Titles use Barlow Condensed;
-body copy stays 12–13px. Destructive actions are crimson, not decorative.
+- Buttons: 6px radius, 1px border, 13px Geist. Primary is the accent fill with
+  white text; secondary is surface-2; ghost is text with a border on hover.
+- Inputs and search: surface-2 ground, 1px border, 2px focus ring.
+- Chips: 6px radius, 12px label, surface-2 ground; active chip uses accent-bg and
+  accent text.
+- Tabs and segmented controls: a single bordered track with the active segment on
+  surface; no sliding pill animation.
+- Status dots: 8px, semantic color, always paired with a written label.
 
-## Themes
+## Truth and status language
 
-- Light is the default. `data-theme="dark"` on `<html>` switches the semantic
-  tokens; `theme` in `localStorage` persists the choice. A tiny before-paint
-  bootstrap script applies the stored choice or the OS preference.
-- The rail is always the darkest surface; in light mode it is a deep forest
-  green (`#1b2a24`), not near-black. In dark mode the register, cards, and
-  controls move to green-black paper (`#0f1713` / `#16211b`), with lighter status
-  inks for contrast.
-- Dark status inks: accent `#e07a4f`, success `#6fb79c`, warn `#d9a44a`, danger
-  `#e06a58`. On-accent text flips to near-black via `--color-on-accent`.
-- `--color-download` is a distinct data blue (`#2f5f83` light, `#8fc7e8` dark),
-  not the accent/due color; both pass WCAG AA on the page/raised surfaces.
-- ECharts reads the token colors through CSS variables at option build. The
-  toggle reloads once so every canvas is rebuilt with the new palette.
-- Both themes must pass the same contrast and state rules; dark mode is not a
-  filter over light mode.
+- Zero is a known value and is rendered as `0`. Unknown is `—` plus `?` and an
+  accessible "Unknown".
+- `*` means stale source or snapshot. It always travels with "Needs checking" or
+  an equivalent written explanation; never a bare asterisk.
+- `?` means unknown or unverified. It is not a failure and never becomes `0`.
+- "Needs checking" is the canonical label for unresolved community text, stale
+  evidence, unknown waits and unverified availability.
+- Do not invent thresholds, ratio rules, eligibility rules, recruiter activity,
+  promotion dates or time-to-next-rank estimates. Use the tracker registry,
+  saved goals and trackerpathways data as the only sources.
+- Availability, eligibility, time gates and admission remain separate. Meeting a
+  requirement never guarantees an invitation or admission.
+- Source text remains readable. Do not parse `reqs` prose into numbers.
+
+## Charts
+
+Choose each chart by the question it answers, using IBM Carbon's dashboard and
+data-visualization guidance. The visual treatment — surfaces, type, rules and
+metric colors — follows this document and Yata. Remove any chart that does not
+answer a real operator question.
+
+- Totals sparklines: "which direction is this fleet metric moving?"
+- Rank target bars: "how far is this account from this requirement?"
+- Pathways requirement bars: "what is met, missing or unknown on this route?"
+- No decorative charts, no dual-axis charts, no invented health scores.
 
 ## Motion
 
-- 150–200ms ease-out for color, border, and opacity.
-- The viability strip may fill once on first paint; it must hold still under
+- 150–200ms ease-out for color, border and opacity only.
+- No page-load choreography, parallax, glowing pulses or animated gradients.
+- Sparklines may draw once on first paint; hold still under
   `prefers-reduced-motion`.
-- No page-load choreography. No pulsing glows. Status dots may breathe at low
-  opacity, never with a halo.
-
-## Responsive
-
-- Below 768px the rail becomes an overlay drawer; the top bar gets a floating
-  menu trigger and 56px left clearance.
-- The register becomes stacked account rows: identity and status first, then a
-  two-column metric grid, then the viability strip.
-- The summary strip becomes a 2×2 grid.
-- The sidebar's drawer controls collapse into a ruled light panel inside the rail.
+- No new animation without explicit approval.
 
 ## Accessibility
 
-- Every status has a text label or a numeric `n/4` readout; color is never the
-  only channel.
-- Focus rings are visible on rail and paper surfaces.
-- Body contrast: primary on base ≥ 12:1; secondary on base ≥ 5:1.
-- Live regions are not used for decorative motion. Reduced motion is respected.
+- WCAG AA is the floor. All shipped text pairs meet 4.5:1; large text meets 3:1.
+- 12px minimum text. 44px minimum touch targets on mobile primary controls.
+- Keyboard focus is always visible; focus order follows the visual order.
+- Status is never color-only: written state, `n/4`, `?` or "Needs checking"
+  accompanies every semantic color.
+- Sparklines carry a text summary or accessible label; they are not the only read.
+- Both themes pass the same contrast and state rules. Reduced motion is respected.
+- Long tracker names, long classes and missing data must not create horizontal
+  scroll at 390px.
 
-## Audit
+## Do not copy
 
-Automated Playwright audit, 1440×900 and 390×844, dashboard / settings / tracker
-detail, both themes:
-
-- WCAG AA text contrast: **0 failures** in light and dark across the audited
-  pages.
-- No horizontal overflow; heading order is clean; form controls are labelled;
-  meaningful images carry alt text (one decorative asset is intentionally empty).
-- The dashboard type floor is 12px; body copy is 12–13px and values 13–14px.
-- Interactive targets meet the WCAG 2.2 24×24 minimum on the primary controls;
-  44×44 is not universal because this is a dense desktop operator surface.
-  Mobile nav rows and the floating trigger get extra height.
-- Remaining audit areas: keyboard focus order, 200% zoom/reflow, forced-colors
-  mode, screen-reader chart summaries, long-string stress, i18n/RTL, and the
-  error/empty states that require live tracker failures.
+- The Yata name, wordmark, logo or brand voice.
+- The seedbox bar.
+- The theme switcher / theme cycler.
+- Time-to-next-rank estimates or promotion dates.
+- Yata's six-tile health row as a direct composition; this product uses the five
+  tiles above.
+- Yata CSS or assets copied wholesale. If any CSS is adapted later, record the
+  source file in `docs/THIRD_PARTY_NOTICES.md`.
 
 ## Anti-reference
 
-The previous all-dark neumorphic surface: cyan accents, glow shadows, pill tags,
-rounded cards stacked in a grid, and a tracker list as the only navigation. Do
-not reintroduce any of those as "polish."
+The replaced Cold Vault: mineral-white paper, deep forest rail, Barlow/Barlow
+Condensed, oxide accents and square stamps. Also rejected: the older all-dark
+neumorphic surface with cyan glows, pill tags and stacked rounded cards. Do not
+split the difference by polishing either one.
 
 ## Provenance
 
-Direction chosen from the Cold Vault mock in the Impeccable decision round
-(assigned direction, seed `ea4e2716`). The shipped screens are captured in the
-review directory for this session; the register is code-led from the same
-composition.
+Direction chosen from the Yata-Dash reference at commit
+`d4692e33d2a72b22d828de956cbd468fc3075949` (GPL-3.0), studied through
+`dashboard-grid`, `dashboard-table`, `card-targets`, `pathways` and
+`static/dashboard.css`. The shape briefs are in `docs/YATA_REFERENCE_NOTES.md`.
+This rewrite is documentation only; no application code or CSS was changed.

@@ -302,7 +302,7 @@ export function RankGoalPanel({
 
   if (!pilot || targetOptions.length === 0) {
     return (
-      <section id="rank-goal" className="border border-border bg-raised p-4">
+      <section id="rank-goal" className="scroll-mt-16 border border-border bg-raised p-4">
         <H2 className="uppercase tracking-wider">Rank goal</H2>
         <p className="mt-2 text-xs text-secondary">
           Structured rank progress is unavailable for this tracker. The existing ladder and free-text
@@ -315,7 +315,7 @@ export function RankGoalPanel({
   return (
     <section
       id="rank-goal"
-      className="border border-border bg-raised p-4"
+      className="scroll-mt-16 border border-border bg-raised p-4"
       style={{ borderTopColor: accentColor }}
       data-rank-goal-panel
     >

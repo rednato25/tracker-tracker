@@ -83,6 +83,8 @@ function renderPanel(registrySlug = "torrentleech", polledAt = RECENT_POLL) {
       joinedAt={JOINED_AT}
       lastPolledAt={polledAt}
       accentColor="#2ecc71"
+      platformType="unit3d"
+      platformMeta={null}
     />
   )
 }

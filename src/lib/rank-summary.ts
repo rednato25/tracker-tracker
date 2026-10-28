@@ -14,9 +14,8 @@ import {
   type RankGroupResult,
   type RankMetric,
   type RankObservationMap,rankDefinitionForSlug, type TrackerRankDefinition, } from "@/lib/rank-goals"
+import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
-
-const RANK_OBSERVATION_STALE_MS = 24 * 60 * 60 * 1000
 
 export interface RankSummaryCondition {
   label: string
@@ -41,63 +40,6 @@ export interface RankGoalSummary {
   unknown: RankSummaryCondition[]
   linkLabel: string
   linkHref: string
-}
-
-function observationMap(tracker: TrackerSummary, now: Date): RankObservationMap {
-  const stats = tracker.latestStats
-  if (!stats) return {}
-  const polled = tracker.lastPolledAt ? new Date(tracker.lastPolledAt) : null
-  const freshness =
-    polled &&
-    !Number.isNaN(polled.getTime()) &&
-    now.getTime() - polled.getTime() <= RANK_OBSERVATION_STALE_MS
-      ? "fresh"
-      : "stale"
-  const source = "api" as const
-  return {
-    accountRatio: {
-      value: stats.ratioIsInfinite ? null : stats.ratio,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    uploadedBytes: {
-      value: stats.uploadedBytes === null ? null : Number(stats.uploadedBytes),
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    downloadedBytes: {
-      value: stats.downloadedBytes === null ? null : Number(stats.downloadedBytes),
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    bufferBytes: {
-      value: stats.bufferBytes === null ? null : Number(stats.bufferBytes),
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    seedingCount: {
-      value: stats.seedingCount,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    seedbonus: {
-      value: stats.seedbonus,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    hitAndRuns: {
-      value: stats.hitAndRuns,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-  }
 }
 
 function formatValue(metric: RankMetric | undefined, value: number | null): string {
@@ -157,7 +99,7 @@ function buildSummary(
   const currentRank = currentRankHidden ? null : rawRank
   const targetInvalid = Boolean(savedTarget && !pilot.goals[savedTarget])
   const target = savedTarget && !targetInvalid ? savedTarget : null
-  const observation = observationMap(tracker, now)
+  const observation = buildRankObservations({ latestStats: tracker.latestStats, lastPolledAt: tracker.lastPolledAt, platformType: tracker.platformType, platformMeta: tracker.platformMeta, now })
   const input: RankGoalInput = {
     userClasses: entry?.userClasses ?? [],
     rankPaths: entry?.rankPaths,

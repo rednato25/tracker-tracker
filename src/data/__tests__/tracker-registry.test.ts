@@ -78,6 +78,25 @@ describe("structured rank requirement validation", () => {
       "class \"Bad\" uses unknown rank metric \"inventedMetric\""
     )
   })
+
+  it("rejects structured classes without source/provenance", () => {
+    const unsourced = {
+      userClasses: [
+        {
+          name: "Power User",
+          structured: {
+            mode: "all",
+            conditions: [
+              { kind: "numeric", metric: "accountAgeDays", comparison: "gte", requiredValue: 14 },
+            ],
+          },
+        },
+      ],
+    } as unknown as Partial<TrackerRegistryEntry>
+    expect(validateStructuredRankRequirements(unsourced).errors).toEqual([
+      "structured userClasses require rankRequirementsSource",
+    ])
+  })
 })
 
 describe("tracker registry", () => {

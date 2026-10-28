@@ -120,8 +120,12 @@ export function validateStructuredRankRequirements(tracker: Partial<TrackerRegis
       errors.push(`class "${className}" uses unknown rank metric "${String(condition.metric)}"`)
     }
   }
-  for (const userClass of tracker.userClasses ?? []) {
-    if (userClass.structured) walk(userClass.structured, userClass.name)
+  const structuredClasses = (tracker.userClasses ?? []).filter((userClass) => userClass.structured)
+  if (structuredClasses.length > 0 && !tracker.rankRequirementsSource) {
+    errors.push("structured userClasses require rankRequirementsSource")
+  }
+  for (const userClass of structuredClasses) {
+    walk(userClass.structured as RankConditionNode, userClass.name)
   }
   return { errors }
 }

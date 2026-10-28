@@ -342,6 +342,8 @@ export function TrackerDetailClient({
         joinedAt={tracker.joinedAt}
         lastPolledAt={tracker.lastPolledAt}
         accentColor={tc}
+        platformType={tracker.platformType}
+        platformMeta={tracker.platformMeta}
       />
 
       <DownloadBudgetPanel

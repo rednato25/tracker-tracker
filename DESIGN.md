@@ -256,8 +256,8 @@ the only violet used for controls.
 
 ## Charts
 
-Choose each chart by the question it answers, using IBM Carbon's dashboard and
-data-visualization guidance. The visual treatment — surfaces, type, rules and
+Choose each chart by the question it answers, using IBM Carbon's
+data-visualization guidance only. The visual treatment — surfaces, type, rules and
 metric colors — follows this document and Yata. Remove any chart that does not
 answer a real operator question.
 

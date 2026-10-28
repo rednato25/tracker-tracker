@@ -3,19 +3,17 @@
 // P26 dashboard summary. This is a projection of the existing P09 evaluator,
 // P10 definitions and P11 saved target; it does not create a second rank model.
 
-import { type PilotRankDefinition, pilotRankDefinition } from "@/data/rank-goals"
 import { registryEntryFor } from "@/data/tracker-registry"
 import { formatBytesNum, formatCount, formatRatio } from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
-import {
+import { 
   evaluateRankGoal,
   evaluateRequirementGroup,
   type RankConditionResult,
   type RankGoalInput,
   type RankGroupResult,
   type RankMetric,
-  type RankObservationMap,
-} from "@/lib/rank-goals"
+  type RankObservationMap,rankDefinitionForSlug, type TrackerRankDefinition, } from "@/lib/rank-goals"
 import type { TrackerSummary } from "@/types/api"
 
 const RANK_OBSERVATION_STALE_MS = 24 * 60 * 60 * 1000
@@ -149,7 +147,7 @@ function summarizeConditions(result: RankGroupResult | null): {
 
 function buildSummary(
   tracker: TrackerSummary,
-  pilot: PilotRankDefinition,
+  pilot: TrackerRankDefinition,
   savedTarget: string | null,
   now: Date
 ): RankGoalSummary {
@@ -253,10 +251,9 @@ export function buildRankGoalSummaries(
   return trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []
     const savedTarget = savedGoals[String(tracker.id)]?.targetRank ?? null
-    const pilot = pilotRankDefinition(tracker.registrySlug)
+    const pilot = rankDefinitionForSlug(tracker.registrySlug)
     if (!pilot && !savedTarget) return []
     if (!pilot) {
-      const entry = registryEntryFor(tracker)
       const raw = tracker.latestStats?.group ?? null
       const hidden = Boolean(raw && isRedacted(raw))
       return [

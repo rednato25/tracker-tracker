@@ -4,6 +4,7 @@
 // Used by both the CI script and the test suite.
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
+import { isRankMetric, type RankConditionNode } from "@/lib/rank-goals"
 
 export const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const LOGO_NAME_RE = /^\/tracker-logos\/[a-z0-9_]+_logo\.(svg|png)$/
@@ -104,6 +105,25 @@ export function validateDefunct(tracker: Partial<TrackerRegistryEntry>): {
   }
 
   return { errors, warnings }
+}
+
+export function validateStructuredRankRequirements(tracker: Partial<TrackerRegistryEntry>): {
+  errors: string[]
+} {
+  const errors: string[] = []
+  const walk = (condition: RankConditionNode, className: string) => {
+    if ("conditions" in condition) {
+      for (const child of condition.conditions) walk(child, className)
+      return
+    }
+    if (condition.kind === "numeric" && !isRankMetric(condition.metric)) {
+      errors.push(`class "${className}" uses unknown rank metric "${String(condition.metric)}"`)
+    }
+  }
+  for (const userClass of tracker.userClasses ?? []) {
+    if (userClass.structured) walk(userClass.structured, userClass.name)
+  }
+  return { errors }
 }
 
 export { normalizeUrl as normalizeTrackerUrl } from "@/lib/data-transforms"

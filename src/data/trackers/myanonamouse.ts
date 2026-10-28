@@ -2,6 +2,8 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+
 export const myanonamouse: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "myanonamouse",
@@ -29,10 +31,44 @@ export const myanonamouse: TrackerRegistryEntry = {
   statusPageUrl: "https://status.myanonamouse.net/",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "mixed",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; official wiki not publicly readable",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "The official wiki is login-gated. Only the clear numeric thresholds already present in the registry text are structured; the source itself is not independently verified here.",
+  },
+  rankUnresolved: [
+    "Source is login-gated; promotion automation and class-appointment rules remain unresolved.",
+    "GB/TB text without a stated unit basis is read as the larger binary GiB/TiB value.",
+  ],
   userClasses: [
     { name: "Mouse", requirements: "Ratio below 1.0 (auto-demotion)", outsideLadder: "below" },
-    { name: "User", requirements: "Ratio above 1.0" },
-    { name: "Power User", requirements: "4 weeks membership, 25 GB uploaded, 2.0 ratio" },
+    {
+      name: "User",
+      requirements: "Ratio above 1.0",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mam-user-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 1.0, scope: "account", label: "Ratio above 1.0" },
+        ],
+      },
+    },
+    {
+      name: "Power User",
+      requirements: "4 weeks membership, 25 GB uploaded, 2.0 ratio",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mam-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 28, scope: "account", label: "At least 4 weeks registered" },
+          { kind: "numeric", id: "mam-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 25 * GiB, scope: "account", unitReading: "conservative", label: "At least 25 GiB uploaded" },
+          { kind: "numeric", id: "mam-power-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.0, scope: "account", label: "Ratio at least 2.0" },
+        ],
+      },
+    },
     { name: "Star", requirements: "Donor", outsideLadder: "above" },
     {
       name: "VIP",

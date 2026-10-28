@@ -4,7 +4,6 @@
 // duplicate requirement logic. Actual observations are used only for source
 // accounts the user already owns. Every other step is an explicit scenario.
 
-import { pilotRankDefinition } from "@/data/rank-goals"
 import { getTrackerBySlug } from "@/data/tracker-registry"
 import type {
   RankComparison,
@@ -16,6 +15,7 @@ import type {
   RankObservationMap,
   RankRequirementGroup,
 } from "@/lib/rank-goals"
+import { rankDefinitionForSlug } from "@/lib/rank-goals"
 import {
   evaluateRecruitmentRoute,
   findRecruitmentPaths,
@@ -180,7 +180,7 @@ function goalCandidatesForStep(input: {
   if (!sourceTracker?.registrySlug) return []
   const saved = input.savedRankGoals[String(sourceTracker.id)]?.targetRank
   if (!saved) return []
-  const pilot = pilotRankDefinition(sourceTracker.registrySlug)
+  const pilot = rankDefinitionForSlug(sourceTracker.registrySlug)
   const goal = pilot?.goals[saved]
   if (!goal) return []
 

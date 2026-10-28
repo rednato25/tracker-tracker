@@ -57,7 +57,7 @@ function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
 }
 
 describe("buildRankGoalSummaries", () => {
-  it("shows the saved target and known unmet/unknown requirements", () => {
+  it("shows the saved target and known unmet requirements", () => {
     const summaries = buildRankGoalSummaries(
       [tracker({ latestStats: { ...tracker().latestStats!, ratio: 1.0 } })],
       { "1": { targetRank: "Super User" } },
@@ -68,7 +68,7 @@ describe("buildRankGoalSummaries", () => {
     expect(summary.currentRank).toBe("User")
     expect(summary.status).toBe("goal")
     expect(summary.unmet.length).toBeGreaterThan(0)
-    expect(summary.unknown.length).toBeGreaterThan(0)
+    expect(summary.unknown.length).toBe(0)
     expect(summary.linkHref).toBe("/trackers/1#rank-goal")
     expect(summary.linkLabel).toBe("Open rank goal")
   })
@@ -99,12 +99,12 @@ describe("buildRankGoalSummaries", () => {
     const summaries = buildRankGoalSummaries(
       [
         tracker({
-          registrySlug: "myanonamouse",
-          name: "MyAnonaMouse",
+          registrySlug: "aither",
+          name: "Aither",
           latestStats: { ...tracker().latestStats!, group: "Power User" },
         }),
       ],
-      {},
+      { "1": { targetRank: "Power User" } },
       NOW
     )
     const summary = summaries[0]

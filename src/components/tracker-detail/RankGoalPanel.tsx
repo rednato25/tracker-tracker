@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
-import { pilotRankDefinition } from "@/data/rank-goals"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatRatio } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
@@ -18,6 +17,7 @@ import {
   type RankNumericCondition,
   type RankObservationMap,
   type RankRequirementGroup,
+  rankDefinitionForSlug,
 } from "@/lib/rank-goals"
 import type { Snapshot, TrackerLatestStats } from "@/types/api"
 
@@ -112,6 +112,9 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
           </span>
         )}
       </div>
+      {condition.unitReading === "conservative" && (
+        <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>
+      )}
       {condition.status === "unknown" && condition.reason && (
         <p className="mt-1 font-mono text-4xs text-warn">{condition.reason}</p>
       )}
@@ -146,7 +149,7 @@ export function RankGoalPanel({
   lastPolledAt,
   accentColor,
 }: RankGoalPanelProps) {
-  const pilot = useMemo(() => pilotRankDefinition(registrySlug), [registrySlug])
+  const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
   const [target, setTarget] = useState<string | null>(null)
   const [savedGoals, setSavedGoals] = useState<Record<string, { targetRank: string }>>({})

@@ -106,13 +106,12 @@ beforeEach(() => {
 })
 
 describe("RankGoalPanel", () => {
-  it("shows verified values, an unknown upload unit and no eligibility", async () => {
+  it("shows verified values and evaluates the conservative upload unit", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel()
-    await waitFor(() => expect(screen.getByText(/2 met/)).toBeInTheDocument())
-    expect(screen.getByText(/Upload requirement is unknown/)).toBeInTheDocument()
-    expect(screen.queryByText(/promotion still depends/)).not.toBeInTheDocument()
-    expect(screen.getByText(/Upload estimate:/)).toHaveTextContent(/unit unresolved/)
+    await waitFor(() => expect(screen.getByText(/3 met/)).toBeInTheDocument())
+    expect(screen.getByText("conservative unit reading")).toBeInTheDocument()
+    expect(screen.getByText(/Upload estimate:/)).not.toHaveTextContent(/unit unresolved/)
     expect(screen.getByText(/Observed current rank: Registered/)).toBeInTheDocument()
   })
 
@@ -122,7 +121,7 @@ describe("RankGoalPanel", () => {
   })
 
   it("explains unavailable structured progress for unresolved pilots", async () => {
-    renderPanel("myanonamouse")
+    renderPanel("aither")
     expect(screen.getByText(/Structured rank progress is unavailable/)).toBeInTheDocument()
   })
 

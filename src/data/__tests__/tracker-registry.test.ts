@@ -28,6 +28,7 @@ import {
   VALID_CONTENT_CATEGORIES,
   validateDefunct,
   validateRankPaths,
+  validateStructuredRankRequirements,
 } from "@/data/tracker-validation-rules"
 import { ALL_TRACKERS } from "@/data/trackers"
 import { isValidHex } from "@/lib/validators"
@@ -56,6 +57,28 @@ const DRAFT_TRACKERS = ALL_TRACKERS.filter((t: TrackerRegistryEntry) => t.draft)
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+describe("structured rank requirement validation", () => {
+  it("rejects an unknown metric while accepting text-only classes", () => {
+    const bad = {
+      userClasses: [
+        {
+          name: "Bad",
+          structured: {
+            mode: "all",
+            conditions: [
+              { kind: "numeric", metric: "inventedMetric", comparison: "gte", requiredValue: 1 },
+            ],
+          },
+        },
+        { name: "Text only", requirements: "No structured threshold" },
+      ],
+    } as unknown as Partial<TrackerRegistryEntry>
+    expect(validateStructuredRankRequirements(bad).errors).toContain(
+      "class \"Bad\" uses unknown rank metric \"inventedMetric\""
+    )
+  })
+})
 
 describe("tracker registry", () => {
   // ── Global uniqueness (all trackers, including drafts) ────────────────
@@ -305,6 +328,7 @@ describe("tracker registry", () => {
         it("has coherent rank paths", () => {
           const { errors, warnings } = validateRankPaths(tracker)
           expect(errors, `${tracker.slug}: ${errors.join("; ")}`).toEqual([])
+          expect(validateStructuredRankRequirements(tracker).errors).toEqual([])
           for (const w of warnings) warn(tracker.slug, w)
         })
 

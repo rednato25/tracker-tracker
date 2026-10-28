@@ -3,11 +3,11 @@
 P17 defines an offline, versioned recruitment-route format and a deterministic
 evaluator. P30 replaces the registry-filtered subset with the complete
 trackerpathways snapshot so unmatched trackers can still be destinations or
-middle hops. P18 owns the wishlist UI.
+middle hops. P18 owns the Tracker pathways page.
 
 ## Source coverage and reuse
 
-The wishlist uses the community
+The Tracker pathways page uses the community
 [trackerpathways](https://github.com/handokota/trackerpathways) dataset directly.
 It is MIT-licensed, and the snapshot is vendored unchanged:
 
@@ -16,7 +16,7 @@ It is MIT-licensed, and the snapshot is vendored unchanged:
 - Pinned commit, fetch date and license: `src/data/pathways/metadata.json`
 - Vendored file: `src/data/pathways/trackers.json`
 - Adapter: `src/data/pathways/catalog.ts`
-- Attribution: `docs/THIRD_PARTY_NOTICES.md` and the wishlist page
+- Attribution: `docs/THIRD_PARTY_NOTICES.md` and the Tracker pathways page
 
 The current snapshot has 598 route edges across 64 destinations, 182 tracker
 names and 61 source invite-class/forum gates. Nothing fetches the dataset at
@@ -111,7 +111,7 @@ provenance. The shipped override list is empty.
 `findRecruitmentPaths` is a bounded depth-first search (default six hops) with a
 visited-tracker set, so cycles cannot cause infinite traversal. It returns route
 IDs only; it does not evaluate or mutate anything. Closed routes are skipped
-unless `includeClosed` is explicitly requested. The wishlist collects candidates
+unless `includeClosed` is explicitly requested. The Tracker pathways page collects candidates
 from all owned sources, ranks them by total known wait and then fewer hops, and
 applies its caps only after ranking.
 

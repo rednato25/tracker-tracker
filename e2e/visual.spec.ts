@@ -536,6 +536,7 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await pathwaysPage.getByRole("option", { name: "BroadcasTheNet" }).click()
     await expect(pathwaysPage.getByText("Fastest route")).toBeVisible({ timeout: 15_000 })
     await expect(pathwaysPage.getByText("Total time left")).toBeVisible()
+    await expect(pathwaysPage.getByText("Saving…")).toHaveCount(0)
 
     await page.setViewportSize({ width: 1440, height: 1400 })
     await page.evaluate(() => {

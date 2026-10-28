@@ -234,7 +234,10 @@ function TrackerPicker({
   const [query, setQuery] = useState("")
   const ref = useRef<HTMLDivElement>(null)
   const panelId = useId()
-  const selected = PATHWAYS_TRACKERS.find((option) => option.id === value)
+  const selected = value
+    ? (PATHWAYS_TRACKERS.find((option) => option.id === value)?.name ??
+      pathwaysTrackerName(value))
+    : null
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
     if (!needle) return options
@@ -260,7 +263,7 @@ function TrackerPicker({
         aria-haspopup="listbox"
         aria-controls={panelId}
       >
-        <span className="truncate">{selected?.name ?? "Choose a tracker"}</span>
+        <span className="truncate">{selected ?? "Choose a tracker"}</span>
         <span className="shrink-0 text-tertiary" aria-hidden="true">
           <ChevronDownSmallIcon width="10" height="7" />
         </span>
@@ -434,7 +437,7 @@ export function TrackerPathwaysClient({
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 pb-24" data-pathways-page>
-      <div className="flex flex-col gap-1">
+      <div className="page-topbar flex flex-col gap-1">
         <H1>Tracker pathways</H1>
         <Paragraph className="max-w-3xl">
           See where your accounts can take you. Routes come from a pinned trackerpathways

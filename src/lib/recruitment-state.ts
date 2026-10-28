@@ -1,14 +1,17 @@
 // src/lib/recruitment-state.ts
 //
-// Persisted P18 wishlist state. Tracker references are registry slugs, never
-// database ids, so backups/restores cannot point at a remapped row. Route and
-// dataset references may become stale after a catalog update; the UI resolves
-// them defensively and drops unknown links instead of crashing.
+// Persisted P18 wishlist state. The desired target is a trackerpathways ID;
+// legacy registry slugs are migrated on read, and references never use database
+// ids so backups/restores cannot point at a remapped row. Goal links keep their
+// registry slugs because saved rank goals are registry-based. Route and dataset
+// references may become stale after a catalog update; the UI resolves them
+// defensively and drops unknown links instead of crashing.
 
+import { normalizePathwaysTarget } from "@/data/pathways/catalog"
 import { TRACKER_REGISTRY } from "@/data/tracker-registry"
 import type { RankComparison, RankMetric } from "@/lib/rank-goals"
 
-export const RECRUITMENT_STATE_VERSION = 1
+export const RECRUITMENT_STATE_VERSION = 2
 export const RECRUITMENT_HIDDEN_PATHS_MAX = 200
 export const RECRUITMENT_GOAL_LINKS_MAX = 100
 
@@ -96,9 +99,9 @@ export function normalizeRecruitmentState(raw: unknown): RecruitmentState {
   }
   if (!isRecord(value)) return emptyRecruitmentState()
 
-  const desiredTrackerSlug = isRegistryTrackerSlug(value.desiredTrackerSlug)
-    ? value.desiredTrackerSlug
-    : null
+  const desiredTrackerSlug =
+    normalizePathwaysTarget(value.desiredTrackerId) ??
+    normalizePathwaysTarget(value.desiredTrackerSlug)
 
   const hiddenPathKeys: string[] = []
   if (Array.isArray(value.hiddenPathKeys)) {

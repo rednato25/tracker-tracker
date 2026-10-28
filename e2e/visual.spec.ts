@@ -534,7 +534,11 @@ test.describe.serial("wishlist visual evidence", () => {
     await expect(wishlistPage.getByText("Known routes")).toBeVisible({ timeout: 15_000 })
     await expect(wishlistPage.getByText("Needs checking").first()).toBeVisible()
 
-    await page.setViewportSize({ width: 1280, height: 1400 })
+    await page.setViewportSize({ width: 1440, height: 1400 })
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+    })
+    await page.waitForTimeout(200)
     await page.screenshot({ path: "test-results/visual-wishlist-light.png" })
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
@@ -545,7 +549,14 @@ test.describe.serial("wishlist visual evidence", () => {
     await page.waitForFunction(
       () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
     )
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+    })
     await page.waitForTimeout(300)
+    await page.screenshot({ path: "test-results/visual-wishlist-mobile-dark.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
     await page.screenshot({ path: "test-results/visual-wishlist-mobile.png" })
   })
 })

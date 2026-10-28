@@ -28,6 +28,7 @@
     "release:minor": "commit-and-tag-version --release-as minor",
     "release:major": "commit-and-tag-version --release-as major",
     "changelog:regen": "node scripts/regen-changelog.cjs",
+    "pathways:update": "node scripts/pathways-update.mjs",
     "knip": "knip",
     "knip:filter": "knip --reporter json --no-exit-code | bash scripts/knip-filter.sh",
     "db:studio": "drizzle-kit studio",

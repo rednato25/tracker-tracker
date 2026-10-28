@@ -7,9 +7,10 @@
 //   2. recruitment availability (open/closed/unknown from the cited source),
 //   3. invitation/admission reality (always unknown; nobody can guarantee it).
 //
-// Free text stays readable. Only the community dataset's explicit `days` field
-// becomes a structured account-age condition. No prose is guessed into
-// thresholds, and nothing here fetches data or touches the database.
+// Free text stays readable. The community dataset's explicit `days` value is
+// kept as the minimum time on the source tracker; it is never converted into a
+// structured rank condition. No prose is guessed into thresholds, and nothing
+// here fetches data or touches the database.
 
 import type {
   RankGoalStatus,
@@ -20,7 +21,7 @@ import type {
 } from "@/lib/rank-goals"
 import { evaluateRequirementGroup } from "@/lib/rank-goals"
 
-export const RECRUITMENT_ROUTE_FORMAT_VERSION = 1
+export const RECRUITMENT_ROUTE_FORMAT_VERSION = 2
 
 /** Community data older than this is called stale. It is never called verified. */
 export const RECRUITMENT_SOURCE_STALE_AFTER_DAYS = 180
@@ -47,6 +48,8 @@ export interface RecruitmentRouteRecord {
   id: string
   sourceTrackerId: string
   destinationTrackerId: string
+  sourceRegistrySlug: string | null
+  destinationRegistrySlug: string | null
   /**
    * Only conditions supported by an explicit, documented source field. `null`
    * means the source has no evaluable structured requirements, not that there
@@ -55,11 +58,8 @@ export interface RecruitmentRouteRecord {
   requirements: RankRequirementGroup | null
   /** Source prose kept readable because it cannot be evaluated safely. */
   requirementNotes: string[]
-  /**
-   * The upstream `days` value. Upstream only labels this unnamed "Days" wait;
-   * it does not document account age, so P17 keeps it unresolved.
-   */
-  sourceDays: number | null
+  /** Minimum days on the source tracker, per trackerpathways. */
+  minimumDays: number | null
   availability: RecruitmentAvailability
   availabilityRaw: string
   /** `YYYY-MM` at month precision; distinct from access/verification dates. */
@@ -107,6 +107,8 @@ export interface RecruitmentRouteEvaluation {
   routeId: string
   sourceTrackerId: string
   destinationTrackerId: string
+  sourceRegistrySlug: string | null
+  destinationRegistrySlug: string | null
   eligibility: {
     status: RankGoalStatus
     progress: { met: number; unmet: number; unknown: number; total: number }
@@ -115,10 +117,18 @@ export interface RecruitmentRouteEvaluation {
     originalRequirementNotes: string[]
     sourceRequirements: {
       days: number | null
-      daysSemantics: "unresolved" | "absent"
+      daysSource: "trackerpathways"
       inviteGate: RecruitmentSourceGate | null
     }
+
     reason: string
+  }
+  timeGate: {
+    minimumDays: number | null
+    effectiveDays: number | null
+    accountAgeDays: number | null
+    daysRemaining: number | null
+    status: "open" | "waiting" | "unknown"
   }
   availability: {
     status: RecruitmentAvailability
@@ -169,25 +179,17 @@ function isMandatoryNote(note: string): boolean {
 }
 
 /**
- * Mandatory source text, the upstream `days` value and the source invite gate
- * are unresolved prerequisites. They are inserted as manual UNKNOWN leaves so
- * ALL/ANY keeps the conservative result: a known unmet condition still wins,
- * otherwise any unresolved mandatory condition prevents `met`.
+ * Mandatory source text and the source invite gate are unresolved
+ * prerequisites. They are inserted as manual UNKNOWN leaves so ALL/ANY keeps
+ * the conservative result: a known unmet condition still wins, otherwise any
+ * unresolved mandatory condition prevents `met`. The `days` value is evaluated
+ * separately as a time gate.
  */
 function unresolvedPrerequisites(
-  route: RecruitmentRouteRecord,
   effectiveNotes: string[],
   sourceGate: RecruitmentSourceGate | null
 ): RankManualCondition[] {
   const manual: RankManualCondition[] = []
-  if (route.sourceDays !== null && route.sourceDays > 0) {
-    manual.push({
-      kind: "manual",
-      id: "source-days",
-      label: "Community dataset days value",
-      description: `The upstream dataset lists ${route.sourceDays} days but does not document whether that means account age, waiting time or another gate. It is not evaluated.`,
-    })
-  }
   for (const [index, note] of effectiveNotes.entries()) {
     if (!isMandatoryNote(note)) continue
     manual.push({
@@ -299,7 +301,7 @@ export function evaluateRecruitmentRoute(
   const requirementNotes = override?.requirementNotes ?? route.requirementNotes
   const sourceGate =
     catalog.sourceGates.find((candidate) => candidate.trackerId === route.sourceTrackerId) ?? null
-  const unresolved = unresolvedPrerequisites(route, requirementNotes, sourceGate)
+  const unresolved = unresolvedPrerequisites(requirementNotes, sourceGate)
   const requirements = buildEffectiveRequirements(effectiveRequirements, unresolved)
   const eligibility = evaluateStructured(requirements, input)
 
@@ -308,6 +310,29 @@ export function evaluateRecruitmentRoute(
   const sourceFreshness = dateFreshness(sourceUpdated, input.now)
   const evidenceFreshness = override ? dateFreshness(verified, input.now) : "unknown"
 
+  const accountAgeDays =
+    input.joinedAt && !Number.isNaN(new Date(input.joinedAt).getTime())
+      ? ageDays(new Date(input.joinedAt), input.now)
+      : null
+  const gateDays = sourceGate?.days ?? null
+  const effectiveDays =
+    route.minimumDays === null && gateDays === null
+      ? null
+      : Math.max(route.minimumDays ?? 0, gateDays ?? 0)
+  const daysRemaining =
+    effectiveDays === null || accountAgeDays === null
+      ? null
+      : Math.max(0, effectiveDays - accountAgeDays)
+  const timeGateStatus =
+    effectiveDays === null
+      ? "unknown"
+      : effectiveDays === 0
+        ? "open"
+        : accountAgeDays === null
+          ? "unknown"
+          : daysRemaining === 0
+            ? "open"
+            : "waiting"
   const availability = override?.availability ?? route.availability
   const availabilityConfirmed = override?.availability !== undefined
 
@@ -316,6 +341,8 @@ export function evaluateRecruitmentRoute(
     routeId: route.id,
     sourceTrackerId: route.sourceTrackerId,
     destinationTrackerId: route.destinationTrackerId,
+    sourceRegistrySlug: route.sourceRegistrySlug,
+    destinationRegistrySlug: route.destinationRegistrySlug,
     eligibility: {
       status: eligibility.status,
       progress: eligibility.progress,
@@ -323,11 +350,18 @@ export function evaluateRecruitmentRoute(
       requirementNotes,
       originalRequirementNotes: route.requirementNotes,
       sourceRequirements: {
-        days: route.sourceDays,
-        daysSemantics: route.sourceDays === null ? "absent" : "unresolved",
+        days: route.minimumDays,
+        daysSource: "trackerpathways",
         inviteGate: sourceGate,
       },
       reason: eligibility.reason,
+    },
+    timeGate: {
+      minimumDays: route.minimumDays,
+      effectiveDays,
+      accountAgeDays,
+      daysRemaining,
+      status: timeGateStatus,
     },
     availability: {
       status: availability,
@@ -383,7 +417,8 @@ export function findRecruitmentPaths(
   fromTrackerId: string,
   toTrackerId: string,
   maxHops = 6,
-  maxPaths = Number.POSITIVE_INFINITY
+  maxPaths = Number.POSITIVE_INFINITY,
+  includeClosed = false
 ): RecruitmentPath[] {
   if (maxHops < 1 || fromTrackerId === toTrackerId) return []
   const bySource = new Map<string, RecruitmentRouteRecord[]>()
@@ -400,6 +435,7 @@ export function findRecruitmentPaths(
     if (hops >= maxHops || paths.length >= maxPaths) return
     for (const route of bySource.get(current) ?? []) {
       if (paths.length >= maxPaths) return
+      if (!includeClosed && route.availability === "closed") continue
       const destination = route.destinationTrackerId
       if (visited.has(destination)) continue
       const next = [...routeIds, route.id]
@@ -472,15 +508,15 @@ export function validateRecruitmentCatalog(
       errors.push(`${route.id}: sourceUpdatedAt must be YYYY-MM`)
     }
     if (
-      route.sourceDays !== null &&
-      (!Number.isSafeInteger(route.sourceDays) || route.sourceDays < 0)
+      route.minimumDays !== null &&
+      (!Number.isSafeInteger(route.minimumDays) || route.minimumDays < 0)
     ) {
-      errors.push(`${route.id}: sourceDays must be a non-negative integer or null`)
+      errors.push(`${route.id}: minimumDays must be a non-negative integer or null`)
     }
     if (
       !route.requirements &&
       route.requirementNotes.length === 0 &&
-      route.sourceDays === null &&
+      route.minimumDays === null &&
       !gateIds.has(route.sourceTrackerId)
     ) {
       warnings.push(`${route.id}: no structured requirements and no readable source prerequisites`)

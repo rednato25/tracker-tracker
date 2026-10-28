@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { WishlistClient } from "@/components/recruitment/WishlistClient"
+import { PATHWAYS_TRACKERS } from "@/data/pathways/catalog"
 import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import { RECRUITMENT_ROUTE_FORMAT_VERSION } from "@/lib/recruitment-routes"
 import { emptyRecruitmentState } from "@/lib/recruitment-state"
@@ -25,9 +26,11 @@ const CATALOG: RecruitmentCatalog = {
   },
   routes: [
     {
-      id: "tp:torrentleech:broadcasthenet",
-      sourceTrackerId: "torrentleech",
-      destinationTrackerId: "broadcasthenet",
+      id: "tp:TorrentLeech:BroadcasTheNet",
+      sourceTrackerId: "TorrentLeech",
+      destinationTrackerId: "BroadcasTheNet",
+      sourceRegistrySlug: "torrentleech",
+      destinationRegistrySlug: "broadcasthenet",
       requirements: {
         mode: "all",
         conditions: [
@@ -42,7 +45,7 @@ const CATALOG: RecruitmentCatalog = {
         ],
       },
       requirementNotes: [],
-      sourceDays: null,
+      minimumDays: null,
       availability: "open",
       availabilityRaw: "Yes",
       sourceUpdatedAt: "2026-09",
@@ -138,7 +141,30 @@ describe("WishlistClient", () => {
       const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT")
       expect(put).toBeDefined()
       expect(JSON.parse(String(put?.[1]?.body))).toMatchObject({
-        state: { desiredTrackerSlug: "broadcasthenet" },
+        state: { desiredTrackerSlug: "BroadcasTheNet" },
+      })
+    })
+  })
+
+  it("offers a destination that is not in the tracker registry", async () => {
+    const unregistered = PATHWAYS_TRACKERS.find((tracker) => !tracker.registrySlug)
+    expect(unregistered).toBeDefined()
+    if (!unregistered) return
+    const user = userEvent.setup()
+    render(
+      <WishlistClient
+        trackers={[]}
+        initialState={stateFor(null)}
+        savedRankGoals={{}}
+        catalog={CATALOG}
+      />
+    )
+    await user.click(screen.getByRole("button", { name: "Desired tracker" }))
+    await user.click(screen.getByRole("option", { name: unregistered.name }))
+    await waitFor(() => {
+      const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT")
+      expect(JSON.parse(String(put?.[1]?.body))).toMatchObject({
+        state: { desiredTrackerSlug: unregistered.id },
       })
     })
   })
@@ -148,7 +174,7 @@ describe("WishlistClient", () => {
     render(
       <WishlistClient
         trackers={[tracker()]}
-        initialState={stateFor("broadcasthenet")}
+        initialState={stateFor("BroadcasTheNet")}
         savedRankGoals={{ "1": { targetRank: "Power User" } }}
         catalog={CATALOG}
       />
@@ -177,7 +203,7 @@ describe("WishlistClient", () => {
     render(
       <WishlistClient
         trackers={[tracker()]}
-        initialState={stateFor("broadcasthenet")}
+        initialState={stateFor("BroadcasTheNet")}
         savedRankGoals={{}}
         catalog={CATALOG}
       />
@@ -193,7 +219,7 @@ describe("WishlistClient", () => {
     render(
       <WishlistClient
         trackers={[tracker({ registrySlug: "alpharatio" })]}
-        initialState={stateFor("broadcasthenet")}
+        initialState={stateFor("BroadcasTheNet")}
         savedRankGoals={{}}
         catalog={CATALOG}
       />
@@ -212,22 +238,22 @@ describe("WishlistClient", () => {
         CATALOG.routes[0],
         {
           ...CATALOG.routes[0],
-          id: "tp:broadcasthenet:aither",
-          sourceTrackerId: "broadcasthenet",
-          destinationTrackerId: "aither",
+          id: "tp:BroadcasTheNet:Aither",
+          sourceTrackerId: "BroadcasTheNet",
+          destinationTrackerId: "Aither",
         },
         {
           ...CATALOG.routes[0],
-          id: "tp:aither:broadcasthenet",
-          sourceTrackerId: "aither",
-          destinationTrackerId: "broadcasthenet",
+          id: "tp:Aither:BroadcasTheNet",
+          sourceTrackerId: "Aither",
+          destinationTrackerId: "BroadcasTheNet",
         },
       ],
     }
     render(
       <WishlistClient
         trackers={[tracker()]}
-        initialState={stateFor("aither")}
+        initialState={stateFor("Aither")}
         savedRankGoals={{}}
         catalog={catalog}
       />

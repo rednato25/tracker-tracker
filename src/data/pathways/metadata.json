@@ -1,0 +1,11 @@
+{
+  "source": "trackerpathways",
+  "repo": "https://github.com/handokota/trackerpathways",
+  "commit": "5e3b206ed1352b56a685b90ec8da3757f702c3eb",
+  "fetchedAt": "2026-10-28T19:21:35.000Z",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2025 Handoko Tejo Atmoko",
+  "sourceFile": "src/data/trackers.json",
+  "licenseUrl": "https://github.com/handokota/trackerpathways/blob/5e3b206ed1352b56a685b90ec8da3757f702c3eb/LICENSE",
+  "attribution": "Route data derived from trackerpathways (MIT), vendored unchanged from the pinned commit."
+}

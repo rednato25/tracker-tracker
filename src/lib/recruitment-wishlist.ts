@@ -4,7 +4,7 @@
 // duplicate requirement logic. Actual observations are used only for source
 // accounts the user already owns. Every other step is an explicit scenario.
 
-import { getTrackerBySlug } from "@/data/tracker-registry"
+import { pathwaysTrackerIdForRegistrySlug, pathwaysTrackerName } from "@/data/pathways/catalog"
 import type {
   RankComparison,
   RankConditionNode,
@@ -64,6 +64,7 @@ export interface WishlistPathView {
   steps: WishlistStepView[]
   status: WishlistPathStatus
   statusDetail: string
+  minimumDays: number | null
   hidden: boolean
 }
 
@@ -89,7 +90,7 @@ export interface WishlistPathsResult {
 }
 
 function trackerName(slug: string): string {
-  return getTrackerBySlug(slug)?.name ?? slug
+  return pathwaysTrackerName(slug)
 }
 
 function numericDefinitions(group: RankRequirementGroup | null): RankNumericCondition[] {
@@ -247,6 +248,13 @@ function summarizePath(steps: WishlistStepView[]): {
     }
   }
 
+  if (steps.some((step) => step.evaluation.timeGate.status === "waiting")) {
+    return {
+      status: "needs-verification",
+      detail: "The minimum time on a source tracker has not elapsed yet.",
+    }
+  }
+
   if (steps.some((step) => step.scenario)) {
     return {
       status: "needs-verification",
@@ -289,11 +297,12 @@ export function buildWishlistPaths(input: WishlistPathsInput): WishlistPathsResu
   const ownedBySlug = new Map<string, TrackerSummary>()
   const unsupportedOwnedTrackers: TrackerSummary[] = []
   for (const tracker of trackers) {
-    if (!tracker.registrySlug) {
+    const trackerId = pathwaysTrackerIdForRegistrySlug(tracker.registrySlug)
+    if (!trackerId) {
       unsupportedOwnedTrackers.push(tracker)
       continue
     }
-    if (!ownedBySlug.has(tracker.registrySlug)) ownedBySlug.set(tracker.registrySlug, tracker)
+    if (!ownedBySlug.has(trackerId)) ownedBySlug.set(trackerId, tracker)
   }
   const ownedSlugs = [...ownedBySlug.keys()]
   const desiredOwned = desiredTrackerSlug ? ownedBySlug.has(desiredTrackerSlug) : false
@@ -370,12 +379,22 @@ export function buildWishlistPaths(input: WishlistPathsInput): WishlistPathsResu
       }
       if (steps.length !== path.routeIds.length) continue
       const summary = summarizePath(steps)
+      let minimumDays: number | null = 0
+      for (const step of steps) {
+        const days = step.evaluation.timeGate.effectiveDays
+        if (days === null) {
+          minimumDays = null
+          break
+        }
+        minimumDays += days
+      }
       paths.push({
         key,
         routeIds: path.routeIds,
         steps,
         status: summary.status,
         statusDetail: summary.detail,
+        minimumDays,
         hidden: hidden.has(key),
       })
     }

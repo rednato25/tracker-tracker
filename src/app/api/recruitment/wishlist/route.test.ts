@@ -51,7 +51,7 @@ beforeEach(() => {
     {
       id: 1,
       recruitmentState:
-        '{"version":1,"desiredTrackerSlug":"torrentleech","hiddenPathKeys":["a>b"],"goalLinks":[]}',
+        '{"version":2,"desiredTrackerSlug":"TorrentLeech","hiddenPathKeys":["a>b"],"goalLinks":[]}',
     },
   ])
   h.updateWhere.mockResolvedValue([])
@@ -63,8 +63,8 @@ describe("/api/recruitment/wishlist", () => {
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({
       state: {
-        version: 1,
-        desiredTrackerSlug: "torrentleech",
+        version: 2,
+        desiredTrackerSlug: "TorrentLeech",
         hiddenPathKeys: ["a>b"],
         goalLinks: [],
       },
@@ -75,7 +75,7 @@ describe("/api/recruitment/wishlist", () => {
     const res = await PUT(
       req({
         state: {
-          desiredTrackerSlug: "torrentleech",
+          desiredTrackerSlug: "TorrentLeech",
           hiddenPathKeys: ["a>b", "a>b", 42],
           goalLinks: [
             {
@@ -101,7 +101,7 @@ describe("/api/recruitment/wishlist", () => {
     expect((payload.state.goalLinks as unknown[]).length).toBe(1)
 
     expect(h.updateSet).toHaveBeenCalledWith({
-      recruitmentState: expect.stringContaining('"desiredTrackerSlug":"torrentleech"'),
+      recruitmentState: expect.stringContaining('"desiredTrackerSlug":"TorrentLeech"'),
     })
     const stored = h.updateSet.mock.calls[0][0] as { recruitmentState: string }
     expect(stored.recruitmentState).not.toContain("extra")

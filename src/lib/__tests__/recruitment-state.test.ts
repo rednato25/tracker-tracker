@@ -28,7 +28,7 @@ describe("normalizeRecruitmentState", () => {
     expect(normalizeRecruitmentState({ desiredTrackerSlug: "missing" }).desiredTrackerSlug).toBeNull()
   })
 
-  it("keeps valid registry slugs and deduplicates bounded path keys", () => {
+  it("migrates a saved registry target to its trackerpathways ID", () => {
     const state = normalizeRecruitmentState({
       desiredTrackerSlug: "torrentleech",
       hiddenPathKeys: [
@@ -38,7 +38,7 @@ describe("normalizeRecruitmentState", () => {
         "x".repeat(600),
       ],
     })
-    expect(state.desiredTrackerSlug).toBe("torrentleech")
+    expect(state.desiredTrackerSlug).toBe("TorrentLeech")
     expect(state.hiddenPathKeys).toEqual(["tp:alpharatio:broadcasthenet"])
   })
 

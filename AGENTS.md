@@ -1,0 +1,24 @@
+## Design workflow
+
+DESIGN.md and PRODUCT.md are the source of truth. If a skill conflicts with them, follow DESIGN.md and report the conflict.
+The dashboard must show in 3 seconds: total uploaded, total downloaded, overall ratio, and how far each tracker is from its next rank.
+For UI work, use one skill per step, in this order:
+1. Direction: /impeccable critique, then distill or typeset if needed. Update DESIGN.md when a decision changes.
+2. Build to DESIGN.md.
+3. Stress test: break-ui. Put worst-case data in e2e/test fixtures, never a toggle in the shipped app. Report breaks before fixing.
+4. Phone: mobile-native at 390px.
+5. Check: web-design-guidelines, then /impeccable polish.
+6. Optional: emil-design-eng for a final detail pass.
+For dashboard layout and chart choices, use IBM Carbon's dashboard and data-visualization guidance (carbondesignsystem.com) as the reference. Pick each chart by the question it answers; remove charts that don't answer one.
+Do not use other design skills (palette generators, alternative DESIGN.md writers) unless asked. Keep dashboard motion minimal; no new animations without approval.
+Only run this workflow when a task asks for design work. Feature and fix tasks follow DESIGN.md without running the full skill sequence.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -838,3 +838,104 @@ test.describe.serial("monitoring register visual evidence", () => {
     await page.locator("#register").screenshot({ path: "test-results/visual-register-mobile.png" })
   })
 })
+test.describe.serial("rank goal summary visual evidence", () => {
+  const ids: number[] = []
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const rows = [
+        { name: "TEST Rank Goal", slug: "torrentleech", group: "Power User" },
+        { name: "TEST Rank Unsupported", slug: "myanonamouse", group: "Power User" },
+      ]
+      const idsBySlug: Record<string, number> = {}
+      for (const row of rows) {
+        const [tracker] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active,
+            joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
+          ) values (
+            ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, "unit3d", true,
+            ${new Date(Date.now() - 20 * 86400000)}, now(),
+            ${encrypt("synthetic-p26-token", key)}, now(), now()
+          ) returning id
+        `
+        ids.push(tracker.id)
+        idsBySlug[row.slug] = tracker.id
+        await sql`
+          insert into tracker_snapshots (
+            tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+            buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+            required_ratio, warned, freeleech_tokens, is_manual
+          ) values (
+            ${tracker.id}, now(), ${1 * 1024 ** 4}, ${500 * 1024 ** 3}, 1.0, ${row.group},
+            ${512 * 1024 ** 3}, 3, 0, 100, 0, 1, false, 0, false
+          )
+        `
+      }
+      await sql`
+        update app_settings
+        set rank_goals = ${JSON.stringify({
+          [String(idsBySlug.torrentleech)]: { targetRank: "Super User" },
+        })}
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      for (const id of ids) await sql`delete from trackers where id = ${id}`
+      await sql`update app_settings set rank_goals = null`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures light/dark desktop and 390px summary layouts", async ({ page }) => {
+    await page.goto("/")
+    await expect(page.locator("[data-rank-stacks]")).toBeVisible({ timeout: 15_000 })
+    const ranksToggle = page.getByRole("button", { name: "Ranks" })
+    if ((await ranksToggle.getAttribute("aria-expanded")) === "false") {
+      await ranksToggle.click()
+    }
+    await expect(page.locator("[data-rank-goal-summary]")).toHaveCount(2)
+    await expect(page.getByText("Target set")).toBeVisible()
+    await expect(page.getByText("Structured progress unavailable")).toBeVisible()
+    await expect(page.getByText(/Current: Power User/).first()).toBeVisible()
+
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+      document.querySelector("[data-rank-stacks]")?.scrollIntoView({ block: "start" })
+    })
+    await page.waitForTimeout(200)
+    await page.locator("[data-rank-stacks]").screenshot({
+      path: "test-results/visual-rank-summary-light.png",
+    })
+
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.locator("[data-rank-stacks]").screenshot({
+      path: "test-results/visual-rank-summary-dark.png",
+    })
+
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.evaluate(() => {
+      document.querySelector("[data-rank-stacks]")?.scrollIntoView({ block: "start" })
+    })
+    await page.locator("[data-rank-stacks]").screenshot({
+      path: "test-results/visual-rank-summary-mobile.png",
+    })
+  })
+})

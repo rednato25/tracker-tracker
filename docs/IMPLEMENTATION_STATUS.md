@@ -100,7 +100,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P22 | deferred | P03 and existing qBittorrent | - | Fleet analytics and satisfaction exist; no storage/seeding report | Deferred: storage cleanup is not a current priority; no destructive actions. |
 | P23 | deferred | P22 | - | No space-release candidate classification | Deferred: storage cleanup is not a current priority; optional and destructive actions remain out of scope. |
 | P24 | deferred (monitoring only) | P09 and pilot sources | - | Seedbonus data and detail display exist; no verified exchange rules or planner | Retain only relevant bonus monitoring/planning. Defer exchange comparison/spending until verified per-tracker sources exist. |
-| P25 | implementation + automated/visual checks complete; owner manual acceptance pending | P03, P12/P18 data conventions | draft PR #31 (`feat/p25-monitoring-register`) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile rows; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Draft only; not deployed. Owner acceptance pending. No rank summary, digest expansion, bonus exchange planner, P21-P23, deployment or home-server change. |
+| P25 | done | P03, P12/P18 data conventions | PR #31 (`feat/p25-monitoring-register`; merged; not deployed) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile three-cell strip; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles and visible legend; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Owner-supplied isolated acceptance on image digest `sha256:e080430be2bc435ec3bb0e20b5fe4e419f8740df162899a77509f5dedca617eb`: populated/zero/stale/unknown-age/no-snapshot rows, visible mobile legend, responsive light/dark layouts, health and no-op migration. Missing individual transfer fields were covered by component tests because stored columns are NOT NULL; not database-tested. Automated evidence remains separate. No rank summary in P25, digest expansion, planner, P21-P23 or deployment. |
+| P26 | implementation + automated checks complete; owner manual acceptance pending | P09-P11, dashboard rank surface | draft PR pending (`feat/p26-rank-summary`) | Compact Rank goal summary inside existing Ranks section; observed current rank; saved target labelled target; automatic next rank only from ladder logic; unmet/unknown/stale requirements and remaining values; one tracker rank-goal link; no-target/unsupported/missing-current states; 8 focused tests; 6251 full tests; no new rules/persistence | Draft only; not deployed. Owner acceptance pending. No new rules dataset, adapters, polling, migrations, Telegram changes, deployment or home-server change. |
 | GATE | pending | Relevant tasks | — | No release gate run for a delivery | Run after each delivery; do not treat this audit as a gate |
 
 ## P02a — database baseline preparation
@@ -1530,8 +1531,8 @@ gaps and bounded next task are in `docs/PRODUCT_PRIORITIES.md`. Summary:
 ### P25 monitoring-register completion
 
 - Adds accounted upload, accounted download and current bonus points to the
-  existing `TrackerRegister` as a compact "Accounted" desktop column and three
-  mobile rows. Uses `latestStats` and the existing `lastPolledAt` freshness
+  existing `TrackerRegister` as a compact "Accounted" desktop column and a
+  three-cell mobile strip. Uses `latestStats` and the existing `lastPolledAt` freshness
   policy; no adapters, schema, polling, API integration or derived values.
 - Confirmed zero renders as `0 MiB` / `0`; missing fields render `—` and
   distinguish "not reported in the latest snapshot" from "no snapshot yet".
@@ -1554,6 +1555,48 @@ gaps and bounded next task are in `docs/PRODUCT_PRIORITIES.md`. Summary:
 - Limitations: no unsupported/available capability metadata is invented; missing
   adapter fields remain missing. No rank-summary changes, digest expansion, bonus
   exchange planner, P21-P23, deployment or home-server change.
+
+### P25 owner-supplied home-server acceptance (2026-10-28)
+
+The owner confirmed the isolated instance on published digest
+`sha256:e080430be2bc435ec3bb0e20b5fe4e419f8740df162899a77509f5dedca617eb`:
+
+- Populated, confirmed-zero, stale, unknown-age and no-snapshot rows behaved as
+  documented.
+- The symbol legend was visible on mobile/touch.
+- Light/dark responsive layouts were usable; health passed and migration was a
+  no-op.
+- Individual transfer-field nulls were not database-tested: those stored columns
+  are NOT NULL. The component tests cover the missing-value rendering path.
+
+This is owner-supplied evidence, separate from the automated tests, CI and
+authenticated screenshots. Owner acceptance is recorded; do not infer that the
+database was seeded with null individual transfer columns.
+
+### P26 compact dashboard rank-goal summary
+
+- Extends the existing dashboard `RankStacks` surface with a summary list; no
+  duplicate panel and no change to register width. P09/P10/P11 remain the only
+  rank semantics.
+- Shows observed current rank (redacted values stay hidden), saved target rank
+  clearly labelled `Target`, and only an unambiguous ladder next rank as
+  `Next rank (automatic)`. Without a saved target the single link is "Choose a
+  target"; with a target it is "Open rank goal" and targets
+  `/trackers/:id#rank-goal`.
+- Shows concise known unmet conditions with remaining values where the evaluator
+  supports them, plus unresolved checks. Stale observations remain unknown;
+  missing current rank stays `Unknown`; no promotion date, percentage or
+  eligibility-to-rank mutation is introduced.
+- Unsupported trackers show the current rank when available and
+  "Structured progress unavailable." TorrentLeech's upload-unit caveat remains
+  unresolved. No new rules, adapters, polling, persistence or migrations.
+- Tests: 8 pure summary tests cover saved targets, unmet/unknown/stale data,
+  missing rank, unsupported trackers, no target, redaction and saved-goal parsing;
+  existing RankStacks tests remain green. Full suite on Node 24: 259 files /
+  6251 tests passed.
+- Visual evidence: local authenticated dashboard with synthetic TorrentLeech
+  target and unsupported MyAnonaMouse rows; light/dark desktop and 390px mobile
+  artifacts pending inspection.
 
 ### P02b slices
 

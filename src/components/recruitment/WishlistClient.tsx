@@ -488,12 +488,12 @@ export function WishlistClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state: next }),
       })
-      if (!res.ok) throw new Error("The wishlist could not be saved")
+      if (!res.ok) throw new Error("Tracker pathways could not be saved")
       const data = (await res.json()) as { state?: unknown }
       if (data.state) setState(normalizeRecruitmentState(data.state))
     } catch (err) {
       setState(previous)
-      setError(err instanceof Error ? err.message : "The wishlist could not be saved")
+      setError(err instanceof Error ? err.message : "Tracker pathways could not be saved")
     } finally {
       setSaving(false)
     }
@@ -535,7 +535,7 @@ export function WishlistClient({
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5 pt-14 md:pt-0" data-wishlist-page>
       <div className="flex flex-col gap-1">
-        <H1>Wishlist</H1>
+        <H1>Tracker pathways</H1>
         <Paragraph className="max-w-3xl">
           Plan a route to a tracker you want. Routes are based on a pinned community snapshot;
           they are not applications and they do not prove that a recruiter is active.

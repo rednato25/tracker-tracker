@@ -1683,15 +1683,19 @@ P26 owner acceptance remains pending. Merge of the fix is not authorized.
   version-1 registry-slug targets migrate on read, write and backup restore.
 - `days` is now the minimum time on the source tracker: each step uses
   `max(route days, source forum-gate days)` and the path sums them, labelled
-  "per trackerpathways". Owned sources show days remaining from account age;
-  unknown account age stays unknown. `unlockInviteClass` text is shown for every
-  source step that has it. `reqs` remains prose, and `active: "No"`/`"Closed"`
-  routes are excluded from suggested paths.
-- Tests: 7 P30 cases plus updated contract, wishlist/UI, state and backup-restore
-  tests pass (96 focused tests). Full suite on the local Node 26 environment has
-  the known jsdom `localStorage` failures; Node 24 CI remains the gate. Typecheck
-  and production build pass; `pnpm lint` still reports pre-existing diagnostics
-  outside this slice.
+  "per trackerpathways". Source-gate days are part of that step wait. Owned
+  sources show days remaining from account age; unknown account age stays
+  unknown. Paths are collected from all owned sources, ranked by total days
+  remaining (first hop uses account-age remainder, later hops use the full
+  wait, unknown waits last), then fewer hops, and only then capped.
+  `unlockInviteClass` text is shown for every source step that has it. `reqs`
+  remains prose, and `active: "No"`/`"Closed"` routes are excluded from suggested
+  paths.
+- Tests: 12 P30 cases plus updated contract, wishlist/UI, state and backup-restore
+  tests pass. Full suite on the local Node 26 environment has the known jsdom
+  `localStorage` failures; Node 24 CI remains the gate. Typecheck and production
+  build pass; `pnpm lint` still reports pre-existing diagnostics outside this
+  slice.
 - Visual evidence: authenticated E2E captured `/wishlist` light/dark at 1440px
   (`visual-wishlist-light.png`, `visual-wishlist-dark.png`) and 390px
   (`visual-wishlist-mobile.png`, `visual-wishlist-mobile-dark.png`) with a

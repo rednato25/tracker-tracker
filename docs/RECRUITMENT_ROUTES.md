@@ -111,7 +111,9 @@ provenance. The shipped override list is empty.
 `findRecruitmentPaths` is a bounded depth-first search (default six hops) with a
 visited-tracker set, so cycles cannot cause infinite traversal. It returns route
 IDs only; it does not evaluate or mutate anything. Closed routes are skipped
-unless `includeClosed` is explicitly requested.
+unless `includeClosed` is explicitly requested. The wishlist collects candidates
+from all owned sources, ranks them by total known wait and then fewer hops, and
+applies its caps only after ranking.
 
 ## Limitations
 

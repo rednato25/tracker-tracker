@@ -67,6 +67,43 @@ function tracker(joinedAt: string | null): TrackerSummary {
   } as TrackerSummary
 }
 
+function ownedTracker(
+  id: number,
+  name: string,
+  registrySlug: string,
+  joinedAt: string
+): TrackerSummary {
+  return { ...tracker(joinedAt), id, name, registrySlug }
+}
+
+const RECENT_JOIN = "2026-09-18T12:00:00.000Z"
+
+function rankingCatalog() {
+  return catalog([
+    route({
+      id: "tp:Aither:Target",
+      sourceTrackerId: "Aither",
+      destinationTrackerId: TARGET as string,
+      sourceRegistrySlug: "aither",
+      minimumDays: 100,
+    }),
+    route({
+      id: "tp:Zenith:Target",
+      sourceTrackerId: "Zenith",
+      destinationTrackerId: TARGET as string,
+      sourceRegistrySlug: "zenith",
+      minimumDays: 7,
+    }),
+  ])
+}
+
+function rankingTrackers(): TrackerSummary[] {
+  return [
+    ownedTracker(1, "Aither", "aither", RECENT_JOIN),
+    ownedTracker(2, "Zenith", "zenith", RECENT_JOIN),
+  ]
+}
+
 function state(target: string) {
   return { ...emptyRecruitmentState(), desiredTrackerSlug: target }
 }
@@ -115,6 +152,95 @@ describe("P30 full pathways wishlist", () => {
     })
     expect(result.paths[0].routeIds).toHaveLength(2)
     expect(result.paths[0].steps[1].scenario).toBe(true)
+  })
+
+  it("ranks a faster route from an alphabetically later source ahead of a slower earlier one", () => {
+    const result = buildWishlistPaths({
+      catalog: rankingCatalog(),
+      desiredTrackerSlug: TARGET as string,
+      trackers: rankingTrackers(),
+      savedRankGoals: {},
+      state: state(TARGET as string),
+      now: NOW,
+    })
+    expect(result.paths.map((path) => path.steps[0].sourceTrackerId)).toEqual(["Zenith", "Aither"])
+    expect(result.paths.map((path) => path.totalDaysRemaining)).toEqual([0, 60])
+  })
+
+  it("applies the cap only after ranking", () => {
+    const result = buildWishlistPaths({
+      catalog: rankingCatalog(),
+      desiredTrackerSlug: TARGET as string,
+      trackers: rankingTrackers(),
+      savedRankGoals: {},
+      state: state(TARGET as string),
+      now: NOW,
+      maxTotal: 1,
+    })
+    expect(result.paths).toHaveLength(1)
+    expect(result.paths[0].steps[0].sourceTrackerId).toBe("Zenith")
+    expect(result.truncated).toBe(true)
+  })
+
+  it("ranks unknown-day paths after known ones", () => {
+    const item = catalog([
+      route({
+        id: "tp:Aither:Target",
+        sourceTrackerId: "Aither",
+        destinationTrackerId: TARGET as string,
+        sourceRegistrySlug: "aither",
+        minimumDays: null,
+      }),
+      route({
+        id: "tp:Zenith:Target",
+        sourceTrackerId: "Zenith",
+        destinationTrackerId: TARGET as string,
+        sourceRegistrySlug: "zenith",
+        minimumDays: 7,
+      }),
+    ])
+    const result = buildWishlistPaths({
+      catalog: item,
+      desiredTrackerSlug: TARGET as string,
+      trackers: rankingTrackers(),
+      savedRankGoals: {},
+      state: state(TARGET as string),
+      now: NOW,
+    })
+    expect(result.paths.map((path) => path.steps[0].sourceTrackerId)).toEqual(["Zenith", "Aither"])
+    expect(result.paths.map((path) => path.totalDaysRemaining)).toEqual([0, null])
+  })
+
+  it("includes source-gate days in the fastest ranking", () => {
+    const item = catalog(
+      [
+        route({
+          id: "tp:Aither:Target",
+          sourceTrackerId: "Aither",
+          destinationTrackerId: TARGET as string,
+          sourceRegistrySlug: "aither",
+          minimumDays: 0,
+        }),
+        route({
+          id: "tp:Zenith:Target",
+          sourceTrackerId: "Zenith",
+          destinationTrackerId: TARGET as string,
+          sourceRegistrySlug: "zenith",
+          minimumDays: 7,
+        }),
+      ],
+      [{ trackerId: "Aither", days: 80, text: "Gate: 80 days" }]
+    )
+    const result = buildWishlistPaths({
+      catalog: item,
+      desiredTrackerSlug: TARGET as string,
+      trackers: rankingTrackers(),
+      savedRankGoals: {},
+      state: state(TARGET as string),
+      now: NOW,
+    })
+    expect(result.paths.map((path) => path.steps[0].sourceTrackerId)).toEqual(["Zenith", "Aither"])
+    expect(result.paths.map((path) => path.totalDaysRemaining)).toEqual([0, 40])
   })
 
   it("shows days remaining from account age and keeps unknown age unknown", () => {
@@ -172,6 +298,7 @@ describe("P30 full pathways wishlist", () => {
     expect(result.paths[0].steps[0].evaluation.timeGate.effectiveDays).toBe(90)
     expect(result.paths[0].steps[1].evaluation.timeGate.effectiveDays).toBe(60)
     expect(result.paths[0].minimumDays).toBe(150)
+    expect(result.paths[0].totalDaysRemaining).toBe(60)
   })
 
   it("keeps the time gate unknown when neither the route nor the source lists days", () => {

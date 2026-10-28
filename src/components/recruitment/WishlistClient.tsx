@@ -404,11 +404,11 @@ function PathCard({
             {path.steps.length === 1
               ? "Direct route"
               : `${path.steps.length} steps · bounded scenario`}
-            {path.minimumDays !== null && path.minimumDays > 0
-              ? ` · ${path.minimumDays} days minimum time per trackerpathways`
-              : path.minimumDays === null
-                ? " · time requirement unknown"
-                : ""}
+            {path.totalDaysRemaining !== null
+              ? path.totalDaysRemaining > 0
+                ? ` · ${path.totalDaysRemaining} days remaining per trackerpathways`
+                : " · no known wait"
+              : " · wait time unknown"}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -639,7 +639,8 @@ export function WishlistClient({
               <p className="text-xs text-secondary">
                 {visiblePaths.length === 1
                   ? "1 route"
-                  : `${visiblePaths.length} routes`} to {desiredName}. Direct routes are shown first.
+                  : `${visiblePaths.length} routes`} to {desiredName}. Fastest known waits are
+                shown first, then fewer steps; unknown waits are last.
               </p>
             </div>
             {result.truncated && (

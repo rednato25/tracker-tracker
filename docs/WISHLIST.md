@@ -56,6 +56,11 @@ condition logic.
 - The path time gate is
   `sum(max(route days, source forum days))` across the path, matching upstream's
   route search.
+- Paths are collected from every owned tracker before any cap, then ranked by
+  total days remaining: the first hop uses the days remaining from your account
+  age, later hops use the full step wait, and unknown waits rank after known
+  ones. Ties use fewer hops. Per-source and total caps are applied only after
+  ranking, so a faster route from a later source is not dropped.
 - The first step is not a guarantee that the next account can be obtained.
 - Saved goal links require an exact metric/comparison/required-value match with a
   structured condition in an existing saved rank goal. The shipped community
@@ -151,7 +156,8 @@ does not accept integration tokens and does not contact a tracker.
 
 - P30 tests cover selecting an unregistered destination, a two-hop path through
   an unregistered tracker, route/forum day maximums and path sums, days remaining
-  from account age, unknown account age, inactive-route exclusion, the full
+  from account age, unknown account age, inactive-route exclusion, fastest-first
+  ranking across sources, cap-after-ranking, unknown-wait ordering, the full
   trackerpathways catalog and malformed-file rejection by the update script.
 - Synthetic fixtures provide met/unmet/unknown scenarios. No production route was
   invented or upgraded to verified.

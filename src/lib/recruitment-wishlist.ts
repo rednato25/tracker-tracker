@@ -65,6 +65,8 @@ export interface WishlistPathView {
   status: WishlistPathStatus
   statusDetail: string
   minimumDays: number | null
+  /** Known wait for this path: remaining days on the owned first hop plus full later waits. */
+  totalDaysRemaining: number | null
   hidden: boolean
 }
 
@@ -76,7 +78,9 @@ export interface WishlistPathsInput {
   state: RecruitmentState
   now: Date
   maxHops?: number
+  /** Applied after the global fastest-first ranking, never during search. */
   maxPathsPerSource?: number
+  /** Applied after the global fastest-first ranking, never during search. */
   maxTotal?: number
 }
 
@@ -281,6 +285,36 @@ function summarizePath(steps: WishlistStepView[]): {
   }
 }
 
+function totalDaysRemainingFor(steps: WishlistStepView[]): number | null {
+  let total = 0
+  for (const [index, step] of steps.entries()) {
+    const gate = step.evaluation.timeGate
+    const days =
+      index === 0
+        ? gate.status === "unknown"
+          ? null
+          : (gate.daysRemaining ?? 0)
+        : gate.effectiveDays
+    if (days === null) return null
+    total += days
+  }
+  return total
+}
+
+function compareWishlistPaths(a: WishlistPathView, b: WishlistPathView): number {
+  if ((a.totalDaysRemaining === null) !== (b.totalDaysRemaining === null)) {
+    return a.totalDaysRemaining === null ? 1 : -1
+  }
+  if (
+    a.totalDaysRemaining !== null &&
+    b.totalDaysRemaining !== null &&
+    a.totalDaysRemaining !== b.totalDaysRemaining
+  ) {
+    return a.totalDaysRemaining - b.totalDaysRemaining
+  }
+  return a.steps.length - b.steps.length || a.key.localeCompare(b.key)
+}
+
 export function buildWishlistPaths(input: WishlistPathsInput): WishlistPathsResult {
   const {
     catalog,
@@ -315,12 +349,12 @@ export function buildWishlistPaths(input: WishlistPathsInput): WishlistPathsResu
     : false
 
   const hidden = new Set(state.hiddenPathKeys)
-  const paths: WishlistPathView[] = []
+  const candidates: WishlistPathView[] = []
   let truncated = false
 
   if (!desiredTrackerSlug || desiredOwned) {
     return {
-      paths,
+      paths: candidates,
       truncated,
       catalogHasDesired,
       desiredOwned,
@@ -335,13 +369,9 @@ export function buildWishlistPaths(input: WishlistPathsInput): WishlistPathsResu
       sourceSlug,
       desiredTrackerSlug,
       maxHops,
-      maxPathsPerSource
+      Number.POSITIVE_INFINITY
     )
     for (const path of sourcePaths) {
-      if (paths.length >= maxTotal) {
-        truncated = true
-        break
-      }
       const key = recruitmentPathKey(path.routeIds)
       const steps: WishlistStepView[] = []
       for (const routeId of path.routeIds) {
@@ -388,20 +418,37 @@ export function buildWishlistPaths(input: WishlistPathsInput): WishlistPathsResu
         }
         minimumDays += days
       }
-      paths.push({
+      candidates.push({
         key,
         routeIds: path.routeIds,
         steps,
         status: summary.status,
         statusDetail: summary.detail,
         minimumDays,
+        totalDaysRemaining: totalDaysRemainingFor(steps),
         hidden: hidden.has(key),
       })
     }
-    if (truncated) break
   }
 
-  paths.sort((a, b) => a.steps.length - b.steps.length || a.key.localeCompare(b.key))
+  candidates.sort(compareWishlistPaths)
+
+  const paths: WishlistPathView[] = []
+  const pathsPerSource = new Map<string, number>()
+  for (const path of candidates) {
+    if (paths.length >= maxTotal) {
+      truncated = true
+      break
+    }
+    const source = path.steps[0]?.sourceTrackerId ?? ""
+    const sourceCount = pathsPerSource.get(source) ?? 0
+    if (sourceCount >= maxPathsPerSource) {
+      truncated = true
+      continue
+    }
+    paths.push(path)
+    pathsPerSource.set(source, sourceCount + 1)
+  }
 
   return {
     paths,

@@ -69,7 +69,7 @@ export interface RecruitmentRouteRecord {
 
 export interface RecruitmentSourceGate {
   trackerId: string
-  /** Upstream wait value; not interpreted as account age. */
+  /** Wait value from trackerpathways; included in the step time gate. */
   days: number | null
   /** Source invite-class/forum gate prose. Always unresolved in P17. */
   text: string
@@ -204,7 +204,7 @@ function unresolvedPrerequisites(
       kind: "manual",
       id: "source-invite-gate",
       label: "Source invite-class or forum gate",
-      description: `${sourceGate.text}${sourceGate.days === null ? "" : ` (upstream wait: ${sourceGate.days} days; not evaluated as account age)`}`,
+      description: `${sourceGate.text}${sourceGate.days === null ? "" : ` (trackerpathways wait: ${sourceGate.days} days)`}`,
     })
   }
   return manual

@@ -1592,11 +1592,35 @@ database was seeded with null individual transfer columns.
   unresolved. No new rules, adapters, polling, persistence or migrations.
 - Tests: 8 pure summary tests cover saved targets, unmet/unknown/stale data,
   missing rank, unsupported trackers, no target, redaction and saved-goal parsing;
-  existing RankStacks tests remain green. Full suite on Node 24: 259 files /
-  6251 tests passed.
+  existing RankStacks tests remain green. P26 target-selection correction adds
+  3 focused tests. Full suite and CI are the final gate.
 - Visual evidence: local authenticated dashboard with synthetic TorrentLeech
   target and unsupported MyAnonaMouse rows; light/dark desktop and 390px mobile
   artifacts pending inspection.
+
+### P26 target-selection correction (draft PR #35)
+
+Owner-supplied isolated testing found that the dashboard correctly showed NO
+TARGET when no saved goal existed, while tracker detail silently displayed and
+evaluated Power User. The target selector also lacked an empty choice and a clear
+action. This is classified separately from the successful home-server checks:
+the P26 summary itself rendered, but the detail target state was inconsistent.
+
+Fix in progress:
+- Detail uses only the saved goal, never the first ladder option.
+- Explicit "Choose a target" state; clear removes only the current tracker's
+  goal and preserves every other saved goal/setting.
+- Automatic next rank is labelled as a suggestion and is never auto-selected or
+  persisted; saving it requires an explicit action.
+- Dashboard and detail both derive from the saved `rankGoals` map.
+- Stale/missing ratio observations remain unknown with their own evidence; the
+  ratio condition is not blamed on unresolved upload units, and timestamps are
+  not altered.
+- Regression coverage: no target, select/save, clear/reload, other-goal
+  preservation, and stale-ratio explanation. Existing P26 tests/screenshots and
+  the scoped wishlist visual fix are reused.
+
+P26 owner acceptance remains pending. Merge of the fix is not authorized.
 
 ### P02b slices
 

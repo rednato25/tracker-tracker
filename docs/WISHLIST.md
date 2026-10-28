@@ -1,26 +1,32 @@
-# Wishlist and Recruitment Pathways (P18/P30)
+# Tracker pathways (P18/P30/P31)
 
-P18 adds a compact list-based wishlist page at `/wishlist`. P30 expands it to
-the complete trackerpathways dataset. It is a planning surface, not an
-application flow: no tracker request, message, invitation or automatic action is
-sent.
+The Tracker pathways page lives at `/pathways`; `/wishlist` redirects there. P18
+added the planning surface, P30 expanded it to the complete trackerpathways
+dataset, and P31 simplified it into two sections. It is not an application flow:
+no tracker request, message, invitation or automatic action is sent.
 
 ## User flow
 
-1. Pick one desired tracker from every trackerpathways name and save it. The
-   destination is stored as a trackerpathways ID; legacy registry-slug targets
-   are migrated on read.
-2. The page finds direct and bounded multi-step routes from trackers the user
-   already owns (maximum four hops, five paths per source, twenty paths total).
-   Unregistered trackerpathways names can be destinations and middle hops.
-3. Each step shows source → destination, structured conditions, readable `reqs`
-   text, the full `unlockInviteClass` text when present, minimum source time,
-   availability, evidence dates and attribution.
-4. Hide a route path to remove it from the list; show hidden paths again from the
-   same page.
-5. When a step has a validated structured condition that exactly matches a
-   condition in an existing saved rank goal, link it. The link stores registry
-   slugs and the target rank, not database ids.
+1. **Your trackers** lists each account you own with its current class, account
+   age and number of direct trackerpathways leads. An owned tracker that is not
+   in the dataset says "Not in trackerpathways data" and shows nothing else.
+2. **Get to a tracker** is a searchable picker over trackerpathways names you do
+   not own. The saved destination is stored as a trackerpathways ID; legacy
+   registry-slug targets migrate on read. Previously selected targets remain
+   available as switchable chips for the session.
+3. The fastest known route is shown as a chain of steps with total time left at
+   the top. Each step shows the tracker, the invite class it needs and "Ready
+   now", "N days left" or "Unknown". A step on a tracker you do not own yet uses
+   the full wait after joining.
+4. Source text, `reqs`, structured conditions, availability, evidence notes and
+   stale notices sit behind one closed **Details** toggle per step.
+5. Other routes stay collapsed under **Other routes (N)**, with at most five
+   listed.
+6. If there is no route, the page says "No known route from your trackers." The
+   picker footer links to trackerpathways for missing trackers.
+
+The page keeps the tracker-detail width and header placement for now; a full
+width audit is a separate task.
 
 ## Uncertainty is intentionally visible
 
@@ -69,16 +75,13 @@ condition logic.
 
 ## Page states
 
-- No destination selected.
-- Destination already owned.
-- No owned tracker matched to a trackerpathways name.
-- Destination absent from the pinned catalog: "No catalog coverage", never
-  "no route exists".
-- No known route from owned accounts: "No known route", with the same caveat.
-- All matching paths hidden.
+- No target selected.
+- Target already owned.
+- Owned tracker absent from trackerpathways data.
+- No known route: "No known route from your trackers."
 - Missing or stale stored observations on an owned source.
-- Source gate, minimum source time and readable prose that still need checking.
-- Hidden path count and the control to show them again.
+- Source gate, minimum source time and readable prose behind a closed Details
+  toggle.
 - Stale goal links or saved references after a catalog/tracker change are
   ignored defensively; they do not crash the page.
 
@@ -86,31 +89,23 @@ condition logic.
 
 The current catalog has a direct route `AlphaRatio -> BroadcasTheNet`
 (`tp:AlphaRatio:BroadcasTheNet`). Use the **AlphaRatio** fixture tracker as the
-owned source and **BroadcasTheNet** as the destination. Aither reaches this
-destination through intermediates, so do not expect a direct Aither step. No
-route data was changed to fit this guide.
+owned source and **BroadcasTheNet** as the target. No route data was changed to
+fit this guide.
 
 1. Confirm the isolated fixture instance has AlphaRatio with a registry match,
-   then open `/wishlist`.
-2. Select **BroadcasTheNet** and save. Reload the page; confirm the destination is
+   then open `/pathways`. Confirm `/wishlist` redirects there.
+2. Search for **BroadcasTheNet** and select it. Reload; confirm the target is
    still selected.
-3. Inspect the direct **AlphaRatio to BroadcasTheNet** route. AlphaRatio is your
-   fixture account, so that step is marked **Your account**. The step shows the
-   source invite/forum gate text and the minimum time labelled
-   "per trackerpathways". If a multi-step path through an unowned intermediate
-   appears, it is marked **Scenario** and is not evaluated against your data.
-4. Confirm the unresolved text is shown separately from availability: readable
-   `reqs`, the full `unlockInviteClass` text, the stale source update, and
-   community availability (open/closed/unconfirmed). No step should claim "ready
-   to apply" or a guaranteed invitation.
-5. Hide the route. Reload; confirm it stays hidden and the hidden-path count is
-   shown. Use "Show hidden routes" and confirm the path returns.
-6. Set the viewport to 390px; confirm the Wishlist title clears the navigation
-   control, long source text wraps, and Hide/Show controls remain reachable.
-7. The **goal-link control is legitimately absent** for this fixture route. The
-   community route has no structured condition, only prose, the source gate and
-   the minimum days, so there is no exact match with an existing saved rank goal.
-   Its absence is not a UI failure.
+3. Confirm **Your trackers** shows AlphaRatio with its class, account age and
+   direct lead count. A tracker without a trackerpathways match shows only
+   "Not in trackerpathways data".
+4. Confirm the fastest route is a chain with total time left at the top. Each
+   step shows the tracker, invite class and Ready now / N days left / Unknown.
+5. Confirm every **Details** toggle is closed by default. Opening one reveals
+   source text, `reqs`, availability, evidence dates and stale notices.
+6. Confirm **Other routes (N)** is closed and lists no more than five routes.
+7. Set the viewport to 390px; confirm the Tracker pathways title clears the
+   navigation control and long text wraps.
 
 ## Persistence, backup and restore
 
@@ -163,9 +158,9 @@ does not accept integration tokens and does not contact a tracker.
   invented or upgraded to verified.
 - Visual evidence from the authenticated E2E run, using a temporary owned
   AlphaRatio row and the real pinned catalog:
-  `visual-wishlist-light.png` and `visual-wishlist-dark.png` at 1440px, plus
-  `visual-wishlist-mobile.png` and `visual-wishlist-mobile-dark.png` at 390px.
-  The test removes the row and clears the wishlist state afterwards.
+  `visual-pathways-light.png` and `visual-pathways-dark.png` at 1440px, plus
+  `visual-pathways-mobile.png` and `visual-pathways-mobile-dark.png` at 390px.
+  The test removes the row and clears the saved state afterwards.
 
 ## Limitations
 

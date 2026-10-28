@@ -2,7 +2,7 @@
 
 ## trackerpathways
 
-The wishlist recruitment-route catalog is vendored unchanged from the
+The Tracker pathways recruitment-route catalog is vendored unchanged from the
 trackerpathways community dataset in `src/data/pathways/trackers.json`. The
 pinned commit, fetch date and license are recorded in
 `src/data/pathways/metadata.json`. The legacy subset that lived in

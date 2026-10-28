@@ -36,11 +36,13 @@ function SummaryCard({ summary }: { summary: RankGoalSummary }) {
           {summary.trackerName}
         </span>
         <Badge variant={summary.status === "goal" ? "accent" : "default"}>
-          {summary.targetRank
-            ? "Target set"
-            : summary.automaticNextRank
-              ? "Automatic next"
-              : "No target"}
+          {summary.status === "unsupported"
+            ? "Unsupported"
+            : summary.targetRank
+              ? "Target set"
+              : summary.automaticNextRank
+                ? "Automatic next"
+                : "No target"}
         </Badge>
       </div>
 

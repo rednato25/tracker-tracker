@@ -859,7 +859,7 @@ test.describe.serial("rank goal summary visual evidence", () => {
             name, base_url, registry_slug, platform_type, is_active,
             joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
           ) values (
-            ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, "unit3d", true,
+            ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, 'unit3d', true,
             ${new Date(Date.now() - 20 * 86400000)}, now(),
             ${encrypt("synthetic-p26-token", key)}, now(), now()
           ) returning id

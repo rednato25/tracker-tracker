@@ -471,7 +471,7 @@ test.describe.serial("integration token visual evidence", () => {
     }
   })
 })
-test.describe.serial("wishlist visual evidence", () => {
+test.describe.serial("tracker pathways visual evidence", () => {
   let wishlistTrackerId: number | null = null
 
   test.beforeAll(async () => {
@@ -486,7 +486,7 @@ test.describe.serial("wishlist visual evidence", () => {
           name, base_url, registry_slug, platform_type, is_active, user_paused_at,
           joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
         ) values (
-          'TEST Visual Wishlist', 'https://tt-p18.invalid', 'alpharatio',
+          'TEST Visual Pathways', 'https://tt-p18.invalid', 'alpharatio',
           'unit3d', true, now(), '2025-01-01T00:00:00.000Z', now(),
           ${encrypt("synthetic-p18-token", key)}, now(), now()
         ) returning id
@@ -519,31 +519,34 @@ test.describe.serial("wishlist visual evidence", () => {
     }
   })
 
-  test("captures desktop light/dark and 390px wishlist layouts", async ({ page }) => {
+  test("captures desktop light/dark and 390px tracker pathways layouts", async ({ page }) => {
     expect(wishlistTrackerId).not.toBeNull()
-    await page.goto("/wishlist")
+    await page.goto("/pathways")
     // Next can keep a hidden previous route tree outside the app shell. The
     // visible page is the one mounted under #main-content; scope interactions
     // there instead of matching a framework-preserved hidden duplicate.
-    const wishlistPage = page.locator("#main-content [data-wishlist-page]")
-    await expect(wishlistPage).toHaveCount(1)
-    await expect(wishlistPage).toBeVisible()
+    const pathwaysPage = page.locator("#main-content [data-pathways-page]")
+    await expect(pathwaysPage).toHaveCount(1)
+    await expect(pathwaysPage).toBeVisible()
 
-    await wishlistPage.getByRole("button", { name: "Desired tracker" }).click()
-    await wishlistPage.getByRole("option", { name: "BroadcasTheNet" }).click()
-    await expect(wishlistPage.getByText("Known routes")).toBeVisible({ timeout: 15_000 })
-    await expect(wishlistPage.getByText("Needs checking").first()).toBeVisible()
+    await expect(page.getByRole("link", { name: "Tracker pathways" })).toBeVisible()
+    await expect(page).toHaveTitle("Tracker pathways")
+    await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
+    await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("BroadcasTheNet")
+    await pathwaysPage.getByRole("option", { name: "BroadcasTheNet" }).click()
+    await expect(pathwaysPage.getByText("Fastest route")).toBeVisible({ timeout: 15_000 })
+    await expect(pathwaysPage.getByText("Total time left")).toBeVisible()
 
     await page.setViewportSize({ width: 1440, height: 1400 })
     await page.evaluate(() => {
       document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
     })
     await page.waitForTimeout(200)
-    await page.screenshot({ path: "test-results/visual-wishlist-light.png" })
+    await page.screenshot({ path: "test-results/visual-pathways-light.png" })
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
-    await page.screenshot({ path: "test-results/visual-wishlist-dark.png" })
+    await page.screenshot({ path: "test-results/visual-pathways-dark.png" })
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
@@ -553,11 +556,11 @@ test.describe.serial("wishlist visual evidence", () => {
       document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
     })
     await page.waitForTimeout(300)
-    await page.screenshot({ path: "test-results/visual-wishlist-mobile-dark.png" })
+    await page.screenshot({ path: "test-results/visual-pathways-mobile-dark.png" })
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
     })
-    await page.screenshot({ path: "test-results/visual-wishlist-mobile.png" })
+    await page.screenshot({ path: "test-results/visual-pathways-mobile.png" })
   })
 })
 test.describe.serial("Prowlarr search visual evidence", () => {

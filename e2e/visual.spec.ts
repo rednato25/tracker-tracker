@@ -888,6 +888,7 @@ test.describe.serial("rank goal summary visual evidence", () => {
         update app_settings
         set rank_goals = ${JSON.stringify({
           [String(idsBySlug.torrentleech)]: { targetRank: "Super User" },
+          [String(idsBySlug.aither)]: { targetRank: "Power User" },
         })}
       `
     } finally {

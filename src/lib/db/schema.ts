@@ -76,6 +76,7 @@ export const appSettings = pgTable("app_settings", {
   digestTime: varchar("digest_time", { length: 5 }).default("09:00").notNull(),
   digestTimezone: varchar("digest_timezone", { length: 64 }).default("UTC").notNull(),
   digestEmptyBehavior: varchar("digest_empty_behavior", { length: 10 }).default("skip").notNull(),
+  digestIncludeMonitoring: boolean("digest_include_monitoring").default(false).notNull(),
   digestTargetIds: text("digest_target_ids"),
   digestState: text("digest_state"),
   quietHoursEnabled: boolean("quiet_hours_enabled").default(false).notNull(),

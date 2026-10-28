@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm"
 import { computeTrackerActions, type TrackerAction } from "@/lib/actions"
 import { db, getDbClient } from "@/lib/db"
 import { appSettings, notificationTargets } from "@/lib/db/schema"
+import type { DigestMonitoringSection } from "@/lib/digest-monitoring"
+import { buildDigestMonitoring } from "@/lib/digest-monitoring"
 import { log } from "@/lib/logger"
 import { decryptNotificationConfig } from "@/lib/notifications/decrypt"
 import {
@@ -22,6 +24,7 @@ import {
   isTelegramConfig,
 } from "@/lib/notifications/types"
 import { isQuietHours, quietHoursConfigFromSettings } from "@/lib/quiet-hours"
+import { parseSavedRankGoals } from "@/lib/rank-summary"
 import { getTrackerListForDashboard } from "@/lib/server-data"
 import { truncateUtf8 } from "@/lib/utf8"
 
@@ -30,6 +33,7 @@ export interface DigestConfig {
   time: string
   timezone: string
   emptyBehavior: "skip" | "send"
+  includeMonitoring: boolean
   targetIds: number[] | null
 }
 
@@ -106,6 +110,7 @@ export function digestConfigFromSettings(settings: {
   digestTime: string
   digestTimezone: string
   digestEmptyBehavior: string
+  digestIncludeMonitoring?: boolean
   digestTargetIds: string | null
 }): DigestConfig {
   let targetIds: number[] | null = null
@@ -122,6 +127,7 @@ export function digestConfigFromSettings(settings: {
     time: settings.digestTime,
     timezone: settings.digestTimezone,
     emptyBehavior: settings.digestEmptyBehavior === "send" ? "send" : "skip",
+    includeMonitoring: settings.digestIncludeMonitoring === true,
     targetIds,
   }
 }
@@ -138,14 +144,17 @@ export function buildDigest(
     dateKey: string
     timezone: string
     emptyBehavior: "skip" | "send"
+    monitoring?: DigestMonitoringSection | null
     maxChars?: number
     dashboardUrl?: string | null
   }
 ): string | null {
   const maxChars = options.maxChars ?? MAX_DIGEST_CHARS
+  const monitoring = options.monitoring?.trackers.length ? options.monitoring : null
   const groups = new Map<string, DigestGroup>()
   for (const action of actions) {
-    const key = action.trackerId === null ? `client:${action.trackerName}` : `tracker:${action.trackerId}`
+    const key =
+      action.trackerId === null ? `client:${action.trackerName}` : `tracker:${action.trackerId}`
     const group = groups.get(key) ?? {
       name: action.trackerName,
       confirmed: [],
@@ -157,31 +166,32 @@ export function buildDigest(
   }
 
   const total = actions.length
-  if (total === 0) {
+  if (total === 0 && !monitoring) {
     if (options.emptyBehavior === "skip") return null
-    return `Tracker Tracker digest — ${options.dateKey} (${options.timezone})\n\nNo active actions or verification items.`
+    return `Tracker Tracker digest - ${options.dateKey} (${options.timezone})\n\nNo active actions or verification items.`
   }
 
   const lines: string[] = [
-    `Tracker Tracker digest — ${options.dateKey} (${options.timezone})`,
-    `${total} item${total === 1 ? "" : "s"} need attention`,
-    "",
+    `Tracker Tracker digest - ${options.dateKey} (${options.timezone})`,
   ]
+  if (total > 0) lines.push(`${total} item${total === 1 ? "" : "s"} need attention`, "")
+  else lines.push("No active actions or verification items.", "")
+
   let shown = 0
   for (const group of groups.values()) {
     if (group.confirmed.length > 0) {
-      lines.push(`ACTION REQUIRED — ${group.name}`)
+      lines.push(`ACTION REQUIRED \u2014 ${group.name}`)
       for (const action of group.confirmed) {
         if (shown >= total) break
-        lines.push(`• ${action.reason} Next: ${action.nextAction}`)
+        lines.push(`- ${action.reason} Next: ${action.nextAction}`)
         shown += 1
       }
     }
     if (group.verification.length > 0) {
-      lines.push(`NEEDS VERIFICATION — ${group.name}`)
+      lines.push(`NEEDS VERIFICATION \u2014 ${group.name}`)
       for (const action of group.verification) {
         if (shown >= total) break
-        lines.push(`• ${action.reason} Next: ${action.nextAction}`)
+        lines.push(`- ${action.reason} Next: ${action.nextAction}`)
         shown += 1
       }
     }
@@ -189,13 +199,51 @@ export function buildDigest(
   }
 
   if (shown < total) {
-    lines.push(``, `… ${total - shown} more item${total - shown === 1 ? "" : "s"} not shown.`)
+    lines.push(``, `... ${total - shown} more item${total - shown === 1 ? "" : "s"} not shown.`)
   }
+
+  if (monitoring) {
+    if (shown < total) {
+      lines.push("Monitoring omitted to preserve action items.")
+    } else {
+      lines.push("", "MONITORING")
+      let monitoringShown = 0
+      for (const tracker of monitoring.trackers) {
+        const rankBits = [
+          `rank ${tracker.rank}`,
+          tracker.target ? `target ${tracker.target}` : "no target",
+          tracker.unmet > 0 ? `${tracker.unmet} unmet` : null,
+          tracker.unknown > 0 ? `${tracker.unknown} unknown` : null,
+        ]
+          .filter(Boolean)
+          .join(" | ")
+        const flag =
+          tracker.freshness === "stale"
+            ? " [stale]"
+            : tracker.freshness === "unknown"
+              ? " [age unknown]"
+              : tracker.freshness === "missing"
+                ? " [no snapshot]"
+                : ""
+        const line = `- ${tracker.name}: ratio ${tracker.ratio} | buffer ${tracker.buffer} | up ${tracker.uploaded} | down ${tracker.downloaded} | seeding ${tracker.seeding} | bonus ${tracker.bonus} | ${rankBits}${flag}`
+        if (lines.join("\n").length + line.length + 80 > maxChars) break
+        lines.push(line)
+        monitoringShown += 1
+      }
+      if (monitoringShown < monitoring.total) {
+        lines.push(`... ${monitoring.total - monitoringShown} tracker${monitoring.total - monitoringShown === 1 ? "" : "s"} not shown.`)
+      }
+      lines.push(
+        "Monitoring uses stored snapshots. Markers: [stale] >2h, [age unknown], [no snapshot]. Bonus points are tracker-specific and not summed."
+      )
+    }
+  }
+
   if (options.dashboardUrl) {
-    lines.push(``, `Dashboard: ${options.dashboardUrl}`)
+    lines.push("", `Dashboard: ${options.dashboardUrl}`)
   }
   let text = lines.join("\n")
-  if (text.length > maxChars) text = `${text.slice(0, maxChars - 1)}…`
+  if (text.length > maxChars) text = `${text.slice(0, maxChars - 1)}...`
   return text
 }
 
@@ -264,6 +312,34 @@ async function deliverDigestToTarget(
   return { success: false, status: "failed", error: "Invalid notification config" }
 }
 
+export function buildDigestForData(
+  settings: {
+    digestEnabled: boolean
+    digestTime: string
+    digestTimezone: string
+    digestEmptyBehavior: string
+    digestIncludeMonitoring?: boolean
+    digestTargetIds: string | null
+    rankGoals: string | null
+  },
+  trackers: Parameters<typeof buildDigestMonitoring>[0],
+  actions: TrackerAction[],
+  now: Date,
+  dateKey: string,
+  dashboardUrl: string | null
+): string | null {
+  const config = digestConfigFromSettings(settings)
+  const monitoring = config.includeMonitoring
+    ? buildDigestMonitoring(trackers, parseSavedRankGoals(settings.rankGoals), now)
+    : null
+  return buildDigest(actions, {
+    dateKey,
+    timezone: config.timezone,
+    emptyBehavior: config.emptyBehavior,
+    monitoring,
+    dashboardUrl,
+  })
+}
 /** Run one scheduler tick. Returns true when a digest was attempted. */
 export async function runDigestIfDue(
   encryptionKey: Buffer,
@@ -326,12 +402,14 @@ export async function runDigestIfDue(
       const baseUrl = process.env.BASE_URL
       const dashboardUrl =
         baseUrl?.toLowerCase().startsWith("https://") ? `${baseUrl.replace(/\/$/, "")}/` : null
-      const text = buildDigest(actions, {
-        dateKey: key,
-        timezone: config.timezone,
-        emptyBehavior: config.emptyBehavior,
-        dashboardUrl,
-      })
+      const text = buildDigestForData(
+        settings,
+        trackers,
+        actions,
+        now,
+        key,
+        dashboardUrl
+      )
 
       let attempted = false
       for (const target of dueTargets) {

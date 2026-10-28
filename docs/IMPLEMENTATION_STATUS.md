@@ -101,7 +101,8 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P23 | deferred | P22 | - | No space-release candidate classification | Deferred: storage cleanup is not a current priority; optional and destructive actions remain out of scope. |
 | P24 | deferred (monitoring only) | P09 and pilot sources | - | Seedbonus data and detail display exist; no verified exchange rules or planner | Retain only relevant bonus monitoring/planning. Defer exchange comparison/spending until verified per-tracker sources exist. |
 | P25 | done | P03, P12/P18 data conventions | PR #31 (`feat/p25-monitoring-register`; merged; not deployed) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile three-cell strip; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles and visible legend; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Owner-supplied isolated acceptance on image digest `sha256:e080430be2bc435ec3bb0e20b5fe4e419f8740df162899a77509f5dedca617eb`: populated/zero/stale/unknown-age/no-snapshot rows, visible mobile legend, responsive light/dark layouts, health and no-op migration. Missing individual transfer fields were covered by component tests because stored columns are NOT NULL; not database-tested. Automated evidence remains separate. No rank summary in P25, digest expansion, planner, P21-P23 or deployment. |
-| P26 | implementation + automated/visual checks complete; target-selection fix in draft PR; owner manual acceptance pending | P09-P11, dashboard rank surface | PR #32 (`feat/p26-rank-summary`; merged) + fix PR #35 (draft) | Compact Rank goal summary inside existing Ranks section; observed current rank; saved target labelled target; automatic next rank only from ladder logic; unmet/unknown/stale requirements and remaining values; one tracker rank-goal link; no-target/unsupported/missing-current states; 11 focused tests (8 base + 3 correction); full CI gate | Not deployed. Owner acceptance pending. Correction: detail no longer auto-selects a target; explicit choose/clear; suggestion is not persisted. No new rules dataset, adapters, polling, migrations, Telegram changes, deployment or home-server change. |
+| P26 | done | P09-P11, dashboard rank surface | PR #32 (`feat/p26-rank-summary`; merged) + fix PR #35 (`fix/p26-target-selection`; merged) | Compact Rank goal summary inside existing Ranks section; observed current rank; saved target labelled target; automatic next rank only from ladder logic; unmet/unknown/stale requirements and remaining values; one tracker rank-goal link; no-target/unsupported/missing-current states; 11 focused tests (8 base + 3 correction) | Owner-supplied isolated retest on image digest `sha256:06139dc38e016ce99a45b0bdd6d0b58e1b8bfe58a1a8a6b9438c073f5a393c45`: clear/select/save/reload consistency, non-persisted suggestions, another tracker goal preserved, responsive controls, health and no-op migration. This is supplied home-server evidence, not an assistant-run visual acceptance claim. No new rules, adapters, polling, migrations, Telegram changes, deployment or home-server change. |
+| P27 | implementation + automated checks complete; owner manual acceptance pending | P08, P26 | draft PR pending (`feat/p27-digest-monitoring`) | Opt-in digest monitoring section default off; per-tracker ratio/buffer/accounted transfer/seeding/tracker-specific bonus, observed rank/saved target/unmet-unknown summary, stale/missing markers; actions first and bounded; monitoring-only skip behavior; local preview using same formatter; existing scheduler/delivery/quiet/dedup reused; migration 0007 + backup/restore | Draft only; not deployed. No new adapters/rank rules, bonus spending, search/download, Telegram auto-enable, deployment or home-server change. |
 | GATE | pending | Relevant tasks | — | No release gate run for a delivery | Run after each delivery; do not treat this audit as a gate |
 
 ## P02a — database baseline preparation
@@ -1621,6 +1622,50 @@ Fix in progress:
   the scoped wishlist visual fix are reused.
 
 P26 owner acceptance remains pending. Merge of the fix is not authorized.
+
+### P26 owner-supplied isolated retest (2026-10-28)
+
+The owner supplied a successful isolated retest on image digest
+`sha256:06139dc38e016ce99a45b0bdd6d0b58e1b8bfe58a1a8a6b9438c073f5a393c45`:
+
+- Clear/select/save/reload behavior was consistent.
+- Automatic next-rank suggestions were not persisted as saved targets.
+- Another tracker's goal remained unchanged when the current goal was cleared.
+- Responsive controls, health and the no-op migration passed.
+
+This is owner-supplied evidence, separate from the automated/visual tests. It
+does not claim a separate owner visual inspection beyond the supplied responsive
+controls evidence.
+
+### P27 digest monitoring section
+
+- Adds an opt-in `digestIncludeMonitoring` setting, default off; migration 0007
+  adds only that boolean. Existing action-only behavior is unchanged when off.
+- Monitoring rows use stored `latestStats` only: ratio, signed buffer,
+  accounted uploaded/downloaded totals, seeding count, tracker-specific bonus,
+  observed rank, saved target, and concise unmet/unknown goal counts. No daily
+  gains, rates, promotion dates or unsupported metrics are inferred.
+- Confirmed zero remains `0 B`/\`0\`; missing fields show `unknown`; stale
+  (2h), age-unknown and no-snapshot markers are explicit. Buffer uses the
+  dashboard's signed `+` convention. Bonus is never summed across trackers.
+- Action-required and verification items are rendered first. Monitoring content
+  is appended only after the action section and is omitted with a reason if the
+  action digest is truncated. Existing provider limits and omission counts are
+  reused.
+- Monitoring-only days count as reportable content: with "Skip empty" selected,
+  a monitoring-only digest is sent; when monitoring is off, the original skip
+  behavior remains. The setting helper explains this in Settings.
+- Adds `GET /api/notifications/digest/preview` using the same
+  `buildDigestForData` formatter as scheduled delivery. Preview is session-only,
+  local and never sends or mutates digest state. It uses saved settings.
+- Reuses scheduler locks, targets, timezone, quiet hours, retry and digest dedup;
+  no second notification engine and no automatic Telegram enable.
+- Tests: digest monitoring/rendering + run tests cover fresh/stale/missing/zero,
+  rank/bonus values, actions-first ordering, monitoring-only skip, omitted counts,
+  privacy/redaction and shared preview/delivery rendering. Full suite/CI are the
+  final gate.
+- Visual evidence: local Settings preview light/dark desktop and 390px mobile
+  with synthetic monitoring metrics; inspect pending.
 
 ### P02b slices
 

@@ -1192,6 +1192,8 @@ export async function POST(request: Request) {
           digestTimezone: (payload.settings.digestTimezone as string | null) ?? "UTC",
           digestEmptyBehavior:
             (payload.settings.digestEmptyBehavior as string | null) ?? "skip",
+          digestIncludeMonitoring:
+            (payload.settings.digestIncludeMonitoring as boolean) ?? false,
           digestTargetIds: restoredDigestTargetIds,
           digestState: restoredDigestState,
           quietHoursEnabled: (payload.settings.quietHoursEnabled as boolean) ?? false,

@@ -277,6 +277,7 @@ describe("serializeSettingsResponse", () => {
     digestTime: "09:00",
     digestTimezone: "UTC",
     digestEmptyBehavior: "skip",
+    digestIncludeMonitoring: false,
     digestTargetIds: null,
     quietHoursEnabled: false,
     quietHoursStart: "22:00",

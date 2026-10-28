@@ -77,6 +77,7 @@ export interface SettingsData {
   digestTime: string
   digestTimezone: string
   digestEmptyBehavior: string
+  digestIncludeMonitoring: boolean
   digestTargetIds: string | null
   quietHoursEnabled: boolean
   quietHoursStart: string
@@ -184,6 +185,7 @@ export function SettingsClient({
               time: initialSettings.digestTime,
               timezone: initialSettings.digestTimezone,
               emptyBehavior: initialSettings.digestEmptyBehavior,
+              includeMonitoring: initialSettings.digestIncludeMonitoring,
               targetIds: initialSettings.digestTargetIds,
               quietEnabled: initialSettings.quietHoursEnabled,
               quietStart: initialSettings.quietHoursStart,

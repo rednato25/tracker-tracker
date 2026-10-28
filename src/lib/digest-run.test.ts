@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { TrackerAction } from "@/lib/actions"
+import type { TrackerSummary } from "@/types/api"
 
 const mocks = vi.hoisted(() => ({
   db: { select: vi.fn(), update: vi.fn() },
@@ -69,6 +70,7 @@ beforeEach(() => {
     digestTime: "00:00",
     digestTimezone: "UTC",
     digestEmptyBehavior: "send",
+    digestIncludeMonitoring: false,
     digestTargetIds: null,
     digestState: null,
     quietHoursEnabled: false,
@@ -95,6 +97,52 @@ beforeEach(() => {
     }),
   }))
 })
+
+const monitorTracker: TrackerSummary = {
+  id: 9,
+  name: "Monitor",
+  baseUrl: "https://monitor.invalid",
+  registrySlug: "alpharatio",
+  platformType: "unit3d",
+  isActive: true,
+  lastPolledAt: "2026-10-24T10:00:00.000Z",
+  lastError: null,
+  lastErrorAt: null,
+  consecutiveFailures: 0,
+  pausedAt: null,
+  userPausedAt: null,
+  color: "#123456",
+  qbtTag: null,
+  mouseholeUrl: null,
+  hasMouseholeToken: false,
+  useProxy: false,
+  countCrossSeedUnsatisfied: false,
+  hideUnreadBadges: false,
+  isFavorite: false,
+  sortOrder: 1,
+  joinedAt: "2026-01-01T00:00:00.000Z",
+  lastAccessAt: null,
+  remoteUserId: null,
+  platformMeta: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  latestStats: {
+    ratio: 2,
+    ratioIsInfinite: false,
+    uploadedBytes: "1000",
+    downloadedBytes: "500",
+    bufferBytes: "500",
+    seedingCount: 0,
+    leechingCount: 0,
+    requiredRatio: 1,
+    warned: false,
+    freeleechTokens: 0,
+    hitAndRuns: 0,
+    seedbonus: 0,
+    shareScore: null,
+    username: "owner",
+    group: "User",
+  },
+}
 
 describe("runDigestIfDue concurrency and target state", () => {
   it("does nothing when another scheduler holds the digest lock", async () => {
@@ -124,6 +172,33 @@ describe("runDigestIfDue concurrency and target state", () => {
     expect(deliver.deliverDiscordWebhook).toHaveBeenCalledTimes(1)
     const state = JSON.parse(updates.at(-1)?.digestState as string) as Record<string, unknown>
     expect(Object.keys(state).sort()).toEqual(["1", "2"])
+  })
+
+  it("sends a monitoring-only digest when monitoring is enabled and skip empty is selected", async () => {
+    settings.digestEmptyBehavior = "skip"
+    settings.digestIncludeMonitoring = true
+    const serverData = await import("@/lib/server-data")
+    vi.mocked(serverData.getTrackerListForDashboard).mockResolvedValueOnce([monitorTracker])
+    const actionsModule = await import("@/lib/actions")
+    vi.mocked(actionsModule.computeTrackerActions).mockReturnValueOnce([])
+    const deliver = await import("@/lib/notifications/deliver")
+    vi.mocked(deliver.deliverTelegramMessage).mockResolvedValue({
+      success: true,
+      status: "delivered",
+    })
+    vi.mocked(deliver.deliverDiscordWebhook).mockResolvedValue({
+      success: true,
+      status: "delivered",
+    })
+    const { runDigestIfDue } = await import("@/lib/digest")
+
+    expect(await runDigestIfDue(Buffer.alloc(32), new Date("2026-10-24T12:00:00Z"))).toBe(true)
+    expect(deliver.deliverTelegramMessage).toHaveBeenCalledWith(
+      1,
+      expect.any(String),
+      expect.any(String),
+      expect.stringContaining("MONITORING")
+    )
   })
 
   it("backs off only the failing target", async () => {

@@ -569,6 +569,15 @@ export async function PATCH(request: Request) {
     }
     updates.digestEmptyBehavior = body.digestEmptyBehavior
   }
+  if (body.digestIncludeMonitoring !== undefined) {
+    if (typeof body.digestIncludeMonitoring !== "boolean") {
+      return NextResponse.json(
+        { error: "digestIncludeMonitoring must be a boolean" },
+        { status: 400 }
+      )
+    }
+    updates.digestIncludeMonitoring = body.digestIncludeMonitoring
+  }
   if (body.digestTargetIds !== undefined) {
     if (body.digestTargetIds !== null) {
       if (

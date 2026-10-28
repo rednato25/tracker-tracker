@@ -975,3 +975,99 @@ test.describe.serial("rank goal summary visual evidence", () => {
     await rankPanel.screenshot({ path: "test-results/visual-rank-target-mobile.png" })
   })
 })
+test.describe.serial("digest monitoring visual evidence", () => {
+  let trackerId: number | null = null
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const [tracker] = await sql<{ id: number }[]>`
+        insert into trackers (
+          name, base_url, registry_slug, platform_type, is_active,
+          joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
+        ) values (
+          'TEST Digest Monitoring', 'https://tt-p27.invalid', 'torrentleech', 'unit3d', true,
+          '2025-01-01T00:00:00.000Z', now(),
+          ${encrypt("synthetic-p27-token", key)}, now(), now()
+        ) returning id
+      `
+      trackerId = tracker.id
+      await sql`
+        insert into tracker_snapshots (
+          tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+          buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+          required_ratio, warned, freeleech_tokens, is_manual
+        ) values (
+          ${tracker.id}, now(), ${500 * GiB}, ${200 * GiB}, 2.0, 'Power User',
+          ${300 * GiB}, 4, 0, 1234, 0, 1, false, 0, false
+        )
+      `
+      await sql`
+        update app_settings
+        set rank_goals = ${JSON.stringify({ [String(tracker.id)]: { targetRank: "Super User" } })}
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      if (trackerId !== null) await sql`delete from trackers where id = ${trackerId}`
+      await sql`
+        update app_settings
+        set digest_include_monitoring = false, digest_enabled = false, rank_goals = null
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures the monitoring digest preview on desktop and mobile", async ({ page }) => {
+    test.setTimeout(60_000)
+    await page.goto("/settings")
+    await page.getByRole("tab", { name: "Notifications" }).click()
+    const section = page.locator("[data-digest-section]")
+    await expect(section).toBeVisible({ timeout: 15_000 })
+
+    const monitoringToggle = section.getByRole("switch", {
+      name: /Include monitoring section/,
+    })
+    if ((await monitoringToggle.getAttribute("aria-checked")) !== "true") {
+      await monitoringToggle.click()
+    }
+    await section.getByRole("button", { name: "Save digest" }).click()
+    await expect(section.getByText("Digest settings saved")).toBeVisible()
+    await section.getByRole("button", { name: "Preview saved digest" }).click()
+    await expect(section.locator("pre")).toContainText("MONITORING", { timeout: 15_000 })
+    await expect(section.locator("pre")).toContainText("TEST Digest Monitoring")
+    await expect(section.locator("pre")).toContainText("target Super User")
+    await expect(section.locator("pre")).toContainText("bonus 1,234")
+
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+      document.querySelector("[data-digest-section]")?.scrollIntoView({ block: "start" })
+    })
+    await page.waitForTimeout(200)
+    await section.screenshot({ path: "test-results/visual-digest-monitoring-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await section.screenshot({ path: "test-results/visual-digest-monitoring-dark.png" })
+
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.evaluate(() => {
+      document.querySelector("[data-digest-section]")?.scrollIntoView({ block: "start" })
+    })
+    await section.screenshot({ path: "test-results/visual-digest-monitoring-mobile.png" })
+  })
+})

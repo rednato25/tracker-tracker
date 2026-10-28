@@ -21,6 +21,7 @@ interface DigestSectionProps {
     time: string
     timezone: string
     emptyBehavior: string
+    includeMonitoring: boolean
     targetIds: string | null
     quietEnabled: boolean
     quietStart: string
@@ -46,6 +47,10 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
   const [time, setTime] = useState(initialConfig.time)
   const [timezone, setTimezone] = useState(initialConfig.timezone)
   const [emptyBehavior, setEmptyBehavior] = useState(initialConfig.emptyBehavior)
+  const [includeMonitoring, setIncludeMonitoring] = useState(initialConfig.includeMonitoring)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [previewNotice, setPreviewNotice] = useState<string | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
   const [targetIds, setTargetIds] = useState<number[] | null>(
     parseTargetIds(initialConfig.targetIds)
   )
@@ -103,6 +108,7 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
           digestTime: time,
           digestTimezone: timezone,
           digestEmptyBehavior: emptyBehavior,
+          digestIncludeMonitoring: includeMonitoring,
           digestTargetIds:
             targetIds === null || selected.length === targets.length ? null : selected,
           quietHoursEnabled: quietEnabled,
@@ -128,6 +134,34 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
     }
   }
 
+  async function loadPreview() {
+    setPreviewLoading(true)
+    setPreview(null)
+    setPreviewNotice(null)
+    try {
+      const res = await fetch("/api/notifications/digest/preview")
+      const data = (await res.json().catch(() => ({}))) as {
+        text?: string | null
+        error?: string
+        includeMonitoring?: boolean
+        emptyBehavior?: string
+      }
+      if (!res.ok) throw new Error(data.error || "Could not build digest preview")
+      if (data.text) setPreview(data.text)
+      else {
+        setPreviewNotice(
+          data.emptyBehavior === "skip"
+            ? "Saved settings would skip this digest because there is no action or monitoring content."
+            : "Saved settings would send an all-clear digest with no action or monitoring content."
+        )
+      }
+    } catch (err) {
+      setPreviewNotice(err instanceof Error ? err.message : "Could not build digest preview")
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   function toggleTarget(id: number, checked: boolean) {
     const next = new Set(selected)
     if (checked) next.add(id)
@@ -136,13 +170,19 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
   }
 
   return (
-    <section className="flex flex-col gap-4 border border-border bg-raised p-4">
+    <section className="flex flex-col gap-4 border border-border bg-raised p-4" data-digest-section>
       <H2 className="uppercase tracking-wider">Scheduled digest</H2>
       <Toggle
         label="Enable scheduled digest"
         checked={enabled}
         onChange={setEnabled}
         description="Sends a summary of active actions. Immediate notifications keep their existing behavior."
+      />
+      <Toggle
+        label="Include monitoring section"
+        checked={includeMonitoring}
+        onChange={setIncludeMonitoring}
+        description="Adds stored ratio, buffer, accounted upload/download, seeding, tracker-specific bonus, rank and saved-target context after action items. Monitoring-only days count as reportable content, so Skip still sends a monitoring-only digest. Default off."
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
@@ -242,7 +282,25 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
       <Notice message={error} />
       <div className="flex items-center gap-2">
         <Button size="sm" variant="primary" onClick={save} disabled={saving} text="Save digest" />
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void loadPreview()}
+          disabled={previewLoading}
+          text={previewLoading ? "Building preview..." : "Preview saved digest"}
+        />
       </div>
+      {previewNotice && <Notice message={previewNotice} />}
+      {preview && (
+        <div className="flex flex-col gap-1">
+          <span className="font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary">
+            Local preview (saved settings, no message sent)
+          </span>
+          <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words border border-border bg-control-bg p-3 font-mono text-2xs text-secondary">
+            {preview}
+          </pre>
+        </div>
+      )}
     </section>
   )
 }

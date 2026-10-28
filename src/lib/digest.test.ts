@@ -14,6 +14,7 @@ const config: DigestConfig = {
   time: "09:00",
   timezone: "UTC",
   emptyBehavior: "skip",
+  includeMonitoring: false,
   targetIds: null,
 }
 
@@ -89,6 +90,7 @@ describe("digest scheduling", () => {
         digestTime: "09:00",
         digestTimezone: "UTC",
         digestEmptyBehavior: "send",
+        digestIncludeMonitoring: false,
         digestTargetIds: "[2,3]",
       })
     ).toMatchObject({ targetIds: [2, 3], emptyBehavior: "send" })

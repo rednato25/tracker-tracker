@@ -1,5 +1,7 @@
 # Tracker Tracker — Design System
 
+The dashboard must show in 3 seconds: total uploaded, total downloaded, overall ratio, and how far each tracker is from its next rank.
+
 Status: active. Surface mode: **Operate**. Visual world: **Cold Vault**.
 
 ## Direction contract

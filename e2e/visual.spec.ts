@@ -1037,12 +1037,13 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
     test.setTimeout(60_000)
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto("/")
-    await expect(page.locator("#main-content #register")).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText("Total uploaded")).toBeVisible()
-    await expect(page.getByText("Total downloaded")).toBeVisible()
-    await expect(page.getByText("Overall ratio")).toBeVisible()
-    await expect(page.getByText("Need attention")).toBeVisible()
-    await expect(page.getByText(/Totals from 2 of 3 trackers/)).toBeVisible()
+    const register = page.locator("#main-content #register")
+    await expect(register).toBeVisible({ timeout: 15_000 })
+    await expect(register.getByText("Total uploaded")).toBeVisible()
+    await expect(register.getByText("Total downloaded")).toBeVisible()
+    await expect(register.getByText("Overall ratio")).toBeVisible()
+    await expect(register.getByText("Need attention")).toBeVisible()
+    await expect(register.getByText(/Totals from 2 of 3 trackers/)).toBeVisible()
 
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"

@@ -348,11 +348,11 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
                 className={clsx("flex flex-col items-center gap-2", dimmed && "opacity-50")}
               >
                 <div className="flex flex-col items-center">
-                  <span className="text-4xs font-mono uppercase tracking-wider text-tertiary">
+                  <span className="text-xs font-mono uppercase tracking-wider text-tertiary">
                     {path.label}
                   </span>
                   {path.description && (
-                    <span className="text-4xs font-mono text-secondary">{path.description}</span>
+                    <span className="text-xs font-mono text-secondary">{path.description}</span>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-1">
@@ -420,7 +420,7 @@ function RankTimeline({ events, accentColor }: RankTimelineProps) {
                   boxShadow: `0 0 8px ${hexToRgba(accentColor, 0.4)}`,
                 }}
               />
-              <span className="text-3xs font-mono whitespace-nowrap" style={{ color: accentColor }}>
+              <span className="text-xs font-mono whitespace-nowrap" style={{ color: accentColor }}>
                 {event.label}
               </span>
             </div>

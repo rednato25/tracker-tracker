@@ -1,4 +1,4 @@
-﻿// src/components/dashboard/TrackerRegister.tsx
+// src/components/dashboard/TrackerRegister.tsx
 //
 // The account register: one ruled sheet, one row per tracker, and a
 // four-segment viability strip in the last column. This is the dashboard's
@@ -9,6 +9,7 @@
 import clsx from "clsx"
 import Link from "next/link"
 import { registryEntryFor } from "@/data/tracker-registry"
+import { type AggregateStats, computeAggregateStats } from "@/lib/dashboard"
 import {
   formatAccountAge,
   formatBytesFromString,
@@ -82,7 +83,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (interval === undefined) {
     return {
       days: null,
-      label: "—",
+      label: "�",
       tone: "muted",
       reason: "No login interval is defined for this tracker.",
     }
@@ -90,7 +91,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (interval === 0) {
     return {
       days: null,
-      label: "—",
+      label: "�",
       tone: "muted",
       reason: "This tracker has no mandatory login interval.",
     }
@@ -98,7 +99,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (!tracker.lastAccessAt) {
     return {
       days: null,
-      label: "—",
+      label: "�",
       tone: "muted",
       reason: "The adapter has not captured a last-access date for this tracker.",
     }
@@ -107,7 +108,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (Number.isNaN(last)) {
     return {
       days: null,
-      label: "—",
+      label: "�",
       tone: "muted",
       reason: "The captured last-access date could not be parsed.",
     }
@@ -131,7 +132,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
 
 function readBuffer(tracker: TrackerSummary): { display: string; tone: Tone } {
   const raw = tracker.latestStats?.bufferBytes
-  if (!raw) return { display: "—", tone: "muted" }
+  if (!raw) return { display: "�", tone: "muted" }
   try {
     const value = BigInt(raw)
     const display = formatBytesFromString(raw)
@@ -277,7 +278,7 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       health,
       statusTone: healthTone(health),
       statusLabel: getHealthLabel(health),
-      ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}×` : ratio,
+      ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}�` : ratio,
       buffer: buffer.display,
       seeding: formatCount(tracker.latestStats?.seedingCount),
       uploaded: readMetric(
@@ -292,7 +293,7 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       ),
       bonus: readMetric(stats?.seedbonus, (value) => formatCount(Number(value)), snapshot),
       login,
-      rank: tracker.latestStats?.group ?? "—",
+      rank: tracker.latestStats?.group ?? "�",
       shortAge: compactAge(formatAccountAge(tracker.joinedAt)),
       abbreviation,
       segments,
@@ -310,7 +311,7 @@ function ViabilityStrip({ segments, passed }: { segments: Tone[]; passed: number
           <span key={index} className={clsx("block h-full flex-1", TONE_MARK[tone])} />
         ))}
       </span>
-      <span className="font-mono text-3xs text-secondary">{known ? `${passed}/4` : "—"}</span>
+      <span className="font-mono text-xs text-secondary">{known ? `${passed}/4` : "�"}</span>
     </span>
   )
 }
@@ -319,7 +320,7 @@ function StatusMark({ tone, label }: { tone: Tone; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className={clsx("h-1.5 w-1.5 shrink-0", TONE_MARK[tone])} aria-hidden="true" />
-      <span className="font-cond text-4xs font-semibold uppercase tracking-[0.12em] text-primary">
+      <span className="font-cond text-xs font-semibold uppercase tracking-[0.12em] text-primary">
         {label}
       </span>
     </span>
@@ -334,21 +335,21 @@ function AccountCell({ row }: { row: RegisterRow }) {
         aria-hidden="true"
       />
       <span className="min-w-0">
-        <span className="block truncate text-xs font-semibold text-primary">
+        <span className="block truncate text-sm font-semibold text-primary">
           {row.tracker.name}
         </span>
-        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-4xs text-secondary">
+        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-xs text-secondary">
           {row.statusTone !== "ok" && (
             <>
               <span className="hidden shrink-0 font-cond font-semibold uppercase tracking-[0.08em] text-primary md:inline">
                 {row.statusLabel}
               </span>
-              <span className="hidden shrink-0 md:inline">·</span>
+              <span className="hidden shrink-0 md:inline">�</span>
             </>
           )}
           <span className="truncate">
             {row.abbreviation}
-            {row.shortAge ? ` · ${row.shortAge}` : ""}
+            {row.shortAge ? ` � ${row.shortAge}` : ""}
           </span>
         </span>
       </span>
@@ -381,18 +382,18 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
   return (
     <div id="today" className="border-t border-border-emphasis bg-raised">
       <div className="flex items-center justify-between border-b border-border px-4 py-1.5">
-        <span className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+        <span className="font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
           Today
         </span>
-        <span className="font-mono text-4xs text-tertiary">login windows · H&amp;R · poll</span>
+        <span className="font-mono text-xs text-tertiary">login windows � H&amp;R � poll</span>
       </div>
       <div className="grid md:grid-cols-3">
       <section className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
-        <h2 className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+        <h2 className="font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
           Login windows
         </h2>
         {windows.length === 0 ? (
-          <p className="mt-2 text-3xs text-secondary">No login intervals on record.</p>
+          <p className="mt-2 text-xs text-secondary">No login intervals on record.</p>
         ) : (
           <ul className="mt-1.5 flex flex-col">
             {windows.map((row) => (
@@ -402,11 +403,11 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
               >
                 <Link
                   href={`/trackers/${row.tracker.id}`}
-                  className="flex min-h-6 min-w-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
+                  className="flex min-h-6 min-w-6 items-center truncate text-xs font-medium text-secondary hover:text-primary"
                 >
                   {row.tracker.name}
                 </Link>
-                <span className="font-mono text-3xs text-secondary">{row.login.label}</span>
+                <span className="font-mono text-xs text-secondary">{row.login.label}</span>
               </li>
             ))}
           </ul>
@@ -414,11 +415,11 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
       </section>
 
       <section className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
-        <h2 className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+        <h2 className="font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
           H&amp;R watch
         </h2>
         {hnr.length === 0 ? (
-          <p className="mt-2 text-3xs text-secondary">No open H&amp;R on the register.</p>
+          <p className="mt-2 text-xs text-secondary">No open H&amp;R on the register.</p>
         ) : (
           <ul className="mt-1.5 flex flex-col">
             {hnr.map((row) => (
@@ -428,11 +429,11 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
               >
                 <Link
                   href={`/trackers/${row.tracker.id}`}
-                  className="flex min-h-6 min-w-6 items-center truncate text-3xs font-medium text-secondary hover:text-primary"
+                  className="flex min-h-6 min-w-6 items-center truncate text-xs font-medium text-secondary hover:text-primary"
                 >
                   {row.tracker.name}
                 </Link>
-                <span className="font-mono text-3xs text-danger">
+                <span className="font-mono text-xs text-danger">
                   {row.tracker.latestStats?.hitAndRuns} open
                 </span>
               </li>
@@ -442,25 +443,25 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
       </section>
 
       <section className="px-4 py-3">
-        <h2 className="font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
+        <h2 className="font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
           Poll status
         </h2>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
           <div>
-            <dt className="font-mono text-3xs text-secondary">Polled</dt>
+            <dt className="font-mono text-xs text-secondary">Polled</dt>
             <dd className="font-mono text-sm text-primary">
               {polled.length}/{rows.length}
             </dd>
           </div>
           <div>
-            <dt className="font-mono text-3xs text-secondary">Errors</dt>
+            <dt className="font-mono text-xs text-secondary">Errors</dt>
             <dd className={clsx("font-mono text-sm", errors > 0 ? "text-danger" : "text-primary")}>
               {errors}
             </dd>
           </div>
           <div className="col-span-2">
-            <dt className="font-mono text-3xs text-secondary">Last poll</dt>
-            <dd className="font-mono text-3xs text-secondary">
+            <dt className="font-mono text-xs text-secondary">Last poll</dt>
+            <dd className="font-mono text-xs text-secondary">
               {latestPoll ? formatTimeAgo(latestPoll) : "Not polled yet"}
             </dd>
           </div>
@@ -474,14 +475,24 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
 function TrackerRegister({
   trackers,
   now = new Date(),
+  aggregateStats,
+  attentionCount = 0,
 }: {
   trackers: TrackerSummary[]
   now?: Date
+  aggregateStats?: AggregateStats
+  attentionCount?: number
 }) {
   const rows = buildRows(trackers, now)
-  const healthy = rows.filter((row) => row.statusTone === "ok").length
-  const watch = rows.filter((row) => row.statusTone === "warn").length
-  const critical = rows.filter((row) => row.statusTone === "crit").length
+  const aggregate = aggregateStats ?? computeAggregateStats(trackers)
+  const included = trackers.filter((tracker) => tracker.latestStats)
+  const missing = trackers.length - included.length
+  const staleIncluded = included.some((tracker) => readSnapshot(tracker, now).state === "stale")
+  const overallRatio = aggregate.avgRatio
+  const uploadedDisplay = included.length === 0 ? "\u2014" : formatBytesFromString(aggregate.totalUploaded)
+  const downloadedDisplay =
+    included.length === 0 ? "\u2014" : formatBytesFromString(aggregate.totalDownloaded)
+  const ratioDisplay = overallRatio === null ? "�" : formatRatioDisplay(overallRatio)
 
   return (
     <section id="register" className="flex scroll-mt-16 flex-col gap-4">
@@ -490,8 +501,8 @@ function TrackerRegister({
           <h1 className="font-cond text-4xl font-semibold leading-none tracking-[-0.01em] text-primary">
             Account register
           </h1>
-          <p className="mt-2 font-mono text-3xs text-secondary">
-            {rows.length} {rows.length === 1 ? "accession" : "accessions"} · last poll{" "}
+          <p className="mt-2 font-mono text-xs text-secondary">
+            {rows.length} {rows.length === 1 ? "tracker" : "trackers"} � last poll{" "}
             {rows
               .map((row) => row.tracker.lastPolledAt)
               .filter((value): value is string => Boolean(value))
@@ -505,63 +516,69 @@ function TrackerRegister({
                     .at(-1) as string
                 )
               : "not yet"}
-
           </p>
         </div>
-        <span
-          className={clsx(
-            "self-start -rotate-1 border px-2.5 py-1.5 font-cond text-4xs font-semibold uppercase tracking-[0.16em]",
-            critical > 0
-              ? "border-danger bg-danger-dim text-danger"
-              : "border-border-emphasis bg-elevated text-secondary"
-          )}
-        >
-          {critical > 0 ? "Cold chain breached" : "Cold chain intact"}
-        </span>
       </div>
 
       <div className="grid grid-cols-2 border-y border-border-emphasis bg-raised md:grid-cols-4">
         <div className="border-b border-r border-border px-4 py-3 md:border-b-0">
-          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-success">
-            {String(healthy).padStart(2, "0")}
+          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-primary">
+            {uploadedDisplay}
           </span>
-          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
-            Healthy
+          <span className="mt-1.5 block font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Total uploaded
           </span>
         </div>
         <div className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
-          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-warn">
-            {String(watch).padStart(2, "0")}
+          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-download">
+            {downloadedDisplay}
           </span>
-          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
-            Watch
+          <span className="mt-1.5 block font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Total downloaded
           </span>
         </div>
         <div className="border-r border-border px-4 py-3">
-          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-danger">
-            {String(critical).padStart(2, "0")}
+          <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-primary">
+            {ratioDisplay}
           </span>
-          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
-            Critical
+          <span className="mt-1.5 block font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Overall ratio
           </span>
         </div>
         <div className="px-4 py-3">
           <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-primary">
-            {String(rows.length).padStart(2, "0")}
+            {String(attentionCount).padStart(2, "0")}
           </span>
-          <span className="mt-1.5 block font-cond text-3xs font-semibold uppercase tracking-[0.16em] text-secondary">
-            Total accessions
+          <span className="mt-1.5 block font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+            Need attention
           </span>
         </div>
       </div>
+      {(missing > 0 || staleIncluded) && (
+        <p className="font-mono text-xs text-tertiary">
+          {missing > 0
+            ? `Totals from ${included.length} of ${trackers.length} trackers with a snapshot.`
+            : `Totals from ${trackers.length} trackers.`}
+          {staleIncluded && (
+            <span
+              className="ml-1 text-warn"
+              role="img"
+              aria-label="stale snapshot"
+              title="One or more included snapshots are older than two hours."
+            >
+              *
+            </span>
+          )}
+        </p>
+      )}
 
       <div className="hidden border border-border bg-raised min-[1280px]:block">
         <div className="grid h-8 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1">
-          {["Account", "Ratio", "Buffer", "Accounted", "Seeding", "Login due", "Rank", "Viability"].map(
+          {["Account", "Ratio", "Buffer", "Accounted", "Seeding", "Login due", "Rank", "Status"].map(
             (label) => (
               <span
                 key={label}
-                className="px-3 font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary"
+                className="px-3 font-cond text-xs font-semibold uppercase tracking-[0.14em] text-secondary"
               >
                 {label}
               </span>
@@ -582,30 +599,30 @@ function TrackerRegister({
                 <span className="px-3">
                   <AccountCell row={row} />
                 </span>
-                <span className="px-3 font-mono text-3xs tabular-nums text-primary">
+                <span className="px-3 font-mono text-sm tabular-nums text-primary">
                   {row.ratio}
                 </span>
-                <span className="whitespace-nowrap px-3 font-mono text-3xs tabular-nums text-secondary">
+                <span className="whitespace-nowrap px-3 font-mono text-sm tabular-nums text-secondary">
                   {row.buffer}
                 </span>
                 <span
-                  className="flex flex-col gap-[1px] px-3 font-mono text-3xs tabular-nums"
+                  className="flex flex-col gap-[1px] px-3 font-mono text-sm tabular-nums"
                   title="Accounted transfer totals and tracker-specific bonus points from the latest snapshot; not client speed."
                 >
                   <span className="flex items-center justify-between gap-1.5">
-                    <span className="text-4xs text-tertiary">UP</span>
+                    <span className="text-xs text-tertiary">UP</span>
                     <MetricValue readout={row.uploaded} />
                   </span>
                   <span className="flex items-center justify-between gap-1.5">
-                    <span className="text-4xs text-tertiary">DN</span>
+                    <span className="text-xs text-tertiary">DN</span>
                     <MetricValue readout={row.downloaded} />
                   </span>
                   <span className="flex items-center justify-between gap-1.5">
-                    <span className="text-4xs text-tertiary">BON</span>
+                    <span className="text-xs text-tertiary">BON</span>
                     <MetricValue readout={row.bonus} />
                   </span>
                 </span>
-                <span className="px-3 font-mono text-3xs tabular-nums text-secondary">
+                <span className="px-3 font-mono text-sm tabular-nums text-secondary">
                   {row.seeding}
                 </span>
                 <span className="flex cursor-help items-center gap-2 px-3" title={row.login.reason}>
@@ -620,10 +637,10 @@ function TrackerRegister({
                       }}
                     />
                   </span>
-                  <span className="font-mono text-3xs text-primary">{row.login.label}</span>
+                  <span className="font-mono text-sm text-primary">{row.login.label}</span>
                 </span>
                 <span
-                  className="min-w-0 truncate px-3 font-mono text-3xs text-secondary"
+                  className="min-w-0 truncate px-3 font-mono text-sm text-secondary"
                   title={row.rank}
                 >
                   {row.rank}
@@ -656,15 +673,15 @@ function TrackerRegister({
                 <span className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border-soft pt-2">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Ratio</span>
-                    <span className="font-mono text-3xs text-primary">{row.ratio}</span>
+                    <span className="font-mono text-sm text-primary">{row.ratio}</span>
                   </span>
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Buffer</span>
-                    <span className="font-mono text-3xs text-secondary">{row.buffer}</span>
+                    <span className="font-mono text-sm text-secondary">{row.buffer}</span>
                   </span>
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Seeding</span>
-                    <span className="font-mono text-3xs text-secondary">{row.seeding}</span>
+                    <span className="font-mono text-sm text-secondary">{row.seeding}</span>
                   </span>
                   <span className="col-span-2 grid grid-cols-3 gap-2 border-t border-border-soft pt-2">
                     <span className="flex min-w-0 flex-col gap-0.5">
@@ -685,7 +702,7 @@ function TrackerRegister({
                     title={row.login.reason}
                   >
                     <span className="slot-label">Login</span>
-                    <span className="cursor-help font-mono text-3xs text-primary">
+                    <span className="cursor-help font-mono text-xs text-primary">
                       {row.login.label}
                     </span>
                   </span>
@@ -700,7 +717,7 @@ function TrackerRegister({
         </ul>
       </div>
 
-      <p className="font-mono text-3xs text-tertiary">
+      <p className="font-mono text-xs text-tertiary">
         Accounted values and bonus are from the latest stored snapshot, not client speed.{" "}
         {"\u2014"} no data {"\u00b7"} * stale snapshot (&gt;2h) {"\u00b7"} ? snapshot age
         unknown. Bonus points are tracker-specific.

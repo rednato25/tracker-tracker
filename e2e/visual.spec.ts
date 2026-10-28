@@ -975,3 +975,89 @@ test.describe.serial("rank goal summary visual evidence", () => {
     await rankPanel.screenshot({ path: "test-results/visual-rank-target-mobile.png" })
   })
 })
+test.describe.serial("dashboard at-a-glance visual evidence", () => {
+  const ids: number[] = []
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const rows = [
+        { name: "TEST Glance Fresh", slug: "alpharatio", last: new Date(), stats: true },
+        {
+          name: "TEST Glance Stale",
+          slug: "aither",
+          last: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          stats: true,
+        },
+        { name: "TEST Glance Missing", slug: "broadcasthenet", last: null, stats: false },
+      ]
+      for (const row of rows) {
+        const [tracker] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active,
+            joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
+          ) values (
+            ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, 'unit3d', true,
+            '2025-01-01T00:00:00.000Z', ${row.last}, ${encrypt("synthetic-p28-token", key)}, now(), now()
+          ) returning id
+        `
+        ids.push(tracker.id)
+        if (row.stats) {
+          await sql`
+            insert into tracker_snapshots (
+              tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+              buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+              required_ratio, warned, freeleech_tokens, is_manual
+            ) values (
+              ${tracker.id}, ${row.last}, ${1 * 1024 ** 4}, ${500 * 1024 ** 3}, 2.0, 'Power User',
+              ${512 * 1024 ** 3}, 4, 0, 1234, 0, 1, false, 0, false
+            )
+          `
+        }
+      }
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      for (const id of ids) await sql`delete from trackers where id = ${id}`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures the first viewport at 1440px and 390px", async ({ page }) => {
+    test.setTimeout(60_000)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto("/")
+    await expect(page.locator("#main-content #register")).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText("Total uploaded")).toBeVisible()
+    await expect(page.getByText("Total downloaded")).toBeVisible()
+    await expect(page.getByText("Overall ratio")).toBeVisible()
+    await expect(page.getByText("Need attention")).toBeVisible()
+    await expect(page.getByText(/Totals from 2 of 3 trackers/)).toBeVisible()
+
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    await page.screenshot({ path: "test-results/visual-glance-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.screenshot({ path: "test-results/visual-glance-dark.png" })
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.screenshot({ path: "test-results/visual-glance-mobile.png" })
+  })
+})

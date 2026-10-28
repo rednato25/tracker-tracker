@@ -121,7 +121,7 @@ function RankStack({ tracker, ladder, onOpen }: StackEntry & { onOpen: () => voi
           color={tracker.color}
           tooltip={false}
           className={clsx(
-            "font-mono text-3xs truncate w-full text-center",
+            "font-mono text-xs truncate w-full text-center",
             unknownClass ? "text-warn" : "text-tertiary"
           )}
         />

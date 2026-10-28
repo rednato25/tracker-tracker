@@ -1,4 +1,4 @@
-﻿/* src/app/globals.css */
+/* src/app/globals.css */
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
@@ -93,7 +93,7 @@
 
   /* -- Layer 3: Purpose aliases ----------------------------------------- */
   --color-upload: var(--color-cold);
-  --color-download: var(--color-oxide);
+  --color-download: #2f5f83;
   --color-positive: var(--color-cold);
   --color-negative: var(--color-crimson);
   --color-neutral: var(--color-ink-500);
@@ -164,7 +164,7 @@
   --color-control-focus: var(--color-accent);
 
   --color-upload: var(--color-success);
-  --color-download: var(--color-accent);
+  --color-download: #8fc7e8;
   --color-positive: var(--color-success);
   --color-negative: var(--color-danger);
   --color-neutral: var(--color-tertiary);

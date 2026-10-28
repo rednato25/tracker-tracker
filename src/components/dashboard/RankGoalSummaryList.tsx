@@ -46,7 +46,7 @@ function SummaryCard({ summary }: { summary: RankGoalSummary }) {
         </Badge>
       </div>
 
-      <p className="font-mono text-2xs text-secondary">
+      <p className="font-mono text-xs text-secondary">
         Current: {currentLabel(summary)}
         {summary.targetRank ? ` · Target: ${summary.targetRank}` : ""}
         {!summary.targetRank && summary.automaticNextRank
@@ -55,23 +55,23 @@ function SummaryCard({ summary }: { summary: RankGoalSummary }) {
       </p>
 
       {summary.status === "unsupported" ? (
-        <p className="font-mono text-2xs text-warn">Structured progress unavailable.</p>
+        <p className="font-mono text-xs text-warn">Structured progress unavailable.</p>
       ) : summary.status === "no-target" && !summary.automaticNextRank ? (
-        <p className="font-mono text-2xs text-secondary">
+        <p className="font-mono text-xs text-secondary">
           No target selected. Choose one on the tracker page.
         </p>
       ) : summary.metCount + summary.unmetCount + summary.unknownCount > 0 ? (
-        <p className="font-mono text-2xs text-tertiary">
+        <p className="font-mono text-xs text-tertiary">
           {summary.metCount} met · {summary.unmetCount} unmet · {summary.unknownCount} need checking
         </p>
       ) : summary.status === "no-target" ? (
-        <p className="font-mono text-2xs text-tertiary">
+        <p className="font-mono text-xs text-tertiary">
           Next rank is known, but no structured requirement is available.
         </p>
       ) : null}
 
       {lines.length > 0 && (
-        <ul className="flex flex-col gap-0.5 font-mono text-2xs text-secondary">
+        <ul className="flex flex-col gap-0.5 font-mono text-xs text-secondary">
           {lines.map((line) => (
             <li key={line} className="break-words">
               {line}
@@ -85,7 +85,7 @@ function SummaryCard({ summary }: { summary: RankGoalSummary }) {
 
       <Link
         href={summary.linkHref}
-        className="font-mono text-2xs text-accent underline underline-offset-2"
+        className="font-mono text-xs text-accent underline underline-offset-2"
       >
         {summary.linkLabel}
       </Link>

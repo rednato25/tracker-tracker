@@ -31,7 +31,7 @@ function TabBar<T extends string>({ tabs, activeTab, onChange, compact = false }
             className={clsx(
               "relative -mb-px shrink-0 cursor-pointer whitespace-nowrap border-b-2 transition-colors duration-150",
               compact
-                ? "px-0 py-1.5 font-mono text-4xs"
+                ? "px-0 py-1.5 font-mono text-xs"
                 : "px-0 py-2 font-cond text-xs font-semibold uppercase tracking-[0.12em]",
               active
                 ? "border-accent text-primary"

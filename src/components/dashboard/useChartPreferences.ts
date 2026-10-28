@@ -100,7 +100,11 @@ const DASHBOARD_CHARTS: ChartDef[] = [
   { id: "torrent-health", label: "Swarm Health", category: "torrents" },
 ]
 
-const EMPTY_PREFS: ChartPrefs = { hidden: [], collapsed: [], order: [] }
+const EMPTY_PREFS: ChartPrefs = {
+  hidden: [],
+  collapsed: DASHBOARD_CHARTS.map((chart) => chart.id),
+  order: [],
+}
 
 function useChartPreferences() {
   const base = useChartPreferencesBase<ChartPrefs>(STORAGE_KEYS.CHART_PREFERENCES, EMPTY_PREFS)

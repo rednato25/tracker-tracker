@@ -15,10 +15,12 @@ measurements, hairline rules, square stamps, no shadows and no pills.
 condition, and what leaves next. The register is the product, not a set of cards.
 
 **First viewport.** A 248px dark vault rail with navigation and a compact drawer
-index. The main column carries a 56px top bar, a 34px register title, a
-four-figure status strip, and a full-width account register. The primary action
-sits top right; the signature four-segment viability strip lives in the last
-column of every row.
+index. The main column carries a 56px top bar, a 34px register title, a four-cell
+account strip (total uploaded, total downloaded, overall ratio, need attention),
+and a full-width account register. The primary action sits top right; the
+signature four-segment status strip lives in the last column of every row. Ranks
+and attention follow the register; fleet activity, leaderboard, ecosystem, tag
+groups and chart cards start collapsed.
 
 ## Tokens
 
@@ -52,7 +54,7 @@ column of every row.
 | `--color-warn` | `#8a5a12` | Watch, nearing a limit |
 | `--color-danger` | `#9f3428` | Critical, breached |
 | `--color-upload` | `#2f6f5e` | Upload series |
-| `--color-download` | `#9e3f1f` | Download series |
+| `--color-download` | `#2f5f83` / dark `#8fc7e8` | Download series; distinct from accent/due |
 | `--color-positive` | `#2f6f5e` | Positive deltas |
 | `--color-negative` | `#9f3428` | Negative deltas |
 | `--color-neutral` | `#58675e` | Neutral series |
@@ -66,9 +68,10 @@ The ordinal chart scale is crimson, ochre, cold green, slate blue, umber, plum.
   `0.12–0.16em` tracking.
 - **Roboto Mono** — figures, ids, timestamps, counts. Tabular numerals.
 
-Page title: Barlow Condensed 36px/1.0, weight 600. Section heads: 10–11px
-condensed, uppercase. Body: 12–13px Barlow. Data: 10–12px mono. The 10px floor
-is reserved for metadata, not for body copy.
+Page title: Barlow Condensed 36px/1.0, weight 600. Dashboard section heads and
+column heads: 12px condensed, uppercase. Values: 13–14px mono with tabular
+numerals; the top strip uses display numerals. No visible dashboard text below
+12px. The 10px floor may remain only in non-dashboard chrome.
 
 ### Shape and elevation
 
@@ -89,9 +92,11 @@ is reserved for metadata, not for body copy.
 
 ### Account register
 
-The dashboard's primary read. Columns: Account, Ratio, Buffer, Seeding, Login
-due, Rank, Viability. Rows preserve the user's order and carry a 6px status
-square plus a written status label when the account is not healthy. Critical rows
+The dashboard's primary read. Columns: Account, Ratio, Buffer, Accounted,
+Seeding, Login due, Rank, Status. The top strip reports total uploaded, total
+downloaded, overall ratio and need attention; totals count only snapshots and
+carry the shared stale marker. Rows preserve the user's order and carry a 6px
+status square plus a written status label when the account is not healthy. Critical rows
 tint `--color-danger-dim`; watch rows tint `--color-warn-dim`. The register shows
 every account; the page scrolls, and the Today band follows the full register.
 The rail is a deep forest green in light mode, not near-black; drawer controls
@@ -142,6 +147,8 @@ body copy stays 12–13px. Destructive actions are crimson, not decorative.
   inks for contrast.
 - Dark status inks: accent `#e07a4f`, success `#6fb79c`, warn `#d9a44a`, danger
   `#e06a58`. On-accent text flips to near-black via `--color-on-accent`.
+- `--color-download` is a distinct data blue (`#2f5f83` light, `#8fc7e8` dark),
+  not the accent/due color; both pass WCAG AA on the page/raised surfaces.
 - ECharts reads the token colors through CSS variables at option build. The
   toggle reloads once so every canvas is rebuilt with the new palette.
 - Both themes must pass the same contrast and state rules; dark mode is not a
@@ -181,7 +188,7 @@ detail, both themes:
   pages.
 - No horizontal overflow; heading order is clean; form controls are labelled;
   meaningful images carry alt text (one decorative asset is intentionally empty).
-- The type floor is 10px, reserved for metadata; body copy is 12–13px.
+- The dashboard type floor is 12px; body copy is 12–13px and values 13–14px.
 - Interactive targets meet the WCAG 2.2 24×24 minimum on the primary controls;
   44×44 is not universal because this is a dense desktop operator surface.
   Mobile nav rows and the floating trigger get extra height.

@@ -12,7 +12,7 @@
 // shared instance and the components fall back to their own state, which is what these
 // assertions catch.
 
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { act } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -83,16 +83,22 @@ function gridCardControl(label: string, control: string): HTMLElement {
 describe("dashboard chart preferences shared across the grid and the settings sheet", () => {
   beforeEach(() => {
     localStorage.clear()
+    localStorage.setItem(
+      STORAGE_KEYS.CHART_PREFERENCES,
+      JSON.stringify({ hidden: [], collapsed: [], order: [] })
+    )
     vi.stubGlobal("IntersectionObserver", NoopIntersectionObserver)
   })
 
   it("keeps a hide made in the settings sheet when a chart is then collapsed in the grid", async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
+    await act(async () => {})
 
     await user.click(sheetToggle("Distribution"))
     expect(storedPrefs().hidden).toEqual(["distribution"])
 
+    await waitFor(() => gridCardControl("Daily Volume", "Collapse chart"))
     await user.click(gridCardControl("Daily Volume", "Collapse chart"))
 
     expect(storedPrefs().hidden).toEqual(["distribution"])
@@ -102,7 +108,9 @@ describe("dashboard chart preferences shared across the grid and the settings sh
   it("keeps a collapse made in the grid when a chart is then hidden in the settings sheet", async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
+    await act(async () => {})
 
+    await waitFor(() => gridCardControl("Daily Volume", "Collapse chart"))
     await user.click(gridCardControl("Daily Volume", "Collapse chart"))
     expect(storedPrefs().collapsed).toEqual(["daily-volume"])
 
@@ -115,6 +123,7 @@ describe("dashboard chart preferences shared across the grid and the settings sh
   it("keeps a reorder made in the settings sheet when a chart is then collapsed in the grid", async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
+    await act(async () => {})
 
     // The sheet's drag handler ends in exactly this call. Driving dnd-kit itself needs real
     // layout, which jsdom does not provide, so the reorder is issued straight to the shared
@@ -126,15 +135,23 @@ describe("dashboard chart preferences shared across the grid and the settings sh
     })
     expect(storedPrefs().order).toEqual(newOrder)
 
+    await waitFor(() => gridCardControl("Daily Volume", "Collapse chart"))
     await user.click(gridCardControl("Daily Volume", "Collapse chart"))
 
     expect(storedPrefs().order).toEqual(newOrder)
     expect(storedPrefs().collapsed).toEqual(["daily-volume"])
   })
 
+  it("defaults every chart card to collapsed when no preference exists", async () => {
+    localStorage.clear()
+    render(<Dashboard />)
+    await waitFor(() => expect(gridCardControl("Daily Volume", "Expand chart")).toBeInTheDocument())
+  })
+
   it("drops the card from the grid as soon as the sheet hides it", async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
+    await act(async () => {})
 
     expect(screen.getByRole("heading", { name: "Distribution" })).toBeInTheDocument()
 

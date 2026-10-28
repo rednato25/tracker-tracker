@@ -45,7 +45,7 @@ export function ActiveTransfersTable({
         <div className="flex flex-col gap-1 min-w-0">
           <MarqueeText className="text-xs font-mono text-secondary">{t.name}</MarqueeText>
           {showClientName && t.clientName && (
-            <span className="text-3xs font-sans text-muted truncate">{t.clientName}</span>
+            <span className="text-xs font-sans text-muted truncate">{t.clientName}</span>
           )}
           {isDownload && (
             <div className="w-full h-1 rounded-full bg-base overflow-hidden">
@@ -71,7 +71,7 @@ export function ActiveTransfersTable({
         return (
           <span className="torrent-cell text-right leading-none">
             {num}
-            <span className="block text-4xs mt-px">{unit}</span>
+            <span className="block text-xs mt-px">{unit}</span>
           </span>
         )
       },
@@ -98,11 +98,11 @@ export function ActiveTransfersTable({
         const unit = baseUnit || "B/s"
         return (
           <span
-            className="text-2xs font-mono text-right leading-none"
+            className="text-xs font-mono text-right leading-none"
             style={{ color: accentColor }}
           >
             {num}
-            <span className="block text-4xs text-muted mt-px">{unit}</span>
+            <span className="block text-xs text-muted mt-px">{unit}</span>
           </span>
         )
       },

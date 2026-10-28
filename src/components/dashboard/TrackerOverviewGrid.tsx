@@ -136,7 +136,7 @@ function TrackerOverviewGrid({ trackers, showHealthIndicators = true }: TrackerO
             <ChevronToggle expanded={filtersOpen} />
             Filters
             {activeFilterCount > 0 && (
-              <span className="inline-flex items-center justify-center w-4 h-4 text-3xs font-semibold text-accent nm-raised-sm rounded-nm-pill">
+              <span className="inline-flex items-center justify-center w-4 h-4 text-xs font-semibold text-accent nm-raised-sm rounded-nm-pill">
                 {activeFilterCount}
               </span>
             )}
@@ -244,7 +244,7 @@ function TrackerOverviewGrid({ trackers, showHealthIndicators = true }: TrackerO
                 {health === "paused" || health === "paused-user" ? (
                   <span
                     className={clsx(
-                      "font-mono text-3xs uppercase tracking-wider ml-4.5",
+                      "font-mono text-xs uppercase tracking-wider ml-4.5",
                       health === "paused-user" ? "text-warn" : "text-danger"
                     )}
                   >

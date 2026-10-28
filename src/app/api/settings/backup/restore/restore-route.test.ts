@@ -1444,7 +1444,7 @@ describe("POST /api/settings/backup/restore — P08 digest settings", () => {
       goalLinks: { goalTrackerSlug: string; routeId: string }[]
     }
     // Wishlist references are slugs, so the tracker-id remap above cannot break them.
-    expect(restoredRecruitment.desiredTrackerSlug).toBe("torrentleech")
+    expect(restoredRecruitment.desiredTrackerSlug).toBe("TorrentLeech")
     expect(restoredRecruitment.hiddenPathKeys).toEqual(["tp:alpharatio:broadcasthenet"])
     expect(restoredRecruitment.goalLinks[0]).toMatchObject({
       goalTrackerSlug: "torrentleech",

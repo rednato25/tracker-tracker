@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
-import { TRACKER_REGISTRY } from "@/data/tracker-registry"
+import { PATHWAYS_TRACKERS, RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import type { RankObservation, RankRequirementGroup } from "@/lib/rank-goals"
 import type {
   RecruitmentCatalog,
@@ -51,9 +50,11 @@ function route(overrides: Partial<RecruitmentRouteRecord> = {}): RecruitmentRout
     id: "tp:alpha:beta",
     sourceTrackerId: "alpha",
     destinationTrackerId: "beta",
+    sourceRegistrySlug: null,
+    destinationRegistrySlug: null,
     requirements: ageRequirement(180),
     requirementNotes: [],
-    sourceDays: null,
+    minimumDays: null,
     availability: "open",
     availabilityRaw: "Yes",
     sourceUpdatedAt: "2026-06",
@@ -91,7 +92,7 @@ function observation(value: number | null, freshness: "fresh" | "stale" | "unkno
   return { value, freshness, source: "snapshot", observedAt: "2026-10-26T10:00:00.000Z" }
 }
 
-const validIds = TRACKER_REGISTRY.map((tracker) => tracker.slug)
+const validIds = PATHWAYS_TRACKERS.map((tracker) => tracker.id)
 
 describe("real recruitment catalog", () => {
   it("is a pinned MIT trackerpathways subset with valid registry references", () => {
@@ -99,9 +100,9 @@ describe("real recruitment catalog", () => {
     expect(RECRUITMENT_CATALOG.source.version).toBe(
       "5e3b206ed1352b56a685b90ec8da3757f702c3eb"
     )
-    expect(RECRUITMENT_CATALOG.source.accessedAt).toBe("2026-10-26T00:00:00.000Z")
-    expect(RECRUITMENT_CATALOG.routes.length).toBe(194)
-    expect(RECRUITMENT_CATALOG.sourceGates.length).toBe(23)
+    expect(RECRUITMENT_CATALOG.source.accessedAt).toBe("2026-10-28T19:21:35.000Z")
+    expect(RECRUITMENT_CATALOG.routes.length).toBe(598)
+    expect(RECRUITMENT_CATALOG.sourceGates.length).toBe(61)
     expect(RECRUITMENT_CATALOG.overrides).toEqual([])
 
     const validation = validateRecruitmentCatalog(RECRUITMENT_CATALOG, validIds)
@@ -109,12 +110,12 @@ describe("real recruitment catalog", () => {
     expect(validation.valid).toBe(true)
   })
 
-  it("does not turn the undocumented upstream days value into account age", () => {
+  it("stores trackerpathways days as the minimum source time", () => {
     for (const item of RECRUITMENT_CATALOG.routes) {
       expect(item.requirements).toBeNull()
-      expect(item.sourceDays === null || item.sourceDays >= 0).toBe(true)
+      expect(item.minimumDays === null || item.minimumDays >= 0).toBe(true)
     }
-    expect(RECRUITMENT_CATALOG.routes.some((item) => item.sourceDays !== null)).toBe(true)
+    expect(RECRUITMENT_CATALOG.routes.some((item) => item.minimumDays !== null)).toBe(true)
   })
 
   it("keeps free-text-only routes unknown instead of inventing thresholds", () => {
@@ -288,9 +289,9 @@ describe("route eligibility", () => {
     expect(result?.invitation.guaranteed).toBe(false)
   })
 
-  it("keeps the undocumented days value unresolved rather than account age", () => {
+  it("keeps trackerpathways days as minimum time and unknown age unknown", () => {
     const item = catalog([
-      route({ requirements: null, requirementNotes: [], sourceDays: 365 }),
+      route({ requirements: null, requirementNotes: [], minimumDays: 365 }),
     ])
     const result = evaluateRecruitmentRoute(item, "tp:alpha:beta", {
       observations: { accountAgeDays: observation(5000) },
@@ -300,12 +301,15 @@ describe("route eligibility", () => {
     expect(result?.eligibility.status).toBe("unknown")
     expect(result?.eligibility.sourceRequirements).toMatchObject({
       days: 365,
-      daysSemantics: "unresolved",
+      daysSource: "trackerpathways",
       inviteGate: null,
     })
-    expect(result?.eligibility.structured?.conditions[0]).toMatchObject({
-      kind: "manual",
-      label: "Community dataset days value",
+    expect(result?.timeGate).toEqual({
+      minimumDays: 365,
+      effectiveDays: 365,
+      accountAgeDays: null,
+      daysRemaining: null,
+      status: "unknown",
     })
   })
 

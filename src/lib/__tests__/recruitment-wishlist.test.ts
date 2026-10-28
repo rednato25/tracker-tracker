@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 import type { RankRequirementGroup } from "@/lib/rank-goals"
 import type { RecruitmentCatalog, RecruitmentRouteRecord } from "@/lib/recruitment-routes"
-import { RECRUITMENT_ROUTE_FORMAT_VERSION } from "@/lib/recruitment-routes"
+import {
+  evaluateRecruitmentRoute,
+  RECRUITMENT_ROUTE_FORMAT_VERSION,
+} from "@/lib/recruitment-routes"
 import {
   emptyRecruitmentState,
   normalizeRecruitmentState,
@@ -63,12 +66,14 @@ function ratioRequirement(ratio: number): RankRequirementGroup {
 
 function route(overrides: Partial<RecruitmentRouteRecord> = {}): RecruitmentRouteRecord {
   return {
-    id: "tp:alpharatio:broadcasthenet",
-    sourceTrackerId: "alpharatio",
-    destinationTrackerId: "broadcasthenet",
+    id: "tp:AlphaRatio:BroadcasTheNet",
+    sourceTrackerId: "AlphaRatio",
+    destinationTrackerId: "BroadcasTheNet",
+    sourceRegistrySlug: "alpharatio",
+    destinationRegistrySlug: "broadcasthenet",
     requirements: ageRequirement(30),
     requirementNotes: [],
-    sourceDays: null,
+    minimumDays: null,
     availability: "open",
     availabilityRaw: "Yes",
     sourceUpdatedAt: "2026-09",
@@ -151,16 +156,16 @@ describe("buildWishlistPaths", () => {
   it("shows direct and bounded multi-step routes, evaluating owned steps only", () => {
     const item = catalog([
       route(),
-      route({ id: "tp:alpharatio:aither", destinationTrackerId: "aither" }),
+      route({ id: "tp:AlphaRatio:Aither", destinationTrackerId: "Aither" }),
       route({
-        id: "tp:aither:broadcasthenet",
-        sourceTrackerId: "aither",
-        destinationTrackerId: "broadcasthenet",
+        id: "tp:Aither:BroadcasTheNet",
+        sourceTrackerId: "Aither",
+        destinationTrackerId: "BroadcasTheNet",
       }),
     ])
     const result = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker()],
       savedRankGoals: {},
       state: stateFor("broadcasthenet"),
@@ -182,44 +187,58 @@ describe("buildWishlistPaths", () => {
     const item = catalog([
       route(),
       route({
-        id: "tp:broadcasthenet:alpharatio",
-        sourceTrackerId: "broadcasthenet",
-        destinationTrackerId: "alpharatio",
+        id: "tp:BroadcasTheNet:AlphaRatio",
+        sourceTrackerId: "BroadcasTheNet",
+        destinationTrackerId: "AlphaRatio",
       }),
     ])
     const result = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker()],
       savedRankGoals: {},
       state: stateFor("broadcasthenet"),
       now: NOW,
     })
-    expect(result.paths.map((path) => path.key)).toEqual(["tp:alpharatio:broadcasthenet"])
+    expect(result.paths.map((path) => path.key)).toEqual(["tp:AlphaRatio:BroadcasTheNet"])
   })
 
-  it("keeps closed routes closed and unknown gate/days context visible", () => {
+  it("excludes closed routes from suggested paths but keeps the step closed", () => {
+    const item = catalog([route({ availability: "closed", availabilityRaw: "No" })])
+    const result = buildWishlistPaths({
+      catalog: item,
+      desiredTrackerSlug: "BroadcasTheNet",
+      trackers: [tracker()],
+      savedRankGoals: {},
+      state: stateFor("BroadcasTheNet"),
+      now: NOW,
+    })
+    expect(result.paths).toEqual([])
+    const evaluation = evaluateRecruitmentRoute(item, "tp:AlphaRatio:BroadcasTheNet", {
+      observations: {},
+      now: NOW,
+    })
+    expect(evaluation?.availability.status).toBe("closed")
+  })
+
+  it("shows every source gate and minimum time per trackerpathways", () => {
     const item = catalog(
-      [
-        route({ availability: "closed", availabilityRaw: "No" }),
-        route({ id: "tp:alpharatio:aither", destinationTrackerId: "aither", sourceDays: 365 }),
-      ],
-      [{ trackerId: "alpharatio", days: 30, text: "Sphinx: 26 weeks, 3.2TB upload" }]
+      [route({ minimumDays: 365 })],
+      [{ trackerId: "AlphaRatio", days: 30, text: "Sphinx: 26 weeks, 3.2TB upload" }]
     )
     const result = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker()],
       savedRankGoals: {},
-      state: stateFor("broadcasthenet"),
+      state: stateFor("BroadcasTheNet"),
       now: NOW,
     })
-
-    expect(result.paths[0].status).toBe("closed")
-    expect(result.paths[0].steps[0].evaluation.availability.status).toBe("closed")
-    expect(result.paths.some((path) => path.steps[0].evaluation.eligibility.sourceRequirements.inviteGate)).toBe(
-      true
+    expect(result.paths[0].steps[0].evaluation.eligibility.sourceRequirements.inviteGate?.text).toContain(
+      "Sphinx"
     )
+    expect(result.paths[0].steps[0].evaluation.timeGate.effectiveDays).toBe(365)
+    expect(result.paths[0].minimumDays).toBe(365)
   })
 
   it("marks stale or missing observations as needing verification", () => {
@@ -228,7 +247,7 @@ describe("buildWishlistPaths", () => {
     ])
     const stale = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [
         tracker({
           lastPolledAt: "2026-10-20T10:00:00.000Z",
@@ -244,7 +263,7 @@ describe("buildWishlistPaths", () => {
 
     const missing = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker({ latestStats: null })],
       savedRankGoals: {},
       state: stateFor("broadcasthenet"),
@@ -269,7 +288,7 @@ describe("buildWishlistPaths", () => {
 
     const owned = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "alpharatio",
+      desiredTrackerSlug: "AlphaRatio",
       trackers: [tracker()],
       savedRankGoals: {},
       state: stateFor("alpharatio"),
@@ -279,7 +298,7 @@ describe("buildWishlistPaths", () => {
 
     const noAccounts = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [],
       savedRankGoals: {},
       state: stateFor("broadcasthenet"),
@@ -289,10 +308,10 @@ describe("buildWishlistPaths", () => {
 
     const hidden = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker()],
       savedRankGoals: {},
-      state: stateFor("broadcasthenet", ["tp:alpharatio:broadcasthenet"]),
+      state: stateFor("BroadcasTheNet", ["tp:AlphaRatio:BroadcasTheNet"]),
       now: NOW,
     })
     expect(hidden.paths[0].hidden).toBe(true)
@@ -301,16 +320,16 @@ describe("buildWishlistPaths", () => {
   it("bounds the total and marks truncation", () => {
     const item = catalog([
       route(),
-      route({ id: "tp:alpharatio:aither", destinationTrackerId: "aither" }),
+      route({ id: "tp:AlphaRatio:Aither", destinationTrackerId: "Aither" }),
       route({
-        id: "tp:aither:broadcasthenet",
-        sourceTrackerId: "aither",
-        destinationTrackerId: "broadcasthenet",
+        id: "tp:Aither:BroadcasTheNet",
+        sourceTrackerId: "Aither",
+        destinationTrackerId: "BroadcasTheNet",
       }),
     ])
     const result = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker()],
       savedRankGoals: {},
       state: stateFor("broadcasthenet"),
@@ -326,15 +345,15 @@ describe("goal links", () => {
   it("offers a link only when the exact structured condition exists in a saved goal", () => {
     const item = catalog([
       route({
-        id: "tp:torrentleech:broadcasthenet",
-        sourceTrackerId: "torrentleech",
-        destinationTrackerId: "broadcasthenet",
+        id: "tp:TorrentLeech:BroadcasTheNet",
+        sourceTrackerId: "TorrentLeech",
+        destinationTrackerId: "BroadcasTheNet",
         requirements: ageRequirement(14),
       }),
     ])
     const result = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker({ registrySlug: "torrentleech" })],
       savedRankGoals: { "1": { targetRank: "Power User" } },
       state: stateFor("broadcasthenet"),
@@ -342,7 +361,7 @@ describe("goal links", () => {
     })
     const candidate = result.paths[0].steps[0].goalCandidates[0]
     expect(candidate).toMatchObject({
-      routeId: "tp:torrentleech:broadcasthenet",
+      routeId: "tp:TorrentLeech:BroadcasTheNet",
       conditionId: "source-age",
       goalTrackerSlug: "torrentleech",
       targetRank: "Power User",
@@ -352,7 +371,7 @@ describe("goal links", () => {
     })
 
     const state = normalizeRecruitmentState({
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       goalLinks: [candidate],
     })
     expect(state.goalLinks).toHaveLength(1)
@@ -365,15 +384,15 @@ describe("goal links", () => {
   it("does not offer a link for a different threshold", () => {
     const item = catalog([
       route({
-        id: "tp:torrentleech:broadcasthenet",
-        sourceTrackerId: "torrentleech",
-        destinationTrackerId: "broadcasthenet",
+        id: "tp:TorrentLeech:BroadcasTheNet",
+        sourceTrackerId: "TorrentLeech",
+        destinationTrackerId: "BroadcasTheNet",
         requirements: ageRequirement(30),
       }),
     ])
     const result = buildWishlistPaths({
       catalog: item,
-      desiredTrackerSlug: "broadcasthenet",
+      desiredTrackerSlug: "BroadcasTheNet",
       trackers: [tracker({ registrySlug: "torrentleech" })],
       savedRankGoals: { "1": { targetRank: "Power User" } },
       state: stateFor("broadcasthenet"),

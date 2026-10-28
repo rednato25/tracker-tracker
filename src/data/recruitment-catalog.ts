@@ -1,23 +1,14 @@
 // src/data/recruitment-catalog.ts
 //
-// The production P17 catalog. Routes are a pinned, offline community snapshot;
-// overrides are reviewed code. Nothing here fetches the upstream dataset.
+// P30: the production catalog is a build-time view of the raw trackerpathways
+// snapshot in src/data/pathways/. Nothing fetches at render time.
 
-import { RECRUITMENT_SOURCE_GATES } from "@/data/recruitment-gates"
-import { RECRUITMENT_ROUTE_OVERRIDES } from "@/data/recruitment-overrides"
-import {
+export {
+  normalizePathwaysTarget,
+  PATHWAYS_TRACKERS,
+  pathwaysTrackerIdForRegistrySlug,
+  pathwaysTrackerName,
+  RECRUITMENT_CATALOG,
   RECRUITMENT_ROUTES,
-  RECRUITMENT_SOURCE,
-} from "@/data/recruitment-routes"
-import {
-  RECRUITMENT_ROUTE_FORMAT_VERSION,
-  type RecruitmentCatalog,
-} from "@/lib/recruitment-routes"
-
-export const RECRUITMENT_CATALOG: RecruitmentCatalog = {
-  formatVersion: RECRUITMENT_ROUTE_FORMAT_VERSION,
-  source: RECRUITMENT_SOURCE,
-  routes: RECRUITMENT_ROUTES,
-  sourceGates: RECRUITMENT_SOURCE_GATES,
-  overrides: RECRUITMENT_ROUTE_OVERRIDES,
-}
+  registrySlugForPathwaysTracker,
+} from "@/data/pathways/catalog"

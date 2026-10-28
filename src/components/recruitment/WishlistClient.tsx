@@ -5,8 +5,12 @@
 import { H1, H2, Paragraph, Subtext } from "@typography"
 import { useMemo, useState } from "react"
 import { Badge, Button, Card, Notice, Select } from "@/components/ui"
+import {
+  PATHWAYS_TRACKERS,
+  pathwaysTrackerIdForRegistrySlug,
+  pathwaysTrackerName,
+} from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
-import { getTrackerBySlug, TRACKER_REGISTRY } from "@/data/tracker-registry"
 import { formatBytesNum, formatCount, formatRatioDisplay } from "@/lib/formatters"
 import type {
   RankConditionResult,
@@ -48,7 +52,7 @@ function dateOnly(value: string | null): string {
 }
 
 function trackerName(slug: string): string {
-  return getTrackerBySlug(slug)?.name ?? slug
+  return pathwaysTrackerName(pathwaysTrackerIdForRegistrySlug(slug) ?? slug)
 }
 
 function formatValue(metric: RankMetric, value: number | null): string {
@@ -142,8 +146,9 @@ function StepRequirements({
     (note) => !NO_REQUIREMENT.test(note.trim())
   )
   const gate = evaluation.eligibility.sourceRequirements.inviteGate
-  const days = evaluation.eligibility.sourceRequirements.days
-  const hasUnresolved = notes.length > 0 || gate !== null || days !== null
+  const timeGate = evaluation.timeGate
+  const hasTimeGate = timeGate.effectiveDays !== null && timeGate.effectiveDays > 0
+  const hasUnresolved = notes.length > 0 || gate !== null || hasTimeGate
 
   return (
     <div className="flex flex-col gap-3">
@@ -234,8 +239,8 @@ function StepRequirements({
                 <Badge variant="warn">Source invite/forum gate</Badge>
                 <span className="text-2xs text-tertiary">
                   {gate.days === null
-                    ? "No upstream wait value"
-                    : `${gate.days} days listed upstream`}
+                    ? "No gate wait value"
+                    : `${gate.days} days listed by trackerpathways`}
                 </span>
               </div>
               <p className="break-words text-xs text-secondary">{gate.text}</p>
@@ -244,12 +249,20 @@ function StepRequirements({
               </span>
             </div>
           )}
-          {days !== null && (
+          {hasTimeGate && (
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <Badge variant="warn">Upstream wait</Badge>
+              <Badge variant={timeGate.status === "open" ? "accent" : "warn"}>
+                Time on source
+              </Badge>
               <span className="text-secondary">
-                {days} days listed. Upstream does not document whether this means account age,
-                waiting time, or another gate, so it is not evaluated.
+                {timeGate.effectiveDays} days per trackerpathways
+                {step.scenario
+                  ? " · minimum time on the source tracker"
+                  : timeGate.accountAgeDays === null
+                    ? " · account age unknown"
+                    : timeGate.status === "open"
+                      ? ` · your account age is ${timeGate.accountAgeDays} days, so this is met`
+                      : ` · ${timeGate.daysRemaining} days remaining from your ${timeGate.accountAgeDays}-day account age`}
               </span>
             </div>
           )}
@@ -391,6 +404,11 @@ function PathCard({
             {path.steps.length === 1
               ? "Direct route"
               : `${path.steps.length} steps · bounded scenario`}
+            {path.totalDaysRemaining !== null
+              ? path.totalDaysRemaining > 0
+                ? ` · ${path.totalDaysRemaining} days remaining per trackerpathways`
+                : " · no known wait"
+              : " · wait time unknown"}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -449,14 +467,12 @@ export function WishlistClient({
   const trackerOptions = useMemo(
     () => [
       { value: "", label: "Choose a desired tracker" },
-      ...[...TRACKER_REGISTRY]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((tracker) => ({
-          value: tracker.slug,
-          label: result.ownedSlugs.includes(tracker.slug)
-            ? `${tracker.name} (owned)`
-            : tracker.name,
-        })),
+      ...PATHWAYS_TRACKERS.map((tracker) => ({
+        value: tracker.id,
+        label: result.ownedSlugs.includes(tracker.id)
+          ? `${tracker.name} (owned)`
+          : tracker.name,
+      })),
     ],
     [result.ownedSlugs]
   )
@@ -547,8 +563,8 @@ export function WishlistClient({
         <div className="flex flex-wrap items-center gap-2 text-2xs text-tertiary">
           <span>
             {result.ownedSlugs.length === 1
-              ? "1 owned registry account"
-              : `${result.ownedSlugs.length} owned registry accounts`}
+              ? "1 owned account"
+              : `${result.ownedSlugs.length} owned accounts`}
           </span>
           {saving && <span>Saving…</span>}
           {hiddenCount > 0 && (
@@ -572,7 +588,7 @@ export function WishlistClient({
           variant="info"
           box
           header="Some owned trackers cannot start a route"
-          message={`${unsupportedNames.join(", ")} ${unsupportedNames.length === 1 ? "has" : "have"} no registry identity, so the recruitment catalog cannot match ${unsupportedNames.length === 1 ? "it" : "them"}.`}
+          message={`${unsupportedNames.join(", ")} cannot be matched to a trackerpathways name, so the route catalog cannot use ${unsupportedNames.length === 1 ? "it" : "them"} as a start.`}
         />
       )}
 
@@ -623,7 +639,8 @@ export function WishlistClient({
               <p className="text-xs text-secondary">
                 {visiblePaths.length === 1
                   ? "1 route"
-                  : `${visiblePaths.length} routes`} to {desiredName}. Direct routes are shown first.
+                  : `${visiblePaths.length} routes`} to {desiredName}. Fastest known waits are
+                shown first, then fewer steps; unknown waits are last.
               </p>
             </div>
             {result.truncated && (

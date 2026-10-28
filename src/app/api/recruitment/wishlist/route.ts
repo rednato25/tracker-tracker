@@ -1,8 +1,9 @@
 // GET/PUT /api/recruitment/wishlist
 //
-// Session-authenticated P18 wishlist state. Tracker references are registry
-// slugs; route/dataset references may go stale and are resolved defensively by
-// the UI. No tracker, client or dataset request is made here.
+// Session-authenticated P18 wishlist state. The desired target is a
+// trackerpathways ID; legacy registry slugs are migrated by the normalizer.
+// Route/dataset references may go stale and are resolved defensively by the UI.
+// No tracker, client or dataset request is made here.
 
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"

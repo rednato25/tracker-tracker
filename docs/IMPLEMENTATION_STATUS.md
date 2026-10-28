@@ -1667,6 +1667,41 @@ P26 owner acceptance remains pending. Merge of the fix is not authorized.
 - Tests: 6255 full tests; TL ladder results are unchanged except conservative
   upload evaluation; text-only classes remain unsupported; unknown metrics are
   rejected. CI is the final gate.
+
+### P30 full trackerpathways wishlist
+
+- The wishlist catalog now uses the complete MIT-licensed trackerpathways
+  snapshot, vendored unchanged at commit `5e3b206ed1352b56a685b90ec8da3757f702c3eb`
+  under `src/data/pathways/trackers.json`, with commit/date/license metadata in
+  `src/data/pathways/metadata.json`. `pnpm pathways:update [commit]` refreshes
+  both files, validates the shape, resolves the ref to a commit hash and prints
+  added/removed trackers and routes. Rendering never fetches the dataset.
+- Tracker IDs inside the catalog are trackerpathways names. Registry slugs are
+  attached only for unambiguous name/slug/abbreviation matches, preserving the
+  194 legacy registry-to-registry edges; every other tracker remains usable as a
+  target or middle hop. Desired targets are stored as trackerpathways IDs, and
+  version-1 registry-slug targets migrate on read, write and backup restore.
+- `days` is now the minimum time on the source tracker: each step uses
+  `max(route days, source forum-gate days)` and the path sums them, labelled
+  "per trackerpathways". Source-gate days are part of that step wait. Owned
+  sources show days remaining from account age; unknown account age stays
+  unknown. Paths are collected from all owned sources, ranked by total days
+  remaining (first hop uses account-age remainder, later hops use the full
+  wait, unknown waits last), then fewer hops, and only then capped.
+  `unlockInviteClass` text is shown for every source step that has it. `reqs`
+  remains prose, and `active: "No"`/`"Closed"` routes are excluded from suggested
+  paths.
+- Tests: 12 P30 cases plus updated contract, wishlist/UI, state and backup-restore
+  tests pass. Full suite on the local Node 26 environment has the known jsdom
+  `localStorage` failures; Node 24 CI remains the gate. Typecheck and production
+  build pass; `pnpm lint` still reports pre-existing diagnostics outside this
+  slice.
+- Visual evidence: authenticated E2E captured `/wishlist` light/dark at 1440px
+  (`visual-wishlist-light.png`, `visual-wishlist-dark.png`) and 390px
+  (`visual-wishlist-mobile.png`, `visual-wishlist-mobile-dark.png`) with a
+  temporary owned AlphaRatio row and no route-data changes. No merge or deploy
+  was performed.
+
 ### P02b slices
 
 1. **P02b-1:** policy, production manifest/baseline, checksum validator,

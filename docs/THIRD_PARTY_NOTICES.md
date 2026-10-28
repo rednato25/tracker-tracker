@@ -2,8 +2,11 @@
 
 ## trackerpathways
 
-The P17 recruitment-route catalog in `src/data/recruitment-routes.ts` is derived
-from the trackerpathways community dataset:
+The wishlist recruitment-route catalog is vendored unchanged from the
+trackerpathways community dataset in `src/data/pathways/trackers.json`. The
+pinned commit, fetch date and license are recorded in
+`src/data/pathways/metadata.json`. The legacy subset that lived in
+`src/data/recruitment-routes.ts` is superseded by this snapshot.
 
 - Project: https://github.com/handokota/trackerpathways
 - Pinned commit: `5e3b206ed1352b56a685b90ec8da3757f702c3eb`

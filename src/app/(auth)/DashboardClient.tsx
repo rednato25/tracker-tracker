@@ -131,7 +131,7 @@ export function DashboardClient({
   // (collapsed until hydrated) because mounting echarts is expensive; section content is
   // already in the server-rendered HTML, so hiding it until hydration would blank the page
   // and pop it back open for the common case of nothing being collapsed at all.
-  const isExpanded = (id: string) => !sectionCollapse.hydrated || !sectionCollapse.isCollapsed(id)
+  const isExpanded = (id: string) => !sectionCollapse.isCollapsed(id)
 
   const todayAtAGlanceExpanded = isExpanded("today-at-a-glance")
   const leaderboardExpanded = isExpanded("leaderboard")
@@ -167,14 +167,10 @@ export function DashboardClient({
   return (
     <div className="min-h-full">
       <div className="page-topbar sticky top-0 z-20 -mx-4 -mt-4 mb-6 flex h-14 items-center justify-between border-b border-border bg-raised pl-4 pr-4 md:-mx-6 md:-mt-6 md:pl-7 md:pr-7">
-        <div className="font-cond text-3xs font-semibold uppercase tracking-[0.14em] text-tertiary">
-          Vault / <span className="text-primary">Dashboard</span>
+        <div className="font-cond text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          Dashboard
         </div>
         <div className="flex items-center gap-2">
-          <span className="hidden font-mono text-4xs text-secondary md:inline">
-            {data.trackers.length} {data.trackers.length === 1 ? "accession" : "accessions"} ·{" "}
-            {attentionCount} {attentionCount === 1 ? "needs" : "need"} attention
-          </span>
           <PollAllButton onPollComplete={data.refresh} />
           <Button
             variant="secondary"
@@ -188,7 +184,22 @@ export function DashboardClient({
       </div>
 
       <div className="mx-auto flex max-w-[1500px] flex-col gap-10 pb-12">
-        <TrackerRegister trackers={data.trackers} />
+        <TrackerRegister
+          trackers={data.trackers}
+          aggregateStats={aggregateStats}
+          attentionCount={attentionCount}
+          now={new Date(now)}
+        />
+
+        {/* Ranks */}
+        {dashSettings.settings.showRankStacks && (
+          <RankStacks
+            trackers={data.trackers}
+            savedGoals={savedRankGoals}
+            expanded={rankStacksExpanded}
+            onToggleExpanded={() => sectionCollapse.toggle("rank-stacks")}
+          />
+        )}
 
         <AttentionNeeded
           trackers={data.trackers}
@@ -208,7 +219,16 @@ export function DashboardClient({
           />
         )}
 
-        {/* Today At A Glance */}
+        {/* Login Timers */}
+      {dashSettings.settings.showLoginTimers && (
+        <LoginTimers
+          trackers={data.trackers}
+          expanded={loginTimersExpanded}
+          onToggleExpanded={() => sectionCollapse.toggle("login-timers")}
+        />
+      )}
+
+      {/* Today At A Glance */}
         {dashSettings.settings.showTodayAtAGlance && (
           <div className="flex w-full flex-col gap-4">
             <SectionToggle
@@ -224,25 +244,6 @@ export function DashboardClient({
               ) : null)}
           </div>
         )}
-
-      {/* Login Timers */}
-      {dashSettings.settings.showLoginTimers && (
-        <LoginTimers
-          trackers={data.trackers}
-          expanded={loginTimersExpanded}
-          onToggleExpanded={() => sectionCollapse.toggle("login-timers")}
-        />
-      )}
-
-      {/* Ranks */}
-      {dashSettings.settings.showRankStacks && (
-        <RankStacks
-          trackers={data.trackers}
-          savedGoals={savedRankGoals}
-          expanded={rankStacksExpanded}
-          onToggleExpanded={() => sectionCollapse.toggle("rank-stacks")}
-        />
-      )}
 
       {/* Leaderboard */}
       <div className="flex flex-col gap-4">

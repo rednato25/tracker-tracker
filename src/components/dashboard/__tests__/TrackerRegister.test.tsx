@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { TrackerRegister } from "@/components/dashboard/TrackerRegister"
+import { computeAggregateStats } from "@/lib/dashboard"
 import type { TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-27T12:00:00.000Z")
@@ -125,6 +126,46 @@ describe("TrackerRegister accounted metrics", () => {
     render(<TrackerRegister trackers={[tracker({ lastPolledAt: null })]} now={NOW} />)
     expect(screen.getAllByLabelText("snapshot age unknown").length).toBeGreaterThan(0)
     expect(screen.getAllByTitle(/freshness cannot be confirmed/).length).toBeGreaterThan(0)
+  })
+
+  it("replaces the status counts with account totals and attention", () => {
+    const base = tracker()
+    const trackers = [
+      base,
+      tracker({
+        id: 2,
+        name: "Beta",
+        latestStats: { ...base.latestStats!, uploadedBytes: "0", downloadedBytes: "0" },
+      }),
+    ]
+    render(
+      <TrackerRegister
+        trackers={trackers}
+        aggregateStats={computeAggregateStats(trackers)}
+        attentionCount={3}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Total uploaded")).toBeInTheDocument()
+    expect(screen.getByText("Total downloaded")).toBeInTheDocument()
+    expect(screen.getByText("Overall ratio")).toBeInTheDocument()
+    expect(screen.getByText("Need attention")).toBeInTheDocument()
+    expect(screen.getAllByText("03").length).toBeGreaterThan(0)
+  })
+
+  it("labels totals from only trackers with a snapshot and marks included stale data", () => {
+    const withStats = tracker()
+    const stale = tracker({ id: 2, name: "Stale", lastPolledAt: "2026-10-27T08:00:00.000Z" })
+    const missing = tracker({ id: 3, name: "Missing", latestStats: null, lastPolledAt: null })
+    render(
+      <TrackerRegister
+        trackers={[withStats, stale, missing]}
+        aggregateStats={computeAggregateStats([withStats, stale, missing])}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Totals from 2 of 3 trackers with a snapshot.")).toBeInTheDocument()
+    expect(screen.getAllByLabelText("stale snapshot").length).toBeGreaterThan(0)
   })
 
   it("does not expose username or sum bonus across independent tracker rows", () => {

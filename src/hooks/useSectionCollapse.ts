@@ -15,8 +15,10 @@ interface SectionCollapseState {
   hydrated: boolean
 }
 
+const DEFAULT_COLLAPSED = ["today-at-a-glance", "leaderboard", "ecosystem-stats", "tag-groups"]
+
 function useSectionCollapse(): SectionCollapseState {
-  const [collapsed, setCollapsed] = useState<string[]>([])
+  const [collapsed, setCollapsed] = useState<string[]>(DEFAULT_COLLAPSED)
   const [hydrated, setHydrated] = useState(false)
 
   // Hydrate from localStorage after mount (SSR-safe)

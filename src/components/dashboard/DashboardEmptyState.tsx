@@ -29,9 +29,8 @@ function DashboardEmptyState({ onAdded }: DashboardEmptyStateProps) {
           <h1 className="font-cond text-4xl font-semibold leading-none text-primary">
             Account register
           </h1>
-          <p className="mt-2 font-mono text-3xs text-secondary">
-            No accessions yet · the register begins with one account.
-          </p>
+          <p className="mt-2 font-mono text-xs text-secondary">
+            No trackers yet - the register begins with one account.</p>
         </div>
         <div className="flex flex-col gap-4 px-6 py-6">
           <p className="max-w-prose text-xs leading-relaxed text-secondary">
@@ -43,7 +42,7 @@ function DashboardEmptyState({ onAdded }: DashboardEmptyStateProps) {
               <PlusIcon width="13" height="13" />
               Add first tracker
             </Button>
-            <span className="font-mono text-4xs text-muted">Credentials stay on this server.</span>
+            <span className="font-mono text-xs text-muted">Credentials stay on this server.</span>
           </div>
         </div>
       </div>

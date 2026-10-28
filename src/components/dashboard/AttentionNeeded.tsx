@@ -53,7 +53,7 @@ function formatEvidenceValue(value: unknown): string {
 
 function StatusMark({ tone, label }: { tone: RowTone; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 font-cond text-3xs font-semibold uppercase tracking-[0.1em] text-secondary">
+    <span className="inline-flex items-center gap-1.5 font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
       <span className={clsx("size-1.5 rounded-[1px]", TONE_MARK[tone])} aria-hidden="true" />
       {label}
     </span>
@@ -64,10 +64,10 @@ function ActionEvidence({ action }: { action: TrackerAction }) {
   const evidence = action.evidence
   return (
     <details className="mt-2 border-t border-border pt-2">
-      <summary className="cursor-pointer font-cond text-3xs uppercase tracking-[0.1em] text-tertiary focus-visible:outline-1 focus-visible:outline-accent">
+      <summary className="cursor-pointer font-cond text-xs uppercase tracking-[0.1em] text-tertiary focus-visible:outline-1 focus-visible:outline-accent">
         Evidence and source
       </summary>
-      <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 font-mono text-4xs text-tertiary sm:grid-cols-2">
+      <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 font-mono text-xs text-tertiary sm:grid-cols-2">
         <div className="flex gap-2">
           <dt className="text-muted">key</dt>
           <dd className="break-all">{action.key}</dd>
@@ -153,23 +153,23 @@ function ActionRow({ action, tracker }: { action: TrackerAction; tracker?: Track
           {tracker?.name ?? action.trackerName}
         </Link>
         {action.torrentHash && (
-          <p className="mt-1 break-all font-mono text-4xs text-tertiary">
+          <p className="mt-1 break-all font-mono text-xs text-tertiary">
             Torrent {action.torrentHash.slice(0, 12)}…
           </p>
         )}
-        <p className="mt-1 font-mono text-4xs text-muted">{action.type}</p>
+        <p className="mt-1 font-mono text-xs text-muted">{action.type}</p>
       </div>
       <div className="min-w-0">
         <p className="text-xs leading-5 text-secondary">{action.reason}</p>
         {action.deadline && (
-          <p className="mt-1 font-mono text-4xs text-tertiary">Deadline {action.deadline}</p>
+          <p className="mt-1 font-mono text-xs text-tertiary">Deadline {action.deadline}</p>
         )}
         <ActionEvidence action={action} />
       </div>
       <div className="flex items-start">
         <Link
           href={destination}
-          className="font-cond text-3xs font-semibold uppercase tracking-[0.1em] text-accent underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-accent"
+          className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-accent underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-accent"
         >
           {action.nextAction}
         </Link>
@@ -192,7 +192,7 @@ function ClearRow({ tracker }: { tracker: TrackerSummary }) {
         {tracker.name}
       </Link>
       <p className="text-xs text-secondary">No action or verification item is recorded.</p>
-      <span className="font-mono text-4xs text-muted">No next action</span>
+      <span className="font-mono text-xs text-muted">No next action</span>
     </article>
   )
 }
@@ -281,7 +281,7 @@ export function AttentionNeeded({
           >
             Attention needed
           </h2>
-          <p className="mt-1 font-mono text-4xs text-tertiary" aria-live="polite" data-testid="attention-counts">
+          <p className="mt-1 font-mono text-xs text-tertiary" aria-live="polite" data-testid="attention-counts">
             {actionRequired} action{actionRequired === 1 ? "" : "s"} required ·{" "}
             {verification} need{verification === 1 ? "s" : ""} verification ·{" "}
             {clearTrackers.length} clear
@@ -306,32 +306,32 @@ export function AttentionNeeded({
       {loading ? (
         <div className="px-3 py-6" role="status">
           <p className="font-mono text-xs text-secondary">Checking tracker actions…</p>
-          <p className="mt-1 font-mono text-4xs text-tertiary">
+          <p className="mt-1 font-mono text-xs text-tertiary">
             A clear result is withheld until data finishes loading.
           </p>
         </div>
       ) : error ? (
         <div className="px-3 py-6" role="alert">
           <p className="font-mono text-xs text-danger">Tracker actions could not be loaded.</p>
-          <p className="mt-1 font-mono text-4xs text-tertiary">
+          <p className="mt-1 font-mono text-xs text-tertiary">
             No clear status is claimed while data is unavailable.
           </p>
         </div>
       ) : (
         <>
           {clientsUnavailable && (
-            <p className="border-b border-border px-3 py-2 font-mono text-4xs text-warn" role="status">
+            <p className="border-b border-border px-3 py-2 font-mono text-xs text-warn" role="status">
               Client data is unavailable. Client actions may be missing, so this is not an all-clear.
             </p>
           )}
           {hasVerification && !hasConfirmed && (
-            <p className="border-b border-border px-3 py-2 font-mono text-4xs text-secondary" role="status">
+            <p className="border-b border-border px-3 py-2 font-mono text-xs text-secondary" role="status">
               No confirmed problems. {verification} item{verification === 1 ? "" : "s"} still need
               verification.
             </p>
           )}
           {allClear && !clientsUnavailable && (
-            <p className="border-b border-border px-3 py-2 font-mono text-4xs text-success" role="status">
+            <p className="border-b border-border px-3 py-2 font-mono text-xs text-success" role="status">
               All clear. No confirmed actions or verification items at {asOf}.
             </p>
           )}

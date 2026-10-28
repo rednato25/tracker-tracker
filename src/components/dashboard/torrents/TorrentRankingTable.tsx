@@ -77,7 +77,7 @@ export function TorrentRankingTable({ torrents, variant, trackerColor }: Torrent
       key: "name",
       header: "Name",
       render: (t) => (
-        <MarqueeText className="text-2xs font-mono text-secondary" speed={30}>
+        <MarqueeText className="text-xs font-mono text-secondary" speed={30}>
           {t.name}
         </MarqueeText>
       ),
@@ -102,7 +102,7 @@ export function TorrentRankingTable({ torrents, variant, trackerColor }: Torrent
         return (
           <span className="torrent-cell text-right leading-none">
             {num}
-            <span className="block text-4xs mt-px">{unit}</span>
+            <span className="block text-xs mt-px">{unit}</span>
           </span>
         )
       },

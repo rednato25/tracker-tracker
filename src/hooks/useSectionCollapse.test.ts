@@ -38,15 +38,15 @@ describe("useSectionCollapse", () => {
     await act(async () => {})
 
     act(() => {
-      first.result.current.toggle("leaderboard")
+      first.result.current.toggle("rank-stacks")
     })
-    expect(first.result.current.isCollapsed("leaderboard")).toBe(true)
+    expect(first.result.current.isCollapsed("rank-stacks")).toBe(true)
     first.unmount()
 
     const second = renderHook(() => useSectionCollapse())
     await act(async () => {})
     expect(second.result.current.hydrated).toBe(true)
-    expect(second.result.current.isCollapsed("leaderboard")).toBe(true)
+    expect(second.result.current.isCollapsed("rank-stacks")).toBe(true)
   })
 
   it("persists several different ids toggled in sequence on one shared instance", async () => {
@@ -63,12 +63,12 @@ describe("useSectionCollapse", () => {
       first.result.current.toggle("login-timers")
     })
     act(() => {
-      first.result.current.toggle("leaderboard")
+      first.result.current.toggle("rank-stacks")
     })
 
     expect(first.result.current.isCollapsed("trackers")).toBe(true)
     expect(first.result.current.isCollapsed("login-timers")).toBe(true)
-    expect(first.result.current.isCollapsed("leaderboard")).toBe(true)
+    expect(first.result.current.isCollapsed("rank-stacks")).toBe(true)
     first.unmount()
 
     const second = renderHook(() => useSectionCollapse())
@@ -76,8 +76,8 @@ describe("useSectionCollapse", () => {
 
     expect(second.result.current.isCollapsed("trackers")).toBe(true)
     expect(second.result.current.isCollapsed("login-timers")).toBe(true)
-    expect(second.result.current.isCollapsed("leaderboard")).toBe(true)
-    expect(second.result.current.isCollapsed("ecosystem-stats")).toBe(false)
+    expect(second.result.current.isCollapsed("rank-stacks")).toBe(true)
+    expect(second.result.current.isCollapsed("ecosystem-stats")).toBe(true)
   })
 
   it("ignores an unknown/removed section id found in storage without breaking other ids", async () => {

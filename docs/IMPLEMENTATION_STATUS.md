@@ -102,6 +102,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P24 | deferred (monitoring only) | P09 and pilot sources | - | Seedbonus data and detail display exist; no verified exchange rules or planner | Retain only relevant bonus monitoring/planning. Defer exchange comparison/spending until verified per-tracker sources exist. |
 | P25 | done | P03, P12/P18 data conventions | PR #31 (`feat/p25-monitoring-register`; merged; not deployed) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile three-cell strip; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles and visible legend; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Owner-supplied isolated acceptance on image digest `sha256:e080430be2bc435ec3bb0e20b5fe4e419f8740df162899a77509f5dedca617eb`: populated/zero/stale/unknown-age/no-snapshot rows, visible mobile legend, responsive light/dark layouts, health and no-op migration. Missing individual transfer fields were covered by component tests because stored columns are NOT NULL; not database-tested. Automated evidence remains separate. No rank summary in P25, digest expansion, planner, P21-P23 or deployment. |
 | P26 | implementation + automated/visual checks complete; target-selection fix in draft PR; owner manual acceptance pending | P09-P11, dashboard rank surface | PR #32 (`feat/p26-rank-summary`; merged) + fix PR #35 (draft) | Compact Rank goal summary inside existing Ranks section; observed current rank; saved target labelled target; automatic next rank only from ladder logic; unmet/unknown/stale requirements and remaining values; one tracker rank-goal link; no-target/unsupported/missing-current states; 11 focused tests (8 base + 3 correction); full CI gate | Not deployed. Owner acceptance pending. Correction: detail no longer auto-selects a target; explicit choose/clear; suggestion is not persisted. No new rules dataset, adapters, polling, migrations, Telegram changes, deployment or home-server change. |
+| P28 | implementation + automated/visual checks complete; owner manual acceptance pending | P25, P26, DESIGN first viewport | draft PR #38 (`feat/p28-dashboard-at-a-glance`) | Four-cell first strip (total uploaded/downloaded, overall ratio, need attention); totals exclude no-snapshot trackers with X of Y note and shared stale marker; plain tracker/status wording; 12px dashboard text floor; Ranks/Attention/Alerts/Login order; Fleet activity/Leaderboard/Ecosystem/Tag groups and chart cards default collapsed; distinct download data blue; DESIGN contract updated | Draft only; not deployed. No new data, adapters, polling, migrations, rank rules, deployment or home-server change. |
 | GATE | pending | Relevant tasks | — | No release gate run for a delivery | Run after each delivery; do not treat this audit as a gate |
 
 ## P02a — database baseline preparation
@@ -1622,6 +1623,27 @@ Fix in progress:
 
 P26 owner acceptance remains pending. Merge of the fix is not authorized.
 
+### P28 dashboard at-a-glance
+
+- First strip now reports total uploaded, total downloaded, overall ratio and need
+  attention. It reuses `computeAggregateStats`, counts only trackers with a
+  snapshot, shows `Totals from X of Y trackers` when any lack one, and carries
+  the existing `*` stale marker when included snapshots are stale. Overall ratio
+  is informational and uses no health colour.
+- Plain wording: top-bar "Dashboard", tracker(s), Status column, and the
+  redundant Cold chain stamp removed. Download uses a distinct data blue
+  (`#2f5f83` light / `#8fc7e8` dark, WCAG AA on page/raised).
+- Dashboard type floor is 12px: section/column heads and labels are 12px,
+  register values use 14px mono/tabular figures. The DESIGN.md first-viewport
+  contract now records the strip, order, Status column and collapsed defaults.
+- Order is strip/register, Ranks, Attention, Alerts, Login timers, then Fleet
+  activity, Leaderboard, Ecosystem, Tag groups and charts. Those latter surfaces
+  plus chart cards default collapsed through the existing toggles; nothing is
+  removed.
+- Tests include the three total-strip states (all present, one missing, one
+  stale), existing register states, section-collapse defaults and chart-card
+  defaults. Full suite on Node 24: 259 files / 6257 tests passed; CI is the final gate.
+- Visual evidence: light/dark at 1440px and 390px inspected. Desktop rows use a 64px height so the Accounted block stays aligned; mobile wraps long transfer values without losing labels; top strip and controls remain reachable.
 ### P02b slices
 
 1. **P02b-1:** policy, production manifest/baseline, checksum validator,

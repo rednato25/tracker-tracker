@@ -53,7 +53,7 @@ export function UnsatisfiedTorrentsTable({
                   }}
                 />
               </div>
-              <span className="text-3xs font-mono shrink-0" style={{ color: pctColor(pct) }}>
+              <span className="text-xs font-mono shrink-0" style={{ color: pctColor(pct) }}>
                 {formatPercent(pct, 0)}
               </span>
             </div>

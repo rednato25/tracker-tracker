@@ -134,12 +134,12 @@ function AlertsBanner({ alerts, onDismiss, onDismissAll }: AlertsBannerProps) {
                 {alert.trackerId !== null ? (
                   <Link
                     href={`/trackers/${alert.trackerId}`}
-                    className="flex min-h-6 min-w-6 shrink-0 items-center font-cond text-4xs font-semibold uppercase tracking-[0.12em] text-secondary transition-colors duration-150 hover:text-primary"
+                    className="flex min-h-6 min-w-6 shrink-0 items-center font-cond text-xs font-semibold uppercase tracking-[0.12em] text-secondary transition-colors duration-150 hover:text-primary"
                   >
                     {alert.trackerName}
                   </Link>
                 ) : (
-                  <span className="shrink-0 font-cond text-4xs font-semibold uppercase tracking-[0.12em] text-secondary">
+                  <span className="shrink-0 font-cond text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
                     {alert.trackerName}
                   </span>
                 )}

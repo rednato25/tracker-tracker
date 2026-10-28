@@ -126,7 +126,7 @@ function TorrentsTab({
             )}
             Active Downloads ({data.activelyDownloading.length})
             {data.activelyDownloading.length > 0 && (
-              <span className="font-mono text-warn ml-auto mr-2 text-2xs normal-case tracking-normal">
+              <span className="font-mono text-warn ml-auto mr-2 text-xs normal-case tracking-normal">
                 {formatSpeed(data.activelyDownloading.reduce((s, t) => s + t.downloadSpeed, 0))}
               </span>
             )}
@@ -148,7 +148,7 @@ function TorrentsTab({
             )}
             Active Uploads ({data.activelySeedingTorrents.length})
             {data.activelySeedingTorrents.length > 0 && (
-              <span className="font-mono text-accent ml-auto mr-2 text-2xs normal-case tracking-normal">
+              <span className="font-mono text-accent ml-auto mr-2 text-xs normal-case tracking-normal">
                 {formatSpeed(data.activelySeedingTorrents.reduce((s, t) => s + t.uploadSpeed, 0))}
               </span>
             )}

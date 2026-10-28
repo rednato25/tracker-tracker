@@ -28,7 +28,7 @@ export function TrackerBreakdownTicker({ trackers }: TrackerBreakdownProps) {
           >
             <span className="color-dot" style={{ backgroundColor: dotColor }} />
             <span className="text-xs font-medium text-primary">{tracker.name}</span>
-            <span className="font-mono text-3xs text-secondary">
+            <span className="font-mono text-xs text-secondary">
               {formatBytesFromString(tracker.uploadDelta)}
             </span>
           </div>

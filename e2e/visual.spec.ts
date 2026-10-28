@@ -819,9 +819,9 @@ test.describe.serial("monitoring register visual evidence", () => {
     await expect(register).toBeVisible({ timeout: 15_000 })
     await expect(register.getByText("TEST Register Fresh").filter({ visible: true })).toBeVisible()
     await expect(register.getByText("1,234").filter({ visible: true })).toBeVisible()
-    await expect(
-      register.getByLabel("stale snapshot").filter({ visible: true })
-    ).toBeVisible()
+    expect(
+      await register.getByLabel("stale snapshot").filter({ visible: true }).count()
+    ).toBeGreaterThan(0)
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
       document.querySelector("#main-content #register")?.scrollIntoView({ block: "start" })

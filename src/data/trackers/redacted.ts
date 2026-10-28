@@ -2,6 +2,8 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+
 export const redacted: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "redacted",
@@ -37,24 +39,74 @@ export const redacted: TrackerRegistryEntry = {
   // not seeding, and every earned class demotes to User below ratio 0.60.
   // Secondary classes (FLS, Interviewer, TC, PT) are not primary classes and
   // never come back as `class` from the API.
+  rankProgression: "mixed",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; official wiki requires a login",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "The official wiki is login-gated. Only the clear numeric thresholds already present in the registry text are structured; the source itself is not independently verified here.",
+  },
+  rankUnresolved: [
+    "Need official excerpts for branch/manual classes and demotion thresholds.",
+    "GB/TB text without a stated unit basis is read as the larger binary GiB/TiB value.",
+    "Power TM and Elite TM remain text-only because their unique-group/perfect-FLAC conditions are not supported metrics.",
+  ],
   userClasses: [
     { name: "User", requirements: "Default class on registration" },
     {
       name: "Member",
       requirements: "1 week, 10 GB up, ratio above 0.65. 25 Merit Tokens on first promotion",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "red-member-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 7, scope: "account", label: "At least 1 week registered" },
+          { kind: "numeric", id: "red-member-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 10 * GiB, scope: "account", unitReading: "conservative", label: "At least 10 GiB uploaded" },
+          { kind: "numeric", id: "red-member-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 0.65, scope: "account", label: "Ratio above 0.65" },
+        ],
+      },
     },
     {
       name: "Power User",
       requirements: "2 weeks, 5 uploads, 25 GB up, ratio above 0.65. Invites, personal collage",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "red-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 14, scope: "account", label: "At least 2 weeks registered" },
+          { kind: "numeric", id: "red-power-uploads", metric: "uploads", comparison: "gte", requiredValue: 5, scope: "account", label: "At least 5 uploads" },
+          { kind: "numeric", id: "red-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 25 * GiB, scope: "account", unitReading: "conservative", label: "At least 25 GiB uploaded" },
+          { kind: "numeric", id: "red-power-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 0.65, scope: "account", label: "Ratio above 0.65" },
+        ],
+      },
     },
     {
       name: "Elite",
       requirements: "4 weeks, 50 uploads, 100 GB up, ratio above 0.65. Torrent editing",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "red-elite-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 28, scope: "account", label: "At least 4 weeks registered" },
+          { kind: "numeric", id: "red-elite-uploads", metric: "uploads", comparison: "gte", requiredValue: 50, scope: "account", label: "At least 50 uploads" },
+          { kind: "numeric", id: "red-elite-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * GiB, scope: "account", unitReading: "conservative", label: "At least 100 GiB uploaded" },
+          { kind: "numeric", id: "red-elite-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 0.65, scope: "account", label: "Ratio above 0.65" },
+        ],
+      },
     },
     {
       name: "Torrent Master",
       requirements:
         "8 weeks, 500 uploads, 500 GB up, ratio above 0.65. Custom title, unlimited invites",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "red-master-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 56, scope: "account", label: "At least 8 weeks registered" },
+          { kind: "numeric", id: "red-master-uploads", metric: "uploads", comparison: "gte", requiredValue: 500, scope: "account", label: "At least 500 uploads" },
+          { kind: "numeric", id: "red-master-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 500 * GiB, scope: "account", unitReading: "conservative", label: "At least 500 GiB uploaded" },
+          { kind: "numeric", id: "red-master-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 0.65, scope: "account", label: "Ratio above 0.65" },
+        ],
+      },
     },
     {
       name: "Power TM",

@@ -1,6 +1,7 @@
 // src/data/tracker-registry.ts
 
 import type { PlatformType } from "@/data/platform-types"
+import type { RankRequirementGroup } from "@/lib/rank-goals"
 import type { SatisfactionMode } from "@/lib/satisfaction"
 import type { TrackerCredentialFieldDefinition } from "@/lib/tracker-credentials/types"
 import type { GazelleAuthStyle, NebulanceAuthParam, Unit3dAuthStyle } from "./platform-types"
@@ -36,6 +37,8 @@ export interface TrackerRankPath {
 export interface TrackerUserClass {
   name: string
   requirements?: string
+  /** Structured conditions only where the source states a clear threshold. */
+  structured?: RankRequirementGroup
   perks?: RankPerk[]
   icon?: string
   /**
@@ -122,6 +125,15 @@ export interface TrackerRules {
   provenance?: TrackerRulesProvenance
 }
 
+export interface TrackerRankRequirementsSource {
+  url: string | null
+  title: string
+  accessedAt: string | null
+  sourceLastModified: string | null
+  verification: "published" | "unresolved"
+  note: string
+}
+
 export interface TrackerRegistryEntry {
   slug: string
   name: string
@@ -133,6 +145,10 @@ export interface TrackerRegistryEntry {
   specialty: string
   contentCategories: string[]
   userClasses: TrackerUserClass[]
+  /** Source and provenance for structured user-class requirements. */
+  rankRequirementsSource?: TrackerRankRequirementsSource
+  rankProgression?: "automatic" | "manual" | "mixed" | "unknown"
+  rankUnresolved?: string[]
   /** Optional branches for ladders that split after a shared prefix. */
   rankPaths?: TrackerRankPath[]
   releaseGroups: (string | ReleaseGroup)[]

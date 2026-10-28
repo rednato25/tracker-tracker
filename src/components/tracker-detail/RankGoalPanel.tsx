@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
-import { pilotRankDefinition } from "@/data/rank-goals"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatRatio } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
@@ -18,8 +17,10 @@ import {
   type RankNumericCondition,
   type RankObservationMap,
   type RankRequirementGroup,
+  rankDefinitionForSlug,
 } from "@/lib/rank-goals"
-import type { Snapshot, TrackerLatestStats } from "@/types/api"
+import { buildRankObservations } from "@/lib/rank-observations"
+import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
 
 interface RankGoalPanelProps {
   trackerId: number
@@ -32,6 +33,8 @@ interface RankGoalPanelProps {
   joinedAt: string | null
   lastPolledAt: string | null
   accentColor: string
+  platformType: string
+  platformMeta: PlatformMeta | null
 }
 
 const STALE_MS = 24 * 60 * 60 * 1000
@@ -112,6 +115,9 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
           </span>
         )}
       </div>
+      {condition.unitReading === "conservative" && (
+        <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>
+      )}
       {condition.status === "unknown" && condition.reason && (
         <p className="mt-1 font-mono text-4xs text-warn">{condition.reason}</p>
       )}
@@ -145,8 +151,10 @@ export function RankGoalPanel({
   joinedAt,
   lastPolledAt,
   accentColor,
+  platformType,
+  platformMeta,
 }: RankGoalPanelProps) {
-  const pilot = useMemo(() => pilotRankDefinition(registrySlug), [registrySlug])
+  const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
   const [target, setTarget] = useState<string | null>(null)
   const [savedGoals, setSavedGoals] = useState<Record<string, { targetRank: string }>>({})
@@ -176,33 +184,17 @@ export function RankGoalPanel({
       .finally(() => setLoaded(true))
   }, [trackerId, targetOptions])
 
-  const observationMap = useMemo<RankObservationMap>(() => {
-    if (!stats) return {}
-    const last = lastPolledAt ? new Date(lastPolledAt) : null
-    const freshness =
-      last && !Number.isNaN(last.getTime()) && Date.now() - last.getTime() <= STALE_MS
-        ? "fresh"
-        : "stale"
-    const source = "api" as const
-    return {
-      accountRatio: {
-        value: stats.ratioIsInfinite ? null : stats.ratio,
-        freshness,
-        source,
-        observedAt: lastPolledAt,
-      },
-      uploadedBytes: {
-        value: stats.uploadedBytes === null ? null : Number(stats.uploadedBytes),
-        freshness,
-        source,
-        observedAt: lastPolledAt,
-      },
-      seedbonus: { value: stats.seedbonus, freshness, source, observedAt: lastPolledAt },
-      seedingCount: { value: stats.seedingCount, freshness, source, observedAt: lastPolledAt },
-      hitAndRuns: { value: stats.hitAndRuns, freshness, source, observedAt: lastPolledAt },
-    }
-  }, [stats, lastPolledAt])
-
+  const observationMap = useMemo<RankObservationMap>(
+    () =>
+      buildRankObservations({
+        latestStats: stats,
+        lastPolledAt,
+        platformType,
+        platformMeta,
+        now: now ?? new Date(0),
+      }),
+    [stats, lastPolledAt, now, platformType, platformMeta]
+  )
   const savedTarget = savedGoals[String(trackerId)]?.targetRank ?? null
   const targetInvalid = Boolean(savedTarget && !targetOptions.includes(savedTarget))
   const goalInput = useMemo<RankGoalInput>(

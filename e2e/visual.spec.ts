@@ -857,7 +857,7 @@ test.describe.serial("rank goal summary visual evidence", () => {
       const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
       const rows = [
         { name: "TEST Rank Goal", slug: "torrentleech", group: "Power User" },
-        { name: "TEST Rank Unsupported", slug: "myanonamouse", group: "Power User" },
+        { name: "TEST Rank Unsupported", slug: "aither", group: "Power User" },
       ]
       const idsBySlug: Record<string, number> = {}
       for (const row of rows) {
@@ -888,6 +888,7 @@ test.describe.serial("rank goal summary visual evidence", () => {
         update app_settings
         set rank_goals = ${JSON.stringify({
           [String(idsBySlug.torrentleech)]: { targetRank: "Super User" },
+          [String(idsBySlug.aither)]: { targetRank: "Power User" },
         })}
       `
     } finally {

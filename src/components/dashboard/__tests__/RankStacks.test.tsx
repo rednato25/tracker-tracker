@@ -32,6 +32,10 @@ const LADDERS: Record<string, TrackerUserClass[]> = {
 }
 
 vi.mock("@/data/tracker-registry", () => ({
+  getTrackerBySlug: (slug: string | null | undefined) =>
+    slug && slug in LADDERS
+      ? ({ slug, userClasses: LADDERS[slug] } as unknown as TrackerRegistryEntry)
+      : undefined,
   registryEntryFor: ({ registrySlug }: { registrySlug: string | null }) =>
     registrySlug && registrySlug in LADDERS
       ? ({ userClasses: LADDERS[registrySlug] } as unknown as TrackerRegistryEntry)

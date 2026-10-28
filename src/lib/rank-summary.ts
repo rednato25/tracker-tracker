@@ -3,22 +3,19 @@
 // P26 dashboard summary. This is a projection of the existing P09 evaluator,
 // P10 definitions and P11 saved target; it does not create a second rank model.
 
-import { type PilotRankDefinition, pilotRankDefinition } from "@/data/rank-goals"
 import { registryEntryFor } from "@/data/tracker-registry"
 import { formatBytesNum, formatCount, formatRatio } from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
-import {
+import { 
   evaluateRankGoal,
   evaluateRequirementGroup,
   type RankConditionResult,
   type RankGoalInput,
   type RankGroupResult,
   type RankMetric,
-  type RankObservationMap,
-} from "@/lib/rank-goals"
+  type RankObservationMap,rankDefinitionForSlug, type TrackerRankDefinition, } from "@/lib/rank-goals"
+import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
-
-const RANK_OBSERVATION_STALE_MS = 24 * 60 * 60 * 1000
 
 export interface RankSummaryCondition {
   label: string
@@ -43,63 +40,6 @@ export interface RankGoalSummary {
   unknown: RankSummaryCondition[]
   linkLabel: string
   linkHref: string
-}
-
-function observationMap(tracker: TrackerSummary, now: Date): RankObservationMap {
-  const stats = tracker.latestStats
-  if (!stats) return {}
-  const polled = tracker.lastPolledAt ? new Date(tracker.lastPolledAt) : null
-  const freshness =
-    polled &&
-    !Number.isNaN(polled.getTime()) &&
-    now.getTime() - polled.getTime() <= RANK_OBSERVATION_STALE_MS
-      ? "fresh"
-      : "stale"
-  const source = "api" as const
-  return {
-    accountRatio: {
-      value: stats.ratioIsInfinite ? null : stats.ratio,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    uploadedBytes: {
-      value: stats.uploadedBytes === null ? null : Number(stats.uploadedBytes),
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    downloadedBytes: {
-      value: stats.downloadedBytes === null ? null : Number(stats.downloadedBytes),
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    bufferBytes: {
-      value: stats.bufferBytes === null ? null : Number(stats.bufferBytes),
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    seedingCount: {
-      value: stats.seedingCount,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    seedbonus: {
-      value: stats.seedbonus,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-    hitAndRuns: {
-      value: stats.hitAndRuns,
-      freshness,
-      source,
-      observedAt: tracker.lastPolledAt,
-    },
-  }
 }
 
 function formatValue(metric: RankMetric | undefined, value: number | null): string {
@@ -149,7 +89,7 @@ function summarizeConditions(result: RankGroupResult | null): {
 
 function buildSummary(
   tracker: TrackerSummary,
-  pilot: PilotRankDefinition,
+  pilot: TrackerRankDefinition,
   savedTarget: string | null,
   now: Date
 ): RankGoalSummary {
@@ -159,7 +99,7 @@ function buildSummary(
   const currentRank = currentRankHidden ? null : rawRank
   const targetInvalid = Boolean(savedTarget && !pilot.goals[savedTarget])
   const target = savedTarget && !targetInvalid ? savedTarget : null
-  const observation = observationMap(tracker, now)
+  const observation = buildRankObservations({ latestStats: tracker.latestStats, lastPolledAt: tracker.lastPolledAt, platformType: tracker.platformType, platformMeta: tracker.platformMeta, now })
   const input: RankGoalInput = {
     userClasses: entry?.userClasses ?? [],
     rankPaths: entry?.rankPaths,
@@ -253,10 +193,9 @@ export function buildRankGoalSummaries(
   return trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []
     const savedTarget = savedGoals[String(tracker.id)]?.targetRank ?? null
-    const pilot = pilotRankDefinition(tracker.registrySlug)
+    const pilot = rankDefinitionForSlug(tracker.registrySlug)
     if (!pilot && !savedTarget) return []
     if (!pilot) {
-      const entry = registryEntryFor(tracker)
       const raw = tracker.latestStats?.group ?? null
       const hidden = Boolean(raw && isRedacted(raw))
       return [

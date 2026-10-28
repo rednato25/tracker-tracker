@@ -10,20 +10,32 @@ import type {
   TrackerRankPath,
   TrackerUserClass,
 } from "@/data/tracker-registry"
+import {
+  getTrackerBySlug,
+  type TrackerRankRequirementsSource,
+  type TrackerRegistryEntry,
+} from "@/data/tracker-registry"
 import { buildRankForest, buildRankLadder } from "@/lib/rank-ladder"
 
-export type RankMetric =
-  | "accountRatio"
-  | "uploadedBytes"
-  | "downloadedBytes"
-  | "bufferBytes"
-  | "seedingCount"
-  | "seedbonus"
-  | "accountAgeDays"
-  | "uploads"
-  | "snatched"
-  | "forumPosts"
-  | "hitAndRuns"
+export const RANK_METRICS = [
+  "accountRatio",
+  "uploadedBytes",
+  "downloadedBytes",
+  "bufferBytes",
+  "seedingCount",
+  "seedbonus",
+  "accountAgeDays",
+  "uploads",
+  "snatched",
+  "forumPosts",
+  "hitAndRuns",
+] as const
+
+export type RankMetric = (typeof RANK_METRICS)[number]
+
+export function isRankMetric(value: unknown): value is RankMetric {
+  return typeof value === "string" && (RANK_METRICS as readonly string[]).includes(value)
+}
 
 export type RankComparison = "gte" | "lte" | "gt" | "lt" | "eq"
 export type RankGoalStatus = "met" | "unmet" | "unknown"
@@ -39,6 +51,8 @@ export interface RankNumericCondition {
   label?: string
   /** "unresolved" keeps the value visible but prevents a met/unmet claim. */
   verification?: "verified" | "unresolved"
+  /** GB/TB text without a unit basis was read as the larger binary unit. */
+  unitReading?: "conservative"
   note?: string
 }
 
@@ -79,6 +93,7 @@ export interface RankConditionResult {
   status: RankGoalStatus
   freshness: RuleFreshness | "unknown"
   source: RuleSource | "unknown"
+  unitReading?: "conservative"
   /** Meaningful for gte/lte only; null for equality/ordering ambiguity. */
   remaining: number | null
   reason: string
@@ -115,6 +130,39 @@ export interface RankGoalInput {
   structuredGoals?: Record<string, RankRequirementGroup>
 }
 
+export interface TrackerRankDefinition {
+  trackerSlug: string
+  trackerName: string
+  progression: "automatic" | "manual" | "mixed" | "unknown"
+  source: TrackerRankRequirementsSource
+  goals: Record<string, RankRequirementGroup>
+  unresolved: string[]
+}
+
+/** Build a rank definition from the registry entry itself. */
+export function rankDefinitionFor(
+  entry: TrackerRegistryEntry | undefined
+): TrackerRankDefinition | null {
+  if (!entry?.rankRequirementsSource) return null
+  const goals: Record<string, RankRequirementGroup> = {}
+  for (const userClass of entry.userClasses) {
+    if (userClass.structured) goals[userClass.name] = userClass.structured
+  }
+  return {
+    trackerSlug: entry.slug,
+    trackerName: entry.name,
+    progression: entry.rankProgression ?? "unknown",
+    source: entry.rankRequirementsSource,
+    goals,
+    unresolved: entry.rankUnresolved ?? [],
+  }
+}
+
+export function rankDefinitionForSlug(
+  slug: string | null | undefined
+): TrackerRankDefinition | null {
+  return rankDefinitionFor(slug ? getTrackerBySlug(slug) : undefined)
+}
 const EMPTY_PROGRESS = { met: 0, unmet: 0, unknown: 0, total: 0 }
 
 function finite(value: unknown): value is number {
@@ -194,6 +242,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
       observedValue: observationFor(condition.metric, input)?.value ?? null,
@@ -212,6 +261,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
       observedValue: null,
@@ -229,6 +279,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
       observedValue: null,
@@ -245,6 +296,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
       observedValue: observation.value,
@@ -261,6 +313,7 @@ function evaluateCondition(
     id,
     kind: "numeric",
     metric: condition.metric,
+    unitReading: condition.unitReading,
     label,
     requiredValue: condition.requiredValue,
     observedValue: observation.value,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { maskUsername } from "@/lib/privacy"
 import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
-import type { TrackerSummary } from "@/types/api"
+import type { PlatformMeta, TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-28T12:00:00.000Z")
 const GIB = 1024 ** 3
@@ -57,7 +57,7 @@ function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
 }
 
 describe("buildRankGoalSummaries", () => {
-  it("shows the saved target and known unmet/unknown requirements", () => {
+  it("shows the saved target and known unmet requirements", () => {
     const summaries = buildRankGoalSummaries(
       [tracker({ latestStats: { ...tracker().latestStats!, ratio: 1.0 } })],
       { "1": { targetRank: "Super User" } },
@@ -68,7 +68,7 @@ describe("buildRankGoalSummaries", () => {
     expect(summary.currentRank).toBe("User")
     expect(summary.status).toBe("goal")
     expect(summary.unmet.length).toBeGreaterThan(0)
-    expect(summary.unknown.length).toBeGreaterThan(0)
+    expect(summary.unknown.length).toBe(0)
     expect(summary.linkHref).toBe("/trackers/1#rank-goal")
     expect(summary.linkLabel).toBe("Open rank goal")
   })
@@ -99,12 +99,12 @@ describe("buildRankGoalSummaries", () => {
     const summaries = buildRankGoalSummaries(
       [
         tracker({
-          registrySlug: "myanonamouse",
-          name: "MyAnonaMouse",
+          registrySlug: "aither",
+          name: "Aither",
           latestStats: { ...tracker().latestStats!, group: "Power User" },
         }),
       ],
-      {},
+      { "1": { targetRank: "Power User" } },
       NOW
     )
     const summary = summaries[0]
@@ -124,6 +124,36 @@ describe("buildRankGoalSummaries", () => {
     expect(summaries[0].automaticNextRank).toBe("Super User")
     expect(summaries[0].targetRank).toBeNull()
     expect(summaries[0].linkLabel).toBe("Choose a target")
+  })
+
+  it("evaluates REDacted uploads from Gazelle community, not the ranks percentile", () => {
+    const red = tracker({
+      registrySlug: "redacted",
+      name: "REDacted",
+      platformType: "gazelle",
+      platformMeta: { community: { uploaded: 3 }, ranks: { uploads: 99 } } as unknown as PlatformMeta,
+      latestStats: { ...tracker().latestStats!, group: "User", uploadedBytes: String(1 * GIB) },
+    })
+    const present = buildRankGoalSummaries([red], { "1": { targetRank: "Power User" } }, NOW)[0]
+    expect(present.metCount).toBeGreaterThan(0)
+    expect(present.unmet.some((item) => item.label === "At least 5 uploads")).toBe(true)
+    expect(present.unmet.find((item) => item.label === "At least 5 uploads")?.remaining).toBe("2")
+    expect(present.unknown.some((item) => item.label === "At least 5 uploads")).toBe(false)
+
+    const missing = buildRankGoalSummaries(
+      [
+        tracker({
+          registrySlug: "redacted",
+          name: "REDacted",
+          platformType: "gazelle",
+          platformMeta: { ranks: { uploads: 999 } } as unknown as PlatformMeta,
+          latestStats: { ...tracker().latestStats!, group: "User" },
+        }),
+      ],
+      { "1": { targetRank: "Power User" } },
+      NOW
+    )[0]
+    expect(missing.unknown.some((item) => item.label === "At least 5 uploads")).toBe(true)
   })
 
   it("hides a redacted observed rank", () => {

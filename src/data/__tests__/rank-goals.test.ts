@@ -1,15 +1,22 @@
 import { describe, expect, it } from "vitest"
-import { PILOT_RANK_DEFINITIONS } from "@/data/rank-goals"
-import { torrentleech } from "@/data/trackers/torrentleech"
-import { evaluateRankGoal, type RankObservationMap } from "@/lib/rank-goals"
+import { getTrackerBySlug, type TrackerRegistryEntry } from "@/data/tracker-registry"
+import {
+  evaluateRankGoal,
+  type RankObservationMap,
+  rankDefinitionFor,
+  rankDefinitionForSlug,
+} from "@/lib/rank-goals"
 
 const GiB = 1024 ** 3
 const NOW = new Date("2026-10-25T12:00:00.000Z")
-const pilot = PILOT_RANK_DEFINITIONS["torrentleech"]
-if (!pilot) throw new Error("TorrentLeech pilot missing")
+const torrentleech = getTrackerBySlug("torrentleech")
+const pilot = rankDefinitionFor(torrentleech)
+if (!pilot) throw new Error("TorrentLeech registry rank definition missing")
 const goals = pilot.goals
 
-function observations(overrides: Partial<Record<keyof RankObservationMap, number | null>> = {}): RankObservationMap {
+function observations(
+  overrides: Partial<Record<keyof RankObservationMap, number | null>> = {}
+): RankObservationMap {
   const base: RankObservationMap = {
     accountRatio: { value: 1.2, freshness: "fresh", source: "api", observedAt: NOW.toISOString() },
     uploadedBytes: { value: 250 * GiB, freshness: "fresh", source: "api", observedAt: NOW.toISOString() },
@@ -27,7 +34,7 @@ function observations(overrides: Partial<Record<keyof RankObservationMap, number
 
 function goal(overrides: Partial<Parameters<typeof evaluateRankGoal>[0]> = {}) {
   return evaluateRankGoal({
-    userClasses: torrentleech.userClasses,
+    userClasses: torrentleech?.userClasses ?? [],
     currentRank: "Registered",
     observations: observations(),
     now: NOW,
@@ -37,44 +44,24 @@ function goal(overrides: Partial<Parameters<typeof evaluateRankGoal>[0]> = {}) {
   })
 }
 
-describe("P10 TorrentLeech pilot", () => {
-  it("keeps the unresolved upload unit from producing eligibility", () => {
+describe("registry-backed TorrentLeech rank requirements", () => {
+  it("keeps the ladder result but evaluates the conservative upload unit", () => {
     const result = goal()
     expect(result.nextRank).toBe("Power User")
-    expect(result.status).toBe("unknown")
-    expect(result.progress).toEqual({ met: 2, unmet: 0, unknown: 1, total: 3 })
-    expect(result.eligible).toBe(false)
+    expect(result.status).toBe("met")
+    expect(result.progress).toEqual({ met: 3, unmet: 0, unknown: 0, total: 3 })
+    expect(result.eligible).toBe(true)
     expect(result.freeTextRequirement).toContain("200 GB")
     expect(result.promotionApplied).toBe(false)
     const uploadCondition = result.structuredRequirement?.conditions[1]
     expect(uploadCondition).toMatchObject({
-      status: "unknown",
+      status: "met",
       requiredValue: 200 * GiB,
-    })
-    if (!uploadCondition || "conditions" in uploadCondition) {
-      throw new Error("expected a leaf upload condition")
-    }
-    expect(uploadCondition.reason).toMatch(/GB\/TB|binary or decimal/)
-
-    const exactBoundaries = goal({
-      joinedAt: "2026-10-11T12:00:00.000Z",
-      observations: observations({
-        accountRatio: 1.1,
-        uploadedBytes: 200 * GiB,
-      }),
-    })
-    expect(exactBoundaries.status).toBe("unmet")
-    expect(exactBoundaries.structuredRequirement?.conditions[1]).toMatchObject({
-      status: "unknown",
-      requiredValue: 200 * GiB,
-    })
-    expect(exactBoundaries.structuredRequirement?.conditions[2]).toMatchObject({
-      status: "unmet",
-      requiredValue: 1.1,
+      unitReading: "conservative",
     })
   })
 
-  it("keeps a missing transfer amount unknown and stale ratio unknown", () => {
+  it("keeps missing transfer unknown and stale ratio unknown", () => {
     const missing = goal({ observations: observations({ accountRatio: 1.2, uploadedBytes: null }) })
     expect(missing.status).toBe("unknown")
     const stale = goal({
@@ -109,35 +96,23 @@ describe("P10 TorrentLeech pilot", () => {
     expect(vip.nextRank).toBeNull()
     expect(vip.promotionApplied).toBe(false)
   })
-})
 
-describe("P10 unresolved pilots", () => {
-  it("keeps MyAnonaMouse and REDacted free text without structured thresholds", () => {
-    for (const slug of ["myanonamouse", "redacted"]) {
-      const definition = PILOT_RANK_DEFINITIONS[slug]
-      expect(definition).toBeDefined()
-      expect(definition.source.verification).toBe("unresolved")
-      expect(definition.goals).toEqual({})
-      expect(definition.unresolved.length).toBeGreaterThan(0)
-      expect(definition.source.accessedAt).toBeNull()
+  it("keeps a text-only class unsupported", () => {
+    const textOnly: TrackerRegistryEntry = {
+      ...(torrentleech as TrackerRegistryEntry),
+      rankRequirementsSource: undefined,
+      rankProgression: undefined,
+      userClasses: [{ name: "User", requirements: "Text only" }],
     }
+    expect(rankDefinitionFor(textOnly)).toBeNull()
   })
 
-  it("does not return structured eligibility for an unresolved pilot", () => {
-    const definition = PILOT_RANK_DEFINITIONS.myanonamouse
-    const result = evaluateRankGoal({
-      userClasses: [
-        { name: "User", requirements: "Existing registry text" },
-        { name: "Power User", requirements: "Existing registry text" },
-      ],
-      currentRank: "User",
-      observations: observations(),
-      now: NOW,
-      structuredGoals: definition.goals,
-    })
-    expect(result.nextRank).toBe("Power User")
-    expect(result.status).toBe("no-structured-goal")
-    expect(result.eligible).toBe(false)
-    expect(result.freeTextRequirement).toBe("Existing registry text")
+  it("structures the clear MAM and REDacted prose", () => {
+    const mam = rankDefinitionForSlug("myanonamouse")
+    const red = rankDefinitionForSlug("redacted")
+    expect(mam?.goals["Power User"]).toBeDefined()
+    expect(mam?.goals["Power User"]?.conditions.some((c) => "unitReading" in c)).toBe(true)
+    expect(red?.goals["Member"]).toBeDefined()
+    expect(red?.goals["Torrent Master"]).toBeDefined()
   })
 })

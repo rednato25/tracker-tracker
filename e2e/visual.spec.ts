@@ -522,12 +522,17 @@ test.describe.serial("wishlist visual evidence", () => {
   test("captures desktop light/dark and 390px wishlist layouts", async ({ page }) => {
     expect(wishlistTrackerId).not.toBeNull()
     await page.goto("/wishlist")
-    await expect(page.locator("[data-wishlist-page]")).toBeVisible()
+    // Next can keep a hidden previous route tree outside the app shell. The
+    // visible page is the one mounted under #main-content; scope interactions
+    // there instead of matching a framework-preserved hidden duplicate.
+    const wishlistPage = page.locator("#main-content [data-wishlist-page]")
+    await expect(wishlistPage).toHaveCount(1)
+    await expect(wishlistPage).toBeVisible()
 
-    await page.getByRole("button", { name: "Desired tracker" }).click()
-    await page.getByRole("option", { name: "BroadcasTheNet" }).click()
-    await expect(page.getByText("Known routes")).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText("Needs checking").first()).toBeVisible()
+    await wishlistPage.getByRole("button", { name: "Desired tracker" }).click()
+    await wishlistPage.getByRole("option", { name: "BroadcasTheNet" }).click()
+    await expect(wishlistPage.getByText("Known routes")).toBeVisible({ timeout: 15_000 })
+    await expect(wishlistPage.getByText("Needs checking").first()).toBeVisible()
 
     await page.setViewportSize({ width: 1280, height: 1400 })
     await page.screenshot({ path: "test-results/visual-wishlist-light.png" })

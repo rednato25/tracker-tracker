@@ -101,7 +101,7 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P23 | deferred | P22 | - | No space-release candidate classification | Deferred: storage cleanup is not a current priority; optional and destructive actions remain out of scope. |
 | P24 | deferred (monitoring only) | P09 and pilot sources | - | Seedbonus data and detail display exist; no verified exchange rules or planner | Retain only relevant bonus monitoring/planning. Defer exchange comparison/spending until verified per-tracker sources exist. |
 | P25 | done | P03, P12/P18 data conventions | PR #31 (`feat/p25-monitoring-register`; merged; not deployed) | Tracker register accounted upload/download and tracker-specific bonus from latestStats; compact Accounted column plus mobile three-cell strip; missing vs no-snapshot distinction; confirmed zero; 2h stale/unknown-age markers with accessible titles and visible legend; no new adapters/schema/polling; 6 focused tests; 6243 full tests | Owner-supplied isolated acceptance on image digest `sha256:e080430be2bc435ec3bb0e20b5fe4e419f8740df162899a77509f5dedca617eb`: populated/zero/stale/unknown-age/no-snapshot rows, visible mobile legend, responsive light/dark layouts, health and no-op migration. Missing individual transfer fields were covered by component tests because stored columns are NOT NULL; not database-tested. Automated evidence remains separate. No rank summary in P25, digest expansion, planner, P21-P23 or deployment. |
-| P26 | implementation + automated/visual checks complete; owner manual acceptance pending | P09-P11, dashboard rank surface | draft PR #32 (`feat/p26-rank-summary`) | Compact Rank goal summary inside existing Ranks section; observed current rank; saved target labelled target; automatic next rank only from ladder logic; unmet/unknown/stale requirements and remaining values; one tracker rank-goal link; no-target/unsupported/missing-current states; 8 focused tests; 6251 full tests; no new rules/persistence | Draft only; not deployed. Owner acceptance pending. No new rules dataset, adapters, polling, migrations, Telegram changes, deployment or home-server change. |
+| P26 | implementation + automated/visual checks complete; target-selection fix in draft PR; owner manual acceptance pending | P09-P11, dashboard rank surface | PR #32 (`feat/p26-rank-summary`; merged) + fix PR #35 (draft) | Compact Rank goal summary inside existing Ranks section; observed current rank; saved target labelled target; automatic next rank only from ladder logic; unmet/unknown/stale requirements and remaining values; one tracker rank-goal link; no-target/unsupported/missing-current states; 11 focused tests (8 base + 3 correction); full CI gate | Not deployed. Owner acceptance pending. Correction: detail no longer auto-selects a target; explicit choose/clear; suggestion is not persisted. No new rules dataset, adapters, polling, migrations, Telegram changes, deployment or home-server change. |
 | GATE | pending | Relevant tasks | — | No release gate run for a delivery | Run after each delivery; do not treat this audit as a gate |
 
 ## P02a — database baseline preparation
@@ -1592,11 +1592,35 @@ database was seeded with null individual transfer columns.
   unresolved. No new rules, adapters, polling, persistence or migrations.
 - Tests: 8 pure summary tests cover saved targets, unmet/unknown/stale data,
   missing rank, unsupported trackers, no target, redaction and saved-goal parsing;
-  existing RankStacks tests remain green. Full suite on Node 24: 259 files /
-  6251 tests passed.
+  existing RankStacks tests remain green. P26 target-selection correction adds
+  3 focused tests. Full suite and CI are the final gate.
 - Visual evidence: local authenticated dashboard with synthetic TorrentLeech
   target and unsupported MyAnonaMouse rows; light/dark desktop and 390px mobile
   artifacts pending inspection.
+
+### P26 target-selection correction (draft PR #35)
+
+Owner-supplied isolated testing found that the dashboard correctly showed NO
+TARGET when no saved goal existed, while tracker detail silently displayed and
+evaluated Power User. The target selector also lacked an empty choice and a clear
+action. This is classified separately from the successful home-server checks:
+the P26 summary itself rendered, but the detail target state was inconsistent.
+
+Fix in progress:
+- Detail uses only the saved goal, never the first ladder option.
+- Explicit "Choose a target" state; clear removes only the current tracker's
+  goal and preserves every other saved goal/setting.
+- Automatic next rank is labelled as a suggestion and is never auto-selected or
+  persisted; saving it requires an explicit action.
+- Dashboard and detail both derive from the saved `rankGoals` map.
+- Stale/missing ratio observations remain unknown with their own evidence; the
+  ratio condition is not blamed on unresolved upload units, and timestamps are
+  not altered.
+- Regression coverage: no target, select/save, clear/reload, other-goal
+  preservation, and stale-ratio explanation. Existing P26 tests/screenshots and
+  the scoped wishlist visual fix are reused.
+
+P26 owner acceptance remains pending. Merge of the fix is not authorized.
 
 ### P02b slices
 

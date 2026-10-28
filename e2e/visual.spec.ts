@@ -812,25 +812,27 @@ test.describe.serial("monitoring register visual evidence", () => {
 
   test("captures light/dark desktop and 390px register layouts", async ({ page }) => {
     await page.goto("/")
-    await expect(page.locator("#register")).toBeVisible({ timeout: 15_000 })
-    await expect(
-      page.locator("#register").getByText("TEST Register Fresh").first()
-    ).toBeVisible()
-    await expect(page.locator("#register").getByText("1,234").first()).toBeVisible()
-    await expect(
-      page.locator("#register").getByLabel("stale snapshot").first()
-    ).toBeVisible()
+    // Next may retain a hidden previous route tree outside the app shell. Only
+    // the copy under #main-content is the active application page.
+    const register = page.locator("#main-content #register")
+    await expect(register).toHaveCount(1)
+    await expect(register).toBeVisible({ timeout: 15_000 })
+    await expect(register.getByText("TEST Register Fresh").filter({ visible: true })).toBeVisible()
+    await expect(register.getByText("1,234").filter({ visible: true })).toBeVisible()
+    expect(
+      await register.getByLabel("stale snapshot").filter({ visible: true }).count()
+    ).toBeGreaterThan(0)
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
-      document.querySelector("#register")?.scrollIntoView({ block: "start" })
+      document.querySelector("#main-content #register")?.scrollIntoView({ block: "start" })
     })
     await page.waitForTimeout(200)
-    await page.locator("#register").screenshot({ path: "test-results/visual-register-light.png" })
+    await register.screenshot({ path: "test-results/visual-register-light.png" })
 
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
-    await page.locator("#register").screenshot({ path: "test-results/visual-register-dark.png" })
+    await register.screenshot({ path: "test-results/visual-register-dark.png" })
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
@@ -838,9 +840,9 @@ test.describe.serial("monitoring register visual evidence", () => {
     )
     await page.waitForTimeout(300)
     await page.evaluate(() => {
-      document.querySelector("#register")?.scrollIntoView({ block: "start" })
+      document.querySelector("#main-content #register")?.scrollIntoView({ block: "start" })
     })
-    await page.locator("#register").screenshot({ path: "test-results/visual-register-mobile.png" })
+    await register.screenshot({ path: "test-results/visual-register-mobile.png" })
   })
 })
 test.describe.serial("rank goal summary visual evidence", () => {
@@ -942,5 +944,34 @@ test.describe.serial("rank goal summary visual evidence", () => {
     await page.locator("[data-rank-stacks]").screenshot({
       path: "test-results/visual-rank-summary-mobile.png",
     })
+
+    await page.setViewportSize({ width: 1280, height: 1400 })
+    await page.goto(`/trackers/${ids[0]}#rank-goal`)
+    const rankPanel = page.locator("#main-content #rank-goal")
+    await expect(rankPanel).toBeVisible({ timeout: 15_000 })
+    await rankPanel.getByRole("button", { name: "Clear target" }).click()
+    await expect(rankPanel.getByLabel("Target rank")).toHaveValue("")
+    await expect(rankPanel.getByText(/No saved target for this tracker/)).toBeVisible()
+    await expect(rankPanel.getByText(/Suggested next rank:/)).toBeVisible()
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+      document.querySelector("#rank-goal")?.scrollIntoView({ block: "start" })
+    })
+    await page.waitForTimeout(200)
+    await rankPanel.screenshot({ path: "test-results/visual-rank-target-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await rankPanel.screenshot({ path: "test-results/visual-rank-target-dark.png" })
+
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.evaluate(() => {
+      document.querySelector("#rank-goal")?.scrollIntoView({ block: "start" })
+    })
+    await rankPanel.screenshot({ path: "test-results/visual-rank-target-mobile.png" })
   })
 })

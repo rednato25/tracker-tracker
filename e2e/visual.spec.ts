@@ -1048,6 +1048,7 @@ test.describe.serial("digest monitoring visual evidence", () => {
     await expect(section.locator("pre")).toContainText("TEST Digest Monitoring")
     await expect(section.locator("pre")).toContainText("target Super User")
     await expect(section.locator("pre")).toContainText("bonus 1,234")
+    const previewPanel = section.locator("[data-digest-preview]")
 
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
@@ -1055,10 +1056,13 @@ test.describe.serial("digest monitoring visual evidence", () => {
     })
     await page.waitForTimeout(200)
     await section.screenshot({ path: "test-results/visual-digest-monitoring-light.png" })
+    await previewPanel.scrollIntoViewIfNeeded()
+    await previewPanel.screenshot({ path: "test-results/visual-digest-preview-light.png" })
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
     await section.screenshot({ path: "test-results/visual-digest-monitoring-dark.png" })
+    await previewPanel.screenshot({ path: "test-results/visual-digest-preview-dark.png" })
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
@@ -1069,5 +1073,7 @@ test.describe.serial("digest monitoring visual evidence", () => {
       document.querySelector("[data-digest-section]")?.scrollIntoView({ block: "start" })
     })
     await section.screenshot({ path: "test-results/visual-digest-monitoring-mobile.png" })
+    await previewPanel.scrollIntoViewIfNeeded()
+    await previewPanel.screenshot({ path: "test-results/visual-digest-preview-mobile.png" })
   })
 })

@@ -292,7 +292,7 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
       </div>
       {previewNotice && <Notice message={previewNotice} />}
       {preview && (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1" data-digest-preview>
           <span className="font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary">
             Local preview (saved settings, no message sent)
           </span>

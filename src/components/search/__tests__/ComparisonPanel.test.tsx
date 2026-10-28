@@ -1,8 +1,11 @@
-import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
-import { describe, expect, it } from "vitest"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ComparisonPanel } from "@/components/search/ComparisonPanel"
 import type { ProwlarrSearchIndexer } from "@/lib/prowlarr-search"
+
+const NOW = new Date("2026-10-28T12:00:00.000Z")
+const FRESH_POLL = new Date(NOW.getTime() - 60 * 60 * 1000).toISOString()
+const STALE_POLL = new Date(NOW.getTime() - 25 * 60 * 60 * 1000).toISOString()
 
 const ACCOUNT_SNAPSHOT = {
   trackerId: 1,
@@ -10,7 +13,7 @@ const ACCOUNT_SNAPSHOT = {
   uploadedBytes: "1000",
   downloadedBytes: "500",
   requiredRatio: 1,
-  lastPolledAt: "2026-10-27T11:00:00.000Z",
+  lastPolledAt: FRESH_POLL,
 }
 
 const ACCOUNT: ProwlarrSearchIndexer = {
@@ -44,8 +47,16 @@ function result(overrides: Record<string, unknown> = {}) {
 }
 
 describe("ComparisonPanel", () => {
-  it("shows concrete account arithmetic without ranking or safety claims", async () => {
-    const user = userEvent.setup()
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(NOW)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("shows concrete account arithmetic without ranking or safety claims", () => {
     render(
       <ComparisonPanel
         results={[
@@ -59,7 +70,7 @@ describe("ComparisonPanel", () => {
       />
     )
 
-    await user.type(screen.getByLabelText("Your target ratio"), "1.5")
+    fireEvent.change(screen.getByLabelText("Your target ratio"), { target: { value: "1.5" } })
     expect(screen.getAllByText(/Projected ratio:/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Remaining charged allowance:/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Additional upload needed:/).length).toBeGreaterThan(0)
@@ -76,7 +87,7 @@ describe("ComparisonPanel", () => {
             id: "stale",
             indexer: {
               ...ACCOUNT,
-              account: { ...ACCOUNT_SNAPSHOT, lastPolledAt: "2026-10-20T11:00:00.000Z" },
+              account: { ...ACCOUNT_SNAPSHOT, lastPolledAt: STALE_POLL },
             },
           }),
         ]}
@@ -87,8 +98,7 @@ describe("ComparisonPanel", () => {
     expect(screen.getByText(/Account observations are stale/)).toBeInTheDocument()
   })
 
-  it("labels an explicit freeleech result as a scenario, not a safe/cheap default", async () => {
-    const user = userEvent.setup()
+  it("labels an explicit freeleech result as a scenario, not a safe/cheap default", () => {
     render(
       <ComparisonPanel
         results={[
@@ -97,7 +107,7 @@ describe("ComparisonPanel", () => {
         ]}
       />
     )
-    await user.type(screen.getByLabelText("Your target ratio"), "1.5")
+    fireEvent.change(screen.getByLabelText("Your target ratio"), { target: { value: "1.5" } })
     expect(screen.getByText("Zero-charge scenario")).toBeInTheDocument()
     expect(screen.getByText(/not proof of safety/)).toBeInTheDocument()
     expect(screen.getByText(/freeleech result is not automatically preferred/)).toBeInTheDocument()

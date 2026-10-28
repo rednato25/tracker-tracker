@@ -522,7 +522,20 @@ test.describe.serial("wishlist visual evidence", () => {
   test("captures desktop light/dark and 390px wishlist layouts", async ({ page }) => {
     expect(wishlistTrackerId).not.toBeNull()
     await page.goto("/wishlist")
-    await expect(page.locator("[data-wishlist-page]")).toBeVisible()
+    const wishlistRoots = page.locator("[data-wishlist-page]")
+    const wishlistDiag = await wishlistRoots.evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        hidden: node.hasAttribute("hidden"),
+        ariaHidden: node.getAttribute("aria-hidden"),
+        display: getComputedStyle(node).display,
+        visibility: getComputedStyle(node).visibility,
+        rect: node.getBoundingClientRect().toJSON(),
+        parent: node.parentElement?.tagName,
+        html: node.outerHTML.slice(0, 180),
+      }))
+    )
+    console.log("WISHLIST_DIAG", JSON.stringify(wishlistDiag))
+    await expect(wishlistRoots).toBeVisible()
 
     await page.getByRole("button", { name: "Desired tracker" }).click()
     await page.getByRole("option", { name: "BroadcasTheNet" }).click()

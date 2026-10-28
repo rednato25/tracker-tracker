@@ -591,7 +591,7 @@ function TrackerRegister({
               <Link
                 href={`/trackers/${row.tracker.id}`}
                 className={clsx(
-                  "grid h-12 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
+                  "grid h-16 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
                   row.statusTone === "crit" && "bg-danger-dim",
                   row.statusTone === "warn" && "bg-warn-dim"
                 )}

@@ -931,6 +931,19 @@ test.describe.serial("rank goal summary visual evidence", () => {
       path: "test-results/visual-rank-summary-dark.png",
     })
 
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(
+      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+    )
+    await page.waitForTimeout(300)
+    await page.evaluate(() => {
+      document.querySelector("[data-rank-stacks]")?.scrollIntoView({ block: "start" })
+    })
+    await page.locator("[data-rank-stacks]").screenshot({
+      path: "test-results/visual-rank-summary-mobile.png",
+    })
+
+    await page.setViewportSize({ width: 1280, height: 1400 })
     await page.goto(`/trackers/${ids[0]}#rank-goal`)
     const rankPanel = page.locator("#main-content #rank-goal")
     await expect(rankPanel).toBeVisible({ timeout: 15_000 })
@@ -955,10 +968,8 @@ test.describe.serial("rank goal summary visual evidence", () => {
     )
     await page.waitForTimeout(300)
     await page.evaluate(() => {
-      document.querySelector("[data-rank-stacks]")?.scrollIntoView({ block: "start" })
+      document.querySelector("#rank-goal")?.scrollIntoView({ block: "start" })
     })
-    await page.locator("[data-rank-stacks]").screenshot({
-      path: "test-results/visual-rank-summary-mobile.png",
-    })
+    await rankPanel.screenshot({ path: "test-results/visual-rank-target-mobile.png" })
   })
 })

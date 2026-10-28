@@ -3,6 +3,7 @@
 
 import clsx from "clsx"
 import { useRouter } from "next/navigation"
+import { RankGoalSummaryList } from "@/components/dashboard/RankGoalSummaryList"
 import { REDACTED_NOTE, RedactedText } from "@/components/ui/RedactedText"
 import { SectionToggle } from "@/components/ui/SectionToggle"
 import { Tooltip } from "@/components/ui/Tooltip"
@@ -10,6 +11,7 @@ import { registryEntryFor } from "@/data/tracker-registry"
 import { hexToRgba } from "@/lib/color-utils"
 import { isRedacted } from "@/lib/privacy"
 import { buildRankForest, buildRankLadder, type RankLadder } from "@/lib/rank-ladder"
+import { buildRankGoalSummaries } from "@/lib/rank-summary"
 import type { TrackerSummary } from "@/types/api"
 
 // Every stack is the same height, so rung thickness is what varies with the
@@ -29,6 +31,8 @@ interface StackEntry {
 
 interface RankStacksProps {
   trackers: TrackerSummary[]
+  savedGoals?: Record<string, { targetRank: string }>
+  now?: Date
   // Collapse state is owned by the parent's single useSectionCollapse instance,
   // for the same reason LoginTimers does not call the hook itself.
   expanded: boolean
@@ -126,8 +130,15 @@ function RankStack({ tracker, ladder, onOpen }: StackEntry & { onOpen: () => voi
   )
 }
 
-export function RankStacks({ trackers, expanded, onToggleExpanded }: RankStacksProps) {
+export function RankStacks({
+  trackers,
+  savedGoals = {},
+  now = new Date(),
+  expanded,
+  onToggleExpanded,
+}: RankStacksProps) {
   const router = useRouter()
+  const summaries = buildRankGoalSummaries(trackers, savedGoals, now)
 
   const entries: StackEntry[] = trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []
@@ -163,23 +174,26 @@ export function RankStacks({ trackers, expanded, onToggleExpanded }: RankStacksP
     return ladder ? [{ tracker, ladder }] : []
   })
 
-  if (entries.length === 0) return null
+  if (entries.length === 0 && summaries.length === 0) return null
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3" data-rank-stacks>
       <SectionToggle label="Ranks" expanded={expanded} onToggle={onToggleExpanded} />
 
       {expanded && (
-        <div className="flex flex-wrap gap-3">
-          {entries.map(({ tracker, ladder }) => (
-            <RankStack
-              key={tracker.id}
-              tracker={tracker}
-              ladder={ladder}
-              onOpen={() => router.push(`/trackers/${tracker.id}`)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex flex-wrap gap-3">
+            {entries.map(({ tracker, ladder }) => (
+              <RankStack
+                key={tracker.id}
+                tracker={tracker}
+                ladder={ladder}
+                onOpen={() => router.push(`/trackers/${tracker.id}`)}
+              />
+            ))}
+          </div>
+          <RankGoalSummaryList summaries={summaries} />
+        </>
       )}
     </div>
   )

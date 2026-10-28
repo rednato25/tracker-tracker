@@ -33,6 +33,7 @@ import { computeTrackerActions } from "@/lib/actions"
 import { computeAggregateStats } from "@/lib/dashboard"
 import type { FleetAggregation } from "@/lib/fleet-aggregation"
 import { fleetCachedQueryOptions } from "@/lib/query-options"
+import { parseSavedRankGoals } from "@/lib/rank-summary"
 import type { Snapshot, TrackerSummary } from "@/types/api"
 import type { TrackerSnapshotSeries } from "@/types/charts"
 
@@ -65,6 +66,7 @@ const selectTagGroupBreakdowns = (data: FleetAggregation) => data.tagGroupBreakd
 interface DashboardClientProps {
   initialTrackers: TrackerSummary[]
   snapshotRetentionDays: number | null
+  rankGoals: string | null
   /** Read server-side from two small queries. False skips the Tag Groups fetch entirely. */
   hasTagGroups: boolean
   /** Server time keeps the first client render aligned with the server. */
@@ -74,10 +76,12 @@ interface DashboardClientProps {
 export function DashboardClient({
   initialTrackers,
   snapshotRetentionDays,
+  rankGoals,
   hasTagGroups,
   now,
 }: DashboardClientProps) {
   const data = useDashboardData({ initialTrackers, snapshotRetentionDays })
+  const savedRankGoals = useMemo(() => parseSavedRankGoals(rankGoals), [rankGoals])
   const dashSettings = useDashboardSettings()
   const sectionCollapse = useSectionCollapse()
   // One instance for the whole page, like sectionCollapse above. The analytics grid and the
@@ -234,6 +238,7 @@ export function DashboardClient({
       {dashSettings.settings.showRankStacks && (
         <RankStacks
           trackers={data.trackers}
+          savedGoals={savedRankGoals}
           expanded={rankStacksExpanded}
           onToggleExpanded={() => sectionCollapse.toggle("rank-stacks")}
         />

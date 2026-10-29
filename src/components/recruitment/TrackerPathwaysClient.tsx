@@ -53,14 +53,6 @@ function waitLabel(days: number | null): string {
   return `${days} day${days === 1 ? "" : "s"} left`
 }
 
-function stepWaitDays(step: WishlistStepView): number | null {
-  const timeGate = step.evaluation.timeGate
-  if (step.scenario) return timeGate.effectiveDays
-  if (timeGate.status === "unknown") return null
-  if (timeGate.status === "open") return 0
-  return timeGate.daysRemaining
-}
-
 function inviteClassLabel(step: WishlistStepView): string {
   const gate = step.evaluation.eligibility.sourceRequirements.inviteGate
   if (!gate) return "No invite class listed"
@@ -236,7 +228,6 @@ function StepDetails({ step }: { step: WishlistStepView }) {
         Details
       </summary>
       <div className="mt-2 flex flex-col gap-2 text-xs text-secondary">
-        <StepRequirementBars step={step} />
         {gate && (
           <div className="flex flex-col gap-0.5">
             <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
@@ -290,21 +281,19 @@ function StepDetails({ step }: { step: WishlistStepView }) {
 }
 
 function StepRow({ step, index }: { step: WishlistStepView; index: number }) {
-  const warn = stepWaitDays(step) === null
   return (
     <li className="border-t border-border pt-3 first:border-t-0 first:pt-0">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-mono text-2xs text-tertiary">Step {index + 1}</p>
-          <p className="break-words font-cond text-sm font-semibold uppercase tracking-[0.08em] text-primary">
-            {step.sourceName} <span className="text-tertiary">→</span>{" "}
-            {step.destinationName}
-          </p>
-          <p className="mt-0.5 break-words text-xs text-secondary">
-            Invite class: <span className="text-primary">{inviteClassLabel(step)}</span>
-          </p>
-        </div>
-        <Badge variant={warn ? "warn" : "default"}>{waitLabel(stepWaitDays(step))}</Badge>
+      <div className="flex flex-col gap-1">
+        <p className="font-mono text-2xs text-tertiary">Step {index + 1}</p>
+        <p className="break-words font-cond text-sm font-semibold uppercase tracking-[0.08em] text-primary">
+          {step.destinationName}
+        </p>
+        <p className="break-words text-xs text-secondary">
+          Invite class: <span className="text-primary">{inviteClassLabel(step)}</span>
+        </p>
+      </div>
+      <div className="mt-2">
+        <StepRequirementBars step={step} />
       </div>
       <StepDetails step={step} />
     </li>
@@ -594,44 +583,6 @@ export function TrackerPathwaysClient({
         </Paragraph>
       </div>
 
-      <section className="flex flex-col gap-3" aria-labelledby="your-trackers-heading">
-        <div className="flex flex-col gap-1">
-          <H2 id="your-trackers-heading">Your trackers</H2>
-          <Paragraph>Current class, account age and direct trackerpathways routes.</Paragraph>
-        </div>
-        <Card elevation="raised">
-          {ownedRows.length === 0 ? (
-            <p className="text-sm text-secondary">No trackers yet.</p>
-          ) : (
-            <ul className="flex flex-col">
-              {ownedRows.map((row) => (
-                <li
-                  key={row.tracker.id}
-                  data-owned-tracker={row.tracker.id}
-                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-border py-2.5 first:border-t-0 first:pt-0 last:pb-0"
-                >
-                  <span className="min-w-0 break-words font-cond text-sm font-semibold uppercase tracking-[0.06em] text-primary">
-                    {row.tracker.name}
-                  </span>
-                  {row.pathwayId === null ? (
-                    <span className="text-xs text-tertiary">Not in trackerpathways data</span>
-                  ) : (
-                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-secondary">
-                      <span>{row.userClass}</span>
-                      <span>{row.age}</span>
-                      <span>
-                        {row.directCount} direct{" "}
-                        {row.directCount === 1 ? "route" : "routes"}
-                      </span>
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </section>
-
       <section className="flex flex-col gap-3" aria-labelledby="get-to-tracker-heading">
         <div className="flex flex-col gap-1">
           <H2 id="get-to-tracker-heading">Get to a tracker</H2>
@@ -691,6 +642,44 @@ export function TrackerPathwaysClient({
           <p className="text-sm text-secondary">No known route from your trackers.</p>
         )}
       </section>
+
+      <details className="border border-border bg-raised p-4">
+        <summary className="cursor-pointer font-cond text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
+          Your trackers ({ownedRows.length})
+        </summary>
+        <div className="mt-3 flex flex-col gap-3">
+          <Paragraph>Current class, account age and direct trackerpathways routes.</Paragraph>
+          {ownedRows.length === 0 ? (
+            <p className="text-sm text-secondary">No trackers yet.</p>
+          ) : (
+            <ul className="flex flex-col">
+              {ownedRows.map((row) => (
+                <li
+                  key={row.tracker.id}
+                  data-owned-tracker={row.tracker.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-border py-2.5 first:border-t-0 first:pt-0 last:pb-0"
+                >
+                  <span className="min-w-0 break-words font-cond text-sm font-semibold uppercase tracking-[0.06em] text-primary">
+                    {row.tracker.name}
+                  </span>
+                  {row.pathwayId === null ? (
+                    <span className="text-xs text-tertiary">Not in trackerpathways data</span>
+                  ) : (
+                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-secondary">
+                      <span>{row.userClass}</span>
+                      <span>{row.age}</span>
+                      <span>
+                        {row.directCount} direct{" "}
+                        {row.directCount === 1 ? "route" : "routes"}
+                      </span>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
 
       <Subtext className="text-2xs">
         Source: {catalog.source.attribution}{" "}

@@ -1,46 +1,27 @@
 // src/components/layout/AuthShell.tsx
 "use client"
 
-import clsx from "clsx"
 import { usePathname } from "next/navigation"
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { RetentionPrompt } from "@/components/dashboard/RetentionPromptDialog"
-import { Sidebar } from "@/components/layout/Sidebar"
+import { AppHeader } from "@/components/layout/AppHeader"
 import { WhatsNew } from "@/components/layout/WhatsNew"
 import { BackToTop } from "@/components/ui/BackToTop"
-import { HamburgerIcon } from "@/components/ui/Icons"
-import { useLocalStorage } from "@/hooks/useLocalStorage"
 
 export function AuthShell({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useLocalStorage("sidebar-collapsed", false)
   const [mounted, setMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const isMobileRef = useRef(false)
+  const mainRef = useRef<HTMLElement>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)")
-    const mobile = mq.matches
-    setIsMobile(mobile)
-    isMobileRef.current = mobile
-
-    if (mobile) setCollapsed(true)
-
-    const handler = (e: MediaQueryListEvent) => {
-      setIsMobile(e.matches)
-      isMobileRef.current = e.matches
-      if (e.matches) setCollapsed(true)
-    }
+    setIsMobile(mq.matches)
+    const handler = (event: MediaQueryListEvent) => setIsMobile(event.matches)
     mq.addEventListener("change", handler)
     setMounted(true)
     return () => mq.removeEventListener("change", handler)
-  }, [setCollapsed])
-
-  const toggle = useCallback(() => {
-    setCollapsed((prev) => !prev)
-  }, [setCollapsed])
-
-  const mainRef = useRef<HTMLElement>(null)
-  const pathname = usePathname()
+  }, [])
 
   // Scroll main content to top on route change (main is the scroll container, not window)
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger, so we intentionally re-run on route change
@@ -48,26 +29,16 @@ export function AuthShell({ children }: { children: ReactNode }) {
     mainRef.current?.scrollTo(0, 0)
   }, [pathname])
 
-  // A mobile drawer is transient: leave it open across a route change and it
-  // covers the page the user just navigated to.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger, so we intentionally re-run on route change
-  useEffect(() => {
-    if (isMobile) setCollapsed(true)
-  }, [pathname, isMobile, setCollapsed])
-
-  const effectiveCollapsed = !mounted || collapsed
-  const showHamburger = isMobile ? collapsed : effectiveCollapsed
-
   return (
     <div
-      className="flex h-screen overflow-hidden"
-      data-collapsed={String(collapsed)}
+      className="flex h-screen flex-col overflow-hidden bg-base"
+      data-collapsed="true"
       data-mounted={String(mounted)}
       data-mobile={String(isMobile)}
     >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:border focus:border-accent focus:bg-raised focus:px-3 focus:py-2 focus:font-cond focus:text-xs focus:font-semibold focus:uppercase focus:tracking-[0.12em] focus:text-primary"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-nm-sm focus:border focus:border-accent focus:bg-raised focus:px-3 focus:py-2 focus:text-xs focus:font-semibold focus:text-primary"
       >
         Skip to main content
       </a>
@@ -75,42 +46,14 @@ export function AuthShell({ children }: { children: ReactNode }) {
           survive the add-first-tracker redirect instead of vanishing with the
           dashboard. It renders nothing once answered. */}
       <RetentionPrompt />
-      {isMobile && (
-        <div
-          className={clsx(
-            "fixed inset-0 z-20 bg-black/50 transition-opacity duration-300 ease-in-out",
-            effectiveCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
-          )}
-          onClick={toggle}
-          aria-hidden="true"
-        />
-      )}
-      <Sidebar collapsed={effectiveCollapsed} onToggle={toggle} isMobile={isMobile} />
+      <AppHeader />
       <main
         id="main-content"
         ref={mainRef}
         tabIndex={-1}
-        className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6 relative themed-scrollbar"
+        className="relative flex-1 overflow-y-auto themed-scrollbar"
       >
-        {showHamburger && (
-          <button
-            type="button"
-            onClick={toggle}
-            className="fixed top-4 left-4 z-40 p-2 bg-base text-secondary hover:text-primary transition-colors duration-150 cursor-pointer nm-raised-sm rounded-nm-sm"
-            aria-label="Open sidebar"
-          >
-            <HamburgerIcon width="20" height="20" />
-          </button>
-        )}
-        <div
-          className={clsx(
-            "transition-[padding-left] duration-300 ease-in-out min-h-full",
-            !isMobile && effectiveCollapsed && "pl-12",
-            showHamburger && "shell-hamburger"
-          )}
-        >
-          {children}
-        </div>
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6">{children}</div>
         <BackToTop scrollRef={mainRef} />
       </main>
       <WhatsNew />

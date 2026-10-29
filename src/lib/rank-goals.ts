@@ -87,6 +87,7 @@ export interface RankConditionResult {
   id: string
   kind: "numeric" | "manual" | "non-numeric"
   metric?: RankMetric
+  comparison?: RankComparison
   label: string
   requiredValue: number | null
   observedValue: number | null
@@ -242,6 +243,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      comparison: condition.comparison,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
@@ -261,6 +263,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      comparison: condition.comparison,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
@@ -279,6 +282,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      comparison: condition.comparison,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
@@ -296,6 +300,7 @@ function evaluateCondition(
       id,
       kind: "numeric",
       metric: condition.metric,
+      comparison: condition.comparison,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
@@ -313,6 +318,7 @@ function evaluateCondition(
     id,
     kind: "numeric",
     metric: condition.metric,
+      comparison: condition.comparison,
     unitReading: condition.unitReading,
     label,
     requiredValue: condition.requiredValue,

@@ -9,13 +9,15 @@ import { isRedacted } from "@/lib/privacy"
 import { 
   evaluateRankGoal,
   evaluateRequirementGroup,
+  type RankComparison,
   type RankConditionResult,
   type RankGoalInput,
-  type RankGroupResult,
-  type RankComparison,
   type RankGoalStatus,
+  type RankGroupResult,
   type RankMetric,
-  type RankObservationMap,rankDefinitionForSlug, type TrackerRankDefinition, } from "@/lib/rank-goals"
+  rankDefinitionForSlug,
+  type TrackerRankDefinition,
+} from "@/lib/rank-goals"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -30,6 +32,8 @@ export interface RankSummaryBar {
   label: string
   current: string
   required: string
+  currentValue: number | null
+  requiredValue: number
   comparison: RankComparison
   status: RankGoalStatus
 }
@@ -84,6 +88,8 @@ function summarizeBars(result: RankGroupResult | null): RankSummaryBar[] {
       label: condition.label,
       current: formatValue(condition.metric, condition.observedValue),
       required: formatValue(condition.metric, condition.requiredValue),
+      currentValue: condition.observedValue,
+      requiredValue: condition.requiredValue as number,
       comparison: condition.comparison ?? "gte",
       status: condition.status,
     }))

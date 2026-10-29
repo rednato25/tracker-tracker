@@ -13,7 +13,7 @@ function DashboardSkeleton() {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-5 pb-12">
+      <div className="flex flex-col gap-5 pb-12">
         <div className="flex items-end justify-between">
           <div className="flex flex-col gap-2">
             <Shimmer size="value" className="w-64" />

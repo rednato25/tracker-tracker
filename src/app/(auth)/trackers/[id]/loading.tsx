@@ -4,7 +4,7 @@ import { Card, Shimmer } from "@/components/ui"
 
 export default function TrackerDetailLoading() {
   return (
-    <div className="flex flex-col gap-8 max-w-6xl mx-auto pb-12">
+    <div className="flex flex-col gap-8 pb-12">
       {/* Header: name + stats */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-4">

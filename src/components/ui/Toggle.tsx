@@ -34,7 +34,7 @@ function Toggle({ label, checked, onChange, disabled = false, description, id }:
           "transition-all duration-200",
           "border border-border rounded-nm-sm",
           "disabled:opacity-40 disabled:cursor-not-allowed",
-          checked ? "bg-accent" : "bg-control-bg"
+          checked ? "bg-accent-fill" : "bg-control-bg"
         )}
       >
         <span

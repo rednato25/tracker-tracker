@@ -1,4 +1,4 @@
-﻿// e2e/attention.spec.ts
+// e2e/attention.spec.ts
 //
 // P05 integration + visual check with synthetic trackers. Uses the guarded
 // tracker_tracker_e2e database and never contacts a real tracker.
@@ -83,7 +83,7 @@ test.describe.serial("attention needed dashboard", () => {
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(400)
     await view.scrollIntoViewIfNeeded()

@@ -103,7 +103,7 @@ export function PollLog({
                   </span>
                   <span className="text-secondary">{formatRatioDisplay(snapshotRatio(snap))}</span>
                   {snap.isManual && (
-                    <span className="text-accent/60 text-[10px] uppercase tracking-wider">
+                    <span className="text-accent/60 text-xs uppercase tracking-wider">
                       Manual
                     </span>
                   )}

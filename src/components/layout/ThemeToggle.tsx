@@ -38,7 +38,7 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="flex h-7 w-7 cursor-pointer items-center justify-center text-rail-muted transition-colors duration-150 hover:text-rail-text"
+      className="flex h-10 w-10 cursor-pointer items-center justify-center text-secondary transition-colors duration-150 hover:text-primary"
       aria-label={label}
       title={label}
     >

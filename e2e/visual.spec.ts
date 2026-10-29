@@ -95,7 +95,7 @@ test.describe.serial("rank and budget visual evidence", () => {
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(300)
     const metrics = await page.evaluate(() => {
@@ -223,7 +223,7 @@ test.describe.serial("rank and budget visual evidence", () => {
     await page.screenshot({ path: "test-results/visual-budget-queue-after.png" })
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(300)
     await page.evaluate(() => {
@@ -303,7 +303,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       await section.screenshot({ path: "test-results/visual-prowlarr-dark.png" })
       await page.setViewportSize({ width: 390, height: 1200 })
       await page.waitForFunction(
-        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+        () => document.querySelector('[data-mobile="true"]') !== null
       )
       await page.waitForTimeout(300)
       await section.scrollIntoViewIfNeeded()
@@ -396,7 +396,7 @@ test.describe.serial("rank and budget visual evidence", () => {
       await section.screenshot({ path: "test-results/visual-jackett-dark.png" })
       await page.setViewportSize({ width: 390, height: 1200 })
       await page.waitForFunction(
-        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+        () => document.querySelector('[data-mobile="true"]') !== null
       )
       await page.waitForTimeout(300)
       await section.scrollIntoViewIfNeeded()
@@ -456,7 +456,7 @@ test.describe.serial("integration token visual evidence", () => {
 
       await page.setViewportSize({ width: 390, height: 1200 })
       await page.waitForFunction(
-        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+        () => document.querySelector('[data-mobile="true"]') !== null
       )
       await page.waitForTimeout(300)
       await section.scrollIntoViewIfNeeded()
@@ -529,7 +529,7 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await expect(pathwaysPage).toHaveCount(1)
     await expect(pathwaysPage).toBeVisible()
 
-    await expect(page.getByRole("link", { name: "Tracker pathways" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Pathways", exact: true })).toBeVisible()
     await expect(page).toHaveTitle("Tracker pathways")
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
     await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("BroadcasTheNet")
@@ -551,7 +551,7 @@ test.describe.serial("tracker pathways visual evidence", () => {
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.evaluate(() => {
       document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
@@ -734,7 +734,7 @@ test.describe.serial("Prowlarr search visual evidence", () => {
 
       await page.setViewportSize({ width: 390, height: 1200 })
       await page.waitForFunction(
-        () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+        () => document.querySelector('[data-mobile="true"]') !== null
       )
       await page.waitForTimeout(300)
       await page.evaluate(() => {
@@ -851,7 +851,7 @@ test.describe.serial("monitoring register visual evidence", () => {
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(300)
     await page.evaluate(() => {
@@ -951,7 +951,7 @@ test.describe.serial("rank goal summary visual evidence", () => {
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(300)
     await page.evaluate(() => {
@@ -982,7 +982,7 @@ test.describe.serial("rank goal summary visual evidence", () => {
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(300)
     await page.evaluate(() => {
@@ -1072,9 +1072,103 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"][data-collapsed="true"]') !== null
+      () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(300)
     await page.screenshot({ path: "test-results/visual-glance-mobile.png" })
+  })
+})
+test.describe.serial("P32a foundation visual evidence", () => {
+  let foundationTrackerId: number | null = null
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const [tracker] = await sql<{ id: number }[]>`
+        insert into trackers (
+          name, base_url, registry_slug, platform_type, is_active, joined_at,
+          last_polled_at, encrypted_api_token, color, created_at, updated_at
+        ) values (
+          'TEST Foundation', 'https://tt-p32a.invalid', 'torrentleech', 'unit3d', true,
+          '2025-01-01T00:00:00.000Z', now(), ${encrypt("synthetic-p32a-token", key)},
+          '#6d56eb', now(), now()
+        ) returning id
+      `
+      foundationTrackerId = tracker.id
+      await sql`
+        insert into tracker_snapshots (
+          tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+          buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+          required_ratio, warned, freeleech_tokens, is_manual
+        ) values (
+          ${tracker.id}, now(), ${2 * 1024 ** 4}, ${1 * 1024 ** 4}, 2.0, 'Power User',
+          ${1 * 1024 ** 4}, 8, 1, 1234, 0, 1, false, 0, false
+        )
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    if (foundationTrackerId === null) return
+    const sql = e2eSql()
+    try {
+      await sql`delete from trackers where id = ${foundationTrackerId}`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures the shared shell across pages", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+    const routes = [
+      { slug: "dashboard", path: "/" },
+      { slug: "tracker", path: `/trackers/${foundationTrackerId}` },
+      { slug: "settings", path: "/settings" },
+      { slug: "search", path: "/search" },
+    ]
+
+    for (const route of routes) {
+      await page.setViewportSize({ width: 1440, height: 1000 })
+      await page.goto(route.path)
+      await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+        document.documentElement.dataset.theme = "light"
+      })
+      await page.waitForTimeout(150)
+      await page.screenshot({ path: `test-results/visual-foundation-${route.slug}-light.png` })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.waitForTimeout(150)
+      await page.screenshot({ path: `test-results/visual-foundation-${route.slug}-dark.png` })
+
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.waitForFunction(
+        () => document.querySelector('[data-mobile="true"]') !== null
+      )
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+        document.documentElement.dataset.theme = "light"
+      })
+      await page.waitForTimeout(200)
+      await page.screenshot({
+        path: `test-results/visual-foundation-${route.slug}-mobile.png`,
+      })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.waitForTimeout(150)
+      await page.screenshot({
+        path: `test-results/visual-foundation-${route.slug}-mobile-dark.png`,
+      })
+    }
   })
 })

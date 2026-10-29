@@ -146,7 +146,7 @@ export function DashboardClient({
 
   if (data.trackersError) {
     return (
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-3 border border-border bg-raised px-4 py-6">
+      <div className="flex flex-col gap-3 rounded-nm-lg border border-border bg-raised px-4 py-6">
         <p className="font-mono text-sm text-danger" role="alert">
           Dashboard data could not be loaded.
         </p>
@@ -166,7 +166,7 @@ export function DashboardClient({
 
   return (
     <div className="min-h-full">
-      <div className="page-topbar sticky top-0 z-20 -mx-4 -mt-4 mb-6 flex h-14 items-center justify-between border-b border-border bg-raised pl-4 pr-4 md:-mx-6 md:-mt-6 md:pl-7 md:pr-7">
+      <div className="mb-6 flex h-12 items-center justify-between border-b border-border">
         <div className="font-cond text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           Dashboard
         </div>
@@ -183,7 +183,7 @@ export function DashboardClient({
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-10 pb-12">
+      <div className="flex flex-col gap-10 pb-12">
         <TrackerRegister
           trackers={data.trackers}
           aggregateStats={aggregateStats}

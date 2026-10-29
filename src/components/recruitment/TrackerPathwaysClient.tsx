@@ -19,7 +19,7 @@ import {
   formatCount,
   formatRatio,
 } from "@/lib/formatters"
-import type { RankComparison, RankGoalStatus } from "@/lib/rank-goals"
+import type { RankGoalStatus } from "@/lib/rank-goals"
 import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
   normalizeRecruitmentState,
@@ -81,7 +81,6 @@ interface StepRequirementBar {
   required: string
   currentValue: number | null
   requiredValue: number
-  comparison: RankComparison
   status: RankGoalStatus
 }
 
@@ -109,7 +108,6 @@ function stepRequirementBars(step: WishlistStepView): StepRequirementBar[] {
       required: `${formatCount(timeGate.effectiveDays)} days`,
       currentValue: accountAge,
       requiredValue: timeGate.effectiveDays,
-      comparison: "gte",
       status:
         timeGate.status === "open"
           ? "met"
@@ -135,7 +133,6 @@ function stepRequirementBars(step: WishlistStepView): StepRequirementBar[] {
       required: formatBarValue(condition.metric, condition.requiredValue),
       currentValue: condition.observedValue,
       requiredValue: condition.requiredValue,
-      comparison: condition.comparison ?? "gte",
       status: condition.status,
     })
   }
@@ -145,10 +142,6 @@ function stepRequirementBars(step: WishlistStepView): StepRequirementBar[] {
 
 function requirementPercent(bar: StepRequirementBar): number {
   if (bar.currentValue === null || bar.requiredValue <= 0) return 0
-  if (bar.comparison === "lte" || bar.comparison === "lt") {
-    return Math.min(1, bar.requiredValue / Math.max(bar.currentValue, 1))
-  }
-  if (bar.comparison === "eq") return bar.status === "met" ? 1 : 0
   return Math.min(1, bar.currentValue / bar.requiredValue)
 }
 

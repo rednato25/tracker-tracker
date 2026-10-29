@@ -70,6 +70,7 @@ describe("TrackerDetailHeader actions", () => {
     const { container } = renderHeader()
     expect(screen.getByRole("button", { name: "Poll now" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument()
+    expect(screen.getByText("Unit3D")).toBeInTheDocument()
 
     const menu = container.querySelector("details")
     expect(menu).not.toBeNull()

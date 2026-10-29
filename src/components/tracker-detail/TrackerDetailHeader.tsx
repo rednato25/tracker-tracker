@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/Icons"
 import { PulseDot } from "@/components/ui/PulseDot"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { platformTypeLabel } from "@/data/platform-types"
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 import {
   getHealthBadgeVariant,
@@ -119,7 +120,7 @@ export function TrackerDetailHeader({
             <Badge variant={getHealthBadgeVariant(health)}>
               {getHealthDescription(health, tracker)}
             </Badge>
-            <Badge variant="default">{tracker.platformType}</Badge>
+            <Badge variant="default">{platformTypeLabel(tracker.platformType)}</Badge>
             {registryEntry?.language && <Badge variant="default">{registryEntry.language}</Badge>}
             {!tracker.isActive && <Badge variant="warn">Archived</Badge>}
             <SlotRenderer slots={badgeSlots} bare />

@@ -24,6 +24,33 @@ export const VALID_PLATFORM_TYPES = [
 ] as const
 export type PlatformType = (typeof VALID_PLATFORM_TYPES)[number]
 
+export const PLATFORM_LABELS: Record<PlatformType, string> = {
+  unit3d: "Unit3D",
+  gazelle: "Gazelle",
+  ggn: "GazelleGames",
+  nebulance: "Nebulance",
+  mam: "MAM",
+  avistaz: "AvistaZ",
+  digitalcore: "DigitalCore",
+  filelist: "FileList",
+  custom: "Custom",
+  btn: "BTN",
+  iptorrents: "IPTorrents",
+  torrentleech: "TorrentLeech",
+  hawke: "Hawke",
+  retrotoon: "RetroToon",
+  tr4ker: "Tr4ker",
+  c411: "C411",
+  mteam: "M-Team",
+  portugas: "Portugas",
+  carpt: "CarPT",
+  v3x: "V3X",
+}
+
+export function platformTypeLabel(type: string): string {
+  return PLATFORM_LABELS[type as PlatformType] ?? type
+}
+
 export const MAM_BONUS_CAP = 99999
 
 export const DEFAULT_API_PATHS: Record<string, string> = {

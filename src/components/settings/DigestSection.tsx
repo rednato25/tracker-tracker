@@ -166,7 +166,7 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
           When there is nothing to report
         </span>
         <select
-          className="w-full border border-border bg-field px-3 py-2 font-mono text-sm text-primary"
+          className="w-full border border-border bg-control-bg px-3 py-2 font-mono text-sm text-primary"
           value={emptyBehavior}
           onChange={(e) => setEmptyBehavior(e.target.value)}
         >

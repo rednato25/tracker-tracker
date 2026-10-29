@@ -340,7 +340,7 @@ export function RankGoalPanel({
               Target rank
             </span>
             <select
-              className="border border-border bg-field px-3 py-2 font-mono text-xs text-primary"
+              className="border border-border bg-control-bg px-3 py-2 font-mono text-xs text-primary"
               value={target ?? ""}
               onChange={(e) => {
                 if (e.target.value) void chooseTarget(e.target.value)

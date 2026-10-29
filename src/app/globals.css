@@ -154,7 +154,12 @@
   --text-2xs: 12px;
 }
 
+:root {
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --color-base: var(--color-night-950);
   --color-raised: var(--color-night-900);
   --color-elevated: var(--color-night-800);

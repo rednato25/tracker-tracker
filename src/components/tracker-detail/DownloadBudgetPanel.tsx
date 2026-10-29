@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { H2 } from "@typography"
 import { useMemo, useState } from "react"
@@ -210,7 +210,7 @@ export function DownloadBudgetPanel({
             How is it charged?
           </span>
           <select
-            className="border border-border bg-field px-3 py-2 font-mono text-xs text-primary"
+            className="border border-border bg-control-bg px-3 py-2 font-mono text-xs text-primary"
             value={chargedFraction}
             onChange={(e) => setChargedFraction(e.target.value)}
             name="download-budget-charged-fraction"

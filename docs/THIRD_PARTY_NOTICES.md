@@ -34,3 +34,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Yata-Dash (design reference)
+
+Yata-Dash is the visual reference for the Night Grid design direction in
+`DESIGN.md`. It is not a runtime dependency or a source of copied application
+code.
+
+- Project: https://github.com/Yata-Dash/Yata-Dash
+- Reference commit: `d4692e33d2a72b22d828de956cbd468fc3075949`
+- Studied: `docs/screenshots/dashboard-grid.png`,
+  `docs/screenshots/dashboard-table.png`,
+  `docs/screenshots/card-targets.png`, `docs/screenshots/pathways.png`, and
+  `static/dashboard.css`
+- License: GNU General Public License v3.0 (GPL-3.0), the same license as this
+  repository
+
+No Yata code, CSS or assets were copied in this change. If any Yata CSS is
+adapted later, record the source file and commit here.

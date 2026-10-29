@@ -9,7 +9,7 @@ For UI work, use one skill per step, in this order:
 4. Phone: mobile-native at 390px.
 5. Check: web-design-guidelines, then /impeccable polish.
 6. Optional: emil-design-eng for a final detail pass.
-For dashboard layout and chart choices, use IBM Carbon's dashboard and data-visualization guidance (carbondesignsystem.com) as the reference. Pick each chart by the question it answers; remove charts that don't answer one.
+For dashboard layout and visual direction, use Yata-Dash (GPL-3.0, https://github.com/Yata-Dash/Yata-Dash) as the reference. Use IBM Carbon's data-visualization guidance (carbondesignsystem.com) only to choose which chart answers each question; remove charts that don't answer one.
 Do not use other design skills (palette generators, alternative DESIGN.md writers) unless asked. Keep dashboard motion minimal; no new animations without approval.
 Only run this workflow when a task asks for design work. Feature and fix tasks follow DESIGN.md without running the full skill sequence.
 

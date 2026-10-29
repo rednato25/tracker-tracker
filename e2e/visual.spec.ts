@@ -513,7 +513,6 @@ test.describe.serial("tracker pathways visual evidence", () => {
       if (wishlistTrackerId !== null) {
         await sql`delete from trackers where id = ${wishlistTrackerId}`
       }
-      await sql`update app_settings set recruitment_state = null`
     } finally {
       await sql.end()
     }
@@ -827,6 +826,7 @@ test.describe.serial("monitoring register visual evidence", () => {
 
   test("captures light/dark desktop and 390px register layouts", async ({ page }) => {
     await page.goto("/")
+    await page.getByRole("button", { name: "Table" }).click()
     // Next may retain a hidden previous route tree outside the app shell. Only
     // the copy under #main-content is the active application page.
     const register = page.locator("#main-content #register")
@@ -1002,7 +1002,7 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
       `
       const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
       const rows = [
-        { name: "TEST Glance Fresh", slug: "alpharatio", last: new Date(), stats: true },
+        { name: "TEST Glance Fresh", slug: "torrentleech", last: new Date(), stats: true },
         {
           name: "TEST Glance Stale",
           slug: "aither",
@@ -1035,6 +1035,10 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
           `
         }
       }
+      const goals = Object.fromEntries(
+        ids.map((id) => [String(id), { targetRank: "Super User" }])
+      )
+      await sql`update app_settings set rank_goals = ${JSON.stringify(goals)}`
     } finally {
       await sql.end()
     }
@@ -1043,6 +1047,7 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
   test.afterAll(async () => {
     const sql = e2eSql()
     try {
+      await sql`update app_settings set rank_goals = null`
       for (const id of ids) await sql`delete from trackers where id = ${id}`
     } finally {
       await sql.end()
@@ -1050,32 +1055,56 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
   })
 
   test("captures the first viewport at 1440px and 390px", async ({ page }) => {
-    test.setTimeout(60_000)
+    test.setTimeout(90_000)
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto("/")
+    const totals = page.locator("#main-content [data-dashboard-totals]")
+    await expect(totals).toBeVisible({ timeout: 15_000 })
+    await expect(totals.getByText("Uploaded", { exact: true })).toBeVisible()
+    await expect(totals.getByText("Downloaded", { exact: true })).toBeVisible()
+    await expect(totals.getByText("Buffer", { exact: true })).toBeVisible()
+    await expect(totals.getByText("Overall ratio", { exact: true })).toBeVisible()
+    await expect(totals.getByText("Need attention", { exact: true })).toBeVisible()
+    await expect(totals.getByText(/Totals from 2 of 3 trackers/)).toBeVisible()
+    await expect(page.locator("#main-content [data-tracker-grid]")).toBeVisible()
+
+    async function setTheme(theme: "light" | "dark") {
+      await page.evaluate((value) => {
+        document.documentElement.dataset.theme = value
+      }, theme)
+      await page.waitForTimeout(150)
+    }
+
+    await setTheme("light")
+    await page.screenshot({ path: "test-results/visual-dashboard-grid-light.png" })
+    await setTheme("dark")
+    await page.screenshot({ path: "test-results/visual-dashboard-grid-dark.png" })
+
+    await setTheme("light")
+    await page.getByRole("button", { name: "Table" }).click()
     const register = page.locator("#main-content #register")
     await expect(register).toBeVisible({ timeout: 15_000 })
-    await expect(register.getByText("Total uploaded")).toBeVisible()
-    await expect(register.getByText("Total downloaded")).toBeVisible()
-    await expect(register.getByText("Overall ratio")).toBeVisible()
-    await expect(register.getByText("Need attention")).toBeVisible()
-    await expect(register.getByText(/Totals from 2 of 3 trackers/)).toBeVisible()
-
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "light"
-    })
-    await page.screenshot({ path: "test-results/visual-glance-light.png" })
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "dark"
-    })
-    await page.screenshot({ path: "test-results/visual-glance-dark.png" })
+    await expect(page.locator("#main-content [data-total-tile]")).toHaveCount(5)
+    await page.screenshot({ path: "test-results/visual-dashboard-table-light.png" })
+    await setTheme("dark")
+    await page.screenshot({ path: "test-results/visual-dashboard-table-dark.png" })
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForFunction(
       () => document.querySelector('[data-mobile="true"]') !== null
     )
     await page.waitForTimeout(300)
-    await page.screenshot({ path: "test-results/visual-glance-mobile.png" })
+    await setTheme("light")
+    await page.screenshot({ path: "test-results/visual-dashboard-table-mobile.png" })
+    await setTheme("dark")
+    await page.screenshot({ path: "test-results/visual-dashboard-table-mobile-dark.png" })
+
+    await setTheme("light")
+    await page.getByRole("button", { name: "Grid" }).click()
+    await expect(page.locator("#main-content [data-tracker-grid]")).toBeVisible()
+    await page.screenshot({ path: "test-results/visual-dashboard-grid-mobile.png" })
+    await setTheme("dark")
+    await page.screenshot({ path: "test-results/visual-dashboard-grid-mobile-dark.png" })
   })
 })
 test.describe.serial("P32a foundation visual evidence", () => {

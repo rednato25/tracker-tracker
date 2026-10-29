@@ -83,7 +83,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (interval === undefined) {
     return {
       days: null,
-      label: "�",
+      label: "—",
       tone: "muted",
       reason: "No login interval is defined for this tracker.",
     }
@@ -91,7 +91,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (interval === 0) {
     return {
       days: null,
-      label: "�",
+      label: "—",
       tone: "muted",
       reason: "This tracker has no mandatory login interval.",
     }
@@ -99,7 +99,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (!tracker.lastAccessAt) {
     return {
       days: null,
-      label: "�",
+      label: "—",
       tone: "muted",
       reason: "The adapter has not captured a last-access date for this tracker.",
     }
@@ -108,7 +108,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
   if (Number.isNaN(last)) {
     return {
       days: null,
-      label: "�",
+      label: "—",
       tone: "muted",
       reason: "The captured last-access date could not be parsed.",
     }
@@ -132,7 +132,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
 
 function readBuffer(tracker: TrackerSummary): { display: string; tone: Tone } {
   const raw = tracker.latestStats?.bufferBytes
-  if (!raw) return { display: "�", tone: "muted" }
+  if (!raw) return { display: "—", tone: "muted" }
   try {
     const value = BigInt(raw)
     const display = formatBytesFromString(raw)
@@ -278,7 +278,7 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       health,
       statusTone: healthTone(health),
       statusLabel: getHealthLabel(health),
-      ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}�` : ratio,
+      ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}×` : ratio,
       buffer: buffer.display,
       seeding: formatCount(tracker.latestStats?.seedingCount),
       uploaded: readMetric(
@@ -293,7 +293,7 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       ),
       bonus: readMetric(stats?.seedbonus, (value) => formatCount(Number(value)), snapshot),
       login,
-      rank: tracker.latestStats?.group ?? "�",
+      rank: tracker.latestStats?.group ?? "—",
       shortAge: compactAge(formatAccountAge(tracker.joinedAt)),
       abbreviation,
       segments,
@@ -311,7 +311,7 @@ function ViabilityStrip({ segments, passed }: { segments: Tone[]; passed: number
           <span key={index} className={clsx("block h-full flex-1", TONE_MARK[tone])} />
         ))}
       </span>
-      <span className="font-mono text-xs text-secondary">{known ? `${passed}/4` : "�"}</span>
+      <span className="font-mono text-xs text-secondary">{known ? `${passed}/4` : "—"}</span>
     </span>
   )
 }
@@ -344,12 +344,12 @@ function AccountCell({ row }: { row: RegisterRow }) {
               <span className="hidden shrink-0 font-cond font-semibold uppercase tracking-[0.08em] text-primary md:inline">
                 {row.statusLabel}
               </span>
-              <span className="hidden shrink-0 md:inline">�</span>
+              <span className="hidden shrink-0 md:inline">·</span>
             </>
           )}
           <span className="truncate">
             {row.abbreviation}
-            {row.shortAge ? ` � ${row.shortAge}` : ""}
+            {row.shortAge ? ` · ${row.shortAge}` : ""}
           </span>
         </span>
       </span>
@@ -385,7 +385,7 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
         <span className="font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
           Today
         </span>
-        <span className="font-mono text-xs text-tertiary">login windows � H&amp;R � poll</span>
+        <span className="font-mono text-xs text-tertiary">login windows · H&amp;R · poll</span>
       </div>
       <div className="grid md:grid-cols-3">
       <section className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
@@ -477,11 +477,13 @@ function TrackerRegister({
   now = new Date(),
   aggregateStats,
   attentionCount = 0,
+  showTotals = true,
 }: {
   trackers: TrackerSummary[]
   now?: Date
   aggregateStats?: AggregateStats
   attentionCount?: number
+  showTotals?: boolean
 }) {
   const rows = buildRows(trackers, now)
   const aggregate = aggregateStats ?? computeAggregateStats(trackers)
@@ -492,7 +494,7 @@ function TrackerRegister({
   const uploadedDisplay = included.length === 0 ? "\u2014" : formatBytesFromString(aggregate.totalUploaded)
   const downloadedDisplay =
     included.length === 0 ? "\u2014" : formatBytesFromString(aggregate.totalDownloaded)
-  const ratioDisplay = overallRatio === null ? "�" : formatRatioDisplay(overallRatio)
+  const ratioDisplay = overallRatio === null ? "—" : formatRatioDisplay(overallRatio)
 
   return (
     <section id="register" className="flex scroll-mt-16 flex-col gap-4">
@@ -502,7 +504,7 @@ function TrackerRegister({
             Account register
           </h1>
           <p className="mt-2 font-mono text-xs text-secondary">
-            {rows.length} {rows.length === 1 ? "tracker" : "trackers"} � last poll{" "}
+            {rows.length} {rows.length === 1 ? "tracker" : "trackers"} · last poll{" "}
             {rows
               .map((row) => row.tracker.lastPolledAt)
               .filter((value): value is string => Boolean(value))
@@ -520,7 +522,9 @@ function TrackerRegister({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 border-y border-border-emphasis bg-raised md:grid-cols-4">
+      {showTotals && (
+        <>
+          <div className="grid grid-cols-2 border-y border-border-emphasis bg-raised md:grid-cols-4">
         <div className="border-b border-r border-border px-4 py-3 md:border-b-0">
           <span className="block font-mono text-2xl font-medium leading-none tracking-[-0.04em] text-primary">
             {uploadedDisplay}
@@ -570,6 +574,8 @@ function TrackerRegister({
             </span>
           )}
         </p>
+      )}
+        </>
       )}
 
       <div className="hidden border border-border bg-raised min-[1280px]:block">
@@ -683,7 +689,7 @@ function TrackerRegister({
                     <span className="slot-label">Seeding</span>
                     <span className="font-mono text-sm text-secondary">{row.seeding}</span>
                   </span>
-                  <span className="col-span-2 grid grid-cols-3 gap-2 border-t border-border-soft pt-2">
+                  <span className="col-span-2 grid grid-cols-2 gap-2 border-t border-border-soft pt-2 sm:grid-cols-3">
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="slot-label">Uploaded</span>
                       <MetricValue readout={row.uploaded} />

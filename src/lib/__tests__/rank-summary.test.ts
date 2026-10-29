@@ -71,6 +71,12 @@ describe("buildRankGoalSummaries", () => {
     expect(summary.unknown.length).toBe(0)
     expect(summary.linkHref).toBe("/trackers/1#rank-goal")
     expect(summary.linkLabel).toBe("Open rank goal")
+    expect(summary.bars.length).toBeGreaterThan(0)
+    expect(summary.bars[0]).toMatchObject({
+      current: expect.any(String),
+      required: expect.any(String),
+      status: expect.stringMatching(/^(met|unmet|unknown)$/),
+    })
   })
 
   it("keeps stale observations unknown rather than treating them as met", () => {

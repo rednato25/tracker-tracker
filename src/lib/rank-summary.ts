@@ -9,11 +9,15 @@ import { isRedacted } from "@/lib/privacy"
 import { 
   evaluateRankGoal,
   evaluateRequirementGroup,
+  type RankComparison,
   type RankConditionResult,
   type RankGoalInput,
+  type RankGoalStatus,
   type RankGroupResult,
   type RankMetric,
-  type RankObservationMap,rankDefinitionForSlug, type TrackerRankDefinition, } from "@/lib/rank-goals"
+  rankDefinitionForSlug,
+  type TrackerRankDefinition,
+} from "@/lib/rank-goals"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -21,6 +25,17 @@ export interface RankSummaryCondition {
   label: string
   remaining: string | null
   reason: string | null
+}
+
+export interface RankSummaryBar {
+  id: string
+  label: string
+  current: string
+  required: string
+  currentValue: number | null
+  requiredValue: number
+  comparison: RankComparison
+  status: RankGoalStatus
 }
 
 export interface RankGoalSummary {
@@ -38,6 +53,7 @@ export interface RankGoalSummary {
   unknownCount: number
   unmet: RankSummaryCondition[]
   unknown: RankSummaryCondition[]
+  bars: RankSummaryBar[]
   linkLabel: string
   linkHref: string
 }
@@ -59,10 +75,31 @@ function flattenConditions(result: RankGroupResult | null): RankConditionResult[
   )
 }
 
+function summarizeBars(result: RankGroupResult | null): RankSummaryBar[] {
+  return flattenConditions(result)
+    .filter(
+      (condition) =>
+        condition.kind === "numeric" &&
+        condition.requiredValue !== null &&
+        condition.metric !== undefined
+    )
+    .map((condition) => ({
+      id: condition.id,
+      label: condition.label,
+      current: formatValue(condition.metric, condition.observedValue),
+      required: formatValue(condition.metric, condition.requiredValue),
+      currentValue: condition.observedValue,
+      requiredValue: condition.requiredValue as number,
+      comparison: condition.comparison ?? "gte",
+      status: condition.status,
+    }))
+}
+
 function summarizeConditions(result: RankGroupResult | null): {
   met: number
   unmet: RankSummaryCondition[]
   unknown: RankSummaryCondition[]
+  bars: RankSummaryBar[]
 } {
   const conditions = flattenConditions(result)
   return {
@@ -84,6 +121,7 @@ function summarizeConditions(result: RankGroupResult | null): {
         remaining: null,
         reason: condition.reason || null,
       })),
+    bars: summarizeBars(result),
   }
 }
 
@@ -126,6 +164,7 @@ function buildSummary(
       unknownCount: 0,
       unmet: [],
       unknown: [],
+      bars: [],
       linkLabel: "Open tracker",
       linkHref: `/trackers/${tracker.id}#rank-goal`,
     }
@@ -158,6 +197,7 @@ function buildSummary(
     unknownCount: progress.unknown,
     unmet: counts.unmet,
     unknown: counts.unknown,
+    bars: counts.bars,
     linkLabel: target ? "Open rank goal" : "Choose a target",
     linkHref: `/trackers/${tracker.id}#rank-goal`,
   }
@@ -214,6 +254,7 @@ export function buildRankGoalSummaries(
           unknownCount: 0,
           unmet: [],
           unknown: [],
+          bars: [],
           linkLabel: "Open tracker",
           linkHref: `/trackers/${tracker.id}#rank-goal`,
         },

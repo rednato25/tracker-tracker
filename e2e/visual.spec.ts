@@ -826,6 +826,7 @@ test.describe.serial("monitoring register visual evidence", () => {
 
   test("captures light/dark desktop and 390px register layouts", async ({ page }) => {
     await page.goto("/")
+    await page.getByRole("button", { name: "Table" }).click()
     // Next may retain a hidden previous route tree outside the app shell. Only
     // the copy under #main-content is the active application page.
     const register = page.locator("#main-content #register")

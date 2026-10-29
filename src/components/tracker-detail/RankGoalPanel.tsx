@@ -19,6 +19,7 @@ import {
   type RankRequirementGroup,
   rankDefinitionForSlug,
 } from "@/lib/rank-goals"
+import { buildRankLadder } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
 
@@ -102,7 +103,10 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
     condition.observedValue !== null &&
     condition.requiredValue !== null &&
     condition.requiredValue > 0
-      ? Math.min(100, Math.round((condition.observedValue / condition.requiredValue) * 100))
+      ? Math.min(
+          condition.status === "unmet" ? 98 : 100,
+          Math.round((condition.observedValue / condition.requiredValue) * 100)
+        )
       : 0
   return (
     <li className="border-t border-border py-2">
@@ -127,8 +131,9 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
         )}
       </div>
       {condition.requiredValue !== null && (
-        <div className="mt-2 h-1.5 overflow-hidden bg-elevated" aria-hidden="true" data-rank-condition-bar>
+        <div className="relative mt-2 h-1.5 overflow-hidden bg-elevated" aria-hidden="true" data-rank-condition-bar>
           <span className={`block h-full ${barClass}`} style={{ width: `${percent}%` }} />
+          <span className="absolute inset-y-0 right-0 w-px bg-primary/70" data-threshold-tick />
         </div>
       )}
       {condition.unitReading === "conservative" && (
@@ -172,6 +177,11 @@ export function RankGoalPanel({
 }: RankGoalPanelProps) {
   const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
+  const nextRequirements = useMemo(() => {
+    const ladder = buildRankLadder(userClasses, currentRank)
+    const next = ladder?.rungs[ladder.currentIndex + 1]
+    return next?.requirements ?? null
+  }, [userClasses, currentRank])
   const [target, setTarget] = useState<string | null>(null)
   const [savedGoals, setSavedGoals] = useState<Record<string, { targetRank: string }>>({})
   const [loaded, setLoaded] = useState(false)
@@ -312,10 +322,18 @@ export function RankGoalPanel({
     return (
       <section id="rank-goal" className="scroll-mt-16 border border-border border-t-2 bg-raised p-4">
         <H2 className="uppercase tracking-wider">Rank goal</H2>
-        <p className="mt-2 text-xs text-secondary">
-          Structured rank progress is unavailable for this tracker. The existing ladder and free-text
-          requirements above remain the source of truth.
-        </p>
+        {nextRequirements ? (
+          <div className="mt-2 flex flex-col gap-0.5">
+            <span className="text-xs text-tertiary">
+              From tracker rules (not tracked automatically)
+            </span>
+            <p className="text-xs text-secondary">{nextRequirements}</p>
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-secondary">
+            No next-class requirements are published for this tracker.
+          </p>
+        )}
       </section>
     )
   }
@@ -330,9 +348,6 @@ export function RankGoalPanel({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <H2 className="uppercase tracking-wider">Rank goal</H2>
-          <p className="mt-1 font-mono text-4xs text-tertiary">
-            Observed current rank: {currentRank ?? "unknown"}
-          </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1">
@@ -408,7 +423,7 @@ export function RankGoalPanel({
         <>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Badge variant={eligible ? "success" : "default"}>
-              {counts.met} met · {counts.unmet} unmet · {counts.unknown} unknown
+              {counts.met} of {counts.total} · {counts.unmet} unmet · {counts.unknown} unknown
             </Badge>
             {eligible && (
               <span className="font-mono text-4xs text-secondary">

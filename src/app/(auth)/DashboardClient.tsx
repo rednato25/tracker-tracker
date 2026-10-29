@@ -16,7 +16,6 @@ import { EcosystemStatsSection } from "@/components/dashboard/EcosystemStatsSect
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard"
 import { LoginTimers } from "@/components/dashboard/LoginTimers"
 import { PollAllButton } from "@/components/dashboard/PollAllButton"
-import { RankStacks } from "@/components/dashboard/RankStacks"
 import { TagGroupsSection } from "@/components/dashboard/TagGroupsSection"
 import { TodayAtAGlance } from "@/components/dashboard/TodayAtAGlance"
 import { TodayAtAGlanceSkeleton } from "@/components/dashboard/TodayAtAGlanceSkeleton"
@@ -145,7 +144,6 @@ export function DashboardClient({
   const leaderboardExpanded = isExpanded("leaderboard")
   const ecosystemStatsExpanded = isExpanded("ecosystem-stats")
   const loginTimersExpanded = isExpanded("login-timers")
-  const rankStacksExpanded = isExpanded("rank-stacks")
   const tagGroupsExpanded = isExpanded("tag-groups")
 
   if (data.loading) {
@@ -231,16 +229,6 @@ export function DashboardClient({
             attentionCount={attentionCount}
             now={new Date(now)}
             showTotals={false}
-          />
-        )}
-
-        {/* Ranks */}
-        {dashSettings.settings.showRankStacks && (
-          <RankStacks
-            trackers={data.trackers}
-            savedGoals={savedRankGoals}
-            expanded={rankStacksExpanded}
-            onToggleExpanded={() => sectionCollapse.toggle("rank-stacks")}
           />
         )}
 

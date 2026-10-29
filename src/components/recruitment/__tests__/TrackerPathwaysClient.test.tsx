@@ -140,6 +140,7 @@ describe("TrackerPathwaysClient", () => {
     expect(screen.getByRole("heading", { name: "Tracker pathways" })).toBeInTheDocument()
     expect(screen.getByText("Your trackers")).toBeInTheDocument()
     expect(screen.getByText("Get to a tracker")).toBeInTheDocument()
+    expect(screen.getByText(/1 direct/)).toBeInTheDocument()
   })
 
   it("marks an owned tracker missing from trackerpathways data and shows nothing else", () => {
@@ -158,7 +159,7 @@ describe("TrackerPathwaysClient", () => {
     expect(screen.getByText("Mystery Tracker")).toBeInTheDocument()
     expect(screen.getByText("Not in trackerpathways data")).toBeInTheDocument()
     expect(screen.queryByText("Power User")).not.toBeInTheDocument()
-    expect(screen.queryByText(/direct lead/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/direct route/)).not.toBeInTheDocument()
   })
 
   it("shows the best path first with route chips and keeps other routes collapsed", () => {
@@ -195,6 +196,8 @@ describe("TrackerPathwaysClient", () => {
     expect(details).not.toBeNull()
     expect(details).not.toHaveAttribute("open")
     expect(details?.querySelector('[data-step-requirement-bar="time-on-source"]')).not.toBeNull()
+    expect(details?.querySelector("[data-threshold-tick]")).not.toBeNull()
+    expect(screen.getAllByText("Unmet").length).toBeGreaterThan(0)
     expect(screen.getAllByText(/\/ 30 days/).length).toBeGreaterThan(0)
 
     await user.click(details?.querySelector("summary") as HTMLElement)

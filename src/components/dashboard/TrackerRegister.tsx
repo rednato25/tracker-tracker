@@ -8,6 +8,7 @@
 
 import clsx from "clsx"
 import Link from "next/link"
+import { platformTypeLabel } from "@/data/platform-types"
 import { registryEntryFor } from "@/data/tracker-registry"
 import { type AggregateStats, computeAggregateStats } from "@/lib/dashboard"
 import {
@@ -268,7 +269,7 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
         : readSegments(tracker, login)
     const buffer = readBuffer(tracker)
     const abbreviation =
-      registryEntryFor(tracker)?.abbreviation ?? tracker.platformType.toUpperCase()
+      registryEntryFor(tracker)?.abbreviation ?? platformTypeLabel(tracker.platformType)
     const ratio = formatRatioDisplay(tracker.latestStats?.ratio ?? null)
     const snapshot = readSnapshot(tracker, now)
     const stats = tracker.latestStats
@@ -302,10 +303,10 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
   })
 }
 
-function ViabilityStrip({ segments, passed }: { segments: Tone[]; passed: number }) {
+function ChecksStrip({ segments, passed }: { segments: Tone[]; passed: number }) {
   const known = segments.some((segment) => segment !== "muted")
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex items-center gap-2" aria-label={known ? `Checks: ${passed} of 4` : "Checks unknown"} role="img">
       <span className="flex h-[7px] w-[92px] shrink-0 gap-[2px]" aria-hidden="true">
         {segments.map((tone, index) => (
           <span key={index} className={clsx("block h-full flex-1", TONE_MARK[tone])} />
@@ -578,7 +579,7 @@ function TrackerRegister({
 
       <div className="hidden border border-border bg-raised min-[1280px]:block">
         <div className="grid h-8 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1">
-          {["Account", "Ratio", "Buffer", "Accounted", "Seeding", "Login due", "Rank", "Status"].map(
+          {["Account", "Ratio", "Buffer", "Transfer", "Seeding", "Login due", "Rank", "Checks"].map(
             (label) => (
               <span
                 key={label}
@@ -603,7 +604,7 @@ function TrackerRegister({
                 <span className="px-3">
                   <AccountCell row={row} />
                 </span>
-                <span className="px-3 font-mono text-sm tabular-nums text-primary">
+                <span className="px-3 font-mono text-sm tabular-nums text-[var(--color-ratio)]">
                   {row.ratio}
                 </span>
                 <span className="whitespace-nowrap px-3 font-mono text-sm tabular-nums text-secondary">
@@ -611,18 +612,18 @@ function TrackerRegister({
                 </span>
                 <span
                   className="flex flex-col gap-[1px] px-3 font-mono text-sm tabular-nums"
-                  title="Accounted transfer totals and tracker-specific bonus points from the latest snapshot; not client speed."
+                  title="Transfer totals and tracker-specific bonus points from the latest snapshot; not client speed."
                 >
                   <span className="flex items-center justify-between gap-1.5">
-                    <span className="text-xs text-tertiary">UP</span>
+                    <span className="text-xs text-tertiary">Upload</span>
                     <MetricValue readout={row.uploaded} />
                   </span>
                   <span className="flex items-center justify-between gap-1.5">
-                    <span className="text-xs text-tertiary">DN</span>
+                    <span className="text-xs text-tertiary">Download</span>
                     <MetricValue readout={row.downloaded} />
                   </span>
                   <span className="flex items-center justify-between gap-1.5">
-                    <span className="text-xs text-tertiary">BON</span>
+                    <span className="text-xs text-tertiary">Bonus</span>
                     <MetricValue readout={row.bonus} />
                   </span>
                 </span>
@@ -650,7 +651,7 @@ function TrackerRegister({
                   {row.rank}
                 </span>
                 <span className="px-3">
-                  <ViabilityStrip segments={row.segments} passed={row.passed} />
+                  <ChecksStrip segments={row.segments} passed={row.passed} />
                 </span>
               </Link>
             </li>
@@ -677,7 +678,7 @@ function TrackerRegister({
                 <span className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border-soft pt-2">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Ratio</span>
-                    <span className="font-mono text-sm text-primary">{row.ratio}</span>
+                    <span className="font-mono text-sm text-[var(--color-ratio)]">{row.ratio}</span>
                   </span>
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Buffer</span>
@@ -712,7 +713,7 @@ function TrackerRegister({
                   </span>
                   <span className="col-span-2 flex items-center justify-between gap-2 pt-1">
                     <span className="slot-label">{row.rank}</span>
-                    <ViabilityStrip segments={row.segments} passed={row.passed} />
+                    <ChecksStrip segments={row.segments} passed={row.passed} />
                   </span>
                 </span>
               </Link>
@@ -722,7 +723,7 @@ function TrackerRegister({
       </div>
 
       <p className="font-mono text-xs text-tertiary">
-        Accounted values and bonus are from the latest stored snapshot, not client speed.{" "}
+        Transfer values and bonus are from the latest stored snapshot, not client speed.{" "}
         {"\u2014"} no data {"\u00b7"} * stale snapshot (&gt;2h) {"\u00b7"} ? snapshot age
         unknown. Bonus points are tracker-specific.
       </p>

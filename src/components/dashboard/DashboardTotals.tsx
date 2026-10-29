@@ -76,7 +76,7 @@ export function DashboardTotals({
         <Tile
           label="Overall ratio"
           value={aggregateStats.avgRatio === null ? "—" : formatRatioDisplay(aggregateStats.avgRatio)}
-          color={aggregateRatioColor(aggregateStats.avgRatio)}
+          color={CHART_THEME.ratio}
           data={series.ratio.filter((value): value is number => value !== null)}
           meta="Fleet total"
           unknown={aggregateStats.avgRatio === null}
@@ -112,13 +112,6 @@ export function DashboardTotals({
       )}
     </section>
   )
-}
-
-function aggregateRatioColor(ratio: number | null): string {
-  if (ratio === null) return CHART_THEME.neutral
-  if (ratio >= 10) return CHART_THEME.success
-  if (ratio >= 1) return CHART_THEME.warn
-  return CHART_THEME.danger
 }
 
 function formatBuffer(raw: string): string {

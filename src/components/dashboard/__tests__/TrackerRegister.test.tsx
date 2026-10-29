@@ -57,13 +57,18 @@ function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
   }
 }
 
-describe("TrackerRegister accounted metrics", () => {
+describe("TrackerRegister transfer metrics", () => {
   it("renders populated uploaded, downloaded and tracker bonus values", () => {
     render(<TrackerRegister trackers={[tracker()]} now={NOW} />)
     expect(screen.getAllByText(/1\.00 TiB/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/500\.00 GiB/).length).toBeGreaterThan(0)
     expect(screen.getAllByText("1,234").length).toBeGreaterThan(0)
-    expect(screen.getByText(/Accounted values and bonus are from the latest stored snapshot/)).toBeInTheDocument()
+    expect(screen.getByText(/Transfer values and bonus are from the latest stored snapshot/)).toBeInTheDocument()
+    expect(screen.getByText("Transfer")).toBeInTheDocument()
+    expect(screen.getByText("Upload")).toBeInTheDocument()
+    expect(screen.getByText("Download")).toBeInTheDocument()
+    expect(screen.getByText("Bonus")).toBeInTheDocument()
+    expect(screen.getByText("Checks")).toBeInTheDocument()
     expect(screen.queryByLabelText("stale snapshot")).not.toBeInTheDocument()
   })
 

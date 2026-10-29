@@ -18,6 +18,7 @@ import {
   rankDefinitionForSlug,
   type TrackerRankDefinition,
 } from "@/lib/rank-goals"
+import { buildRankLadder } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -36,6 +37,7 @@ export interface RankSummaryBar {
   requiredValue: number
   comparison: RankComparison
   status: RankGoalStatus
+  metric: RankMetric
 }
 
 export interface RankGoalSummary {
@@ -54,6 +56,9 @@ export interface RankGoalSummary {
   unmet: RankSummaryCondition[]
   unknown: RankSummaryCondition[]
   bars: RankSummaryBar[]
+  totalChecks: number
+  distanceText: string | null
+  nextRankRequirements: string | null
   linkLabel: string
   linkHref: string
 }
@@ -92,7 +97,58 @@ function summarizeBars(result: RankGroupResult | null): RankSummaryBar[] {
       requiredValue: condition.requiredValue as number,
       comparison: condition.comparison ?? "gte",
       status: condition.status,
+      metric: condition.metric as RankMetric,
     }))
+}
+
+function shortMetricLabel(bar: RankSummaryBar): string {
+  switch (bar.metric) {
+    case "uploadedBytes":
+      return "upload"
+    case "downloadedBytes":
+      return "download"
+    case "bufferBytes":
+      return "buffer"
+    case "accountAgeDays":
+      return "account age"
+    case "accountRatio":
+      return "ratio"
+    case "seedbonus":
+      return "bonus"
+    default:
+      return bar.label.toLowerCase()
+  }
+}
+
+function distanceTextFor(target: string | null, bars: RankSummaryBar[]): string | null {
+  if (!target) return null
+  const remaining = bars.filter((bar) => bar.status !== "met").slice(0, 3)
+  if (remaining.length === 0) return `${target}: all tracked checks met`
+  const parts = remaining.map((bar) => {
+    const label = shortMetricLabel(bar)
+    if (bar.currentValue === null) return `${label} unknown`
+    const left = bar.requiredValue - bar.currentValue
+    if (left <= 0 && (bar.comparison === "gt" || bar.comparison === "lt")) {
+      return `${label} above ${bar.required}`
+    }
+    return `${formatValue(bar.metric, Math.max(0, left))} ${label}`
+  })
+  const hasUnknown = remaining.some((bar) => bar.currentValue === null)
+  const hasRemaining = remaining.some(
+    (bar) => bar.currentValue !== null && bar.requiredValue - bar.currentValue > 0
+  )
+  return `${target}: ${parts.join(", ")}${!hasUnknown && hasRemaining ? " left" : ""}`
+}
+
+function nextRequirementsFor(
+  entry: ReturnType<typeof registryEntryFor>,
+  currentRank: string | null
+): string | null {
+  if (!entry) return null
+  const ladder = buildRankLadder(entry.userClasses ?? [], currentRank)
+  if (!ladder) return null
+  const next = ladder.rungs[ladder.currentIndex + 1]
+  return next?.requirements ?? null
 }
 
 function summarizeConditions(result: RankGroupResult | null): {
@@ -165,6 +221,9 @@ function buildSummary(
       unmet: [],
       unknown: [],
       bars: [],
+      totalChecks: 0,
+      distanceText: null,
+      nextRankRequirements: nextRequirementsFor(entry, currentRank),
       linkLabel: "Open tracker",
       linkHref: `/trackers/${tracker.id}#rank-goal`,
     }
@@ -198,6 +257,9 @@ function buildSummary(
     unmet: counts.unmet,
     unknown: counts.unknown,
     bars: counts.bars,
+    totalChecks: progress.total,
+    distanceText: distanceTextFor(target ?? automaticNextRank, counts.bars),
+    nextRankRequirements: nextRequirementsFor(entry, currentRank),
     linkLabel: target ? "Open rank goal" : "Choose a target",
     linkHref: `/trackers/${tracker.id}#rank-goal`,
   }
@@ -255,6 +317,9 @@ export function buildRankGoalSummaries(
           unmet: [],
           unknown: [],
           bars: [],
+          totalChecks: 0,
+          distanceText: null,
+          nextRankRequirements: nextRequirementsFor(registryEntryFor(tracker), raw),
           linkLabel: "Open tracker",
           linkHref: `/trackers/${tracker.id}#rank-goal`,
         },

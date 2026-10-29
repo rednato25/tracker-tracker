@@ -111,21 +111,25 @@ describe("RankGoalPanel", () => {
   it("shows verified values and evaluates the conservative upload unit", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel()
-    await waitFor(() => expect(screen.getByText(/3 met/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/3 of \d+/)).toBeInTheDocument())
     expect(screen.getByText("conservative unit reading")).toBeInTheDocument()
     expect(screen.getByText(/Upload estimate:/)).not.toHaveTextContent(/unit unresolved/)
-    expect(screen.getByText(/Observed current rank: Registered/)).toBeInTheDocument()
     expect(document.querySelectorAll("[data-rank-condition-bar]").length).toBeGreaterThan(0)
+    expect(document.querySelectorAll("[data-threshold-tick]").length).toBeGreaterThan(0)
   })
 
   it("keeps an unsupported tracker on its existing ladder text", async () => {
     renderPanel("unknown-tracker")
-    expect(screen.getByText(/Structured rank progress is unavailable/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/No next-class requirements are published|From tracker rules/)
+    ).toBeInTheDocument()
   })
 
   it("explains unavailable structured progress for unresolved pilots", async () => {
     renderPanel("aither")
-    expect(screen.getByText(/Structured rank progress is unavailable/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/From tracker rules|No next-class requirements/)
+    ).toBeInTheDocument()
   })
 
   it("shows an explicit no-target state and a non-persisted next-rank suggestion", async () => {

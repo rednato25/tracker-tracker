@@ -5,15 +5,18 @@
 import { H1 } from "@typography"
 import clsx from "clsx"
 import Image from "next/image"
+import { useRef, useState } from "react"
 import { TrackerHubStatus } from "@/components/TrackerHubStatus"
 import { MamMouseholeCard } from "@/components/tracker-detail/platform/MamMouseholeCard"
 import { SlotRenderer } from "@/components/tracker-detail/SlotRenderer"
 import { UserProfileCard } from "@/components/tracker-detail/UserProfileCard"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
+import { Dialog } from "@/components/ui/Dialog"
 import {
   BugIcon,
   CheckIcon,
+  ChevronDownSmallIcon,
   ExternalLinkSmallIcon,
   GearIcon,
   PauseIcon,
@@ -22,6 +25,7 @@ import {
 } from "@/components/ui/Icons"
 import { PulseDot } from "@/components/ui/PulseDot"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { platformTypeLabel } from "@/data/platform-types"
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 import {
   getHealthBadgeVariant,
@@ -73,6 +77,9 @@ export function TrackerDetailHeader({
   settingsSaves,
 }: TrackerDetailHeaderProps) {
   const health = getTrackerHealth(tracker)
+  const menuRef = useRef<HTMLDetailsElement>(null)
+  const [confirmLoginOpen, setConfirmLoginOpen] = useState(false)
+  const loginDate = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date())
 
   return (
     <div
@@ -113,7 +120,7 @@ export function TrackerDetailHeader({
             <Badge variant={getHealthBadgeVariant(health)}>
               {getHealthDescription(health, tracker)}
             </Badge>
-            <Badge variant="default">{tracker.platformType}</Badge>
+            <Badge variant="default">{platformTypeLabel(tracker.platformType)}</Badge>
             {registryEntry?.language && <Badge variant="default">{registryEntry.language}</Badge>}
             {!tracker.isActive && <Badge variant="warn">Archived</Badge>}
             <SlotRenderer slots={badgeSlots} bare />
@@ -121,77 +128,75 @@ export function TrackerDetailHeader({
         </div>
 
         <div className="flex w-full flex-wrap items-center gap-2 justify-start sm:w-auto sm:shrink-0">
-          <Tooltip content="Fetch raw API response">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDebugPoll}
-              disabled={debugLoading || polling}
-              aria-label="Debug: fetch raw API response"
-              className="h-11 w-11 px-0"
-            >
-              <BugIcon width="16" height="16" />
-            </Button>
-          </Tooltip>
-          <Tooltip
-            content={tracker.userPausedAt ? "Resume automated polling" : "Pause automated polling"}
-          >
-            <Button
-              variant={tracker.userPausedAt ? "secondary" : "ghost"}
-              size="sm"
-              onClick={onTogglePause}
-              disabled={pauseLoading || polling}
-              aria-label={
-                tracker.userPausedAt ? "Resume automated polling" : "Pause automated polling"
-              }
-              aria-pressed={!!tracker.userPausedAt}
-              className={clsx("h-11 w-11 px-0", tracker.userPausedAt && "border-warn text-warn")}
-            >
-              {tracker.userPausedAt ? (
-                <PlayIcon width="16" height="16" />
-              ) : (
-                <PauseIcon width="16" height="16" />
-              )}
-            </Button>
-          </Tooltip>
-          <Tooltip content="Set Last Login to today">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMarkLoginToday}
-              disabled={markLoginLoading || polling}
-              aria-label="Mark login today"
-              className="h-11 w-11 px-0"
-            >
-              <CheckIcon width="16" height="16" />
-            </Button>
-          </Tooltip>
           <Button
             variant="secondary"
             size="sm"
             onClick={onPollNow}
             disabled={polling}
             className="h-11 px-3"
-            text={polling ? "Polling..." : "Poll Now"}
+            text={polling ? "Polling..." : "Poll now"}
           />
           <Button
-            variant="secondary"
+            variant={tracker.userPausedAt ? "secondary" : "ghost"}
             size="sm"
-            onClick={onOpenCredentials}
-            aria-label="Tracker credentials"
-            className="h-11 w-11 px-0"
+            onClick={onTogglePause}
+            disabled={pauseLoading || polling}
+            aria-pressed={!!tracker.userPausedAt}
+            className={clsx("h-11 px-3", tracker.userPausedAt && "border-warn text-warn")}
           >
-            <ShieldIcon width="16" height="16" />
+            {tracker.userPausedAt ? <PlayIcon width="16" height="16" /> : <PauseIcon width="16" height="16" />}
+            <span>{tracker.userPausedAt ? "Resume" : "Pause"}</span>
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onOpenSettings}
-            aria-label="Tracker settings"
-            className="h-11 w-11 px-0"
-          >
-            <GearIcon width="16" height="16" />
-          </Button>
+          <details ref={menuRef} className="relative">
+            <summary className="flex h-11 cursor-pointer list-none items-center gap-1.5 border border-border bg-control-bg px-3 font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary transition-colors duration-150 hover:text-primary [&::-webkit-details-marker]:hidden">
+              More actions
+              <ChevronDownSmallIcon width="10" height="7" />
+            </summary>
+            <div className="absolute top-full left-0 z-50 mt-1 w-56 max-w-[calc(100vw-2rem)] border border-border bg-overlay p-1 shadow-[0_12px_32px_rgb(0_0_0_/_0.18)] md:right-0 md:left-auto">
+              <button
+                type="button"
+                disabled={debugLoading || polling}
+                onClick={() => {
+                  menuRef.current?.removeAttribute("open")
+                  onDebugPoll()
+                }}
+                className="flex w-full items-center gap-2 px-2 py-2 text-left text-xs text-secondary hover:bg-elevated hover:text-primary disabled:opacity-50"
+              >
+                <BugIcon width="14" height="14" /> Debug poll
+              </button>
+              <button
+                type="button"
+                disabled={markLoginLoading || polling}
+                onClick={() => {
+                  menuRef.current?.removeAttribute("open")
+                  setConfirmLoginOpen(true)
+                }}
+                className="flex w-full items-center gap-2 px-2 py-2 text-left text-xs text-secondary hover:bg-elevated hover:text-primary disabled:opacity-50"
+              >
+                <CheckIcon width="14" height="14" /> Mark login today
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  menuRef.current?.removeAttribute("open")
+                  onOpenCredentials()
+                }}
+                className="flex w-full items-center gap-2 px-2 py-2 text-left text-xs text-secondary hover:bg-elevated hover:text-primary"
+              >
+                <ShieldIcon width="14" height="14" /> Credentials
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  menuRef.current?.removeAttribute("open")
+                  onOpenSettings()
+                }}
+                className="flex w-full items-center gap-2 px-2 py-2 text-left text-xs text-secondary hover:bg-elevated hover:text-primary"
+              >
+                <GearIcon width="14" height="14" /> Settings
+              </button>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -223,6 +228,37 @@ export function TrackerDetailHeader({
           accentColor={tc}
         />
       )}
+
+      <Dialog
+        open={confirmLoginOpen}
+        onClose={() => setConfirmLoginOpen(false)}
+        title="Record login today?"
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              text="Cancel"
+              onClick={() => setConfirmLoginOpen(false)}
+            />
+            <Button
+              size="sm"
+              text={markLoginLoading ? "Saving..." : "Record login"}
+              disabled={markLoginLoading}
+              onClick={() => {
+                setConfirmLoginOpen(false)
+                onMarkLoginToday()
+              }}
+            />
+          </div>
+        }
+      >
+        <p className="text-sm text-secondary">
+          This records a login on <span className="font-mono text-primary">{loginDate}</span>. It
+          does not change the tracker itself.
+        </p>
+      </Dialog>
     </div>
   )
 }

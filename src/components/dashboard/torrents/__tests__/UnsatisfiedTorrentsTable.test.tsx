@@ -29,7 +29,7 @@ beforeAll(() => {
   }
 })
 
-const DANGER = "rgb(159, 52, 40)"
+const DANGER = "rgb(185, 28, 28)"
 
 function makeTorrent(overrides: Partial<TorrentRaw> = {}): TorrentRaw {
   return {

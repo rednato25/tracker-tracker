@@ -154,7 +154,12 @@
   --text-2xs: 12px;
 }
 
+:root {
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --color-base: var(--color-night-950);
   --color-raised: var(--color-night-900);
   --color-elevated: var(--color-night-800);
@@ -697,5 +702,36 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Platform layer: keep touch behavior native without disabling zoom. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+button,
+[role="button"],
+summary,
+nav a {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  button:active,
+  [role="button"]:active,
+  nav a:active {
+    opacity: 0.82;
   }
 }

@@ -200,7 +200,7 @@ function readMetric(
       title: snapshot.hasStats
         ? "Not reported in the latest snapshot."
         : "No snapshot yet; this value is missing.",
-      marker: null,
+      marker: "?",
     }
   }
 
@@ -293,7 +293,7 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       ),
       bonus: readMetric(stats?.seedbonus, (value) => formatCount(Number(value)), snapshot),
       login,
-      rank: tracker.latestStats?.group ?? "—",
+      rank: tracker.latestStats?.group ?? "Unknown",
       shortAge: compactAge(formatAccountAge(tracker.joinedAt)),
       abbreviation,
       segments,
@@ -318,7 +318,7 @@ function ViabilityStrip({ segments, passed }: { segments: Tone[]; passed: number
 
 function StatusMark({ tone, label }: { tone: Tone; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
       <span className={clsx("h-1.5 w-1.5 shrink-0", TONE_MARK[tone])} aria-hidden="true" />
       <span className="font-cond text-xs font-semibold uppercase tracking-[0.12em] text-primary">
         {label}
@@ -335,7 +335,7 @@ function AccountCell({ row }: { row: RegisterRow }) {
         aria-hidden="true"
       />
       <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-primary">
+        <span className="block break-words text-sm font-semibold text-primary">
           {row.tracker.name}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-xs text-secondary">
@@ -566,11 +566,9 @@ function TrackerRegister({
           {staleIncluded && (
             <span
               className="ml-1 text-warn"
-              role="img"
-              aria-label="stale snapshot"
               title="One or more included snapshots are older than two hours."
             >
-              *
+              * Needs checking
             </span>
           )}
         </p>

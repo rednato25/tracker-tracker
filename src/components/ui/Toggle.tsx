@@ -31,7 +31,7 @@ function Toggle({ label, checked, onChange, disabled = false, description, id }:
         onClick={() => onChange(!checked)}
         className={clsx(
           "relative shrink-0 w-11 h-6 cursor-pointer",
-          "transition-all duration-200",
+          "transition-colors duration-200",
           "border border-border rounded-nm-sm",
           "disabled:opacity-40 disabled:cursor-not-allowed",
           checked ? "bg-accent-fill" : "bg-control-bg"
@@ -41,7 +41,7 @@ function Toggle({ label, checked, onChange, disabled = false, description, id }:
           className={clsx(
             "absolute top-0.5 block w-5 h-5",
             "rounded-nm-sm",
-            "transition-all duration-200",
+            "transition-colors duration-200",
             checked ? "left-5.5 bg-paper-50" : "left-0.5 bg-secondary"
           )}
           aria-hidden="true"

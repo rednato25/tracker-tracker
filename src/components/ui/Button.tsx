@@ -19,7 +19,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const button = cva(
   [
-    "inline-flex items-center justify-center font-cond font-semibold uppercase tracking-[0.1em]",
+    "inline-flex items-center justify-center whitespace-nowrap font-cond font-semibold uppercase tracking-[0.1em]",
     "transition-colors duration-150 cursor-pointer select-none",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-control-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base",
     "disabled:cursor-not-allowed disabled:pointer-events-none disabled:border-border! disabled:bg-elevated! disabled:text-secondary! disabled:opacity-100!",

@@ -40,7 +40,7 @@ function ProgressBar({
         className={clsx(
           "rounded-nm-sm relative",
           fill,
-          animated && "transition-all duration-300",
+          animated && "transition-[width,background-color] duration-300",
           clamped === 0 && "invisible"
         )}
         style={{

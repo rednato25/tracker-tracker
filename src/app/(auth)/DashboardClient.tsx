@@ -174,11 +174,11 @@ export function DashboardClient({
 
   return (
     <div className="min-h-full">
-      <div className="mb-4 flex h-12 items-center justify-between gap-3 border-b border-border">
+      <div className="mb-4 flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border py-1.5">
         <div className="font-cond text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           Dashboard
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <fieldset className="m-0 flex min-w-0 items-center rounded-nm-sm border border-border bg-elevated p-0.5">
             <legend className="sr-only">Dashboard view</legend>
             {(["grid", "table"] as const).map((view) => (

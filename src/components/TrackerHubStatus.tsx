@@ -192,12 +192,12 @@ function TrackerHubStatus({
             <div className="flex items-center gap-3 text-xs font-mono text-tertiary">
               <span>
                 Uptime <span className="text-secondary">{data.uptimeMonth}</span>
-                <span className="ml-0.5 text-secondary">30d</span>
+                <span className="ml-1 text-secondary">30d</span>
               </span>
               <span className="text-tertiary">·</span>
               <span>
                 Resp <span className="text-secondary">{data.timeDay}ms</span>
-                <span className="ml-0.5 text-secondary">24h</span>
+                <span className="ml-1 text-secondary">24h</span>
               </span>
             </div>
 

@@ -161,7 +161,7 @@ function chipClass(state: RankChipState): string {
   if (state === "future") {
     return "border border-border bg-raised text-tertiary"
   }
-  return "border border-transparent text-tertiary opacity-60"
+  return "border border-transparent text-tertiary"
 }
 
 function RankChip({ name, state, title }: { name: string; state: RankChipState; title?: string }) {

@@ -61,7 +61,7 @@ describe("DashboardTotals", () => {
     expect(screen.getByText("Buffer")).toBeInTheDocument()
     expect(screen.getByText("Overall ratio")).toBeInTheDocument()
     expect(screen.getByText("Need attention")).toBeInTheDocument()
-    expect(screen.getByText("01")).toBeInTheDocument()
+    expect(screen.getByText("1")).toBeInTheDocument()
     expect(screen.getByText("Action required")).toBeInTheDocument()
   })
 
@@ -77,5 +77,9 @@ describe("DashboardTotals", () => {
     )
     expect(screen.getAllByText("—").length).toBeGreaterThan(0)
     expect(screen.queryByText("0 B")).not.toBeInTheDocument()
+    expect(screen.getByText("0")).toBeInTheDocument()
+    expect(screen.queryByText("00")).not.toBeInTheDocument()
+    expect(screen.queryByText("All clear")).not.toBeInTheDocument()
+    expect(screen.getByText("No known actions · coverage incomplete")).toBeInTheDocument()
   })
 })

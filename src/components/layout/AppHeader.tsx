@@ -60,8 +60,8 @@ function AppHeader() {
 
   return (
     <>
-      <header className="z-40 shrink-0 border-b border-border bg-base/95 backdrop-blur">
-        <div className="mx-auto flex h-[58px] w-full max-w-[1600px] items-center gap-3 px-4 md:px-6">
+      <header className="z-40 shrink-0 border-b border-border bg-base/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur">
+        <div className="mx-auto flex min-h-[58px] w-full max-w-[1600px] items-center gap-3 px-4 md:px-6">
           <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Tracker Tracker dashboard">
             <span className="flex h-8 w-8 items-center justify-center rounded-nm-sm bg-accent-fill font-mono text-xs font-semibold text-on-accent">
               TT

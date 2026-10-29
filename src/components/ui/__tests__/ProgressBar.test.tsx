@@ -175,12 +175,12 @@ describe("ProgressBar animated prop", () => {
   it("includes transition class by default", () => {
     const { getByRole } = render(<ProgressBar percent={50} />)
     const bar = getByRole("progressbar")
-    expect(bar.className).toContain("transition-all")
+    expect(bar.className).toContain("transition-[width,background-color]")
   })
 
   it("omits transition class when animated=false", () => {
     const { getByRole } = render(<ProgressBar percent={50} animated={false} />)
     const bar = getByRole("progressbar")
-    expect(bar.className).not.toContain("transition-all")
+    expect(bar.className).not.toContain("transition-[width,background-color]")
   })
 })

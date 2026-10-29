@@ -28,7 +28,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
   }, [pathname])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-base" data-mobile={String(isMobile)}>
+    <div className="flex h-dvh flex-col overflow-hidden bg-base" data-mobile={String(isMobile)}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-nm-sm focus:border focus:border-accent focus:bg-raised focus:px-3 focus:py-2 focus:text-xs focus:font-semibold focus:text-primary"
@@ -44,7 +44,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         id="main-content"
         ref={mainRef}
         tabIndex={-1}
-        className="relative flex-1 overflow-y-auto themed-scrollbar"
+        className="relative flex-1 overflow-y-auto overscroll-contain themed-scrollbar"
       >
         <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6">{children}</div>
         <BackToTop scrollRef={mainRef} />

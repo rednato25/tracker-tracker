@@ -135,6 +135,15 @@ export const CHART_THEME = {
   get download() {
     return cssVar("--color-download", "#7e22ce")
   },
+  get buffer() {
+    return cssVar("--color-buffer", "#1d4ed8")
+  },
+  get seeding() {
+    return cssVar("--color-seeding", "#1d4ed8")
+  },
+  get bonus() {
+    return cssVar("--color-bonus", "#c2410c")
+  },
   get positive() {
     return cssVar("--color-positive", "#166534")
   },

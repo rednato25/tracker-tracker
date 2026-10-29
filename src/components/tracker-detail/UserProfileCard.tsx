@@ -62,14 +62,16 @@ export function UserProfileCard({
             ) : null}
           </div>
           {(joinedDate || accountAge) && (
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
               {joinedDate && (
-                <span className="text-xs font-mono text-secondary">Joined {joinedDate}</span>
+                <span className="whitespace-nowrap text-xs font-mono text-secondary">Joined {joinedDate}</span>
               )}
               {joinedDate && accountAge && (
                 <span className="text-xs font-mono text-tertiary">·</span>
               )}
-              {accountAge && <span className="text-xs font-mono text-secondary">{accountAge}</span>}
+              {accountAge && (
+                <span className="whitespace-nowrap text-xs font-mono text-secondary">{accountAge}</span>
+              )}
             </div>
           )}
         </div>

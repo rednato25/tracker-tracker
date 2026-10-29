@@ -63,19 +63,19 @@ function renderPills(currentRank: string) {
 }
 
 describe("RankProgress pills", () => {
-  it("dims classes outside the ladder and says why on hover", () => {
+  it("distinguishes classes outside the ladder and says why on hover", () => {
     renderPills("User")
-    expect(screen.getByText("Leech")).toHaveClass("opacity-60")
+    expect(screen.getByText("Leech")).toHaveClass("text-tertiary")
     expect(screen.getByText("Leech")).toHaveAttribute(
       "title",
       "Demotion or administrative state, not a rung of the ladder"
     )
-    expect(screen.getByText("Uploader")).toHaveClass("opacity-60")
+    expect(screen.getByText("Uploader")).toHaveClass("text-tertiary")
     expect(screen.getByText("Uploader")).toHaveAttribute(
       "title",
       "Granted by staff, donation or invitation, not a rung of the ladder"
     )
-    expect(screen.getByText("User")).not.toHaveClass("opacity-60")
+    expect(screen.getByText("User")).not.toHaveClass("text-tertiary")
     expect(screen.getByText("Power User")).not.toHaveAttribute("title")
   })
 

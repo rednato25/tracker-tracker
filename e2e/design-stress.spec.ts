@@ -67,7 +67,10 @@ test.describe.serial("design stress fixtures", () => {
           desiredTrackerSlug: "BroadcasTheNet",
           hiddenPathKeys: [],
           goalLinks: [],
-        })}
+        })},
+        rank_goals = ${JSON.stringify(
+          Object.fromEntries(ids.map((id) => [String(id), { targetRank: "Super User" }]))
+        )}
       `
     } finally {
       await sql.end()
@@ -84,25 +87,11 @@ test.describe.serial("design stress fixtures", () => {
     }
   })
 
-  test("captures worst-case register, cards and pathways", async ({ page }) => {
+  test("captures worst-case grid cards, totals, table and pathways", async ({ page }) => {
     test.setTimeout(120_000)
     expect(ids).toHaveLength(20)
 
-    await page.setViewportSize({ width: 1440, height: 1200 })
-    await page.goto("/")
-    await expect(page.locator("#main-content #register")).toBeVisible({ timeout: 15_000 })
-    await page.evaluate(() => {
-      document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
-    })
-    await page.screenshot({ path: "test-results/design-stress-register-1440.png" })
-
-    for (const width of [390, 320]) {
-      await page.setViewportSize({ width, height: 1000 })
-      await page.waitForTimeout(250)
-      await page.evaluate(() => {
-        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
-      })
-      await page.screenshot({ path: `test-results/design-stress-register-${width}.png` })
+    async function watchOverflow(label: string) {
       const overflow = await page.evaluate(() => ({
         html: document.documentElement.scrollWidth > window.innerWidth,
         main: (() => {
@@ -110,8 +99,55 @@ test.describe.serial("design stress fixtures", () => {
           return main ? main.scrollWidth > main.clientWidth : false
         })(),
       }))
-      expect(overflow.html, `page overflows horizontally at ${width}px`).toBe(false)
-      expect(overflow.main, `main overflows horizontally at ${width}px`).toBe(false)
+      expect(overflow.html, `page overflows horizontally: ${label}`).toBe(false)
+      expect(overflow.main, `main overflows horizontally: ${label}`).toBe(false)
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1200 })
+    await page.goto("/")
+    await expect(page.locator("#main-content [data-dashboard-totals]")).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.locator("#main-content [data-total-tile]")).toHaveCount(5)
+    await expect(page.locator("#main-content [data-tracker-card]")).toHaveCount(20)
+    expect(await page.locator("#main-content [data-rank-bar]").count()).toBeGreaterThan(0)
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+    })
+    await page.screenshot({ path: "test-results/design-stress-grid-1440.png" })
+    await page.locator("#main-content [data-dashboard-totals]").screenshot({
+      path: "test-results/design-stress-totals-1440.png",
+    })
+    await watchOverflow("grid 1440")
+
+    await page.getByRole("button", { name: "Table" }).click()
+    await expect(page.locator("#main-content #register")).toBeVisible({ timeout: 15_000 })
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+    })
+    await page.screenshot({ path: "test-results/design-stress-table-1440.png" })
+
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await page.waitForTimeout(250)
+      await page.getByRole("button", { name: "Grid" }).click()
+      await expect(page.locator("#main-content [data-tracker-grid]")).toBeVisible()
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+      })
+      await page.screenshot({ path: `test-results/design-stress-grid-${width}.png` })
+      await page.locator("#main-content [data-dashboard-totals]").screenshot({
+        path: `test-results/design-stress-totals-${width}.png`,
+      })
+      await watchOverflow(`grid ${width}`)
+
+      await page.getByRole("button", { name: "Table" }).click()
+      await expect(page.locator("#main-content #register")).toBeVisible({ timeout: 15_000 })
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+      })
+      await page.screenshot({ path: `test-results/design-stress-table-${width}.png` })
+      await watchOverflow(`table ${width}`)
     }
 
     await page.setViewportSize({ width: 1440, height: 1200 })
@@ -133,9 +169,6 @@ test.describe.serial("design stress fixtures", () => {
     })
     await page.waitForTimeout(200)
     await page.screenshot({ path: "test-results/design-stress-pathways-390.png" })
-    const pathwaysOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > window.innerWidth
-    )
-    expect(pathwaysOverflow, "pathways overflows horizontally at 390px").toBe(false)
+    await watchOverflow("pathways 390")
   })
 })

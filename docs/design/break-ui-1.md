@@ -30,6 +30,22 @@ zero download, no snapshot, stale snapshot, unknown age, long class, 320/390px).
   those cards belongs to that PR. The merged dashboard's mobile register cards
   are covered here.
 
+## Re-run on rebased main (P32b grid + totals)
+
+The rebased dashboard now defaults to Grid and adds the five totals tiles. The
+worst-case fixture was extended to 20 cards, 55 TiB totals, zero download, no
+snapshot, stale snapshot, unknown age and long names.
+
+| # | Severity | Field | What happens | Status |
+| --- | --- | --- | --- | --- |
+| 7 | Broken | 390px dashboard header | `DASHBOARD`, `GRID/TABLE`, `POLL ALL NOW` and the gear exceed 390px; the main region scrolls horizontally and the gear is off-screen | Report first; fix by wrapping the view/action row |
+| 8 | Ugly | Grid card name | Long account name truncates to `Aleksandra Wiśniewska-Kowalczyk's Ver…` with no title/full-name affordance | Decision (wrap vs reveal) |
+| 9 | Good | Totals tiles | Five tiles render at 390 with metric colors; values and sparklines hold | No fix |
+| 10 | Good | Grid cards / table | 20 cards and the table render without vertical corruption; rank bars appear where the tracker has a target | No fix |
+
+The 320px grid pass was blocked by the 390px overflow assertion; it will be run
+after the header fix.
+
 ## What held up
 
 - 55 TiB values remain readable and tabular; zero download renders `0 MiB`.

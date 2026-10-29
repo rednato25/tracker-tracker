@@ -11,7 +11,6 @@ import Link from "next/link"
 import { useMemo } from "react"
 import { platformTypeLabel } from "@/data/platform-types"
 import { registryEntryFor } from "@/data/tracker-registry"
-import { findClassIndex } from "@/lib/rank-ladder"
 import { type AggregateStats, computeAggregateStats } from "@/lib/dashboard"
 import {
   formatAccountAge,
@@ -20,10 +19,11 @@ import {
   formatRatioDisplay,
   formatTimeAgo,
 } from "@/lib/formatters"
+import { findClassIndex } from "@/lib/rank-ladder"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
 import { getHealthLabel, getTrackerHealth, type TrackerHealth } from "@/lib/tracker-status"
-import { type RegisterSort, type RegisterSortKey, useRegisterSort } from "./useRegisterSort"
 import type { TrackerSummary } from "@/types/api"
+import { type RegisterSort, type RegisterSortKey, useRegisterSort } from "./useRegisterSort"
 
 type Tone = "ok" | "warn" | "crit" | "muted"
 
@@ -641,12 +641,15 @@ function TrackerRegister({
         </>
       )}
 
+      {/* biome-ignore lint/a11y/useSemanticElements: CSS-grid register; each row is one link, which a table cannot express */}
       <div role="table" data-register-table className="hidden border border-border bg-raised min-[1024px]:block">
+        {/* biome-ignore lint/a11y/useFocusableInteractive lint/a11y/useSemanticElements: header row mirrors the CSS-grid table */}
         <div
           role="row"
           className="grid h-8 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1"
         >
           {REGISTER_HEADERS.map(({ label, key }) => (
+            // biome-ignore lint/a11y/useFocusableInteractive lint/a11y/useSemanticElements: the sort button is the focus target inside this column header
             <span
               key={label}
               role="columnheader"

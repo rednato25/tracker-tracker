@@ -551,10 +551,10 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
     })
+    await expect(pathwaysPage.locator("[data-step-requirement-bars]").first()).toBeVisible()
     const firstStepDetails = pathwaysPage.locator("details").first()
     await firstStepDetails.locator("summary").click()
     await expect(firstStepDetails).toHaveAttribute("open", "")
-    await expect(firstStepDetails.getByText("Requirement bars")).toBeVisible()
     await page.waitForTimeout(150)
     await page.screenshot({ path: "test-results/visual-pathways-details-light.png" })
     await page.evaluate(() => {

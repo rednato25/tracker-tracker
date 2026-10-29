@@ -1,6 +1,6 @@
 # Design check 1 — critique
 
-**Score history: 24/40 (first pass) → 25/40 (second pass after P32b/c/d).**
+**Score history: 24/40 (first pass) → 25/40 (second pass after P32b/c/d) → 27/40 (third pass).**
 
 Method: dual-agent (A: design review · B: detector + screenshot evidence)
 Target: merged app surfaces on `main` (`9c42abaa`) plus this pass's clear-break fixes.
@@ -172,7 +172,9 @@ truth language is rigorous; the Night Grid is coherent on totals and cards.
 
 Evidence: dark theme only, 1440px and 390px. The e2e app started through
 Playwright's webServer in about 4 seconds, so the 5-minute stop rule never
-triggered. Detector scans of the rendered surfaces returned no warnings; the
+triggered. Impeccable's critique flow does not expose a single-agent mode, so
+each page was assessed by two isolated reviews: design, and detector/browser
+evidence. Detector scans of the rendered surfaces returned no warnings; the
 only hit in the wider tree was a 3px side-tab in the unused
 `TrackerOverviewGrid.tsx:205`, which is not on the rendered dashboard.
 
@@ -180,8 +182,8 @@ only hit in the wider tree was a 3px side-tab in the unused
 
 **Verdict:** the five-tile read and the card/register split are the strongest
 they have been, but the two views no longer tell the same truth. Grid says
-“2 of 3 checks”; the register says “3/4 checks” for the same account, and only
-the register's ratio keeps its metric hue. A 3-second scan still reads a green
+“2 of 3 checks”; the register says “3/4 checks” for the same account, and the
+register keeps only the ratio's metric hue. A 3-second scan still reads a green
 `0` while two of five accounts are offline.
 
 **Holds:** totals order and coverage caption; rank bars with current/required,
@@ -249,7 +251,7 @@ overflow at 390.
   route and its time no longer read as one pair.
 - **P2 — The 1440 card is mostly empty.** The route chips are at the left and
   the time block at the far right of a 1,390px card; the single step and one
-  bar occupy the lower left. The page's only control is also a ~148px picker
+  bar occupy the lower left. The page's only input is also a ~148px picker
   under a full-width notice. At 1440 the surface reads as a sparse settings
   page rather than a route instrument.
 - **P2 — The owned-target state keeps an invalid selection.** When the saved
@@ -310,8 +312,8 @@ account-age card and TrackerHub panel.
 - **P2 — Dates and timestamps are audit text.** `Last observed` prints
   `2026-10-29T20:33:16.796Z` (`DownloadBudgetPanel.tsx:195`); the same page
   also prints “Joined January 1, 2025,” `2025-03-26`, “Oct 29, 2026” and a
-  locale timestamp in the poll log. “2 of 5 ranks” also disagrees with the six
-  visible chips.
+  locale timestamp in the poll log. “2 of 5 ranks” also reads ambiguously
+  against the six visible chips.
 - **P3 — The chart legend reads “NONE.”** The bulk series toggle is uppercased
   into a third legend item, so “NONE” looks like a series with no data.
 - **P3 — The rank connector lines hydrate with the wrong theme colour.** The
@@ -320,7 +322,118 @@ account-age card and TrackerHub panel.
   (`RankProgress.tsx:223-226`). Visual flicker only, but it is another sign the
   theme is read at module scope rather than from the live document.
 
+### Settings
+
+**Verdict:** the 896px cap and the two-row tab wrap are the right visual fixes;
+the information architecture is still the problem. “General” contains eleven
+unrelated sections, Image Hosting asks for live API keys for a feature labelled
+“Coming Soon,” and tab state has no URL, so refresh and Back always return to
+the top of General.
+
+**Holds:** 896px form cap; one tab row at 1440 and two at 390 without horizontal
+scroll; section spine and hairline headings; 12px minimum text; password
+confirmation for each destructive action, with three consequence checkboxes on
+lockdown; inline field errors.
+
+**Issues:**
+
+- **P1 — “General” is a junk drawer and the tab split is wrong.**
+  `SettingsClient.tsx:108-165` puts Account, 2FA, Privacy, Tracker Credentials,
+  Data, Prowlarr import, Jackett import, Image Hosting, Security Policies,
+  Proxy and Danger Zone in one tab; `Integrations` is left with API tokens.
+  “Change the proxy” means scrolling past nine unrelated cards and a ~4,500px
+  column. Prowlarr/Jackett and image hosts are integrations; data lifecycle is
+  split across Data, Security Policies and Backups.
+- **P1 — Image Hosting solicits credentials for a dead feature.** The amber
+  “Coming Soon” notice sits above enabled password fields and “Save Key”
+  buttons (`ImageHostingSection.tsx:76-132`); saving renders a green
+  “configured” chip. An operator can paste a real key, get a success state, and
+  the key is never used. Disable the fields or remove the section until launch.
+- **P2 — Tab state is ephemeral.** `SettingsClient.tsx:99` is plain
+  `useState("general")` with no URL sync; refresh, share and Back always return
+  to General, and switching tabs unmounts half-typed Prowlarr/Jackett input
+  without a warning. The credential-vault anchor only works because it lives on
+  General (`:116-119`).
+- **P2 — The 390 tabs are 32px labels, not 44px controls.** `TabBar.tsx:45-50`
+  uses `px-0 py-2 text-xs`; the two-row wrap meets the brief, but inactive tabs
+  look like plain labels and the active underline floats above row two with no
+  separating rule.
+- **P2 — Danger Zone has no severity gradient.** Reset All Stats, Initiate
+  Lockdown and Scrub & Delete are identical red `size="sm"` buttons; Reset stays
+  enabled after success. The confirmation flow itself is strong (password plus
+  explicit consequence checkboxes), so this is hierarchy, not missing
+  protection.
+- **P2 — “Test and preview” writes before it tests.** Prowlarr and Jackett
+  sections PATCH the URL, key and private-network flag before calling preview
+  (`ProwlarrImportSection.tsx:55-70`), so a failed test still leaves the values
+  saved. The label reads as read-only.
+- **P3 — Violet body prose reads as links.** Explanatory paragraphs in Privacy
+  and Tracker Credentials use `text-accent`; violet is reserved for links,
+  active nav and primary fills. The disabled Save Username also looks like a
+  normal secondary button, and the image-host inputs are placeholder-only with
+  no labels.
+
+## Third-pass score
+
+**27/40** — up 2 from the second pass. The visual system is more coherent
+(settings cap, tab wrap, More actions, sortable register, coverage-aware copy,
+MET/UNMET text), but the truth layer is still the ceiling: the two dashboard
+views disagree, the attention tile can read all-clear, and the strict threshold
+still draws a full red bar.
+
+| # | Heuristic | Score | Key issue |
+| --- | --- | --- | --- |
+| 1 | Visibility of system status | 3 | Coverage caption and stale stars exist, but green `0` can still read all-clear and health dots have no visible words. |
+| 2 | Match system / real world | 3 | Plain labels improved; “checks” means two different things and “2 of 5 ranks” does not match six chips. |
+| 3 | User control and freedom | 3 | More actions, sort, Grid/Table and collapsibles work; tabs reset and rank targets save without undo; no URL state. |
+| 4 | Consistency and standards | 2 | Metric hues stop at the register and detail stat cards; Grid/Table disagree on checks; H1/date/ratio formats drift. |
+| 5 | Error prevention | 3 | Destructive settings are password+checkbox gated and mark-login confirms; rank target saves on change and Test and preview writes before testing. |
+| 6 | Recognition rather than recall | 2 | Attention vocabularies multiply (clear/healthy, unknown/needs verification); the 390 ladder hides rungs; “checks” has no legend. |
+| 7 | Flexibility and efficiency | 3 | Sortable register, remembered view and collapsibles; no filter/group, no Settings jump nav. |
+| 8 | Aesthetic and minimalist design | 3 | Night Grid is coherent on totals and cards; detail hero half empty, pathways card sparse, Settings a long stack. |
+| 9 | Error recovery | 2 | Strict-threshold UNMET has no remedy; a failed test can leave saved values; raw ISO timestamps. |
+| 10 | Help and documentation | 3 | Evidence, source lines and tooltips are good; threshold, ladder and attention vocabulary are buried. |
+| **Total** | | **27/40** | **Acceptable** |
+
+**What moved:** settings now caps at 896px and wraps tabs; the register sorts;
+More actions is a labelled overflow; attention copy admits incomplete coverage;
+rank rows print MET/UNMET/UNKNOWN. The score did not move further because the
+cross-view truth layer is still inconsistent and the mobile rank read still
+breaks.
+
+## Top 5 remaining issues
+
+1. **P1 — The attention and health read can still say all-clear.** The dashboard
+   tile is green `0` while two of five accounts are offline and four need
+   verification; cards use color-only dots, the register omits `HEALTHY`, and
+   stale cards keep a green dot with no `*`. Pair every dot with a word, make
+   the tile neutral/unknown when coverage is incomplete, and mark stale values
+   on the card, not only in the footnote.
+2. **P1 — The dashboard's two views are not the same instrument.** Foundation's
+   card says “2 of 3 checks”; its register row says `3/4`. The register has no
+   target rank or distance, only Ratio keeps its metric hue, and the H1 changes
+   from “Trackers” to “Account register.” Define one “checks” meaning, carry the
+   target/distance into the table, and use the metric tokens in both.
+3. **P1 — Equality draws a full red bar with UNMET and no remedy.** At
+   `current 2.00 / required 2.00` against a `gt 2.0` rule, the row is UNMET, the
+   bar is ~98% red and the tick is at the end. Say “needs any value above 2.00”
+   and show a shortfall marker; do not make equality look like a catastrophic
+   failure.
+4. **P1/P2 — The rank answer is below the fold or clipped at 390.** The detail
+   target summary starts below 844px and the 390 ladder hides Extreme User,
+   TL GOD and VIP with no scroll cue; the dashboard's first rank target is below
+   the 390 first screen. Bring the one unmet condition into the first viewport
+   and give the ladder a fade/chevron or wrap.
+5. **P2 — Settings still hides core tasks and asks for dead credentials.**
+   “General” holds eleven sections (Proxy is nine sections down), while Image
+   Hosting accepts and confirms API keys for a “Coming Soon” feature. Split
+   General into task groups, move the importers/image hosts to Integrations, and
+   disable the dead fields until launch.
+
 ## Decisions for you
+
+The third-pass top 5 above is the current list; this section is retained as
+first/second-pass history.
 
 1. **P32b dependency:** merge the dashboard grid/table branch before declaring
    the 3-second contract met, or keep main as the register view?
@@ -347,3 +460,8 @@ account-age card and TrackerHub panel.
 - `docs/design/polish-1.md`
 - `e2e/design-stress.spec.ts`
 - Stress and foundation screenshots under `test-results/`
+- Third pass: dark-only 1440/390 captures under `test-results/critique3-*`,
+  plus `test-results/critique3-metrics.json` (no sub-12px text, no page-level
+  horizontal overflow, one/two Settings tab rows, rank-ladder child overflow at
+  390). The Playwright webServer started the e2e app in about 4 seconds; the
+  detector returned no findings on the rendered surfaces.

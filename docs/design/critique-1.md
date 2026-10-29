@@ -264,6 +264,62 @@ overflow at 390.
 - **P3 — The source line is the densest text on the page**: 12px tertiary with
   two links and “MIT” twice, wrapped to three lines at 390.
 
+### Tracker detail
+
+**Verdict:** the rank model is the most product-specific thing in the app —
+ladder, target selector, per-condition evidence, a budget that separates charged
+download from physical size. The surface hides it. The first viewport is
+identity and status; the unmet condition is at or below the fold at 1440 and
+entirely below it at 390. The 390 ladder also loses its later rungs.
+
+**Holds:** shared-rung and branching ladder; target rank plus Clear target;
+MET/UNMET/UNKNOWN text; current/required values and evidence disclosures;
+guarded download-budget math; More actions grouping; 44px Poll/Pause targets;
+account-age card and TrackerHub panel.
+
+**Issues:**
+
+- **P1 — The first viewport does not answer the rank question.** The page opens
+  with a 150px hero card, a TrackerHub strip and a profile card, then the
+  ladder. The target summary starts at y≈600 at 1440 and below 844px at 390;
+  the one unmet ratio condition is the last row and is cut at 1440. A user who
+  opens the page to decide “what is left for Super User?” must scroll.
+- **P1 — Equality renders a full red bar with UNMET and no remedy.** The Super
+  User rule is `ratio gt 2.0`; at current `2.00` and required `2.00` the row is
+  UNMET, the bar is ~98% red and the threshold tick sits at the end. Nothing
+  says “needs any value above 2.00.” The same bar appears on dashboard cards,
+  so the contradiction is repeated on the primary surface.
+- **P2 — The 390 rank ladder clips later rungs.** `RankProgress.tsx:203` is a
+  non-focusable `overflow-x-auto` strip of `shrink-0` chips. At 390 only
+  Registered, Power User and Super User are visible; Extreme User, TL GOD and
+  VIP are off-screen with no fade, chevron, scroll-snap or auto-centering.
+  `critique3-metrics.json` records the overflowing chips; page-level overflow
+  is suppressed, so there is no swipe hint.
+- **P2 — The 1440 hero is half empty.** The header is a full-width card with a
+  576px TrackerHub strip and a 384px profile card on the left; the lower right
+  is empty. The host is missing from the header, the class chip lives in the
+  profile card, and the required written health state is only a dot with an
+  `aria-label` — no visible “Healthy.” The 12px uppercase rule sentence is
+  promoted to a 360px chip while the actual state is a dot.
+- **P2 — Metric colors stop at the stat cards.** All nine detail stat values
+  render `text-primary`; `accentColor` tints only the top rule
+  (`CoreStatCards.tsx`, `StatCard.tsx:222`). Charts use the tracker hue. Upload
+  is not green, download is not violet, ratio is not amber, so the metric
+  language that works on the dashboard disappears on the page where the user
+  studies the numbers.
+- **P2 — Dates and timestamps are audit text.** `Last observed` prints
+  `2026-10-29T20:33:16.796Z` (`DownloadBudgetPanel.tsx:195`); the same page
+  also prints “Joined January 1, 2025,” `2025-03-26`, “Oct 29, 2026” and a
+  locale timestamp in the poll log. “2 of 5 ranks” also disagrees with the six
+  visible chips.
+- **P3 — The chart legend reads “NONE.”** The bulk series toggle is uppercased
+  into a third legend item, so “NONE” looks like a series with no data.
+- **P3 — The rank connector lines hydrate with the wrong theme colour.** The
+  dev server logged a hydration mismatch: server `rgba(75, 83, 102, 0.2)` vs
+  client `rgba(148, 163, 184, 0.2)` on the 4px connectors
+  (`RankProgress.tsx:223-226`). Visual flicker only, but it is another sign the
+  theme is read at module scope rather than from the live document.
+
 ## Decisions for you
 
 1. **P32b dependency:** merge the dashboard grid/table branch before declaring

@@ -436,8 +436,8 @@ export function TrackerPathwaysClient({
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 pb-24" data-pathways-page>
-      <div className="page-topbar flex flex-col gap-1">
+    <div className="flex flex-col gap-10 pb-24" data-pathways-page>
+      <div className="flex flex-col gap-1">
         <H1>Tracker pathways</H1>
         <Paragraph className="max-w-3xl">
           See where your accounts can take you. Routes come from a pinned trackerpathways

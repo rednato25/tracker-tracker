@@ -37,7 +37,7 @@ function TrackerMark({ entry, size = 22, className }: TrackerMarkProps) {
           className="object-contain"
         />
       ) : (
-        <span className="font-cond text-[9px] font-semibold uppercase leading-none tracking-[0.04em] text-rail-text">
+        <span className="font-cond text-xs font-semibold uppercase leading-none tracking-[0.04em] text-rail-text">
           {markLabel(entry)}
         </span>
       )}

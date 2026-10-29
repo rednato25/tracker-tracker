@@ -222,7 +222,7 @@ export function SearchClient() {
     lastSearch.indexerIds.some((id) => !selectedSet.has(id))
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5 pt-14 md:pt-0" data-search-page>
+    <div className="flex flex-col gap-5" data-search-page>
       <div className="flex flex-col gap-1">
         <H1>Search</H1>
         <Paragraph className="max-w-3xl">

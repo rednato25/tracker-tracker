@@ -529,7 +529,7 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await expect(pathwaysPage).toHaveCount(1)
     await expect(pathwaysPage).toBeVisible()
 
-    await expect(page.getByRole("link", { name: "Tracker pathways" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Pathways" })).toBeVisible()
     await expect(page).toHaveTitle("Tracker pathways")
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
     await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("BroadcasTheNet")

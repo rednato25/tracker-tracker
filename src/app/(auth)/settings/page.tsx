@@ -15,7 +15,7 @@ export default async function SettingsPage() {
   // (the (auth) layout redirects to /setup)
   if (!settings) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div>
         <Notice message="Settings not configured" />
       </div>
     )

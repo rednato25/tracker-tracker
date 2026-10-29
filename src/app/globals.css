@@ -676,15 +676,15 @@ select {
 
 /* Emoji picker theme overrides */
 .emoji-picker-wrapper .EmojiPickerReact.epr-dark-theme {
-  --epr-bg-color: #f8faf6;
-  --epr-category-label-bg-color: #e3e9e2;
-  --epr-hover-bg-color: #e3e9e2;
-  --epr-search-input-bg-color: #f4f7f2;
-  --epr-text-color: #17211c;
-  --epr-search-input-text-color: #17211c;
+  --epr-bg-color: var(--color-raised);
+  --epr-category-label-bg-color: var(--color-elevated);
+  --epr-hover-bg-color: var(--color-elevated);
+  --epr-search-input-bg-color: var(--color-control-bg);
+  --epr-text-color: var(--color-primary);
+  --epr-search-input-text-color: var(--color-primary);
   --epr-search-input-placeholder-color: #78867d;
   --epr-category-icon-active-color: var(--color-accent);
-  --epr-skin-tone-picker-menu-color: #e3e9e2;
+  --epr-skin-tone-picker-menu-color: var(--color-elevated);
   border-radius: var(--radius-md);
   border: 1px solid #dfe6df;
 }

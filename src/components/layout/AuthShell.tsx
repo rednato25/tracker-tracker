@@ -9,7 +9,6 @@ import { WhatsNew } from "@/components/layout/WhatsNew"
 import { BackToTop } from "@/components/ui/BackToTop"
 
 export function AuthShell({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
@@ -19,7 +18,6 @@ export function AuthShell({ children }: { children: ReactNode }) {
     setIsMobile(mq.matches)
     const handler = (event: MediaQueryListEvent) => setIsMobile(event.matches)
     mq.addEventListener("change", handler)
-    setMounted(true)
     return () => mq.removeEventListener("change", handler)
   }, [])
 
@@ -30,12 +28,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
   }, [pathname])
 
   return (
-    <div
-      className="flex h-screen flex-col overflow-hidden bg-base"
-      data-collapsed="true"
-      data-mounted={String(mounted)}
-      data-mobile={String(isMobile)}
-    >
+    <div className="flex h-screen flex-col overflow-hidden bg-base" data-mobile={String(isMobile)}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-nm-sm focus:border focus:border-accent focus:bg-raised focus:px-3 focus:py-2 focus:text-xs focus:font-semibold focus:text-primary"

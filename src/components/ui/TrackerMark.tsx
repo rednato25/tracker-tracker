@@ -22,7 +22,7 @@ function TrackerMark({ entry, size = 22, className }: TrackerMarkProps) {
   return (
     <span
       className={clsx(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-sm border border-rail-line bg-rail-raised",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border bg-elevated",
         className
       )}
       style={{ width: size, height: size }}
@@ -37,7 +37,7 @@ function TrackerMark({ entry, size = 22, className }: TrackerMarkProps) {
           className="object-contain"
         />
       ) : (
-        <span className="font-cond text-xs font-semibold uppercase leading-none tracking-[0.04em] text-rail-text">
+        <span className="font-cond text-xs font-semibold uppercase leading-none tracking-[0.04em] text-primary">
           {markLabel(entry)}
         </span>
       )}

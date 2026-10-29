@@ -44,140 +44,140 @@ function cssAlpha(name: string, fallback: string, alpha: number): string {
 export const CHART_THEME = {
   // ── Surfaces ──
   get surface() {
-    return cssVar("--color-base", "#eef2ed")
+    return cssVar("--color-base", "#f6f7fb")
   },
   get elevated() {
-    return cssVar("--color-elevated", "#e3e9e2")
+    return cssVar("--color-elevated", "#eef1f7")
   },
   get surfaceElevated() {
-    return cssVar("--color-overlay", "#f8faf6")
+    return cssVar("--color-overlay", "#ffffff")
   },
   get overlay() {
-    return cssVar("--color-overlay", "#f8faf6")
+    return cssVar("--color-overlay", "#ffffff")
   },
   get controlBg() {
-    return cssVar("--color-control-bg", "#f4f7f2")
+    return cssVar("--color-control-bg", "#eef1f7")
   },
   get tooltipBg() {
-    return cssVar("--color-raised", "#f8faf6")
+    return cssVar("--color-raised", "#ffffff")
   },
   get surfaceSemi() {
-    return cssVar("--chart-surface-semi", "rgba(238,242,237,0.82)")
+    return cssVar("--chart-surface-semi", "rgba(246,247,251,0.82)")
   },
 
   // ── Text ──
   get textPrimary() {
-    return cssVar("--color-primary", "#17211c")
+    return cssVar("--color-primary", "#141824")
   },
   get textSecondary() {
-    return cssVar("--color-secondary", "#526159")
+    return cssVar("--color-secondary", "#4b5366")
   },
   get textTertiary() {
-    return cssVar("--color-tertiary", "#58675e")
+    return cssVar("--color-tertiary", "#60687c")
   },
   fontMono: "var(--font-mono), monospace",
 
   // ── Borders ──
   get tooltipBorder() {
-    return cssAlpha("--color-secondary", "#526159", 0.2)
+    return cssAlpha("--color-secondary", "#4b5366", 0.2)
   },
   get gridLine() {
-    return cssAlpha("--color-secondary", "#526159", 0.12)
+    return cssAlpha("--color-secondary", "#4b5366", 0.12)
   },
   get borderEmphasis() {
-    return cssAlpha("--color-secondary", "#526159", 0.2)
+    return cssAlpha("--color-secondary", "#4b5366", 0.2)
   },
   get borderMid() {
-    return cssAlpha("--color-secondary", "#526159", 0.35)
+    return cssAlpha("--color-secondary", "#4b5366", 0.35)
   },
 
   // ── Layer 1: Raw colors ──
   get cyan() {
-    return cssVar("--color-scale-4", "#3f6d7d")
+    return cssVar("--color-scale-4", "#1d4ed8")
   },
   get amber() {
-    return cssVar("--color-scale-2", "#a66b18")
+    return cssVar("--color-scale-2", "#854d0e")
   },
   get red() {
-    return cssVar("--color-scale-1", "#9f3428")
+    return cssVar("--color-scale-1", "#b91c1c")
   },
   get green() {
-    return cssVar("--color-scale-3", "#2f6f5e")
+    return cssVar("--color-scale-3", "#166534")
   },
   get lime() {
-    return cssVar("--color-positive", "#2f6f5e")
+    return cssVar("--color-positive", "#166534")
   },
   get violet() {
-    return cssVar("--color-scale-6", "#6b5b7a")
+    return cssVar("--color-scale-6", "#7e22ce")
   },
   get sky() {
-    return cssVar("--color-scale-4", "#3f6d7d")
+    return cssVar("--color-scale-4", "#1d4ed8")
   },
 
   // ── Layer 2: Semantic ──
   get accent() {
-    return cssVar("--color-accent", "#a84625")
+    return cssVar("--color-accent", "#5b45d6")
   },
   get warn() {
-    return cssVar("--color-warn", "#8a5a12")
+    return cssVar("--color-warn", "#854d0e")
   },
   get danger() {
-    return cssVar("--color-danger", "#9f3428")
+    return cssVar("--color-danger", "#b91c1c")
   },
   get success() {
-    return cssVar("--color-success", "#2f6f5e")
+    return cssVar("--color-success", "#166534")
   },
 
   // ── Layer 3: Purpose ──
   get upload() {
-    return cssVar("--color-upload", "#2f6f5e")
+    return cssVar("--color-upload", "#166534")
   },
   get download() {
-    return cssVar("--color-download", "#a84625")
+    return cssVar("--color-download", "#7e22ce")
   },
   get positive() {
-    return cssVar("--color-positive", "#2f6f5e")
+    return cssVar("--color-positive", "#166534")
   },
   get negative() {
-    return cssVar("--color-negative", "#9f3428")
+    return cssVar("--color-negative", "#b91c1c")
   },
   get neutral() {
-    return cssVar("--color-neutral", "#58675e")
+    return cssVar("--color-neutral", "#60687c")
   },
   get chartFallback() {
-    return cssVar("--color-tertiary", "#58675e")
+    return cssVar("--color-tertiary", "#60687c")
   },
 
   // Ordinal scale for ratio/seed-time distribution buckets
   get scale(): string[] {
     return [
-      cssVar("--color-scale-1", "#9f3428"),
-      cssVar("--color-scale-2", "#a66b18"),
-      cssVar("--color-scale-3", "#2f6f5e"),
-      cssVar("--color-scale-4", "#3f6d7d"),
-      cssVar("--color-scale-5", "#7a5b3a"),
-      cssVar("--color-scale-6", "#6b5b7a"),
+      cssVar("--color-scale-1", "#b91c1c"),
+      cssVar("--color-scale-2", "#854d0e"),
+      cssVar("--color-scale-3", "#166534"),
+      cssVar("--color-scale-4", "#1d4ed8"),
+      cssVar("--color-scale-5", "#c2410c"),
+      cssVar("--color-scale-6", "#7e22ce"),
     ]
   },
 
   // ── Tint variants (area fills, selection) ──
   get accentDim() {
-    return cssVar("--chart-accent-dim", "rgba(168,70,37,0.12)")
+    return cssVar("--chart-accent-dim", "rgba(91,69,214,0.08)")
   },
   get accentGlow() {
-    return cssVar("--chart-accent-glow", "rgba(168,70,37,0.22)")
+    return cssVar("--chart-accent-glow", "rgba(91,69,214,0.2)")
   },
   get accentGlow40() {
-    return cssVar("--chart-accent-glow-40", "rgba(168,70,37,0.32)")
+    return cssVar("--chart-accent-glow-40", "rgba(91,69,214,0.32)")
   },
   get accentGlow60() {
-    return cssVar("--chart-accent-glow-60", "rgba(168,70,37,0.45)")
+    return cssVar("--chart-accent-glow-60", "rgba(91,69,214,0.45)")
   },
   get warnDim() {
-    return cssVar("--chart-warn-dim", "rgba(138,90,18,0.12)")
+    return cssVar("--chart-warn-dim", "rgba(133,77,14,0.1)")
   },
   get warnGlow() {
-    return cssVar("--chart-warn-glow", "rgba(138,90,18,0.22)")
+    return cssVar("--chart-warn-glow", "rgba(133,77,14,0.2)")
   },
 
   // ── Font sizes (raw numbers, ECharts cannot read CSS vars) ──

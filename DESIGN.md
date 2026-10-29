@@ -149,8 +149,11 @@ the only violet used for controls.
   and 16px mobile gutters. Header contents share the same frame.
 - Sticky top bar: 58px. Main is the scroll container; the header stays put.
 - Totals row: 5 columns at wide widths, 3 at medium, 2 at narrow.
-- Dashboard grid: 3 card columns at 1280px+, 2 at 768px+, 1 below. The table is
-  the same model at higher density and may scroll horizontally below 900px.
+- Dashboard grid: 3 card columns at 1280px+, 2 at 768px+, 1 below. The table
+  replaces the stacked cards from 1024px when it fits without horizontal scroll;
+  it moves to the stacked register below that width.
+- Settings form content is capped at 896px inside the page frame. Its tab strip
+  wraps to two rows at narrow widths instead of scrolling.
 - Tracker cards use a 3-column stat grid; target bars sit below the stats.
 - Page sections use one vertical rhythm: 24px between major bands, 16px inside
   cards, 12px between rows.
@@ -188,7 +191,7 @@ the only violet used for controls.
   not a new table with different semantics. Both use the same totals row and the
   same metric colors.
 - The Grid | Table choice is a view toggle, not a route. Preserve the current
-  register columns, ordering and row expansion behavior.
+  register columns and default order. Sorting is owned by the register itself.
 - Do not add a seedbox strip, per-tracker health score or time-to-next-rank
   estimate.
 
@@ -214,20 +217,28 @@ the only violet used for controls.
 
 - Restyle the existing register with the Night Grid tokens: surface body, 1px
   rules, 12px uppercase heads, mono values, hover row tint, accent focus.
-- Keep the existing columns, sorting, row expansion and empty states.
+- Keep the existing columns and empty states. Ratio, Buffer, Login due and
+  Rank are sortable with `aria-sort`, remembered per browser. There is no
+  filter and no row expansion.
+- Show the table from 1024px when it fits without horizontal scroll; otherwise
+  use the smallest width that does.
 - Status is written as well as colored. The table does not become a second
   product.
 
 ### Pathways page
 
+- Picker and best path come first. "Your trackers (N)" sits below, collapsed by default.
 - Searchable target picker, saved-target chips, and one best-path card.
 - The best-path card starts with a **Best path** badge, route chips from the
   owned source to the target, and total time left.
-- Requirement bars show `current / required` from existing route data. Unknown
-  values use `?`; community-only values use `*` and "Needs checking"; no bar is
-  invented from prose.
+- Requirement bars show `current / required` from existing route data and are
+  visible on every best-path step by default. Unknown values use `?`;
+  community-only values use `*` and "Needs checking"; no bar is invented from
+  prose.
 - Route chips use surface-2 with a 1px border and the accent only for the active
   target. They are selectors, not decorative pills.
+- The route is printed once, as chips. Steps name the destination only and do
+  not repeat the full route or the total "Ready now" badge.
 - Source text, `reqs`, evidence and stale notices stay behind the existing Details
   disclosure. Other routes stay collapsed, maximum five.
 - No seedbox bar, no Yata target headline copy, no promotion estimate.

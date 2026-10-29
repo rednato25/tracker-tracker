@@ -138,8 +138,12 @@ describe("TrackerPathwaysClient", () => {
       />
     )
     expect(screen.getByRole("heading", { name: "Tracker pathways" })).toBeInTheDocument()
-    expect(screen.getByText("Your trackers")).toBeInTheDocument()
+    expect(screen.getByText("Your trackers (1)")).toBeInTheDocument()
+    expect(screen.getByText("Your trackers (1)").closest("details")).not.toHaveAttribute("open")
     expect(screen.getByText("Get to a tracker")).toBeInTheDocument()
+    const getTo = screen.getByText("Get to a tracker")
+    const owned = screen.getByText("Your trackers (1)").closest("details") as HTMLElement
+    expect(getTo.compareDocumentPosition(owned) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText(/1 direct/)).toBeInTheDocument()
   })
 
@@ -178,12 +182,13 @@ describe("TrackerPathwaysClient", () => {
       chip.textContent?.trim()
     )
     expect(chips).toEqual(["AlphaRatio", "BroadcasTheNet"])
-    expect(screen.getAllByText("Ready now").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Ready now")).toHaveLength(1)
+    expect(screen.queryByText("AlphaRatio → BroadcasTheNet")).not.toBeInTheDocument()
     const other = screen.getByText("Other routes (1)")
     expect(other.closest("details")).not.toHaveAttribute("open")
   })
 
-  it("puts requirement bars inside the step details", async () => {
+  it("shows requirement bars on the best-path step by default", async () => {
     const user = userEvent.setup()
     const { container } = render(
       <TrackerPathwaysClient
@@ -195,8 +200,11 @@ describe("TrackerPathwaysClient", () => {
     const details = container.querySelector("details")
     expect(details).not.toBeNull()
     expect(details).not.toHaveAttribute("open")
-    expect(details?.querySelector('[data-step-requirement-bar="time-on-source"]')).not.toBeNull()
-    expect(details?.querySelector("[data-threshold-tick]")).not.toBeNull()
+    const bars = container.querySelector("[data-step-requirement-bars]")
+    expect(bars).not.toBeNull()
+    expect(details?.contains(bars)).toBe(false)
+    expect(bars?.querySelector('[data-step-requirement-bar="time-on-source"]')).not.toBeNull()
+    expect(bars?.querySelector("[data-threshold-tick]")).not.toBeNull()
     expect(screen.getAllByText("Unmet").length).toBeGreaterThan(0)
     expect(screen.getAllByText(/\/ 30 days/).length).toBeGreaterThan(0)
 

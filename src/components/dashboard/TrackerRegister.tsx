@@ -8,6 +8,7 @@
 
 import clsx from "clsx"
 import Link from "next/link"
+import { useMemo } from "react"
 import { platformTypeLabel } from "@/data/platform-types"
 import { registryEntryFor } from "@/data/tracker-registry"
 import { type AggregateStats, computeAggregateStats } from "@/lib/dashboard"
@@ -18,9 +19,11 @@ import {
   formatRatioDisplay,
   formatTimeAgo,
 } from "@/lib/formatters"
+import { findClassIndex } from "@/lib/rank-ladder"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
 import { getHealthLabel, getTrackerHealth, type TrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
+import { type RegisterSort, type RegisterSortKey, useRegisterSort } from "./useRegisterSort"
 
 type Tone = "ok" | "warn" | "crit" | "muted"
 
@@ -36,13 +39,17 @@ interface RegisterRow {
   health: TrackerHealth
   statusTone: Tone
   ratio: string
+  ratioValue: number | null
   buffer: string
+  bufferValue: bigint
   seeding: string
   uploaded: MetricReadout
   downloaded: MetricReadout
   bonus: MetricReadout
   login: LoginWindow
+  loginDays: number | null
   rank: string
+  rankOrder: number | null
   shortAge: string | null
   abbreviation: string
   statusLabel: string
@@ -64,6 +71,17 @@ interface SnapshotReadout {
 }
 
 const SNAPSHOT_STALE_MS = 2 * 60 * 60 * 1000
+
+const REGISTER_HEADERS: { label: string; key?: RegisterSortKey }[] = [
+  { label: "Account" },
+  { label: "Ratio", key: "ratio" },
+  { label: "Buffer", key: "buffer" },
+  { label: "Transfer" },
+  { label: "Seeding" },
+  { label: "Login due", key: "login" },
+  { label: "Rank", key: "rank" },
+  { label: "Checks" },
+]
 
 const TONE_MARK: Record<Tone, string> = {
   ok: "bg-success",
@@ -228,7 +246,7 @@ function MetricValue({ readout }: { readout: MetricReadout }) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-0.5 font-mono tabular-nums",
+        "inline-flex items-center gap-0.5 whitespace-nowrap font-mono tabular-nums",
         readout.marker ? "text-secondary" : "text-primary"
       )}
       title={readout.title}
@@ -268,8 +286,8 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
         ? ["muted", "muted", "muted", "muted"]
         : readSegments(tracker, login)
     const buffer = readBuffer(tracker)
-    const abbreviation =
-      registryEntryFor(tracker)?.abbreviation ?? platformTypeLabel(tracker.platformType)
+    const entry = registryEntryFor(tracker)
+    const abbreviation = entry?.abbreviation ?? platformTypeLabel(tracker.platformType)
     const ratio = formatRatioDisplay(tracker.latestStats?.ratio ?? null)
     const snapshot = readSnapshot(tracker, now)
     const stats = tracker.latestStats
@@ -281,6 +299,15 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       statusLabel: getHealthLabel(health),
       ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}×` : ratio,
       buffer: buffer.display,
+      ratioValue: stats?.ratioIsInfinite ? Number.POSITIVE_INFINITY : (stats?.ratio ?? null),
+      bufferValue: (() => {
+        try {
+          return BigInt(stats?.bufferBytes ?? "0")
+        } catch {
+          return 0n
+        }
+      })(),
+      loginDays: login.days,
       seeding: formatCount(tracker.latestStats?.seedingCount),
       uploaded: readMetric(
         stats?.uploadedBytes,
@@ -295,11 +322,46 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       bonus: readMetric(stats?.seedbonus, (value) => formatCount(Number(value)), snapshot),
       login,
       rank: tracker.latestStats?.group ?? "Unknown",
+      rankOrder: findClassIndex(entry?.userClasses ?? [], stats?.group ?? "Unknown"),
       shortAge: compactAge(formatAccountAge(tracker.joinedAt)),
       abbreviation,
       segments,
       passed: segments.filter((segment) => segment === "ok").length,
     }
+  })
+}
+
+function sortRows(rows: RegisterRow[], sort: RegisterSort | null): RegisterRow[] {
+  if (!sort) return rows
+  const sign = sort.direction === "asc" ? 1 : -1
+  const compare = (a: number | bigint | null, b: number | bigint | null): number => {
+    if (a === null && b === null) return 0
+    if (a === null) return 1
+    if (b === null) return -1
+    if (a < b) return -1
+    if (a > b) return 1
+    return 0
+  }
+  return [...rows].sort((left, right) => {
+    const a =
+      sort.key === "ratio"
+        ? left.ratioValue
+        : sort.key === "buffer"
+          ? left.bufferValue
+          : sort.key === "login"
+            ? left.loginDays
+            : left.rankOrder
+    const b =
+      sort.key === "ratio"
+        ? right.ratioValue
+        : sort.key === "buffer"
+          ? right.bufferValue
+          : sort.key === "login"
+            ? right.loginDays
+            : right.rankOrder
+    const primary = compare(a, b)
+    if (primary !== 0) return primary * sign
+    return left.tracker.name.localeCompare(right.tracker.name)
   })
 }
 
@@ -487,6 +549,8 @@ function TrackerRegister({
   showTotals?: boolean
 }) {
   const rows = buildRows(trackers, now)
+  const { sort, toggle: toggleSort } = useRegisterSort()
+  const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort])
   const aggregate = aggregateStats ?? computeAggregateStats(trackers)
   const included = trackers.filter((tracker) => tracker.latestStats)
   const missing = trackers.length - included.length
@@ -577,26 +641,55 @@ function TrackerRegister({
         </>
       )}
 
-      <div className="hidden border border-border bg-raised min-[1280px]:block">
-        <div className="grid h-8 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1">
-          {["Account", "Ratio", "Buffer", "Transfer", "Seeding", "Login due", "Rank", "Checks"].map(
-            (label) => (
-              <span
-                key={label}
-                className="px-3 font-cond text-xs font-semibold uppercase tracking-[0.14em] text-secondary"
-              >
-                {label}
-              </span>
-            )
-          )}
+      {/* biome-ignore lint/a11y/useSemanticElements: CSS-grid register; each row is one link, which a table cannot express */}
+      <div role="table" data-register-table className="hidden border border-border bg-raised min-[1024px]:block">
+        {/* biome-ignore lint/a11y/useFocusableInteractive lint/a11y/useSemanticElements: header row mirrors the CSS-grid table */}
+        <div
+          role="row"
+          className="grid h-8 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center border-b border-border-emphasis bg-elevated px-1"
+        >
+          {REGISTER_HEADERS.map(({ label, key }) => (
+            // biome-ignore lint/a11y/useFocusableInteractive lint/a11y/useSemanticElements: the sort button is the focus target inside this column header
+            <span
+              key={label}
+              role="columnheader"
+              aria-label={label}
+              aria-sort={
+                key
+                  ? sort?.key === key
+                    ? sort.direction === "asc"
+                      ? "ascending"
+                      : "descending"
+                    : "none"
+                  : undefined
+              }
+              className="px-3 font-cond text-xs font-semibold uppercase tracking-[0.14em] text-secondary"
+            >
+              {key ? (
+                <button
+                  type="button"
+                  onClick={() => toggleSort(key)}
+                  aria-label={`Sort by ${label}`}
+                  className="flex w-full items-center gap-1 text-left hover:text-primary"
+                >
+                  {label}
+                  <span aria-hidden="true">
+                    {sort?.key === key ? (sort.direction === "asc" ? "↑" : "↓") : "↕"}
+                  </span>
+                </button>
+              ) : (
+                label
+              )}
+            </span>
+          ))}
         </div>
         <ul className="m-0 list-none p-0">
-          {rows.map((row) => (
+          {sortedRows.map((row) => (
             <li key={row.tracker.id} className="border-b border-border last:border-b-0">
               <Link
                 href={`/trackers/${row.tracker.id}`}
                 className={clsx(
-                  "grid h-16 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center px-1 transition-colors duration-150 hover:bg-elevated",
+                  "grid min-h-16 grid-cols-[1.45fr_.55fr_.85fr_1.1fr_.55fr_.8fr_.9fr_1.05fr] items-center px-1 py-1.5 transition-colors duration-150 hover:bg-elevated",
                   row.statusTone === "crit" && "bg-danger-dim",
                   row.statusTone === "warn" && "bg-warn-dim"
                 )}
@@ -611,7 +704,7 @@ function TrackerRegister({
                   {row.buffer}
                 </span>
                 <span
-                  className="flex flex-col gap-[1px] px-3 font-mono text-sm tabular-nums"
+                  className="flex flex-col gap-[1px] whitespace-nowrap px-3 font-mono text-sm tabular-nums"
                   title="Transfer totals and tracker-specific bonus points from the latest snapshot; not client speed."
                 >
                   <span className="flex items-center justify-between gap-1.5">
@@ -659,9 +752,9 @@ function TrackerRegister({
         </ul>
       </div>
 
-      <div className="border border-border bg-raised min-[1280px]:hidden">
+      <div data-register-mobile className="border border-border bg-raised min-[1024px]:hidden">
         <ul className="m-0 list-none p-0">
-          {rows.map((row) => (
+          {sortedRows.map((row) => (
             <li key={row.tracker.id} className="border-b border-border last:border-b-0">
               <Link
                 href={`/trackers/${row.tracker.id}`}

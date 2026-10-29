@@ -1,10 +1,33 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TrackerRegister } from "@/components/dashboard/TrackerRegister"
 import { computeAggregateStats } from "@/lib/dashboard"
 import type { TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-27T12:00:00.000Z")
+function memoryStorage(): Storage {
+  const values = new Map<string, string>()
+  return {
+    get length() {
+      return values.size
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => {
+      values.delete(key)
+    },
+    setItem: (key, value) => {
+      values.set(key, value)
+    },
+  }
+}
+
+beforeEach(() => {
+  vi.stubGlobal("localStorage", memoryStorage())
+})
+
 const GIB = 1024 ** 3
 const TIB = 1024 ** 4
 
@@ -191,5 +214,65 @@ describe("TrackerRegister transfer metrics", () => {
     render(<TrackerRegister trackers={[tracker()]} now={NOW} showTotals={false} />)
     expect(screen.queryByText("Total uploaded")).not.toBeInTheDocument()
     expect(screen.getByText("Account register")).toBeInTheDocument()
+  })
+
+  it("sorts the register by ratio, buffer, login due and rank", async () => {
+    const user = userEvent.setup()
+    const rows = [
+      tracker({
+        id: 1,
+        name: "Alpha",
+        registrySlug: "torrentleech",
+        latestStats: { ...tracker().latestStats!, ratio: 1, bufferBytes: String(3 * TIB), group: "Registered" },
+      }),
+      tracker({
+        id: 2,
+        name: "Beta",
+        registrySlug: "torrentleech",
+        latestStats: { ...tracker().latestStats!, ratio: 3, bufferBytes: String(1 * TIB), group: "Power User" },
+      }),
+      tracker({
+        id: 3,
+        name: "Gamma",
+        registrySlug: "torrentleech",
+        latestStats: { ...tracker().latestStats!, ratio: 2, bufferBytes: String(2 * TIB), group: "Super User" },
+      }),
+    ]
+    const { container } = render(<TrackerRegister trackers={rows} now={NOW} />)
+    const table = container.querySelector("[data-register-table]") as HTMLElement
+    const order = () =>
+      within(table)
+        .getAllByRole("link")
+        .map((link) => link.textContent?.match(/Alpha|Beta|Gamma/)?.[0])
+
+    await user.click(within(table).getByRole("button", { name: "Sort by Ratio" }))
+    expect(order()).toEqual(["Alpha", "Gamma", "Beta"])
+    expect(screen.getByRole("columnheader", { name: "Ratio" })).toHaveAttribute(
+      "aria-sort",
+      "ascending"
+    )
+
+    await user.click(within(table).getByRole("button", { name: "Sort by Ratio" }))
+    expect(order()).toEqual(["Beta", "Gamma", "Alpha"])
+    expect(screen.getByRole("columnheader", { name: "Ratio" })).toHaveAttribute(
+      "aria-sort",
+      "descending"
+    )
+
+    await user.click(within(table).getByRole("button", { name: "Sort by Buffer" }))
+    expect(order()).toEqual(["Beta", "Gamma", "Alpha"])
+    expect(screen.getByRole("columnheader", { name: "Buffer" })).toHaveAttribute(
+      "aria-sort",
+      "ascending"
+    )
+
+    await user.click(within(table).getByRole("button", { name: "Sort by Rank" }))
+    expect(order()).toEqual(["Alpha", "Beta", "Gamma"])
+
+    await user.click(within(table).getByRole("button", { name: "Sort by Login due" }))
+    expect(screen.getByRole("columnheader", { name: "Login due" })).toHaveAttribute(
+      "aria-sort",
+      "ascending"
+    )
   })
 })

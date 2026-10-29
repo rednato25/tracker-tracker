@@ -13,7 +13,13 @@ import {
 } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import { useClickOutside } from "@/hooks/useClickOutside"
-import { formatAccountAge } from "@/lib/formatters"
+import {
+  formatAccountAge,
+  formatBytesNum,
+  formatCount,
+  formatRatio,
+} from "@/lib/formatters"
+import type { RankComparison, RankGoalStatus } from "@/lib/rank-goals"
 import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
   normalizeRecruitmentState,
@@ -68,6 +74,144 @@ function routeChain(path: WishlistPathView): string {
   return [first.sourceName, ...path.steps.map((step) => step.destinationName)].join(" → ")
 }
 
+interface StepRequirementBar {
+  id: string
+  label: string
+  current: string
+  required: string
+  currentValue: number | null
+  requiredValue: number
+  comparison: RankComparison
+  status: RankGoalStatus
+}
+
+function formatBarValue(metric: string | undefined, value: number | null): string {
+  if (value === null || metric === undefined) return "?"
+  if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
+    return formatBytesNum(value)
+  }
+  if (metric === "accountRatio") return formatRatio(value)
+  if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
+  return formatCount(value)
+}
+
+function stepRequirementBars(step: WishlistStepView): StepRequirementBar[] {
+  const evaluation = step.evaluation
+  const bars: StepRequirementBar[] = []
+  const timeGate = evaluation.timeGate
+
+  if (timeGate.effectiveDays !== null && timeGate.effectiveDays > 0) {
+    const accountAge = step.scenario ? null : timeGate.accountAgeDays
+    bars.push({
+      id: "time-on-source",
+      label: "Time on source",
+      current: accountAge === null ? "?" : `${formatCount(accountAge)} days`,
+      required: `${formatCount(timeGate.effectiveDays)} days`,
+      currentValue: accountAge,
+      requiredValue: timeGate.effectiveDays,
+      comparison: "gte",
+      status:
+        timeGate.status === "open"
+          ? "met"
+          : timeGate.status === "waiting"
+            ? "unmet"
+            : "unknown",
+    })
+  }
+
+  for (const condition of flattenRequirementResults(evaluation.eligibility.structured)) {
+    if (
+      condition.kind !== "numeric" ||
+      condition.requiredValue === null ||
+      condition.metric === undefined ||
+      condition.metric === "accountAgeDays"
+    ) {
+      continue
+    }
+    bars.push({
+      id: condition.id,
+      label: condition.label,
+      current: formatBarValue(condition.metric, condition.observedValue),
+      required: formatBarValue(condition.metric, condition.requiredValue),
+      currentValue: condition.observedValue,
+      requiredValue: condition.requiredValue,
+      comparison: condition.comparison ?? "gte",
+      status: condition.status,
+    })
+  }
+
+  return bars
+}
+
+function requirementPercent(bar: StepRequirementBar): number {
+  if (bar.currentValue === null || bar.requiredValue <= 0) return 0
+  if (bar.comparison === "lte" || bar.comparison === "lt") {
+    return Math.min(1, bar.requiredValue / Math.max(bar.currentValue, 1))
+  }
+  if (bar.comparison === "eq") return bar.status === "met" ? 1 : 0
+  return Math.min(1, bar.currentValue / bar.requiredValue)
+}
+
+function requirementTone(status: RankGoalStatus): string {
+  if (status === "unmet") return "bg-danger"
+  if (status === "unknown") return "bg-warn"
+  return "bg-success"
+}
+
+function StepRequirementBars({ step }: { step: WishlistStepView }) {
+  const bars = stepRequirementBars(step)
+  if (bars.length === 0) return null
+
+  return (
+    <div className="flex flex-col gap-2" data-step-requirement-bars>
+      <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
+        Requirement bars
+      </span>
+      {bars.map((bar) => (
+        <div key={bar.id} className="flex flex-col gap-1" data-step-requirement-bar={bar.id}>
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="min-w-0 truncate text-xs text-secondary">{bar.label}</span>
+            <span className="shrink-0 font-mono text-xs tabular-nums text-tertiary">
+              {bar.current} / {bar.required}
+            </span>
+          </div>
+          <div className="h-1.5 overflow-hidden bg-elevated" aria-hidden="true">
+            <span
+              className={`block h-full ${requirementTone(bar.status)}`}
+              style={{ width: `${Math.round(requirementPercent(bar) * 100)}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RouteChips({ path }: { path: WishlistPathView }) {
+  const first = path.steps[0]
+  if (!first) return null
+  const names = [first.sourceName, ...path.steps.map((step) => step.destinationName)]
+  return (
+    <ol className="flex flex-wrap items-center gap-1" aria-label="Route">
+      {names.map((name, index) => (
+        <li key={`${name}-${index}`} className="flex items-center gap-1">
+          <span
+            className="rounded-nm-sm border border-border bg-elevated px-2 py-1 font-mono text-xs text-primary"
+            data-route-chip
+          >
+            {name}
+          </span>
+          {index < names.length - 1 && (
+            <span className="font-mono text-xs text-tertiary" aria-hidden="true">
+              →
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 function StepDetails({ step }: { step: WishlistStepView }) {
   const evaluation = step.evaluation
   const notes = evaluation.eligibility.requirementNotes.filter(
@@ -84,6 +228,7 @@ function StepDetails({ step }: { step: WishlistStepView }) {
         Details
       </summary>
       <div className="mt-2 flex flex-col gap-2 text-xs text-secondary">
+        <StepRequirementBars step={step} />
         {gate && (
           <div className="flex flex-col gap-0.5">
             <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
@@ -160,15 +305,11 @@ function StepRow({ step, index }: { step: WishlistStepView; index: number }) {
 
 function FastestRoute({ path }: { path: WishlistPathView }) {
   return (
-    <Card elevation="raised" className="flex flex-col gap-3">
+    <Card elevation="raised" className="flex flex-col gap-3" data-best-path>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-cond text-2xs font-semibold uppercase tracking-[0.14em] text-secondary">
-            Fastest route
-          </p>
-          <p className="break-words font-cond text-base font-semibold uppercase tracking-[0.06em] text-primary">
-            {routeChain(path)}
-          </p>
+        <div className="flex min-w-0 flex-col items-start gap-2">
+          <Badge variant="accent">Best path</Badge>
+          <RouteChips path={path} />
           <p className="text-xs text-secondary">
             {path.steps.length === 1 ? "1 step" : `${path.steps.length} steps`}
           </p>

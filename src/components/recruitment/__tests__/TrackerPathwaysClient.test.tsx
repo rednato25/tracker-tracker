@@ -161,8 +161,8 @@ describe("TrackerPathwaysClient", () => {
     expect(screen.queryByText(/direct lead/)).not.toBeInTheDocument()
   })
 
-  it("shows the fastest route first and keeps other routes collapsed", () => {
-    render(
+  it("shows the best path first with route chips and keeps other routes collapsed", () => {
+    const { container } = render(
       <TrackerPathwaysClient
         trackers={[
           tracker({ id: 1, name: "TorrentLeech", joinedAt: recentJoin }),
@@ -172,10 +172,33 @@ describe("TrackerPathwaysClient", () => {
         catalog={CATALOG}
       />
     )
-    expect(screen.getAllByText("AlphaRatio → BroadcasTheNet").length).toBeGreaterThan(0)
+    expect(screen.getByText("Best path")).toBeInTheDocument()
+    const chips = [...container.querySelectorAll("[data-route-chip]")].map((chip) =>
+      chip.textContent?.trim()
+    )
+    expect(chips).toEqual(["AlphaRatio", "BroadcasTheNet"])
     expect(screen.getAllByText("Ready now").length).toBeGreaterThan(0)
     const other = screen.getByText("Other routes (1)")
     expect(other.closest("details")).not.toHaveAttribute("open")
+  })
+
+  it("puts requirement bars inside the step details", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={[tracker({ joinedAt: recentJoin })]}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={CATALOG}
+      />
+    )
+    const details = container.querySelector("details")
+    expect(details).not.toBeNull()
+    expect(details).not.toHaveAttribute("open")
+    expect(details?.querySelector('[data-step-requirement-bar="time-on-source"]')).not.toBeNull()
+    expect(screen.getAllByText(/\/ 30 days/).length).toBeGreaterThan(0)
+
+    await user.click(details?.querySelector("summary") as HTMLElement)
+    expect(details).toHaveAttribute("open")
   })
 
   it("shows the no-route state and the trackerpathways link", () => {

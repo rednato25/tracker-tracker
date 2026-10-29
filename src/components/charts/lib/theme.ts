@@ -182,9 +182,9 @@ export const CHART_THEME = {
 
   // ── Font sizes (raw numbers, ECharts cannot read CSS vars) ──
   // Keep in sync with @theme inline tokens in globals.css.
-  fontSizeMicro: 10,
-  fontSizeCompact: 11,
-  fontSizeDense: 11,
+  fontSizeMicro: 12,
+  fontSizeCompact: 12,
+  fontSizeDense: 12,
   fontSizeSmall: 12,
 }
 

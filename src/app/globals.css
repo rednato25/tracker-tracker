@@ -5,76 +5,98 @@
 @theme inline {
   /* next/font variables live on <body>, so the font families must be inlined
      here; only the color tokens need to stay runtime-swappable. */
-  --font-sans: var(--font-barlow), system-ui, sans-serif;
-  --font-cond: var(--font-barlow-condensed), system-ui, sans-serif;
-  --font-mono: var(--font-roboto-mono), ui-monospace, monospace;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-cond: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 @theme {
   /* -- Layer 1: Raw palette ---------------------------------------------
-   * Cold Vault: a seed-bank cold room, not a neon control room.
-   * The rail is deep green-black; the register is mineral paper.
+   * Night Grid: near-black blue ground, stepped blue-black surfaces and
+   * Yata-Dash's data inks. The light theme is a derived cool-paper parity.
    */
-  --color-vault-950: #1b2a24;
-  --color-vault-900: #24372e;
-  --color-vault-800: #2e463a;
-  --color-vault-700: #3a5245;
+  --color-night-950: #0d0f14;
+  --color-night-900: #13161e;
+  --color-night-800: #1a1e2a;
+  --color-night-700: #1f2433;
 
-  --color-paper-50: #f8faf6;
-  --color-paper-100: #eef2ed;
-  --color-paper-200: #e3e9e2;
-  --color-paper-300: #c9d3ca;
-  --color-paper-400: #aebbb2;
+  --color-paper-50: #ffffff;
+  --color-paper-100: #f6f7fb;
+  --color-paper-200: #eef1f7;
+  --color-paper-300: #d5dae6;
+  --color-paper-400: #bcc4d6;
 
-  --color-ink-900: #17211c;
-  --color-ink-700: #526159;
-  --color-ink-500: #58675e;
-  --color-ink-300: #617067;
+  --color-ink-900: #141824;
+  --color-ink-700: #4b5366;
+  --color-ink-500: #60687c;
+  --color-ink-300: #7a8296;
 
-  --color-oxide: #9e3f1f;
-  --color-oxide-soft: #f1ded4;
-  --color-cold: #2f6f5e;
-  --color-cold-soft: #dce9e1;
-  --color-ochre: #a66b18;
-  --color-ochre-soft: #f3e6cf;
-  --color-crimson: #9f3428;
-  --color-crimson-soft: #f2dcd7;
-  --color-slate-blue: #3f6d7d;
-  --color-plum: #6b5b7a;
+  --color-violet: #6d56eb;
+  --color-violet-hover: #5a44d4;
+  --color-violet-soft: #9b8cff;
+  --color-green: #22c55e;
+  --color-red: #ef4444;
+  --color-amber: #f59e0b;
+  --color-blue: #3b82f6;
+  --color-purple: #a855f7;
+  --color-orange: #f97316;
+  --color-teal: #2dd4bf;
+  --color-pink: #ec4899;
+  --color-yellow: #facc15;
+
+  /* Legacy raw aliases retained for component compatibility. */
+  --color-vault-950: var(--color-night-950);
+  --color-vault-900: var(--color-night-900);
+  --color-vault-800: var(--color-night-800);
+  --color-vault-700: var(--color-night-700);
+  --color-oxide: var(--color-violet);
+  --color-oxide-soft: #ede9ff;
+  --color-cold: var(--color-green);
+  --color-cold-soft: #dcfce7;
+  --color-ochre: var(--color-amber);
+  --color-ochre-soft: #fef3c7;
+  --color-crimson: var(--color-red);
+  --color-crimson-soft: #fee2e2;
+  --color-slate-blue: var(--color-blue);
+  --color-plum: var(--color-purple);
 
   /* -- Layer 2: Semantic aliases ---------------------------------------- */
   --color-base: var(--color-paper-100);
   --color-raised: var(--color-paper-50);
   --color-elevated: var(--color-paper-200);
   --color-overlay: var(--color-paper-50);
-  --color-control-bg: #f4f7f2;
+  --color-control-bg: var(--color-paper-200);
 
-  --color-rail: var(--color-vault-950);
-  --color-rail-raised: var(--color-vault-900);
-  --color-rail-line: #34483d;
-  --color-rail-text: #edf2ed;
-  --color-rail-muted: #aabbb0;
+  --color-rail: var(--color-night-950);
+  --color-rail-raised: var(--color-night-900);
+  --color-rail-line: #252b3b;
+  --color-rail-text: #e2e8f0;
+  --color-rail-muted: #94a3b8;
 
   --color-primary: var(--color-ink-900);
   --color-secondary: var(--color-ink-700);
   --color-tertiary: var(--color-ink-500);
   --color-muted: var(--color-ink-300);
 
-  --color-accent: var(--color-oxide);
-  --color-warn: #8a5a12;
-  --color-danger: var(--color-crimson);
-  --color-success: var(--color-cold);
+  /* One interaction accent. `accent` is the readable text/focus hue;
+     `accent-fill` is the solid control fill paired with white text. */
+  --color-accent: #5b45d6;
+  --color-accent-fill: #5b45d6;
+  --color-accent-fill-hover: #4a35c4;
+  --color-accent-text: var(--color-accent);
+  --color-warn: #854d0e;
+  --color-danger: #b91c1c;
+  --color-success: #166534;
 
-  --color-accent-dim: rgb(158 63 31 / 0.12);
-  --color-accent-glow: rgb(158 63 31 / 0.22);
-  --color-warn-dim: rgb(138 90 18 / 0.12);
-  --color-danger-dim: rgb(159 52 40 / 0.12);
-  --color-success-dim: rgb(47 111 94 / 0.12);
+  --color-accent-dim: rgb(91 69 214 / 0.08);
+  --color-accent-glow: rgb(91 69 214 / 0.2);
+  --color-warn-dim: rgb(133 77 14 / 0.1);
+  --color-danger-dim: rgb(185 28 28 / 0.1);
+  --color-success-dim: rgb(22 101 52 / 0.1);
 
   --color-border: var(--color-paper-300);
-  --color-border-soft: #dfe6df;
+  --color-border-soft: #e4e8f2;
   --color-border-emphasis: var(--color-paper-400);
-
   --color-control-border: var(--color-paper-400);
   --color-control-focus: var(--color-accent);
 
@@ -83,30 +105,36 @@
   --color-on-warn: #ffffff;
   --color-on-success: #ffffff;
 
-  --chart-surface-semi: rgb(238 242 237 / 0.82);
-  --chart-accent-dim: rgb(158 63 31 / 0.12);
-  --chart-accent-glow: rgb(158 63 31 / 0.22);
-  --chart-accent-glow-40: rgb(158 63 31 / 0.32);
-  --chart-accent-glow-60: rgb(158 63 31 / 0.45);
-  --chart-warn-dim: rgb(138 90 18 / 0.12);
-  --chart-warn-glow: rgb(138 90 18 / 0.22);
+  --chart-surface-semi: rgb(246 247 251 / 0.82);
+  --chart-accent-dim: rgb(91 69 214 / 0.08);
+  --chart-accent-glow: rgb(91 69 214 / 0.2);
+  --chart-accent-glow-40: rgb(91 69 214 / 0.32);
+  --chart-accent-glow-60: rgb(91 69 214 / 0.45);
+  --chart-warn-dim: rgb(133 77 14 / 0.1);
+  --chart-warn-glow: rgb(133 77 14 / 0.2);
 
   /* -- Layer 3: Purpose aliases ----------------------------------------- */
-  --color-upload: var(--color-cold);
-  --color-download: #2f5f83;
-  --color-positive: var(--color-cold);
-  --color-negative: var(--color-crimson);
-  --color-neutral: var(--color-ink-500);
-  --color-tracker-default: var(--color-oxide);
+  --color-upload: var(--color-success);
+  --color-download: #7e22ce;
+  --color-buffer: #1d4ed8;
+  --color-seeding: #1d4ed8;
+  --color-bonus: #c2410c;
+  --color-ratio-good: #166534;
+  --color-ratio-warn: #854d0e;
+  --color-ratio-bad: #b91c1c;
+  --color-positive: var(--color-success);
+  --color-negative: var(--color-danger);
+  --color-neutral: var(--color-tertiary);
+  --color-tracker-default: var(--color-violet);
 
-  --color-scale-1: var(--color-crimson);
-  --color-scale-2: var(--color-ochre);
-  --color-scale-3: var(--color-cold);
-  --color-scale-4: var(--color-slate-blue);
-  --color-scale-5: #7a5b3a;
-  --color-scale-6: var(--color-plum);
+  --color-scale-1: #b91c1c;
+  --color-scale-2: #854d0e;
+  --color-scale-3: #166534;
+  --color-scale-4: #1d4ed8;
+  --color-scale-5: #c2410c;
+  --color-scale-6: #7e22ce;
 
-  /* Elevation is a hairline, not a glow. */
+  /* Elevation is a 1px rule, not a glow. */
   --shadow-glow: 0 0 0 1px var(--color-border);
   --shadow-glow-sm: 0 0 0 1px var(--color-border);
   --shadow-glow-lg: 0 0 0 1px var(--color-border);
@@ -114,81 +142,88 @@
   --shadow-glow-danger: 0 0 0 1px var(--color-danger);
   --shadow-glow-success: 0 0 0 1px var(--color-success);
 
-  /* Stamped corners, not bubbles. */
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
-  --radius-xl: 8px;
-  --radius-pill: 2px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-pill: 6px;
 
-  /* Sub-xs font sizes for dense data UI. */
-  --text-4xs: 10px;
-  --text-3xs: 11px;
-  --text-2xs: 11px;
+  /* No visible text below 12px. */
+  --text-4xs: 12px;
+  --text-3xs: 12px;
+  --text-2xs: 12px;
 }
 
 :root[data-theme="dark"] {
-  --color-base: #0f1713;
-  --color-raised: #16211b;
-  --color-elevated: #1d2a23;
-  --color-overlay: #16211b;
-  --color-control-bg: #121c17;
+  --color-base: var(--color-night-950);
+  --color-raised: var(--color-night-900);
+  --color-elevated: var(--color-night-800);
+  --color-overlay: var(--color-night-900);
+  --color-control-bg: var(--color-night-800);
 
-  --color-rail: #0c1510;
-  --color-rail-raised: #16241c;
-  --color-rail-line: #2a3d32;
-  --color-rail-text: #edf2ed;
-  --color-rail-muted: #9fb1a6;
+  --color-rail: #090b0f;
+  --color-rail-raised: var(--color-night-800);
+  --color-rail-line: var(--color-night-700);
+  --color-rail-text: #e2e8f0;
+  --color-rail-muted: #8492ad;
 
-  --color-primary: #edf2ed;
-  --color-secondary: #b3c0b7;
-  --color-tertiary: #93a49a;
-  --color-muted: #85978c;
+  --color-primary: #e2e8f0;
+  --color-secondary: #94a3b8;
+  --color-tertiary: #8492ad;
+  --color-muted: #7c8aa5;
 
-  --color-accent: #e07a4f;
-  --color-warn: #d9a44a;
-  --color-danger: #e06a58;
-  --color-success: #6fb79c;
+  --color-accent: #9b8cff;
+  --color-accent-fill: #6d56eb;
+  --color-accent-fill-hover: #5a44d4;
+  --color-accent-text: #9b8cff;
+  --color-warn: #f59e0b;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
 
-  --color-accent-dim: rgb(224 122 79 / 0.16);
-  --color-accent-glow: rgb(224 122 79 / 0.28);
-  --color-warn-dim: rgb(217 164 74 / 0.16);
-  --color-danger-dim: rgb(224 106 88 / 0.16);
-  --color-success-dim: rgb(111 183 156 / 0.16);
+  --color-accent-dim: rgb(155 140 255 / 0.14);
+  --color-accent-glow: rgb(155 140 255 / 0.26);
+  --color-warn-dim: rgb(245 158 11 / 0.16);
+  --color-danger-dim: rgb(239 68 68 / 0.16);
+  --color-success-dim: rgb(34 197 94 / 0.16);
 
-  --color-border: #2b3b32;
-  --color-border-soft: #223028;
-  --color-border-emphasis: #3d5246;
-
-  --color-control-border: #3d5246;
+  --color-border: #252b3b;
+  --color-border-soft: #1f2433;
+  --color-border-emphasis: #2e3548;
+  --color-control-border: #2e3548;
   --color-control-focus: var(--color-accent);
 
-  --color-upload: var(--color-success);
-  --color-download: #8fc7e8;
-  --color-positive: var(--color-success);
-  --color-negative: var(--color-danger);
-  --color-neutral: var(--color-tertiary);
-  --color-tracker-default: var(--color-accent);
+  --color-upload: #22c55e;
+  --color-download: #a855f7;
+  --color-buffer: #3b82f6;
+  --color-seeding: #3b82f6;
+  --color-bonus: #f97316;
+  --color-ratio-good: #22c55e;
+  --color-ratio-warn: #f59e0b;
+  --color-ratio-bad: #ef4444;
+  --color-positive: #22c55e;
+  --color-negative: #ef4444;
+  --color-neutral: #8492ad;
+  --color-tracker-default: #6d56eb;
 
-  --color-scale-1: #e06a58;
-  --color-scale-2: #d9a44a;
-  --color-scale-3: #6fb79c;
-  --color-scale-4: #7fa7b5;
-  --color-scale-5: #b89a72;
-  --color-scale-6: #a18fb0;
+  --color-scale-1: #ef4444;
+  --color-scale-2: #f59e0b;
+  --color-scale-3: #22c55e;
+  --color-scale-4: #3b82f6;
+  --color-scale-5: #f97316;
+  --color-scale-6: #a855f7;
 
-  --color-on-accent: #1b120d;
-  --color-on-danger: #24100c;
-  --color-on-warn: #241a08;
-  --color-on-success: #0c1a15;
+  --color-on-accent: #ffffff;
+  --color-on-danger: #0d0f14;
+  --color-on-warn: #0d0f14;
+  --color-on-success: #0d0f14;
 
-  --chart-surface-semi: rgb(15 23 19 / 0.82);
-  --chart-accent-dim: rgb(224 122 79 / 0.16);
-  --chart-accent-glow: rgb(224 122 79 / 0.28);
-  --chart-accent-glow-40: rgb(224 122 79 / 0.4);
-  --chart-accent-glow-60: rgb(224 122 79 / 0.55);
-  --chart-warn-dim: rgb(217 164 74 / 0.16);
-  --chart-warn-glow: rgb(217 164 74 / 0.28);
+  --chart-surface-semi: rgb(13 15 20 / 0.82);
+  --chart-accent-dim: rgb(155 140 255 / 0.14);
+  --chart-accent-glow: rgb(155 140 255 / 0.26);
+  --chart-accent-glow-40: rgb(155 140 255 / 0.4);
+  --chart-accent-glow-60: rgb(155 140 255 / 0.55);
+  --chart-warn-dim: rgb(245 158 11 / 0.16);
+  --chart-warn-glow: rgb(245 158 11 / 0.26);
 }
 
 /* Custom radius utilities matching design system tokens */

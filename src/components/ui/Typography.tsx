@@ -13,7 +13,7 @@ function H1({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement
   return (
     <h1
       className={clsx(
-        "font-cond text-4xl font-semibold leading-none tracking-[-0.01em] text-primary",
+        "font-cond text-[28px] font-semibold leading-8 tracking-[-0.02em] text-primary",
         className
       )}
       {...props}
@@ -28,7 +28,7 @@ function H2({ className, children, id, ...props }: HTMLAttributes<HTMLHeadingEle
     <h2
       id={id}
       className={clsx(
-        "font-cond text-4xs font-semibold text-secondary uppercase tracking-[0.16em]",
+        "font-cond text-xs font-semibold text-secondary uppercase tracking-[0.08em]",
         className
       )}
       {...props}
@@ -56,7 +56,7 @@ function Subheader({ as: Tag = "span", className, children, ...props }: Typograp
 
 function Paragraph({ className, children, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={clsx("text-xs font-sans text-tertiary leading-relaxed", className)} {...props}>
+    <p className={clsx("text-[13px] font-sans text-tertiary leading-relaxed", className)} {...props}>
       {children}
     </p>
   )

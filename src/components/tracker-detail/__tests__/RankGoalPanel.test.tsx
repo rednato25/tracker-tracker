@@ -115,6 +115,7 @@ describe("RankGoalPanel", () => {
     expect(screen.getByText("conservative unit reading")).toBeInTheDocument()
     expect(screen.getByText(/Upload estimate:/)).not.toHaveTextContent(/unit unresolved/)
     expect(screen.getByText(/Observed current rank: Registered/)).toBeInTheDocument()
+    expect(document.querySelectorAll("[data-rank-condition-bar]").length).toBeGreaterThan(0)
   })
 
   it("keeps an unsupported tracker on its existing ladder text", async () => {

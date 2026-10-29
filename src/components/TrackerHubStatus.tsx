@@ -110,9 +110,9 @@ function TrackerHubStatus({
   const trackerHubUrl = `${TRACKERHUB_HISTORY}/${trackerHubSlug}`
 
   return (
-    <div className="nm-inset-sm bg-control-bg flex flex-col px-4 py-3.5 min-w-80 max-w-xl rounded-nm-md">
+    <div className="flex w-full max-w-xl flex-col border border-border bg-elevated px-4 py-3.5">
       {/* Header row. Always visible */}
-      <div className="flex items-center justify-between gap-6 w-full">
+      <div className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
@@ -188,7 +188,7 @@ function TrackerHubStatus({
           )}
 
           {/* Stats + attribution */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 text-xs font-mono text-tertiary">
               <span>
                 Uptime <span className="text-secondary">{data.uptimeMonth}</span>

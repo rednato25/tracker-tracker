@@ -153,15 +153,15 @@ type RankChipState = "current" | "past" | "future" | "outside"
 
 function chipClass(state: RankChipState): string {
   if (state === "current") {
-    return "border border-accent bg-accent/15 font-semibold text-primary"
+    return "border border-accent bg-accent-dim font-semibold text-primary"
   }
   if (state === "past") {
-    return "border border-transparent bg-accent/5 text-secondary"
+    return "border border-border bg-elevated text-secondary"
   }
   if (state === "future") {
-    return "border border-dashed border-border-emphasis text-secondary"
+    return "border border-border bg-raised text-tertiary"
   }
-  return "border border-transparent text-secondary opacity-60"
+  return "border border-transparent text-tertiary opacity-60"
 }
 
 function RankChip({ name, state, title }: { name: string; state: RankChipState; title?: string }) {
@@ -251,7 +251,7 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
         : chipStateFor(index, forest.sharedCurrentIndex)
 
   return (
-    <div className="nm-inset-sm bg-control-bg rounded-nm-md p-4 sm:p-5">
+    <div className="rounded-nm-lg border border-border bg-elevated p-4 sm:p-5">
       <div className="flex w-full flex-col items-center">
         {/* Shared prefix, with its last rung centered on the fork stem. */}
         {forest.shared.length > 0 && (

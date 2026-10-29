@@ -144,6 +144,9 @@ export const CHART_THEME = {
   get bonus() {
     return cssVar("--color-bonus", "#c2410c")
   },
+  get ratio() {
+    return cssVar("--color-ratio", "#854d0e")
+  },
   get positive() {
     return cssVar("--color-positive", "#166534")
   },

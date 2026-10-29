@@ -119,6 +119,7 @@
   --color-buffer: #1d4ed8;
   --color-seeding: #1d4ed8;
   --color-bonus: #c2410c;
+  --color-ratio: #854d0e;
   --color-ratio-good: #166534;
   --color-ratio-warn: #854d0e;
   --color-ratio-bad: #b91c1c;
@@ -202,6 +203,7 @@
   --color-buffer: #3b82f6;
   --color-seeding: #3b82f6;
   --color-bonus: #f97316;
+  --color-ratio: #f59e0b;
   --color-ratio-good: #22c55e;
   --color-ratio-warn: #f59e0b;
   --color-ratio-bad: #ef4444;

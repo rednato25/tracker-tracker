@@ -49,7 +49,7 @@ type ChartMetric = "uploaded" | "downloaded" | "ratio" | "buffer" | "seedbonus" 
 const METRIC_COLOR: Record<ChartMetric, string> = {
   uploaded: CHART_THEME.upload,
   downloaded: CHART_THEME.download,
-  ratio: CHART_THEME.positive,
+  ratio: CHART_THEME.ratio,
   buffer: CHART_THEME.upload,
   seedbonus: CHART_THEME.accent,
   active: CHART_THEME.accent,
@@ -58,7 +58,7 @@ const METRIC_COLOR: Record<ChartMetric, string> = {
 const METRIC_DIM: Record<ChartMetric, string> = {
   uploaded: CHART_THEME.accentDim,
   downloaded: CHART_THEME.warnDim,
-  ratio: hexToRgba(CHART_THEME.positive, 0.15),
+  ratio: hexToRgba(CHART_THEME.ratio, 0.15),
   buffer: CHART_THEME.accentDim,
   seedbonus: CHART_THEME.accentDim,
   active: CHART_THEME.accentDim,

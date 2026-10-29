@@ -708,7 +708,7 @@ test.describe.serial("Prowlarr search visual evidence", () => {
         },
       })
       await page.goto("/search")
-      await expect(page.locator("[data-search-page]")).toBeVisible()
+      await expect(page.locator("[data-search-page]:visible")).toBeVisible()
       await expect(page.locator("fieldset input[type=checkbox]").first()).toBeVisible({
         timeout: 15_000,
       })

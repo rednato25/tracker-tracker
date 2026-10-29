@@ -152,7 +152,7 @@ export function TrackerDetailHeader({
               More actions
               <ChevronDownSmallIcon width="10" height="7" />
             </summary>
-            <div className="absolute top-full right-0 z-50 mt-1 w-56 border border-border bg-overlay p-1 shadow-[0_12px_32px_rgb(0_0_0_/_0.18)]">
+            <div className="absolute top-full left-0 z-50 mt-1 w-56 max-w-[calc(100vw-2rem)] border border-border bg-overlay p-1 shadow-[0_12px_32px_rgb(0_0_0_/_0.18)] md:right-0 md:left-auto">
               <button
                 type="button"
                 disabled={debugLoading || polling}

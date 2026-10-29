@@ -38,7 +38,7 @@ snapshot, stale snapshot, unknown age and long names.
 
 | # | Severity | Field | What happens | Status |
 | --- | --- | --- | --- | --- |
-| 7 | Broken | 390px dashboard header | `DASHBOARD`, `GRID/TABLE`, `POLL ALL NOW` and the gear exceed 390px; the main region scrolls horizontally and the gear is off-screen | Report first; fix by wrapping the view/action row |
+| 7 | Broken | 390px dashboard header | `DASHBOARD`, `GRID/TABLE`, `POLL ALL NOW` and the gear exceed 390px; the main region scrolls horizontally and the gear is off-screen | Fixed: the header and action row wrap; 320/390 now pass the overflow check |
 | 8 | Ugly | Grid card name | Long account name truncates to `Aleksandra Wiśniewska-Kowalczyk's Ver…` with no title/full-name affordance | Decision (wrap vs reveal) |
 | 9 | Good | Totals tiles | Five tiles render at 390 with metric colors; values and sparklines hold | No fix |
 | 10 | Good | Grid cards / table | 20 cards and the table render without vertical corruption; rank bars appear where the tracker has a target | No fix |

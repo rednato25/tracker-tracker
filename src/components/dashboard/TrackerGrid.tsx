@@ -15,7 +15,6 @@ import {
   formatRatioDisplay,
 } from "@/lib/formatters"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
-import { resolveAccountRatio } from "@/lib/tracker-rules"
 import { getHealthLabel, getHealthPulseDot, getTrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
 
@@ -49,22 +48,15 @@ function bufferValue(tracker: TrackerSummary): string {
   }
 }
 
-function ratioColor(tracker: TrackerSummary): string {
-  const stats = tracker.latestStats
-  if (!stats || stats.ratio === null) return CHART_THEME.neutral
-  if (stats.ratioIsInfinite) return CHART_THEME.success
-  const required = resolveAccountRatio(stats.requiredRatio, registryEntryFor(tracker)?.rules) ?? 1
-  if (stats.ratio >= required) return CHART_THEME.success
-  return stats.ratio >= 1 ? CHART_THEME.warn : CHART_THEME.danger
-}
-
 function barFraction(bar: RankSummaryBar): number {
   if (bar.currentValue === null || bar.requiredValue <= 0) return 0
+  let ratio = Math.min(1, bar.currentValue / bar.requiredValue)
   if (bar.comparison === "lte" || bar.comparison === "lt") {
-    return Math.min(1, bar.requiredValue / Math.max(bar.currentValue, 1))
+    ratio = Math.min(1, bar.requiredValue / Math.max(bar.currentValue, 1))
+  } else if (bar.comparison === "eq") {
+    ratio = bar.status === "met" ? 1 : 0
   }
-  if (bar.comparison === "eq") return bar.status === "met" ? 1 : 0
-  return Math.min(1, bar.currentValue / bar.requiredValue)
+  return bar.status === "unmet" && ratio >= 1 ? 0.98 : ratio
 }
 
 function barTone(bar: RankSummaryBar): string {
@@ -119,8 +111,9 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           </span>
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden bg-elevated" aria-hidden="true">
+      <div className="relative h-1.5 overflow-hidden bg-elevated" aria-hidden="true">
         <span className={clsx("block h-full", barTone(bar))} style={{ width: `${percent}%` }} />
+        <span className="absolute inset-y-0 right-0 w-px bg-primary/70" data-threshold-tick />
       </div>
     </div>
   )
@@ -137,9 +130,6 @@ function TrackerCard({
   const stats = tracker.latestStats
   const bars = summary?.bars ?? []
   const visibleBars = bars.slice(0, 3)
-  const currentRank = summary?.currentRankHidden
-    ? "Hidden"
-    : (summary?.currentRank ?? stats?.group ?? "Unknown")
   const targetRank = summary?.targetRank ?? summary?.automaticNextRank
 
   return (
@@ -204,7 +194,7 @@ function TrackerCard({
                 : formatRatioDisplay(stats.ratio)
               : "—"
           }
-          color={ratioColor(tracker)}
+          color={CHART_THEME.ratio}
           unknown={!stats}
         />
         <Metric
@@ -230,10 +220,14 @@ function TrackerCard({
             {targetRank ?? "No target"}
           </Badge>
         </div>
-        <p className="font-mono text-xs text-tertiary">
-          Current: {currentRank}
-          {targetRank ? ` · Target: ${targetRank}` : ""}
-        </p>
+        {summary && summary.totalChecks > 0 && (
+          <p className="font-mono text-xs text-tertiary">
+            {summary.metCount} of {summary.totalChecks} checks
+          </p>
+        )}
+        {summary?.distanceText && (
+          <p className="text-xs text-secondary">{summary.distanceText}</p>
+        )}
         {visibleBars.length > 0 ? (
           <div className="flex flex-col gap-2">
             {visibleBars.map((bar) => (
@@ -243,10 +237,17 @@ function TrackerCard({
               <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more checks</p>
             )}
           </div>
+        ) : summary?.nextRankRequirements ? (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-tertiary">
+              From tracker rules (not tracked automatically)
+            </span>
+            <p className="text-xs text-secondary">{summary.nextRankRequirements}</p>
+          </div>
         ) : (
           <p className="text-xs text-tertiary">
             {summary?.status === "unsupported"
-              ? "Structured rank progress is unavailable."
+              ? "No next-class requirements are published for this tracker."
               : "No structured requirement to show."}
           </p>
         )}

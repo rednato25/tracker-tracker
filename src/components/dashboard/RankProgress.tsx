@@ -189,9 +189,19 @@ function RankProgressBar({ userClasses, currentRank, accentColor }: RankProgress
 
   const currentIndex = findClassIndex(userClasses, currentRank)
   const currentPos = ladderPosition(userClasses, currentRank)
+  const totalRungs = userClasses.filter((item) => !item.outsideLadder).length
 
   return (
-    <div className="flex items-center gap-1 w-full overflow-x-auto p-3 -m-3 styled-scrollbar">
+    <div className="flex flex-col gap-1">
+      <div
+        role="img"
+        aria-label={
+          currentPos === null
+            ? `${currentRank}, not on the earned ladder`
+            : `${currentRank}, rank ${currentPos + 1} of ${totalRungs}`
+        }
+        className="flex items-center gap-1 w-full overflow-x-auto p-3 -m-3 styled-scrollbar"
+      >
       {userClasses.map((uc, i) => {
         const isCurrent = i === currentIndex
         const pos = uc.outsideLadder ? null : ladderPosition(userClasses, uc.name)
@@ -224,6 +234,12 @@ function RankProgressBar({ userClasses, currentRank, accentColor }: RankProgress
           </div>
         )
       })}
+      </div>
+      {currentPos !== null && (
+        <p className="font-mono text-xs text-tertiary">
+          {currentPos + 1} of {totalRungs} ranks
+        </p>
+      )}
     </div>
   )
 }
@@ -251,7 +267,11 @@ function RankForestBar({ forest, userClasses, accentColor }: RankForestBarProps)
         : chipStateFor(index, forest.sharedCurrentIndex)
 
   return (
-    <div className="rounded-nm-lg border border-border bg-elevated p-4 sm:p-5">
+    <div
+      role="img"
+      aria-label={forest.summary}
+      className="rounded-nm-lg border border-border bg-elevated p-4 sm:p-5"
+    >
       <div className="flex w-full flex-col items-center">
         {/* Shared prefix, with its last rung centered on the fork stem. */}
         {forest.shared.length > 0 && (

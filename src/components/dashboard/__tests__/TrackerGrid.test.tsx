@@ -82,6 +82,7 @@ function summary(overrides: Partial<RankGoalSummary> = {}): RankGoalSummary {
         requiredValue: 3 * TIB,
         comparison: "gte",
         status: "unmet",
+        metric: "uploadedBytes",
       },
       {
         id: "accountAgeDays",
@@ -92,8 +93,12 @@ function summary(overrides: Partial<RankGoalSummary> = {}): RankGoalSummary {
         requiredValue: 30,
         comparison: "gte",
         status: "met",
+        metric: "accountAgeDays",
       },
     ],
+    totalChecks: 2,
+    distanceText: "Elite: 1.00 TiB upload left",
+    nextRankRequirements: null,
     linkLabel: "Open rank goal",
     linkHref: "/trackers/1#rank-goal",
     ...overrides,
@@ -114,6 +119,7 @@ describe("TrackerGrid", () => {
     expect(screen.getByText("300 days / 30 days")).toBeInTheDocument()
     expect(screen.getAllByText("Unmet").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Met").length).toBeGreaterThan(0)
+    expect(document.querySelectorAll("[data-threshold-tick]").length).toBeGreaterThan(0)
     expect(screen.getByRole("link", { name: /TorrentLeech/ })).toHaveAttribute(
       "href",
       "/trackers/1"
@@ -129,7 +135,9 @@ describe("TrackerGrid", () => {
       />
     )
     expect(screen.getAllByText("—").length).toBeGreaterThan(0)
-    expect(screen.getByText("Structured rank progress is unavailable.")).toBeInTheDocument()
+    expect(
+      screen.getByText("No next-class requirements are published for this tracker.")
+    ).toBeInTheDocument()
   })
 
   it("caps the visible rank bars and reports the remainder", () => {

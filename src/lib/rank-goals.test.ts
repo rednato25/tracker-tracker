@@ -273,6 +273,31 @@ describe("evaluateRankGoal", () => {
     expect(branch.nextRankReason).toMatch(/branch/i)
   })
 
+  it("treats equality according to the stored operator", () => {
+    const base: RankRequirementGroup = {
+      mode: "all",
+      conditions: [
+        { kind: "numeric", metric: "uploadedBytes", comparison: "gte", requiredValue: 1000 },
+      ],
+    }
+    const gte = evaluateRequirementGroup(
+      base,
+      input({ observations: obs({ uploadedBytes: 1000 }), structuredGoals: {} })
+    )
+    expect(gte.status).toBe("met")
+
+    const gt = evaluateRequirementGroup(
+      {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", metric: "uploadedBytes", comparison: "gt", requiredValue: 1000 },
+        ],
+      },
+      input({ observations: obs({ uploadedBytes: 1000 }), structuredGoals: {} })
+    )
+    expect(gt.status).toBe("unmet")
+  })
+
   it("evaluates personal goals with the same condition semantics", () => {
     const results = evaluatePersonalGoals(
       {

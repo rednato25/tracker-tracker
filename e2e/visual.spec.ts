@@ -533,7 +533,7 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
     await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("BroadcasTheNet")
     await pathwaysPage.getByRole("option", { name: "BroadcasTheNet" }).click()
-    await expect(pathwaysPage.getByText("Fastest route")).toBeVisible({ timeout: 15_000 })
+    await expect(pathwaysPage.getByText("Best path")).toBeVisible({ timeout: 15_000 })
     await expect(pathwaysPage.getByText("Total time left")).toBeVisible()
     await expect(pathwaysPage.getByText("Saving…")).toHaveCount(0)
 
@@ -547,6 +547,22 @@ test.describe.serial("tracker pathways visual evidence", () => {
       document.documentElement.dataset.theme = "dark"
     })
     await page.screenshot({ path: "test-results/visual-pathways-dark.png" })
+
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    const firstStepDetails = pathwaysPage.locator("details").first()
+    await firstStepDetails.locator("summary").click()
+    await expect(firstStepDetails).toHaveAttribute("open", "")
+    await expect(firstStepDetails.getByText("Requirement bars")).toBeVisible()
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-details-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-details-dark.png" })
+    await firstStepDetails.locator("summary").click()
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(

@@ -83,10 +83,16 @@ export function DashboardTotals({
         />
         <Tile
           label="Need attention"
-          value={String(attentionCount).padStart(2, "0")}
+          value={String(attentionCount)}
           color={attentionCount > 0 ? CHART_THEME.danger : CHART_THEME.success}
           data={[]}
-          meta={attentionCount > 0 ? "Action required" : "All clear"}
+          meta={
+            attentionCount > 0
+              ? "Action required"
+              : missing > 0 || stale
+                ? "No known actions · coverage incomplete"
+                : "All clear"
+          }
         />
       </div>
       {(missing > 0 || stale) && (
@@ -149,7 +155,7 @@ function Tile({
           {label}
         </span>
         <span
-          className="font-mono text-xl font-semibold leading-none tracking-[-0.03em]"
+          className="whitespace-nowrap font-mono text-[20px] font-semibold leading-none tracking-[-0.03em] sm:text-xl"
           style={{ color }}
         >
           {tileValue(value, unknown)}

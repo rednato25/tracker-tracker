@@ -103,12 +103,20 @@ function Metric({
 
 function RankBar({ bar }: { bar: RankSummaryBar }) {
   const percent = Math.round(barFraction(bar) * 100)
+  const stateLabel = bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"
+  const stateTone =
+    bar.status === "met" ? "text-success" : bar.status === "unmet" ? "text-danger" : "text-warn"
   return (
     <div className="flex flex-col gap-1" data-rank-bar={bar.id}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-xs text-secondary">{bar.label}</span>
-        <span className="shrink-0 font-mono text-xs tabular-nums text-tertiary">
-          {bar.current} / {bar.required}
+        <span className="flex shrink-0 items-baseline gap-2">
+          <span className={clsx("font-cond text-2xs font-semibold uppercase tracking-[0.1em]", stateTone)}>
+            {stateLabel}
+          </span>
+          <span className="font-mono text-xs tabular-nums text-tertiary">
+            {bar.current} / {bar.required}
+          </span>
         </span>
       </div>
       <div className="h-1.5 overflow-hidden bg-elevated" aria-hidden="true">
@@ -150,7 +158,7 @@ function TrackerCard({
             aria-label={getHealthLabel(health)}
           />
           <div className="min-w-0">
-            <p className="truncate font-cond text-sm font-semibold tracking-[-0.01em] text-primary">
+            <p className="break-words font-cond text-sm font-semibold tracking-[-0.01em] text-primary">
               {tracker.name}
             </p>
             <p className="truncate text-xs text-tertiary">{hostOf(tracker)}</p>

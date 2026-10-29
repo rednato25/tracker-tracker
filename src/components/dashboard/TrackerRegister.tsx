@@ -200,7 +200,7 @@ function readMetric(
       title: snapshot.hasStats
         ? "Not reported in the latest snapshot."
         : "No snapshot yet; this value is missing.",
-      marker: null,
+      marker: "?",
     }
   }
 
@@ -335,7 +335,7 @@ function AccountCell({ row }: { row: RegisterRow }) {
         aria-hidden="true"
       />
       <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-primary">
+        <span className="block break-words text-sm font-semibold text-primary">
           {row.tracker.name}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-xs text-secondary">

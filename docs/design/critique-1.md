@@ -1,5 +1,7 @@
 # Design check 1 — critique
 
+**Score history: 24/40 (first pass) → 25/40 (second pass after P32b/c/d).**
+
 Method: dual-agent (A: design review · B: detector + screenshot evidence)
 Target: merged app surfaces on `main` (`9c42abaa`) plus this pass's clear-break fixes.
 Scope: dashboard, pathways, tracker detail, settings.
@@ -126,6 +128,46 @@ amend DESIGN.md to drop the claim.
 - 1024–1279px laptops get the mobile stacked register, a density cliff.
 - “Account register” is the only H1 under a “Dashboard” eyebrow.
 
+## Second pass — P32b/c/d merged
+
+Score: **25/40** (up 1). The fleet read is materially better, but the rank
+semantics and cross-view inconsistency now carry more weight.
+
+| # | Heuristic | Score | Key issue |
+| --- | --- | --- | --- |
+| 1 | Visibility of system status | 3 | Strong totals/health/stale markers; “All clear” still needs to be coverage-aware. |
+| 2 | Match system / real world | 3 | “Accounted”, “UP/DN/BON” and “1 direct lead” still require decoding. |
+| 3 | User control and freedom | 3 | Grid/Table is remembered and details expand; grid has no filter/group. |
+| 4 | Consistency and standards | 2 | Ratio is amber in totals, green on cards and neutral in the table; register thresholds differ. |
+| 5 | Error prevention | 2 | Mark-login and rank-target writes are immediate and unconfirmed. |
+| 6 | Recognition rather than recall | 2 | Six icon actions on detail; UP/DN/BON legend is below the fold. |
+| 7 | Flexibility and efficiency | 2 | No sort/filter/group for 20 cards; table is the only dense view. |
+| 8 | Aesthetic and minimalist design | 3 | Fleet read is clean; best-path card is mostly empty; rank is stated three times. |
+| 9 | Error recovery | 2 | “Structured rank progress is unavailable” repeats without cause or next step; strict-threshold UNMET is unexplained. |
+| 10 | Help and documentation | 3 | Evidence/docs are good; threshold semantics and rank help are buried. |
+| **Total** | | **25/40** | **Acceptable** |
+
+**Second-pass strengths:** the five-tile totals row delivers the 3-second read;
+truth language is rigorous; the Night Grid is coherent on totals and cards.
+
+**Second-pass priority issues:**
+1. **P1** A strict threshold at equality renders a full red bar with no written
+   state. Cards now print MET/UNMET/UNKNOWN, but the bar remains visually
+   contradictory; decide whether equality is met and show a threshold tick.
+2. **P1** Names were truncated in cards and register despite DESIGN.md saying the
+   only identifier must wrap. Fixed in this pass.
+3. **P2** Pathways leads with the owned-tracker directory, repeats the route,
+   duplicates “Ready now” and hides requirement bars in Details. Decision.
+4. **P2** Need attention said `00 / All clear` while coverage was incomplete.
+   Fixed to `0 / No known actions · coverage incomplete`.
+5. **P3** Ratio uses amber in totals, green on cards and neutral in the table.
+   Decision: one ratio ramp and one threshold policy across views.
+
+**Fixed after the second-pass critique:**
+- rank-bar MET/UNMET/UNKNOWN text; tracker names wrap; attention count/coverage;
+  320px totals no longer break units; 44px detail action targets; unknown `?`
+  marker in the register; dashboard header wraps at 320/390.
+
 ## Decisions for you
 
 1. **P32b dependency:** merge the dashboard grid/table branch before declaring
@@ -138,8 +180,14 @@ amend DESIGN.md to drop the claim.
    long form and only fix the tab affordance?
 5. **Register behavior:** add sorting/filter/expansion, or amend DESIGN.md to
    remove the promise?
-6. **Mobile long names / 20-tracker list:** wrap vs truncate, and cap vs scroll
-   (see `break-ui-1.md`).
+6. **20-tracker owned list:** cap/expand, scroll region, or separate page?
+   Long names now wrap, so that half is resolved.
+7. **Ratio semantics:** one ramp and one threshold policy across totals, cards
+   and table? Decide whether “at least” vs “above” equality is met.
+8. **Pathways order:** lead with the picker/best path and collapse the owned
+   directory (recommended), or keep the directory first?
+9. **Scroll affordances:** fade/chevron for the 390px settings tabs and rank
+   ladder, or allow the rows to wrap?
 
 ## Evidence
 

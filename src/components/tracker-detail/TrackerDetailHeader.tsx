@@ -128,7 +128,7 @@ export function TrackerDetailHeader({
               onClick={onDebugPoll}
               disabled={debugLoading || polling}
               aria-label="Debug: fetch raw API response"
-              className="px-2"
+              className="h-11 w-11 px-0"
             >
               <BugIcon width="16" height="16" />
             </Button>
@@ -145,7 +145,7 @@ export function TrackerDetailHeader({
                 tracker.userPausedAt ? "Resume automated polling" : "Pause automated polling"
               }
               aria-pressed={!!tracker.userPausedAt}
-              className={clsx("px-2", tracker.userPausedAt && "border-warn text-warn")}
+              className={clsx("h-11 w-11 px-0", tracker.userPausedAt && "border-warn text-warn")}
             >
               {tracker.userPausedAt ? (
                 <PlayIcon width="16" height="16" />
@@ -161,7 +161,7 @@ export function TrackerDetailHeader({
               onClick={onMarkLoginToday}
               disabled={markLoginLoading || polling}
               aria-label="Mark login today"
-              className="px-2"
+              className="h-11 w-11 px-0"
             >
               <CheckIcon width="16" height="16" />
             </Button>
@@ -171,6 +171,7 @@ export function TrackerDetailHeader({
             size="sm"
             onClick={onPollNow}
             disabled={polling}
+            className="h-11 px-3"
             text={polling ? "Polling..." : "Poll Now"}
           />
           <Button
@@ -178,6 +179,7 @@ export function TrackerDetailHeader({
             size="sm"
             onClick={onOpenCredentials}
             aria-label="Tracker credentials"
+            className="h-11 w-11 px-0"
           >
             <ShieldIcon width="16" height="16" />
           </Button>
@@ -186,6 +188,7 @@ export function TrackerDetailHeader({
             size="sm"
             onClick={onOpenSettings}
             aria-label="Tracker settings"
+            className="h-11 w-11 px-0"
           >
             <GearIcon width="16" height="16" />
           </Button>

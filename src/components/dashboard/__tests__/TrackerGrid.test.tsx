@@ -112,6 +112,8 @@ describe("TrackerGrid", () => {
     expect(screen.getByText("1,234")).toBeInTheDocument()
     expect(screen.getByText("2.00 TiB / 3.00 TiB")).toBeInTheDocument()
     expect(screen.getByText("300 days / 30 days")).toBeInTheDocument()
+    expect(screen.getAllByText("Unmet").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Met").length).toBeGreaterThan(0)
     expect(screen.getByRole("link", { name: /TorrentLeech/ })).toHaveAttribute(
       "href",
       "/trackers/1"

@@ -12,6 +12,8 @@ import {
   type RankConditionResult,
   type RankGoalInput,
   type RankGroupResult,
+  type RankComparison,
+  type RankGoalStatus,
   type RankMetric,
   type RankObservationMap,rankDefinitionForSlug, type TrackerRankDefinition, } from "@/lib/rank-goals"
 import { buildRankObservations } from "@/lib/rank-observations"
@@ -21,6 +23,15 @@ export interface RankSummaryCondition {
   label: string
   remaining: string | null
   reason: string | null
+}
+
+export interface RankSummaryBar {
+  id: string
+  label: string
+  current: string
+  required: string
+  comparison: RankComparison
+  status: RankGoalStatus
 }
 
 export interface RankGoalSummary {

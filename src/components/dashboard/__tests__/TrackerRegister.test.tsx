@@ -181,4 +181,10 @@ describe("TrackerRegister accounted metrics", () => {
     expect(screen.getAllByText("2").length).toBeGreaterThan(0)
     expect(screen.queryByText("1,236")).not.toBeInTheDocument()
   })
+
+  it("can hide its totals when the dashboard owns the totals row", () => {
+    render(<TrackerRegister trackers={[tracker()]} now={NOW} showTotals={false} />)
+    expect(screen.queryByText("Total uploaded")).not.toBeInTheDocument()
+    expect(screen.getByText("Account register")).toBeInTheDocument()
+  })
 })

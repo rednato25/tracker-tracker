@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   CHART_PREFERENCES: "tracker-tracker:chart-preferences",
   FLEET_CHART_PREFERENCES: "tracker-tracker:fleet-chart-preferences",
   DASHBOARD_SETTINGS: "tracker-tracker:dashboard-settings",
+  DASHBOARD_VIEW: "tracker-tracker:dashboard-view",
   CLIENT_WIDGET_EXPANDED: "tracker-tracker:client-widget-expanded",
   DRAFT_QUICKLINKS: "tracker-tracker:draft-quicklinks",
   SECTION_COLLAPSE: "tracker-tracker:section-collapse",

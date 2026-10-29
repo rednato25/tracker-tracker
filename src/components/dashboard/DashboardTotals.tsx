@@ -76,7 +76,7 @@ export function DashboardTotals({
         <Tile
           label="Overall ratio"
           value={aggregateStats.avgRatio === null ? "—" : formatRatioDisplay(aggregateStats.avgRatio)}
-          color={CHART_THEME.accent}
+          color={aggregateRatioColor(aggregateStats.avgRatio)}
           data={series.ratio.filter((value): value is number => value !== null)}
           meta="Fleet total"
           unknown={aggregateStats.avgRatio === null}
@@ -108,8 +108,11 @@ export function DashboardTotals({
   )
 }
 
-function includeCount(count: number): boolean {
-  return count === 0
+function aggregateRatioColor(ratio: number | null): string {
+  if (ratio === null) return CHART_THEME.neutral
+  if (ratio >= 10) return CHART_THEME.success
+  if (ratio >= 1) return CHART_THEME.warn
+  return CHART_THEME.danger
 }
 
 function formatBuffer(raw: string): string {
@@ -145,9 +148,16 @@ function Tile({
         <span className="font-cond text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
           {label}
         </span>
-        <span className="font-mono text-xl font-semibold leading-none tracking-[-0.03em] text-primary">
+        <span
+          className="font-mono text-xl font-semibold leading-none tracking-[-0.03em]"
+          style={{ color }}
+        >
           {tileValue(value, unknown)}
-          {unknown && <span className="ml-1 text-xs text-tertiary" aria-label="unknown">?</span>}
+          {unknown && (
+            <span className="ml-1 text-xs text-tertiary" aria-hidden="true">
+              ?
+            </span>
+          )}
         </span>
         <span className="text-xs text-tertiary">{meta}</span>
       </div>

@@ -10,6 +10,7 @@ import { AlertsBanner } from "@/components/dashboard/AlertsBanner"
 import { AnalyticsSection } from "@/components/dashboard/AnalyticsSection"
 import { AttentionNeeded } from "@/components/dashboard/AttentionNeeded"
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState"
+import { DashboardTotals } from "@/components/dashboard/DashboardTotals"
 import { DayRangeSidebar } from "@/components/dashboard/DayRangeSidebar"
 import { EcosystemStatsSection } from "@/components/dashboard/EcosystemStatsSection"
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard"
@@ -19,10 +20,12 @@ import { RankStacks } from "@/components/dashboard/RankStacks"
 import { TagGroupsSection } from "@/components/dashboard/TagGroupsSection"
 import { TodayAtAGlance } from "@/components/dashboard/TodayAtAGlance"
 import { TodayAtAGlanceSkeleton } from "@/components/dashboard/TodayAtAGlanceSkeleton"
+import { TrackerGrid } from "@/components/dashboard/TrackerGrid"
 import { TrackerLeaderboard } from "@/components/dashboard/TrackerLeaderboard"
 import { TrackerRegister } from "@/components/dashboard/TrackerRegister"
 import { useChartPreferences } from "@/components/dashboard/useChartPreferences"
 import { useDashboardSettings } from "@/components/dashboard/useDashboardSettings"
+import { useDashboardView } from "@/components/dashboard/useDashboardView"
 import { Button, Divider, GearIcon, TabBar } from "@/components/ui"
 import { SectionToggle } from "@/components/ui/SectionToggle"
 import { ChartGridSkeleton } from "@/components/ui/skeletons"
@@ -33,7 +36,7 @@ import { computeTrackerActions } from "@/lib/actions"
 import { computeAggregateStats } from "@/lib/dashboard"
 import type { FleetAggregation } from "@/lib/fleet-aggregation"
 import { fleetCachedQueryOptions } from "@/lib/query-options"
-import { parseSavedRankGoals } from "@/lib/rank-summary"
+import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
 import type { Snapshot, TrackerSummary } from "@/types/api"
 import type { TrackerSnapshotSeries } from "@/types/charts"
 
@@ -89,6 +92,7 @@ export function DashboardClient({
   // so a second instance would revert the other surface's last change.
   const chartPrefs = useChartPreferences()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [dashboardView, setDashboardView] = useDashboardView()
   // Two-state tab pattern: dashboardTab updates immediately (drives TabBar pill animation),
   // deferredTab updates via startTransition (drives content switch + query gating).
   // This keeps the content render from blocking the pill's CSS transition.
@@ -109,6 +113,10 @@ export function DashboardClient({
   })
 
   const aggregateStats = useMemo(() => computeAggregateStats(data.trackers), [data.trackers])
+  const rankSummaries = useMemo(
+    () => buildRankGoalSummaries(data.trackers, savedRankGoals, new Date(now)),
+    [data.trackers, savedRankGoals, now]
+  )
   const trackerSeries = useMemo(
     () => buildTrackerSeries(data.trackers, data.snapshotMap),
     [data.trackers, data.snapshotMap]
@@ -166,11 +174,29 @@ export function DashboardClient({
 
   return (
     <div className="min-h-full">
-      <div className="mb-6 flex h-12 items-center justify-between border-b border-border">
+      <div className="mb-4 flex h-12 items-center justify-between gap-3 border-b border-border">
         <div className="font-cond text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           Dashboard
         </div>
         <div className="flex items-center gap-2">
+          <fieldset className="m-0 flex min-w-0 items-center rounded-nm-sm border border-border bg-elevated p-0.5">
+            <legend className="sr-only">Dashboard view</legend>
+            {(["grid", "table"] as const).map((view) => (
+              <button
+                key={view}
+                type="button"
+                aria-pressed={dashboardView === view}
+                onClick={() => setDashboardView(view)}
+                className={`min-h-8 cursor-pointer rounded-nm-sm px-2.5 font-cond text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${
+                  dashboardView === view
+                    ? "bg-raised text-primary shadow-[0_0_0_1px_var(--color-border)]"
+                    : "text-tertiary hover:text-secondary"
+                }`}
+              >
+                {view === "grid" ? "Grid" : "Table"}
+              </button>
+            ))}
+          </fieldset>
           <PollAllButton onPollComplete={data.refresh} />
           <Button
             variant="secondary"
@@ -183,13 +209,30 @@ export function DashboardClient({
         </div>
       </div>
 
-      <div className="flex flex-col gap-10 pb-12">
-        <TrackerRegister
+      <div className="flex flex-col gap-6 pb-12" data-dashboard-view={dashboardView}>
+        <DashboardTotals
           trackers={data.trackers}
           aggregateStats={aggregateStats}
           attentionCount={attentionCount}
+          snapshotMap={data.snapshotMap}
           now={new Date(now)}
         />
+
+        {dashboardView === "grid" ? (
+          <TrackerGrid
+            trackers={data.trackers}
+            summaries={rankSummaries}
+            now={new Date(now)}
+          />
+        ) : (
+          <TrackerRegister
+            trackers={data.trackers}
+            aggregateStats={aggregateStats}
+            attentionCount={attentionCount}
+            now={new Date(now)}
+            showTotals={false}
+          />
+        )}
 
         {/* Ranks */}
         {dashSettings.settings.showRankStacks && (

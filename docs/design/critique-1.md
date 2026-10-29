@@ -226,6 +226,44 @@ mobile card stacking; plain `OFFLINE` labels in the register.
 - **P3 — Label tracking is still 0.12–0.14em**, not the 0.06em DESIGN value:
   computed 1.44px on 12px tile labels and 1.68px on 12px register heads.
 
+### Pathways
+
+**Verdict:** the order is now right — picker, one best-path card, then the
+collapsed lists. The card answers the route and the MET requirement in one
+screen. The weak point is scale: a one-step route becomes a 1,390px strip at
+1440 and a misaligned time block at 390; the owned-target edge case leaves an
+invalid value in the picker.
+
+**Holds:** picker before best path; route chips printed once; one card with
+Best path, total time left and step; current/required bar with MET; collapsed
+Other routes and Your trackers; visible provenance; no horizontal page
+overflow at 390.
+
+**Issues:**
+
+- **P2 — The 390 time block wraps out of alignment.** `Total time left` is a
+  `text-right` child of a wrapping `justify-between` row
+  (`TrackerPathwaysClient.tsx:306-321`). On the second line it is placed at the
+  start of the row, so “TOTAL TIME LEFT” and “Ready now” are right-aligned
+  inside a narrow auto-width box and sit indented under the route chips. The
+  route and its time no longer read as one pair.
+- **P2 — The 1440 card is mostly empty.** The route chips are at the left and
+  the time block at the far right of a 1,390px card; the single step and one
+  bar occupy the lower left. The page's only control is also a ~148px picker
+  under a full-width notice. At 1440 the surface reads as a sparse settings
+  page rather than a route instrument.
+- **P2 — The owned-target state keeps an invalid selection.** When the saved
+  target is already owned, the picker still displays `BroadcasTheNet`; the
+  notice says “You already track BroadcasTheNet” and the value is filtered out
+  of the options. There is no clear/reset, so the user must overwrite the
+  selection. Reproduced at 1440 and 390.
+- **P3 — “1 step” and “Step 1” repeat the same fact** in a one-step card, and
+  the step destination repeats the route-chip destination. The route is not
+  printed twice in full, but the card spends three lines saying there is one
+  step.
+- **P3 — The source line is the densest text on the page**: 12px tertiary with
+  two links and “MIT” twice, wrapped to three lines at 390.
+
 ## Decisions for you
 
 1. **P32b dependency:** merge the dashboard grid/table branch before declaring

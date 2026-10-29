@@ -13,6 +13,15 @@ For dashboard layout and visual direction, use Yata-Dash (GPL-3.0, https://githu
 Do not use other design skills (palette generators, alternative DESIGN.md writers) unless asked. Keep dashboard motion minimal; no new animations without approval.
 Only run this workflow when a task asks for design work. Feature and fix tasks follow DESIGN.md without running the full skill sequence.
 
+## Running commands
+
+- Unit tests: `pnpm test:run`. Never plain `pnpm test`; Vitest watch mode never exits.
+- Local Node 26 hides `localStorage` in jsdom, which causes about 25 false test failures. Locally, run tests with the `--localstorage-file` flag (as used in PR #51) or Node 24. CI on Node 24 is the gate.
+- Never start `pnpm dev` or `pnpm start` in the foreground. For screenshots, rely on Playwright's webServer config. If Postgres or the e2e database is not running, stop and report instead of waiting.
+- Give any command that could run longer than 10 minutes a timeout, and report if it times out.
+- Never stash, move, commit or delete `docs/TRACKER_TRACKER_KILO_PLAN.md`.
+- Commit and push after each numbered step. One PR per task.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know

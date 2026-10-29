@@ -168,6 +168,64 @@ truth language is rigorous; the Night Grid is coherent on totals and cards.
   320px totals no longer break units; 44px detail action targets; unknown `?`
   marker in the register; dashboard header wraps at 320/390.
 
+## Third pass — main @ 80ed6ee8
+
+Evidence: dark theme only, 1440px and 390px. The e2e app started through
+Playwright's webServer in about 4 seconds, so the 5-minute stop rule never
+triggered. Detector scans of the rendered surfaces returned no warnings; the
+only hit in the wider tree was a 3px side-tab in the unused
+`TrackerOverviewGrid.tsx:205`, which is not on the rendered dashboard.
+
+### Dashboard
+
+**Verdict:** the five-tile read and the card/register split are the strongest
+they have been, but the two views no longer tell the same truth. Grid says
+“2 of 3 checks”; the register says “3/4 checks” for the same account, and only
+the register's ratio keeps its metric hue. A 3-second scan still reads a green
+`0` while two of five accounts are offline.
+
+**Holds:** totals order and coverage caption; rank bars with current/required,
+MET/UNMET and threshold ticks; sortable register; remembered Grid/Table;
+mobile card stacking; plain `OFFLINE` labels in the register.
+
+**Issues:**
+
+- **P1 — The attention tile can say all-clear while the account list does not.**
+  At 1440 the tile reads green `0` with “No known actions · coverage
+  incomplete” above two `OFFLINE` rows and four “need verification” items.
+  `DashboardTotals.tsx:87-95` colors success whenever `attentionCount === 0`,
+  regardless of missing or stale snapshots. The qualifier is 12px tertiary, so
+  the 3-second read is “all clear.”
+- **P1 — Grid and register disagree on “checks.”** Foundation's card says
+  “2 of 3 checks” (rank-target conditions); its register row says `3/4`
+  (ratio, buffer, seeding, login). Both columns are labelled “Checks,” so the
+  same account has two answers. The register also has no target rank or
+  distance-to-next-rank column, so the dense view drops the page's core
+  question.
+- **P2 — Health is still color-only on the primary surface.** Cards show an
+  8px green or gray dot with no written state; the register writes `OFFLINE`
+  for non-ok rows but omits `HEALTHY`, and the Checks strip has four unlabelled
+  segments. DESIGN requires a dot to be paired with a written label.
+- **P2 — Stale looks current.** The stale card keeps a green dot and no `*`;
+  the register stars only Upload/Download/Bonus (`2.00 TiB*`) while Ratio,
+  Buffer and Seeding stay clean. A stale snapshot is a fleet-wide footnote, not
+  a per-card state (`DashboardTotals.tsx:46-49,98-111`).
+- **P2 — Metric colors stop at the register.** Ratio keeps amber, but Buffer,
+  Seeding and Transfer values are neutral in the table
+  (`TrackerRegister.tsx:700-723`); only the card grid carries upload green,
+  download violet, buffer blue, bonus orange. The same hue does not follow the
+  metric into the table, so the two views look like different products.
+- **P2 — At 390 the first screen answers 3 of 4 questions.** The 844px
+  viewport ends before the first rank target; “Need attention” is the fifth
+  tile alone beside an empty cell. The page is totals-first, rank-later, which
+  is the right order on the desktop grid but not on a phone.
+- **P3 — Type and vocabulary drift between views.** Grid H1 “Trackers” is 30px;
+  register H1 “Account register” is 36px (DESIGN: 28/32). Meta changes from
+  “5 accounts · as of 2026-10-29” to “5 trackers · last poll just now,” ratio
+  from `2.00x` to `2.00×`, age from “1 year, 10 months” to “1y 10m.”
+- **P3 — Label tracking is still 0.12–0.14em**, not the 0.06em DESIGN value:
+  computed 1.44px on 12px tile labels and 1.68px on 12px register heads.
+
 ## Decisions for you
 
 1. **P32b dependency:** merge the dashboard grid/table branch before declaring

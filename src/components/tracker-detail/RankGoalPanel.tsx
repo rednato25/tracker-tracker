@@ -37,7 +37,6 @@ interface RankGoalPanelProps {
   platformMeta: PlatformMeta | null
 }
 
-const STALE_MS = 24 * 60 * 60 * 1000
 
 function findUploadCondition(
   goal: RankRequirementGroup
@@ -93,6 +92,18 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
       : condition.status === "unmet"
         ? "text-danger"
         : "text-warn"
+  const barClass =
+    condition.status === "met"
+      ? "bg-success"
+      : condition.status === "unmet"
+        ? "bg-danger"
+        : "bg-warn"
+  const percent =
+    condition.observedValue !== null &&
+    condition.requiredValue !== null &&
+    condition.requiredValue > 0
+      ? Math.min(100, Math.round((condition.observedValue / condition.requiredValue) * 100))
+      : 0
   return (
     <li className="border-t border-border py-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -115,6 +126,11 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
           </span>
         )}
       </div>
+      {condition.requiredValue !== null && (
+        <div className="mt-2 h-1.5 overflow-hidden bg-elevated" aria-hidden="true" data-rank-condition-bar>
+          <span className={`block h-full ${barClass}`} style={{ width: `${percent}%` }} />
+        </div>
+      )}
       {condition.unitReading === "conservative" && (
         <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>
       )}
@@ -294,7 +310,7 @@ export function RankGoalPanel({
 
   if (!pilot || targetOptions.length === 0) {
     return (
-      <section id="rank-goal" className="scroll-mt-16 border border-border bg-raised p-4">
+      <section id="rank-goal" className="scroll-mt-16 border border-border border-t-2 bg-raised p-4">
         <H2 className="uppercase tracking-wider">Rank goal</H2>
         <p className="mt-2 text-xs text-secondary">
           Structured rank progress is unavailable for this tracker. The existing ladder and free-text
@@ -307,7 +323,7 @@ export function RankGoalPanel({
   return (
     <section
       id="rank-goal"
-      className="scroll-mt-16 border border-border bg-raised p-4"
+      className="scroll-mt-16 border border-border border-t-2 bg-raised p-4"
       style={{ borderTopColor: accentColor }}
       data-rank-goal-panel
     >

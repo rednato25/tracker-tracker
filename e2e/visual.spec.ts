@@ -1154,6 +1154,7 @@ test.describe.serial("P32a foundation visual evidence", () => {
           ${1 * 1024 ** 4}, 8, 1, 1234, 0, 1, false, 0, false
         )
       `
+      await sql`update app_settings set rank_goals = ${JSON.stringify({ [String(tracker.id)]: { targetRank: "Super User" } })}`
     } finally {
       await sql.end()
     }
@@ -1163,6 +1164,7 @@ test.describe.serial("P32a foundation visual evidence", () => {
     if (foundationTrackerId === null) return
     const sql = e2eSql()
     try {
+      await sql`update app_settings set rank_goals = null`
       await sql`delete from trackers where id = ${foundationTrackerId}`
     } finally {
       await sql.end()
@@ -1215,5 +1217,64 @@ test.describe.serial("P32a foundation visual evidence", () => {
         path: `test-results/visual-foundation-${route.slug}-mobile-dark.png`,
       })
     }
+  })
+
+  test("captures tracker detail and settings", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+
+    for (const route of [
+      { slug: "tracker-detail", path: `/trackers/${foundationTrackerId}` },
+      { slug: "settings-detail", path: "/settings" },
+    ]) {
+      await page.setViewportSize({ width: 1440, height: 1000 })
+      await page.goto(route.path)
+      await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+        document.documentElement.dataset.theme = "light"
+      })
+      await page.waitForTimeout(200)
+      await page.screenshot({ path: `test-results/p32d-${route.slug}-light.png` })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.waitForTimeout(150)
+      await page.screenshot({ path: `test-results/p32d-${route.slug}-dark.png` })
+
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.waitForFunction(
+        () => document.querySelector('[data-mobile="true"]') !== null
+      )
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+        document.documentElement.dataset.theme = "light"
+      })
+      await page.waitForTimeout(200)
+      await page.screenshot({ path: `test-results/p32d-${route.slug}-mobile.png` })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.waitForTimeout(150)
+      await page.screenshot({ path: `test-results/p32d-${route.slug}-mobile-dark.png` })
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.goto(`/trackers/${foundationTrackerId}`)
+    const rankGoal = page.locator("#main-content #rank-goal")
+    await expect(rankGoal.locator("[data-rank-condition-bar]").first()).toBeVisible({
+      timeout: 15_000,
+    })
+    await rankGoal.scrollIntoViewIfNeeded()
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/p32d-rank-goal-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/p32d-rank-goal-dark.png" })
   })
 })

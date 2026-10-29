@@ -30,16 +30,19 @@ export function SettingsSection({
 }: SettingsSectionProps) {
   return (
     <section aria-labelledby={`${id}-heading`}>
-      <H2 id={`${id}-heading`} className={clsx("mb-4 flex items-center gap-2", headingClassName)}>
-        {title}
-        {tooltip && <InfoTip content={tooltip} docs={docs} />}
-      </H2>
+      <div className="mb-3 flex items-center gap-2 border-b border-border pb-2">
+        <span className="h-3.5 w-0.5 shrink-0 bg-accent" aria-hidden="true" />
+        <H2 id={`${id}-heading`} className={clsx("flex items-center gap-2", headingClassName)}>
+          {title}
+          {tooltip && <InfoTip content={tooltip} docs={docs} />}
+        </H2>
+      </div>
       {notice && (
         <div className="mb-4">
           <Notice variant="warn" box header={notice.label} message={notice.message} />
         </div>
       )}
-      <Card elevation="raised" className={cardClassName}>
+      <Card elevation="raised" className={clsx("p-4 md:p-5", cardClassName)}>
         {children}
       </Card>
     </section>

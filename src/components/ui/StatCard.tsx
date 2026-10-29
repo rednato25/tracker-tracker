@@ -96,6 +96,7 @@ type StatCardProps =
 
 function Shell({
   alert,
+  accentColor,
   children,
   className,
   style,
@@ -116,12 +117,13 @@ function Shell({
   return (
     <div
       className={clsx(
-        "bg-raised p-4 flex flex-col gap-2 border border-border rounded-nm-lg overflow-visible relative",
+        "bg-raised p-4 flex flex-col gap-2 border border-t-2 border-border rounded-nm-lg overflow-visible relative",
         center && "items-center gap-3",
         className
       )}
       style={{
         borderColor: alertColor ?? undefined,
+        borderTopColor: alertColor ?? accentColor ?? "var(--color-border)",
         ...style,
       }}
       {...rest}

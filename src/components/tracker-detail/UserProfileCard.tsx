@@ -30,9 +30,9 @@ export function UserProfileCard({
   const joinedDate = formatJoinedDate(tracker.joinedAt)
 
   return (
-    <div className="nm-raised bg-elevated px-4 sm:px-6 py-5 w-full sm:w-fit rounded-nm-lg">
+    <div className="w-full border border-border bg-raised p-4 sm:w-fit sm:min-w-[24rem]">
       <div className="flex items-center gap-6">
-        <div className="flex items-center justify-center w-14 h-14 nm-inset-sm bg-control-bg shrink-0 overflow-hidden rounded-nm-pill">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden border border-border bg-elevated">
           {tracker.remoteUserId ? (
             <TrackerAvatar trackerId={tracker.id} accentColor={tc} />
           ) : (

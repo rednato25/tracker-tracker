@@ -111,7 +111,7 @@ describe("RankProgress pills", () => {
     const leech = screen.getByText("Leech")
     expect(leech).not.toHaveStyle({ backgroundColor: "rgba(0, 212, 255, 0.06)" })
     expect(leech).not.toHaveStyle({ borderStyle: "dashed" })
-    expect(leech).toHaveClass("text-secondary")
+    expect(leech).toHaveClass("text-tertiary")
   })
 })
 

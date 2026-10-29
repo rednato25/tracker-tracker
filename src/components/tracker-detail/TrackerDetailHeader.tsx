@@ -75,7 +75,10 @@ export function TrackerDetailHeader({
   const health = getTrackerHealth(tracker)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div
+      className="flex flex-col gap-5 border border-border border-t-2 bg-raised p-4 md:p-5"
+      style={{ borderTopColor: tc }}
+    >
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex flex-col gap-3">
           {/* Title row */}
@@ -90,7 +93,7 @@ export function TrackerDetailHeader({
                 aria-hidden="true"
               />
             )}
-            <H1 className="text-3xl font-bold tracking-tight">{tracker.name}</H1>
+            <H1>{tracker.name}</H1>
             <PulseDot status={getHealthPulseDot(health)} size="md" />
             <Tooltip content={`Open ${tracker.name}`}>
               <a
@@ -117,7 +120,7 @@ export function TrackerDetailHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:shrink-0">
+        <div className="flex w-full flex-wrap items-center gap-2 justify-start sm:w-auto sm:shrink-0">
           <Tooltip content="Fetch raw API response">
             <Button
               variant="ghost"

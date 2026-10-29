@@ -7,7 +7,6 @@ import clsx from "clsx"
 import Link from "next/link"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Badge, PulseDot } from "@/components/ui"
-import { registryEntryFor } from "@/data/tracker-registry"
 import {
   formatAccountAge,
   formatBytesFromString,

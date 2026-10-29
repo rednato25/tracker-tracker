@@ -876,137 +876,6 @@ test.describe.serial("monitoring register visual evidence", () => {
     await register.screenshot({ path: "test-results/visual-register-mobile.png" })
   })
 })
-test.describe.serial("rank goal summary visual evidence", () => {
-  const ids: number[] = []
-
-  test.beforeAll(async () => {
-    const sql = e2eSql()
-    try {
-      const [settings] = await sql<{ encryption_salt: string }[]>`
-        select encryption_salt from app_settings limit 1
-      `
-      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
-      const rows = [
-        { name: "TEST Rank Goal", slug: "torrentleech", group: "Power User" },
-        { name: "TEST Rank Unsupported", slug: "aither", group: "Power User" },
-      ]
-      const idsBySlug: Record<string, number> = {}
-      for (const row of rows) {
-        const [tracker] = await sql<{ id: number }[]>`
-          insert into trackers (
-            name, base_url, registry_slug, platform_type, is_active,
-            joined_at, last_polled_at, encrypted_api_token, created_at, updated_at
-          ) values (
-            ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, 'unit3d', true,
-            ${new Date(Date.now() - 20 * 86400000)}, now(),
-            ${encrypt("synthetic-p26-token", key)}, now(), now()
-          ) returning id
-        `
-        ids.push(tracker.id)
-        idsBySlug[row.slug] = tracker.id
-        await sql`
-          insert into tracker_snapshots (
-            tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
-            buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
-            required_ratio, warned, freeleech_tokens, is_manual
-          ) values (
-            ${tracker.id}, now(), ${1 * 1024 ** 4}, ${500 * 1024 ** 3}, 1.0, ${row.group},
-            ${512 * 1024 ** 3}, 3, 0, 100, 0, 1, false, 0, false
-          )
-        `
-      }
-      await sql`
-        update app_settings
-        set rank_goals = ${JSON.stringify({
-          [String(idsBySlug.torrentleech)]: { targetRank: "Super User" },
-          [String(idsBySlug.aither)]: { targetRank: "Power User" },
-        })}
-      `
-    } finally {
-      await sql.end()
-    }
-  })
-
-  test.afterAll(async () => {
-    const sql = e2eSql()
-    try {
-      for (const id of ids) await sql`delete from trackers where id = ${id}`
-      await sql`update app_settings set rank_goals = null`
-    } finally {
-      await sql.end()
-    }
-  })
-
-  test("captures light/dark desktop and 390px summary layouts", async ({ page }) => {
-    await page.goto("/")
-    await expect(page.locator("[data-rank-stacks]")).toBeVisible({ timeout: 15_000 })
-    const ranksToggle = page.getByRole("button", { name: "Ranks" })
-    if ((await ranksToggle.getAttribute("aria-expanded")) === "false") {
-      await ranksToggle.click()
-    }
-    await expect(page.locator("[data-rank-goal-summary]")).toHaveCount(2)
-    await expect(page.getByText("Target set")).toBeVisible()
-    await expect(page.getByText("Structured progress unavailable")).toBeVisible()
-    await expect(page.getByText(/Current: Power User/).first()).toBeVisible()
-
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "light"
-      document.querySelector("[data-rank-stacks]")?.scrollIntoView({ block: "start" })
-    })
-    await page.waitForTimeout(200)
-    await page.locator("[data-rank-stacks]").screenshot({
-      path: "test-results/visual-rank-summary-light.png",
-    })
-
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "dark"
-    })
-    await page.locator("[data-rank-stacks]").screenshot({
-      path: "test-results/visual-rank-summary-dark.png",
-    })
-
-    await page.setViewportSize({ width: 390, height: 1200 })
-    await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"]') !== null
-    )
-    await page.waitForTimeout(300)
-    await page.evaluate(() => {
-      document.querySelector("[data-rank-stacks]")?.scrollIntoView({ block: "start" })
-    })
-    await page.locator("[data-rank-stacks]").screenshot({
-      path: "test-results/visual-rank-summary-mobile.png",
-    })
-
-    await page.setViewportSize({ width: 1280, height: 1400 })
-    await page.goto(`/trackers/${ids[0]}#rank-goal`)
-    const rankPanel = page.locator("#main-content #rank-goal")
-    await expect(rankPanel).toBeVisible({ timeout: 15_000 })
-    await rankPanel.getByRole("button", { name: "Clear target" }).click()
-    await expect(rankPanel.getByLabel("Target rank")).toHaveValue("")
-    await expect(rankPanel.getByText(/No saved target for this tracker/)).toBeVisible()
-    await expect(rankPanel.getByText(/Suggested next rank:/)).toBeVisible()
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "light"
-      document.querySelector("#rank-goal")?.scrollIntoView({ block: "start" })
-    })
-    await page.waitForTimeout(200)
-    await rankPanel.screenshot({ path: "test-results/visual-rank-target-light.png" })
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "dark"
-    })
-    await rankPanel.screenshot({ path: "test-results/visual-rank-target-dark.png" })
-
-    await page.setViewportSize({ width: 390, height: 1200 })
-    await page.waitForFunction(
-      () => document.querySelector('[data-mobile="true"]') !== null
-    )
-    await page.waitForTimeout(300)
-    await page.evaluate(() => {
-      document.querySelector("#rank-goal")?.scrollIntoView({ block: "start" })
-    })
-    await rankPanel.screenshot({ path: "test-results/visual-rank-target-mobile.png" })
-  })
-})
 test.describe.serial("dashboard at-a-glance visual evidence", () => {
   const ids: number[] = []
 
@@ -1063,7 +932,7 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
   test.afterAll(async () => {
     const sql = e2eSql()
     try {
-      await sql`update app_settings set rank_goals = null`
+      await sql`update app_settings set rank_goals = null, recruitment_state = null`
       for (const id of ids) await sql`delete from trackers where id = ${id}`
     } finally {
       await sql.end()
@@ -1125,6 +994,7 @@ test.describe.serial("dashboard at-a-glance visual evidence", () => {
 })
 test.describe.serial("P32a foundation visual evidence", () => {
   let foundationTrackerId: number | null = null
+  let pathwayTrackerId: number | null = null
 
   test.beforeAll(async () => {
     const sql = e2eSql()
@@ -1154,7 +1024,33 @@ test.describe.serial("P32a foundation visual evidence", () => {
           ${1 * 1024 ** 4}, 8, 1, 1234, 0, 1, false, 0, false
         )
       `
-      await sql`update app_settings set rank_goals = ${JSON.stringify({ [String(tracker.id)]: { targetRank: "Super User" } })}`
+      const [pathwayTracker] = await sql<{ id: number }[]>`
+        insert into trackers (
+          name, base_url, registry_slug, platform_type, is_active, joined_at,
+          last_polled_at, encrypted_api_token, color, created_at, updated_at
+        ) values (
+          'TEST Pathways', 'https://tt-p33a.invalid', 'alpharatio', 'unit3d', true,
+          '2025-01-01T00:00:00.000Z', now(), ${encrypt("synthetic-p33a-token", key)},
+          '#6d56eb', now(), now()
+        ) returning id
+      `
+      pathwayTrackerId = pathwayTracker.id
+      await sql`
+        insert into tracker_snapshots (
+          tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+          buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+          required_ratio, warned, freeleech_tokens, is_manual
+        ) values (
+          ${pathwayTracker.id}, now(), ${1 * 1024 ** 4}, ${500 * 1024 ** 3}, 2.0, 'Power User',
+          ${512 * 1024 ** 3}, 4, 0, 500, 0, 1, false, 0, false
+        )
+      `
+      await sql`update app_settings set rank_goals = ${JSON.stringify({ [String(tracker.id)]: { targetRank: "Super User" } })}, recruitment_state = ${JSON.stringify({
+        version: 2,
+        desiredTrackerSlug: "BroadcasTheNet",
+        hiddenPathKeys: [],
+        goalLinks: [],
+      })}`
     } finally {
       await sql.end()
     }
@@ -1164,8 +1060,11 @@ test.describe.serial("P32a foundation visual evidence", () => {
     if (foundationTrackerId === null) return
     const sql = e2eSql()
     try {
-      await sql`update app_settings set rank_goals = null`
+      await sql`update app_settings set rank_goals = null, recruitment_state = null`
       await sql`delete from trackers where id = ${foundationTrackerId}`
+      if (pathwayTrackerId !== null) {
+        await sql`delete from trackers where id = ${pathwayTrackerId}`
+      }
     } finally {
       await sql.end()
     }
@@ -1276,5 +1175,91 @@ test.describe.serial("P32a foundation visual evidence", () => {
     })
     await page.waitForTimeout(150)
     await page.screenshot({ path: "test-results/p32d-rank-goal-dark.png" })
+  })
+
+  test("captures P33a decisions at 1440, 1024 and 390", async ({ page }) => {
+    test.setTimeout(180_000)
+    expect(foundationTrackerId).not.toBeNull()
+    const routes = [
+      { slug: "dashboard", path: "/" },
+      { slug: "pathways", path: "/pathways" },
+      { slug: "tracker", path: `/trackers/${foundationTrackerId}` },
+      { slug: "settings", path: "/settings" },
+    ]
+
+    for (const width of [1440, 1024, 390]) {
+      await page.setViewportSize({ width, height: 1000 })
+      for (const route of routes) {
+        await page.goto(route.path)
+        await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+        if (width === 390) {
+          await page.waitForFunction(
+            () => document.querySelector('[data-mobile="true"]') !== null
+          )
+        }
+        await page.evaluate(() => {
+          document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+          document.documentElement.dataset.theme = "light"
+        })
+        await page.waitForTimeout(150)
+        await page.screenshot({
+          path: `test-results/p33a-${route.slug}-${width}-light.png`,
+        })
+        await page.evaluate(() => {
+          document.documentElement.dataset.theme = "dark"
+        })
+        await page.waitForTimeout(120)
+        await page.screenshot({
+          path: `test-results/p33a-${route.slug}-${width}-dark.png`,
+        })
+      }
+
+      await page.goto("/")
+      await page.getByRole("button", { name: "Table" }).click()
+      await expect(page.locator("#main-content #register")).toBeVisible({ timeout: 15_000 })
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+        document.documentElement.dataset.theme = "light"
+      })
+      await page.waitForTimeout(150)
+      await page.screenshot({
+        path: `test-results/p33a-dashboard-table-${width}-light.png`,
+      })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.waitForTimeout(120)
+      await page.screenshot({
+        path: `test-results/p33a-dashboard-table-${width}-dark.png`,
+      })
+    }
+
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await page.goto("/pathways")
+      if (width === 390) {
+        await page.waitForFunction(
+          () => document.querySelector('[data-mobile="true"]') !== null
+        )
+      }
+      const details = page.locator("#main-content details").first()
+      await details.locator("summary").click()
+      await expect(details.getByText("Requirement bars")).toBeVisible()
+      await page.evaluate(() => {
+        document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+        document.documentElement.dataset.theme = "light"
+      })
+      await page.waitForTimeout(150)
+      await page.screenshot({
+        path: `test-results/p33a-pathways-details-${width}-light.png`,
+      })
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark"
+      })
+      await page.waitForTimeout(120)
+      await page.screenshot({
+        path: `test-results/p33a-pathways-details-${width}-dark.png`,
+      })
+    }
   })
 })

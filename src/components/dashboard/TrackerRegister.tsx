@@ -303,7 +303,7 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
   })
 }
 
-function ViabilityStrip({ segments, passed }: { segments: Tone[]; passed: number }) {
+function ChecksStrip({ segments, passed }: { segments: Tone[]; passed: number }) {
   const known = segments.some((segment) => segment !== "muted")
   return (
     <span className="flex items-center gap-2" aria-label={known ? `Checks: ${passed} of 4` : "Checks unknown"} role="img">
@@ -651,7 +651,7 @@ function TrackerRegister({
                   {row.rank}
                 </span>
                 <span className="px-3">
-                  <ViabilityStrip segments={row.segments} passed={row.passed} />
+                  <ChecksStrip segments={row.segments} passed={row.passed} />
                 </span>
               </Link>
             </li>
@@ -713,7 +713,7 @@ function TrackerRegister({
                   </span>
                   <span className="col-span-2 flex items-center justify-between gap-2 pt-1">
                     <span className="slot-label">{row.rank}</span>
-                    <ViabilityStrip segments={row.segments} passed={row.passed} />
+                    <ChecksStrip segments={row.segments} passed={row.passed} />
                   </span>
                 </span>
               </Link>

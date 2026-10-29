@@ -134,7 +134,10 @@ function distanceTextFor(target: string | null, bars: RankSummaryBar[]): string 
     return `${formatValue(bar.metric, Math.max(0, left))} ${label}`
   })
   const hasUnknown = remaining.some((bar) => bar.currentValue === null)
-  return `${target}: ${parts.join(", ")}${hasUnknown ? "" : " left"}`
+  const hasRemaining = remaining.some(
+    (bar) => bar.currentValue !== null && bar.requiredValue - bar.currentValue > 0
+  )
+  return `${target}: ${parts.join(", ")}${!hasUnknown && hasRemaining ? " left" : ""}`
 }
 
 function nextRequirementsFor(

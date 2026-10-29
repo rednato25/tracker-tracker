@@ -82,7 +82,7 @@ describe("RankProgress pills", () => {
   it("names the ladder and prints n of N", () => {
     renderPills("Power User")
     expect(screen.getByRole("img", { name: "Power User, rank 2 of 2" })).toBeInTheDocument()
-    expect(screen.getByText("2 of 2 ranks")).toBeInTheDocument()
+    expect(screen.getByText(/2 of 2 ranks/)).toBeInTheDocument()
   })
 
   it("still highlights the current class through the case-insensitive matcher", () => {

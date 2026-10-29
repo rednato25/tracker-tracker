@@ -113,7 +113,7 @@ tables, charts, sparklines, details and pathways.
 | Uploaded | `#22c55e` | `#166534` | Green, always |
 | Downloaded | `#a855f7` | `#7e22ce` | Data violet, always; never used for controls or the accent |
 | Buffer | `#3b82f6` | `#1d4ed8` | Blue, always |
-| Ratio | `#22c55e` / `#f59e0b` / `#ef4444` | `#166534` / `#854d0e` / `#b91c1c` | Yata ratio ramp: green at 10+, amber at 1+, red below 1; when the tracker's required ratio is known, red only below it and a ratio at/above the requirement is never red |
+| Ratio | `#f59e0b` | `#854d0e` | One ratio metric color for the value everywhere. Status comes from MET/UNMET/UNKNOWN text and markers, never from the value hue. Equality follows the stored operator: gte is met at equality; gt is not. |
 | Seeding | `#3b82f6` | `#1d4ed8` | Blue, always |
 | Bonus | `#f97316` | `#c2410c` | Orange, always |
 | Need attention | `#ef4444` when above zero, `#22c55e` at zero | `#b91c1c` / `#166534` | Written count plus color |
@@ -198,9 +198,14 @@ the only violet used for controls.
   account age. The account age is a real duration or `Unknown`.
 - Stat grid: uploaded, downloaded, buffer, ratio, seeding, bonus. Values use the
   metric tokens; labels stay secondary.
-- Target bars: one row per active requirement, labelled `current / required`.
-  Fill uses the requirement state color, not a generic progress color. Unknown
-  current or required values show `?`; stale values show `*`.
+- Rank progress prints `n of N` and the distance in words to the saved or next
+  rank (for example `Super User: 340 GiB upload, 12 days account age left`) from
+  the existing rank summary. State rank once per view. Grid cards replace the
+  separate dashboard ladder section.
+- Target bars: one row per active requirement, labelled `current / required`,
+  with a threshold tick, MET/UNMET/UNKNOWN text and a fill that never contradicts
+  the text. Fill uses the requirement state color, not a generic progress color.
+  Unknown current or required values show `?`; stale values show `*`.
 - Rank targets come from the registry and saved rank goals. There is no ETA, no
   promotion date and no invented threshold.
 - One-of groups are labelled "One of"; all-of groups stack normally.

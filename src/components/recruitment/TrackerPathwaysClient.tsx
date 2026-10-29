@@ -621,7 +621,7 @@ export function TrackerPathwaysClient({
                       <span>{row.age}</span>
                       <span>
                         {row.directCount} direct{" "}
-                        {row.directCount === 1 ? "lead" : "leads"}
+                        {row.directCount === 1 ? "route" : "routes"}
                       </span>
                     </span>
                   )}

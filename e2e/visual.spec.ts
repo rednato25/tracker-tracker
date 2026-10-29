@@ -1177,7 +1177,7 @@ test.describe.serial("P32a foundation visual evidence", () => {
     await page.screenshot({ path: "test-results/p32d-rank-goal-dark.png" })
   })
 
-  test("captures P33a decisions at 1440, 1024 and 390", async ({ page }) => {
+  test("captures P33b decisions at 1440, 1024 and 390", async ({ page }) => {
     test.setTimeout(180_000)
     expect(foundationTrackerId).not.toBeNull()
     const routes = [
@@ -1192,6 +1192,16 @@ test.describe.serial("P32a foundation visual evidence", () => {
       for (const route of routes) {
         await page.goto(route.path)
         await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+        if (width === 1440 && route.slug === "settings") {
+          const box = await page.locator("[data-settings-page]").boundingBox()
+          expect(box?.width ?? 0).toBeLessThanOrEqual(896)
+        }
+        if (width === 390 && route.slug === "settings") {
+          const tabRows = await page.locator('[role="tab"]').evaluateAll((tabs) => {
+            return new Set(tabs.map((tab) => Math.round(tab.getBoundingClientRect().top))).size
+          })
+          expect(tabRows, "settings tabs wrap to two rows").toBe(2)
+        }
         if (width === 390) {
           await page.waitForFunction(
             () => document.querySelector('[data-mobile="true"]') !== null
@@ -1203,34 +1213,44 @@ test.describe.serial("P32a foundation visual evidence", () => {
         })
         await page.waitForTimeout(150)
         await page.screenshot({
-          path: `test-results/p33a-${route.slug}-${width}-light.png`,
+          path: `test-results/p33b-${route.slug}-${width}-light.png`,
         })
         await page.evaluate(() => {
           document.documentElement.dataset.theme = "dark"
         })
         await page.waitForTimeout(120)
         await page.screenshot({
-          path: `test-results/p33a-${route.slug}-${width}-dark.png`,
+          path: `test-results/p33b-${route.slug}-${width}-dark.png`,
         })
       }
 
       await page.goto("/")
       await page.getByRole("button", { name: "Table" }).click()
       await expect(page.locator("#main-content #register")).toBeVisible({ timeout: 15_000 })
+      if (width === 1024) {
+        const tableFits = await page
+          .locator("[data-register-table]")
+          .evaluate((element) => element.scrollWidth <= element.clientWidth + 1)
+        expect(tableFits, "register table fits at 1024px").toBe(true)
+        const pageFits = await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth
+        )
+        expect(pageFits, "page does not overflow at 1024px").toBe(true)
+      }
       await page.evaluate(() => {
         document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
         document.documentElement.dataset.theme = "light"
       })
       await page.waitForTimeout(150)
       await page.screenshot({
-        path: `test-results/p33a-dashboard-table-${width}-light.png`,
+        path: `test-results/p33b-dashboard-table-${width}-light.png`,
       })
       await page.evaluate(() => {
         document.documentElement.dataset.theme = "dark"
       })
       await page.waitForTimeout(120)
       await page.screenshot({
-        path: `test-results/p33a-dashboard-table-${width}-dark.png`,
+        path: `test-results/p33b-dashboard-table-${width}-dark.png`,
       })
     }
 
@@ -1242,23 +1262,23 @@ test.describe.serial("P32a foundation visual evidence", () => {
           () => document.querySelector('[data-mobile="true"]') !== null
         )
       }
+      await expect(page.locator("[data-step-requirement-bars]").first()).toBeVisible()
       const details = page.locator("#main-content details").first()
       await details.locator("summary").click()
-      await expect(details.getByText("Requirement bars")).toBeVisible()
       await page.evaluate(() => {
         document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
         document.documentElement.dataset.theme = "light"
       })
       await page.waitForTimeout(150)
       await page.screenshot({
-        path: `test-results/p33a-pathways-details-${width}-light.png`,
+        path: `test-results/p33b-pathways-details-${width}-light.png`,
       })
       await page.evaluate(() => {
         document.documentElement.dataset.theme = "dark"
       })
       await page.waitForTimeout(120)
       await page.screenshot({
-        path: `test-results/p33a-pathways-details-${width}-dark.png`,
+        path: `test-results/p33b-pathways-details-${width}-dark.png`,
       })
     }
   })

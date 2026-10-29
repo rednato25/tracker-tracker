@@ -13,12 +13,24 @@ interface TabBarProps<T extends string> {
   activeTab: T
   onChange: (tab: T) => void
   compact?: boolean
+  wrap?: boolean
 }
 
-function TabBar<T extends string>({ tabs, activeTab, onChange, compact = false }: TabBarProps<T>) {
+function TabBar<T extends string>({
+  tabs,
+  activeTab,
+  onChange,
+  compact = false,
+  wrap = false,
+}: TabBarProps<T>) {
   return (
     <div
-      className={clsx("flex overflow-x-auto border-b border-border", compact ? "gap-3" : "gap-5")}
+      className={clsx(
+        "border-b border-border",
+        wrap
+          ? "flex flex-wrap gap-x-2 gap-y-1 sm:gap-x-5"
+          : clsx("flex overflow-x-auto", compact ? "gap-3" : "gap-5")
+      )}
       role="tablist"
     >
       {tabs.map((tab) => {
@@ -29,10 +41,14 @@ function TabBar<T extends string>({ tabs, activeTab, onChange, compact = false }
             type="button"
             onClick={() => onChange(tab.key)}
             className={clsx(
-              "relative -mb-px shrink-0 cursor-pointer whitespace-nowrap border-b-2 transition-colors duration-150",
+              "relative -mb-px shrink-0 cursor-pointer border-b-2 transition-colors duration-150",
+              wrap ? "whitespace-normal text-left sm:whitespace-nowrap" : "whitespace-nowrap",
               compact
                 ? "px-0 py-1.5 font-mono text-xs"
-                : "px-0 py-2 font-cond text-xs font-semibold uppercase tracking-[0.12em]",
+                : clsx(
+                    "px-0 py-2 font-cond text-xs font-semibold uppercase",
+                    wrap ? "tracking-[0.04em]" : "tracking-[0.12em]"
+                  ),
               active
                 ? "border-accent text-primary"
                 : "border-transparent text-secondary hover:text-primary"

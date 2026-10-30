@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+﻿import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { TrackerGrid } from "@/components/dashboard/TrackerGrid"
 import type { RankGoalSummary } from "@/lib/rank-summary"
@@ -65,7 +65,11 @@ function summary(overrides: Partial<RankGoalSummary> = {}): RankGoalSummary {
     currentRankHidden: false,
     targetRank: "Elite",
     targetInvalid: false,
+    targetReached: false,
     automaticNextRank: null,
+    nextRankName: null,
+    nextIsTextOnly: false,
+    highestAutomatic: false,
     status: "goal",
     metCount: 1,
     unmetCount: 1,
@@ -180,6 +184,132 @@ describe("TrackerGrid", () => {
     expect(screen.queryByText("Requirement 3")).not.toBeInTheDocument()
     expect(screen.getByText("+2 more requirements")).toBeInTheDocument()
     expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
+  })
+
+  it("says Highest automatic class reached instead of No structured requirement", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ latestStats: { ...tracker().latestStats!, group: "TL GOD" } })]}
+        summaries={[
+          summary({
+            currentRank: "TL GOD",
+            targetRank: null,
+            automaticNextRank: null,
+            highestAutomatic: true,
+            bars: [],
+            status: "no-target",
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Highest automatic class reached")).toBeInTheDocument()
+    expect(screen.queryByText("No structured requirement to show.")).not.toBeInTheDocument()
+  })
+
+  it("shows Target reached and the next automatic class", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ latestStats: { ...tracker().latestStats!, group: "Super User" } })]}
+        summaries={[
+          summary({
+            currentRank: "Super User",
+            targetRank: "Power User",
+            targetReached: true,
+            automaticNextRank: "Extreme User",
+            distanceText: "Extreme User: 1.00 TiB upload left",
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Target reached")).toBeInTheDocument()
+    expect(screen.getByText("Target: Power User")).toBeInTheDocument()
+    expect(screen.getByText("Next automatic class: Extreme User")).toBeInTheDocument()
+  })
+
+  it("names a text-only next class and labels its rule text", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ registrySlug: "v3x", name: "V3X" })]}
+        summaries={[
+          summary({
+            targetRank: null,
+            automaticNextRank: "Second rÃ´le",
+            nextRankName: "Second rÃ´le",
+            nextIsTextOnly: true,
+            nextRankRequirements: "Level 10, 11 088 XP",
+            bars: [],
+            status: "unsupported",
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("From tracker rules (not tracked automatically)")).toBeInTheDocument()
+    expect(screen.getByText("Second rÃ´le: Level 10, 11 088 XP")).toBeInTheDocument()
+  })
+
+  it("shows the failed-poll pause, next retry and plain error", () => {
+    const pausedAt = "2026-10-28T10:00:00.000Z"
+    const { container } = render(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            pausedAt,
+            lastErrorAt: pausedAt,
+            consecutiveFailures: 5,
+            lastError: "Request timed out",
+            latestStats: null,
+          }),
+        ]}
+        summaries={[summary({ bars: [], targetRank: null, status: "no-target" })]}
+        now={NOW}
+      />
+    )
+    const block = container.querySelector("[data-failed-poll-pause]") as HTMLElement
+    expect(block).toHaveTextContent("Paused after 5 failed polls")
+    expect(block).toHaveTextContent(/next retry \d{2}:\d{2}/)
+    expect(block).toHaveTextContent("Timeout")
+  })
+
+  it("stops a login-expired pause without a next retry", () => {
+    const pausedAt = "2026-10-28T10:00:00.000Z"
+    const { container } = render(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            pausedAt,
+            lastErrorAt: pausedAt,
+            consecutiveFailures: 6,
+            lastError: "Login expired, update credentials",
+            latestStats: null,
+          }),
+        ]}
+        summaries={[summary({ bars: [], targetRank: null, status: "no-target" })]}
+        now={NOW}
+      />
+    )
+    const block = container.querySelector("[data-failed-poll-pause]") as HTMLElement
+    expect(block).toHaveTextContent("Paused after 6 failed polls")
+    expect(block).toHaveTextContent("Login expired, update credentials")
+    expect(block).not.toHaveTextContent(/next retry/)
+  })
+
+  it("never shows an automatic retry for a manual pause", () => {
+    const { container } = render(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            userPausedAt: "2026-10-28T10:00:00.000Z",
+            pausedAt: null,
+          }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(container.querySelector("[data-failed-poll-pause]")).toBeNull()
   })
 
   it("writes the strict requirement and shortfall marker at equality", () => {

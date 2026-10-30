@@ -11,6 +11,7 @@ import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   formatAccountAge,
   formatBytesFromString,
+  formatClockTime,
   formatCount,
   formatDate,
   formatRatioDisplay,
@@ -19,7 +20,13 @@ import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
 import { getTrackerChecks } from "@/lib/tracker-checks"
-import { getHealthLabel, getHealthPulseDot, getTrackerHealth } from "@/lib/tracker-status"
+import { nextFailureRetryAt, plainPollError } from "@/lib/tracker-recovery"
+import {
+  getHealthLabel,
+  getHealthPulseDot,
+  getPauseState,
+  getTrackerHealth,
+} from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
 import { TrackerChecksStrip } from "./TrackerChecksStrip"
 
@@ -144,6 +151,9 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   now: Date
 }) {
   const health = getTrackerHealth(tracker)
+  const pause = getPauseState(tracker)
+  const failurePause = pause.isPaused && pause.reason === "failure"
+  const retryAt = failurePause ? nextFailureRetryAt(tracker) : null
   const stats = tracker.latestStats
   const bars = summary?.bars ?? []
   const visibleBars = bars.slice(0, 3)
@@ -206,6 +216,22 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           className="mt-0.5 shrink-0 text-tertiary transition-colors group-hover:text-accent"
         />
       </div>
+
+      {failurePause && (
+        <div data-failed-poll-pause className="border-t border-border pt-3 text-xs">
+          <p className="text-danger">
+            Paused after <span className="font-mono">{tracker.consecutiveFailures}</span> failed{" "}
+            {tracker.consecutiveFailures === 1 ? "poll" : "polls"}
+            {retryAt && (
+              <>
+                {" "}
+                · next retry <span className="font-mono">{formatClockTime(retryAt)}</span>
+              </>
+            )}
+          </p>
+          <p className="mt-0.5 text-secondary">{plainPollError(tracker.lastError)}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3">
         <Metric
@@ -276,10 +302,23 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
             Rank target
           </span>
-          <Badge variant={summary?.targetRank ? "accent" : "default"}>
-            {targetRank ?? "No target"}
+          <Badge
+            variant={summary?.targetReached ? "success" : summary?.targetRank ? "accent" : "default"}
+          >
+            {summary?.targetReached ? "Target reached" : (targetRank ?? "No target")}
           </Badge>
         </div>
+        {summary?.targetReached && summary.targetRank && (
+          <p className="text-xs text-tertiary">Target: {summary.targetRank}</p>
+        )}
+        {summary?.targetReached && summary.automaticNextRank && (
+          <p className="text-xs text-secondary">
+            Next automatic class: {summary.automaticNextRank}
+          </p>
+        )}
+        {summary?.targetReached && !summary.automaticNextRank && (
+          <p className="text-xs text-secondary">Highest automatic class reached</p>
+        )}
         {summary && summary.totalChecks > 0 && (
           <p className="font-mono text-xs text-tertiary">
             {summary.metCount} of {summary.totalChecks} requirements
@@ -288,7 +327,17 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
         {summary?.distanceText && (
           <p className="text-xs text-secondary">{summary.distanceText}</p>
         )}
-        {visibleBars.length > 0 ? (
+        {summary?.nextIsTextOnly && summary.nextRankName ? (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-tertiary">
+              From tracker rules (not tracked automatically)
+            </span>
+            <p className="text-xs text-secondary">
+              {summary.nextRankName}
+              {summary.nextRankRequirements ? `: ${summary.nextRankRequirements}` : ""}
+            </p>
+          </div>
+        ) : visibleBars.length > 0 ? (
           <div className="flex flex-col gap-2">
             {visibleBars.map((bar) => (
               <RankBar key={bar.id} bar={bar} />
@@ -297,6 +346,10 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
               <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more requirements</p>
             )}
           </div>
+        ) : summary?.highestAutomatic ? (
+          !summary.targetReached && (
+            <p className="text-xs text-secondary">Highest automatic class reached</p>
+          )
         ) : summary?.nextRankRequirements ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-tertiary">
@@ -304,7 +357,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             </span>
             <p className="text-xs text-secondary">{summary.nextRankRequirements}</p>
           </div>
-        ) : (
+        ) : summary?.targetReached ? null : (
           <p className="text-xs text-tertiary">
             {summary?.status === "unsupported"
               ? "No next-class requirements are published for this tracker."

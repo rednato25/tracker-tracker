@@ -122,6 +122,68 @@ describe("buildRankGoalSummaries", () => {
     expect(summary.linkLabel).toBe("Open tracker")
   })
 
+  it("says the highest automatic class is reached at the top of the ladder", () => {
+    const summary = buildRankGoalSummaries(
+      [tracker({ latestStats: { ...tracker().latestStats!, group: "TL GOD" } })],
+      {},
+      NOW
+    )[0]
+    expect(summary.highestAutomatic).toBe(true)
+    expect(summary.automaticNextRank).toBeNull()
+    expect(summary.nextRankName).toBeNull()
+    expect(summary.nextRankRequirements).toBeNull()
+    expect(summary.bars).toEqual([])
+  })
+
+  it("marks a saved target at or below the current class as reached and offers the next class", () => {
+    const summary = buildRankGoalSummaries(
+      [tracker({ latestStats: { ...tracker().latestStats!, group: "Super User" } })],
+      { "1": { targetRank: "Power User" } },
+      NOW
+    )[0]
+    expect(summary.targetReached).toBe(true)
+    expect(summary.targetRank).toBe("Power User")
+    expect(summary.automaticNextRank).toBe("Extreme User")
+    expect(summary.bars.length).toBeGreaterThan(0)
+    expect(summary.distanceText).toMatch(/^Extreme User:/)
+  })
+
+  it("shows Target reached and the highest automatic class when the target is already at the top", () => {
+    const summary = buildRankGoalSummaries(
+      [
+        tracker({
+          registrySlug: "myanonamouse",
+          name: "MyAnonaMouse",
+          latestStats: { ...tracker().latestStats!, group: "Power User" },
+        }),
+      ],
+      { "1": { targetRank: "User" } },
+      NOW
+    )[0]
+    expect(summary.targetReached).toBe(true)
+    expect(summary.automaticNextRank).toBeNull()
+    expect(summary.highestAutomatic).toBe(true)
+  })
+
+  it("names a text-only next class and keeps its rule text", () => {
+    const summary = buildRankGoalSummaries(
+      [
+        tracker({
+          registrySlug: "v3x",
+          name: "V3X",
+          latestStats: { ...tracker().latestStats!, group: "Figurant" },
+        }),
+      ],
+      {},
+      NOW
+    )[0]
+    expect(summary.status).toBe("unsupported")
+    expect(summary.automaticNextRank).toBe("Second rôle")
+    expect(summary.nextRankName).toBe("Second rôle")
+    expect(summary.nextIsTextOnly).toBe(true)
+    expect(summary.nextRankRequirements).toBe("Level 10, 11 088 XP")
+  })
+
   it("offers only an automatic next rank and target-selection link when no target is saved", () => {
     const summaries = buildRankGoalSummaries(
       [tracker({ latestStats: { ...tracker().latestStats!, group: "Power User" } })],

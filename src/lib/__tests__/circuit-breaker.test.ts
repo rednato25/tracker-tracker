@@ -517,10 +517,12 @@ describe("pollAllTrackers: skips paused trackers", () => {
     vi.clearAllMocks()
   })
 
-  it("does not poll a tracker whose pausedAt is set", async () => {
+  it("does not poll a failure-paused tracker before its retry time", async () => {
     const pausedTracker = makeTrackerRow({
       id: 1,
-      pausedAt: new Date("2026-03-15"),
+      pausedAt: new Date(Date.now() - 30 * 60 * 1000),
+      lastErrorAt: new Date(Date.now() - 30 * 60 * 1000),
+      consecutiveFailures: 4,
       lastPolledAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2h ago, overdue
       isActive: true,
     })

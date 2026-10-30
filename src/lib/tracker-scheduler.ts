@@ -32,6 +32,13 @@ import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
 import { recordDatabaseSize } from "@/lib/server-data"
 import { pruneTrackerOutages, recordTrackerPollFailure } from "@/lib/tracker-outages"
 import { buildFetchOptions, getAdapter } from "@/lib/tracker-platforms"
+import {
+  isFailureRetryDue,
+  isLoginExpiredMessage,
+  LOGIN_EXPIRED_STOP_MESSAGE,
+  nextFailureRetryAt,
+  POLL_FAILURE_THRESHOLD,
+} from "@/lib/tracker-recovery"
 import { getPauseState, resolveRequiredRatio } from "@/lib/tracker-status"
 import { buildProxyAgentFromSettings } from "@/lib/tunnel"
 import type {
@@ -126,7 +133,7 @@ async function pollUrlFor(tracker: {
   return entry.url
 }
 
-export const POLL_FAILURE_THRESHOLD = 4
+export { POLL_FAILURE_THRESHOLD } from "@/lib/tracker-recovery"
 
 /**
  * Tolerance window for the overdue check. Trackers that would become overdue
@@ -497,12 +504,20 @@ export async function pollTracker(
   } catch (error) {
     const raw = error instanceof Error ? error.message : "Unknown error"
     const message = sanitizeNetworkError(raw, "Poll failed")
+    const wasAutoPaused = Boolean(tracker?.pausedAt) && !tracker?.userPausedAt
+    const loginExpired = isLoginExpiredMessage(message)
+    // Allow the first retry after an auth rejection. On the next failure the
+    // stored marker stops the backoff cycle and tells the user what to fix.
+    const stopLoginRetry = loginExpired && wasAutoPaused
+    const storedMessage = stopLoginRetry ? LOGIN_EXPIRED_STOP_MESSAGE : message
     log.error(
       {
         trackerId,
         trackerName: tracker?.name,
         source: isManual ? "manual" : "scheduled",
         previousFailures: tracker?.consecutiveFailures ?? "unknown",
+        loginExpired,
+        stopLoginRetry,
         // `message` is what the UI stores and is deliberately lossy. Keep the
         // raw cause in the server log too, or an adapter choking on a changed
         // payload is indistinguishable from a dead host (issue #214). Adapters
@@ -520,10 +535,10 @@ export async function pollTracker(
       const [updated] = await db
         .update(trackers)
         .set({
-          lastError: message,
+          lastError: storedMessage,
           lastErrorAt: now,
           consecutiveFailures: sql`${trackers.consecutiveFailures} + 1`,
-          pausedAt: sql`CASE WHEN ${trackers.consecutiveFailures} + 1 >= ${POLL_FAILURE_THRESHOLD} THEN ${now.toISOString()}::timestamp ELSE ${trackers.pausedAt} END`,
+          pausedAt: sql`CASE WHEN ${trackers.consecutiveFailures} + 1 >= ${POLL_FAILURE_THRESHOLD} THEN COALESCE(${trackers.pausedAt}, ${now.toISOString()}::timestamp) ELSE ${trackers.pausedAt} END`,
           updatedAt: now,
         })
         .where(eq(trackers.id, trackerId))
@@ -532,14 +547,24 @@ export async function pollTracker(
           pausedAt: trackers.pausedAt,
         })
 
-      if (updated?.pausedAt) {
+      if (stopLoginRetry) {
+        log.warn(
+          {
+            trackerId,
+            trackerName: tracker?.name,
+            consecutiveFailures: updated?.consecutiveFailures ?? tracker?.consecutiveFailures,
+            lastError: storedMessage,
+          },
+          `Tracker ${trackerId}: login expired, automatic retries stopped`
+        )
+      } else if (updated?.pausedAt) {
         log.warn(
           {
             trackerId,
             trackerName: tracker?.name,
             consecutiveFailures: updated.consecutiveFailures,
             threshold: POLL_FAILURE_THRESHOLD,
-            lastError: message,
+            lastError: storedMessage,
           },
           `Tracker ${trackerId} auto-paused after ${updated.consecutiveFailures} consecutive failures`
         )
@@ -578,7 +603,7 @@ export async function pollTracker(
           currentBufferBytes: null,
           previousBufferBytes: null,
           trackerDown: true,
-          trackerError: message,
+          trackerError: storedMessage,
           currentWarned: null,
           previousWarned: null,
           currentSeedingCount: null,
@@ -665,10 +690,14 @@ export async function pollAllTrackers(encryptionKey: Buffer): Promise<void> {
     .where(eq(trackers.isActive, true))
 
   const now = Date.now()
+  const nowDate = new Date(now)
 
   const overdue = allTrackers.filter((tracker) => {
     const pause = getPauseState(tracker)
     if (pause.isPaused) {
+      // Manual pauses stay put. Failure pauses retry on their backoff, and a
+      // login-expired pause has no nextFailureRetryAt at all.
+      const retryDue = pause.reason === "failure" && isFailureRetryDue(tracker, nowDate)
       log.debug(
         {
           tracker: tracker.name,
@@ -676,10 +705,12 @@ export async function pollAllTrackers(encryptionKey: Buffer): Promise<void> {
           consecutiveFailures: tracker.consecutiveFailures,
           pausedAt: tracker.pausedAt?.toISOString() ?? null,
           userPausedAt: tracker.userPausedAt?.toISOString() ?? null,
+          nextRetryAt: nextFailureRetryAt(tracker)?.toISOString() ?? null,
+          retryDue,
         },
-        "skipping paused tracker"
+        retryDue ? "retrying failure-paused tracker" : "skipping paused tracker"
       )
-      return false
+      return retryDue
     }
     const lastPoll = tracker.lastPolledAt?.getTime() ?? 0
     return now - lastPoll >= globalIntervalMs - BATCH_TOLERANCE_MS

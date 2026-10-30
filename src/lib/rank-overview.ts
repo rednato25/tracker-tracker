@@ -6,7 +6,13 @@
 // model is introduced; this reads the registry and the P09 evaluator.
 
 import { registryEntryFor, type TrackerRegistryEntry } from "@/data/tracker-registry"
-import { formatBytesNum, formatCount, formatDuration, formatRatio } from "@/lib/formatters"
+import {
+  formatBytesNum,
+  formatCount,
+  formatRatio,
+  formatSeedSize,
+  formatSeedTime,
+} from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
 import {
   evaluateRankGoal,
@@ -104,8 +110,8 @@ function formatValue(metric: RankMetric | null, value: number | null): string {
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
     return formatBytesNum(value)
   }
-  if (metric === "seedSizeBytes") return formatBytesNum(value)
-  if (metric === "averageSeedTimeSeconds") return formatDuration(value)
+  if (metric === "seedSizeBytes") return formatSeedSize(value)
+  if (metric === "averageSeedTimeSeconds") return formatSeedTime(value)
   if (metric === "accountRatio") return formatRatio(value)
   if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
   return formatCount(value)

@@ -4,7 +4,8 @@
 // formatRatio, formatAccountAge, formatJoinedDate, formatStatValue,
 // formatDuration, formatTimeAgo, splitValueUnit,
 // localDateStr, formatSpeed,
-// formatRatioDisplay, formatCount, formatPercent, formatClockTime, formatDateTime
+// formatRatioDisplay, formatCount, formatPercent, formatClockTime, formatDateTime,
+// formatSeedSize, formatSeedTime
 
 import type { TrackerLatestStats } from "@/types/api"
 
@@ -174,6 +175,48 @@ export function formatDuration(seconds: number): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
   if (seconds < 86400) return `${(seconds / 3600).toFixed(1)}h`
   return `${(seconds / 86400).toFixed(1)}d`
+}
+
+function compactDecimal(value: number): string {
+  if (Number.isInteger(value)) return String(value)
+  return value.toFixed(1).replace(/\.0$/, "")
+}
+
+/**
+ * Seed size is always read in binary GiB or TiB. Smaller units are noise for a
+ * rank requirement and raw bytes are never shown.
+ */
+export function formatSeedSize(bytes: number): string {
+  if (!Number.isFinite(bytes)) return "—"
+  if (bytes === 0) return "0 GiB"
+  const sign = bytes < 0 ? "-" : ""
+  const abs = Math.abs(bytes)
+  const tib = abs / 1024 ** 4
+  if (tib >= 1) {
+    return `${sign}${tib.toFixed(tib >= 100 ? 0 : tib >= 10 ? 1 : 2)} TiB`
+  }
+  const gib = abs / 1024 ** 3
+  return `${sign}${gib.toFixed(gib >= 100 ? 0 : gib >= 10 ? 1 : 2)} GiB`
+}
+
+/**
+ * Average seed time is read in days, weeks or months. Raw seconds are never
+ * shown in a rank requirement.
+ */
+export function formatSeedTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "—"
+  if (seconds === 0) return "0 days"
+  const days = seconds / 86_400
+  if (days < 14) {
+    const rounded = compactDecimal(days)
+    return `${rounded} day${rounded === "1" ? "" : "s"}`
+  }
+  if (days < 30) {
+    const weeks = compactDecimal(days / 7)
+    return `${weeks} week${weeks === "1" ? "" : "s"}`
+  }
+  const months = compactDecimal(days / 30)
+  return `${months} month${months === "1" ? "" : "s"}`
 }
 
 /**

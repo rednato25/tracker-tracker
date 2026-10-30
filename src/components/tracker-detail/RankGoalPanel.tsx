@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
-import { formatBytesNum, formatDate, formatRatio } from "@/lib/formatters"
+import { formatBytesNum, formatDate, formatRatio, formatSeedSize, formatSeedTime } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
   evaluateRankGoal,
@@ -81,6 +81,8 @@ function formatValue(
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
     return formatBytesNum(value)
   }
+  if (metric === "seedSizeBytes") return formatSeedSize(value)
+  if (metric === "averageSeedTimeSeconds") return formatSeedTime(value)
   if (metric === "accountAgeDays") return `${value} day${value === 1 ? "" : "s"}`
   if (metric === "accountRatio") return formatRatio(value)
   return String(value)

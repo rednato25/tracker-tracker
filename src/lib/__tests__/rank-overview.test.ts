@@ -94,8 +94,29 @@ describe("buildRankOverviews", () => {
     })
   })
 
-  it("labels a missing supported observation as not collected for this tracker", () => {
+  it("formats seed size and seed time in rank units, never raw bytes or seconds", () => {
     const [overview] = buildRankOverviews(
+      [
+        tracker({
+          registrySlug: "zenith",
+          name: "Zenith",
+          latestStats: { ...BASE_STATS, group: "Explorer" },
+        }),
+      ],
+      { "1": { targetRank: "Bulker" } },
+      NOW
+    )
+    const seedSize = overview.conditions.find((condition) => condition.metric === "seedSizeBytes")
+    const seedTime = overview.conditions.find(
+      (condition) => condition.metric === "averageSeedTimeSeconds"
+    )
+    expect(seedSize?.required).toBe("512 GiB")
+    expect(seedTime?.required).toBe("2 weeks")
+    expect(seedSize?.current).toBe("\u2014")
+    expect(seedTime?.current).toBe("\u2014")
+  })
+
+  it("labels a missing supported observation as not collected for this tracker", () => {    const [overview] = buildRankOverviews(
       [
         tracker({
           latestStats: { ...BASE_STATS, uploadedBytes: null },

@@ -64,10 +64,14 @@ function registrySlugFor(name: string): string | null {
   return slugs?.size === 1 ? ([...slugs][0] ?? null) : null
 }
 
+// trackerpathways stores `routeInfo[source][destination]`: the outer key is the
+// tracker you are on, and its reqs/days apply to that source. Upstream walks
+// `routeInfo[current]` forward (src/lib/graphUtils.ts and the routes API), so
+// every reader here must keep that orientation.
 const allNames = new Set(Object.keys(data.trackerInfo))
-for (const [destination, sources] of Object.entries(data.routeInfo)) {
-  allNames.add(destination)
-  for (const source of Object.keys(sources)) allNames.add(source)
+for (const [source, destinations] of Object.entries(data.routeInfo)) {
+  allNames.add(source)
+  for (const destination of Object.keys(destinations)) allNames.add(destination)
 }
 
 export const PATHWAYS_TRACKERS = [...allNames]
@@ -148,6 +152,8 @@ function routeId(sourceName: string, destinationName: string): string {
   return `tp:${encodeURIComponent(sourceName)}:${encodeURIComponent(destinationName)}`
 }
 
+// unlockInviteClass is keyed by the tracker being left. The gate belongs to the
+// route source, never the destination.
 export const RECRUITMENT_SOURCE_GATES: RecruitmentSourceGate[] = Object.entries(
   data.unlockInviteClass
 )
@@ -156,14 +162,14 @@ export const RECRUITMENT_SOURCE_GATES: RecruitmentSourceGate[] = Object.entries(
   .sort((a, b) => a.trackerId.localeCompare(b.trackerId))
 
 export const RECRUITMENT_ROUTES: RecruitmentRouteRecord[] = []
-for (const [destination, sources] of Object.entries(data.routeInfo)) {
-  for (const [sourceName, route] of Object.entries(sources)) {
+for (const [sourceName, destinations] of Object.entries(data.routeInfo)) {
+  for (const [destinationName, route] of Object.entries(destinations)) {
     RECRUITMENT_ROUTES.push({
-      id: routeId(sourceName, destination),
+      id: routeId(sourceName, destinationName),
       sourceTrackerId: sourceName,
-      destinationTrackerId: destination,
+      destinationTrackerId: destinationName,
       sourceRegistrySlug: registrySlugFor(sourceName),
-      destinationRegistrySlug: registrySlugFor(destination),
+      destinationRegistrySlug: registrySlugFor(destinationName),
       requirements: null,
       requirementNotes: route.reqs.trim() ? [route.reqs.trim()] : [],
       minimumDays:

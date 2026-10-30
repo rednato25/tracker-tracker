@@ -38,8 +38,8 @@ The four shaped surfaces are documented in `docs/YATA_REFERENCE_NOTES.md`:
 - **Dashboard** — totals row plus Grid | Table, answering "what needs attention
   and how far is the next rank".
 - **Tracker card** — header, six-metric stat grid, current/required rank bars.
-- **Pathways** — searchable target, best-path card, route chips, requirement bars,
-  collapsed other routes.
+- **Pathways** — one-step destinations, searchable target, best-path card,
+  route chips, one-line steps, collapsed other routes.
 - **Page shell** — one sticky top bar, one page width, shared navigation.
 
 ## Tokens
@@ -227,20 +227,29 @@ the only violet used for controls.
 
 ### Pathways page
 
-- Picker and best path come first. "Your trackers (N)" sits below, collapsed by default.
+- "Where your trackers can take you" comes first: one row per tracker reachable
+  in one step from an owned account, showing destination, source tracker,
+  requirement text and wait status. Ready rows come first, then known days left,
+  then unknown waits.
+- The target picker and best path follow for a specific target. There is no
+  separate "Your trackers" list; trackers missing from trackerpathways appear as
+  a short note in the one-step section.
 - Searchable target picker, saved-target chips, and one best-path card.
 - The best-path card starts with a **Best path** badge, route chips from the
   owned source to the target, and total time left.
-- Requirement bars show `current / required` from existing route data and are
-  visible on every best-path step by default. Unknown values use `?`;
-  community-only values use `*` and "Needs checking"; no bar is invented from
-  prose.
+- Each best-path step is one line: `From A to B · needs … · N days left`. A step
+  is "Ready now" only when its wait is met and it has no other requirement text.
+  Otherwise the wait and requirement stay together, for example
+  `Wait done, needs 3TB upload`.
+- Total time left uses the same rule and says when any step still needs checking.
 - Route chips use surface-2 with a 1px border and the accent only for the active
   target. They are selectors, not decorative pills.
-- The route is printed once, as chips. Steps name the destination only and do
-  not repeat the full route or the total "Ready now" badge.
-- Source text, `reqs`, evidence and stale notices stay behind the existing Details
-  disclosure. Other routes stay collapsed, maximum five.
+- The route is printed once, as chips. Steps do not repeat the full route or the
+  total "Ready now" badge.
+- Details stays collapsed and shows only the source updated date and last
+  verification. No raw ISO timestamps.
+- Other routes stay collapsed, maximum five. No requirement bars in the step
+  row; the one-line requirement text carries the check.
 - No seedbox bar, no Yata target headline copy, no promotion estimate.
 
 ### Controls

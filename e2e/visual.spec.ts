@@ -530,11 +530,19 @@ test.describe.serial("tracker pathways visual evidence", () => {
 
     await expect(page.getByRole("link", { name: "Pathways", exact: true })).toBeVisible()
     await expect(page).toHaveTitle("Tracker pathways")
+    await expect(
+      pathwaysPage.getByRole("heading", { name: "Where your trackers can take you" })
+    ).toBeVisible()
+    await expect(pathwaysPage.locator("[data-direct-route]").first()).toBeVisible()
+    await expect(pathwaysPage.getByText(/Your trackers \(/)).toHaveCount(0)
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
-    await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("BroadcasTheNet")
-    await pathwaysPage.getByRole("option", { name: "BroadcasTheNet" }).click()
+    await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("Aither")
+    await pathwaysPage.getByRole("option", { name: "Aither" }).click()
     await expect(pathwaysPage.getByText("Best path")).toBeVisible({ timeout: 15_000 })
     await expect(pathwaysPage.getByText("Total time left")).toBeVisible()
+    await expect(pathwaysPage.getByText(/From AlphaRatio to Aither ·/)).toBeVisible()
+    await expect(pathwaysPage.getByText("Structured requirements")).toHaveCount(0)
+    await expect(pathwaysPage.getByText(/Availability:/)).toHaveCount(0)
     await expect(pathwaysPage.getByText("Saving…")).toHaveCount(0)
 
     await page.setViewportSize({ width: 1440, height: 1400 })
@@ -551,10 +559,11 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
     })
-    await expect(pathwaysPage.locator("[data-step-requirement-bars]").first()).toBeVisible()
     const firstStepDetails = pathwaysPage.locator("details").first()
     await firstStepDetails.locator("summary").click()
     await expect(firstStepDetails).toHaveAttribute("open", "")
+    await expect(firstStepDetails).toContainText(/Source updated .+ · last verified /)
+    await expect(firstStepDetails).not.toContainText(/\d{4}-\d{2}-\d{2}T/)
     await page.waitForTimeout(150)
     await page.screenshot({ path: "test-results/visual-pathways-details-light.png" })
     await page.evaluate(() => {
@@ -577,6 +586,15 @@ test.describe.serial("tracker pathways visual evidence", () => {
       document.documentElement.dataset.theme = "light"
     })
     await page.screenshot({ path: "test-results/visual-pathways-mobile.png" })
+
+    await pathwaysPage.getByText("Best path").scrollIntoViewIfNeeded()
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-mobile-best.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-mobile-best-dark.png" })
   })
 })
 test.describe.serial("Prowlarr search visual evidence", () => {
@@ -1047,7 +1065,7 @@ test.describe.serial("P32a foundation visual evidence", () => {
       `
       await sql`update app_settings set rank_goals = ${JSON.stringify({ [String(tracker.id)]: { targetRank: "Super User" } })}, recruitment_state = ${JSON.stringify({
         version: 2,
-        desiredTrackerSlug: "BroadcasTheNet",
+        desiredTrackerSlug: "Aither",
         hiddenPathKeys: [],
         goalLinks: [],
       })}`
@@ -1262,9 +1280,10 @@ test.describe.serial("P32a foundation visual evidence", () => {
           () => document.querySelector('[data-mobile="true"]') !== null
         )
       }
-      await expect(page.locator("[data-step-requirement-bars]").first()).toBeVisible()
+      await expect(page.getByText(/^From .+ to .+ ·/).first()).toBeVisible()
       const details = page.locator("#main-content details").first()
       await details.locator("summary").click()
+      await expect(details).toContainText(/Source updated .+ · last verified /)
       await page.evaluate(() => {
         document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
         document.documentElement.dataset.theme = "light"

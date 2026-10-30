@@ -111,9 +111,9 @@ describe("P35 structured rank requirements", () => {
 
   it("Upload.cx: Member does not exist and the seed, upload-count and combined ladders evaluate", () => {
     const entry = getTrackerBySlug("uploadcx")
-    expect(
-      entry?.userClasses.some((userClass) => userClass.name.toLowerCase() === "member")
-    ).toBe(false)
+    expect(entry?.userClasses.some((userClass) => userClass.name.toLowerCase() === "member")).toBe(
+      false
+    )
 
     expect(evaluate("uploadcx", "User", { accountRatio: 0.6 }).status).toBe("met")
 
@@ -300,6 +300,18 @@ describe("P35 structured rank requirements", () => {
       accountRatio: 1.0,
     })
     expect(member.status).toBe("met")
+  })
+
+  it("AvistaZ: Member is the highest automatic class and Leech sits below the ladder", () => {
+    const entry = getTrackerBySlug("avistaz")
+    const automatic =
+      entry?.userClasses
+        .filter((userClass) => !userClass.outsideLadder)
+        .map((userClass) => userClass.name) ?? []
+    expect(automatic).toEqual(["Newbie", "Member"])
+    expect(entry?.userClasses.find((userClass) => userClass.name === "Leech")?.outsideLadder).toBe(
+      "below"
+    )
   })
 
   it("DigitalCore: Sentinel meets its numeric thresholds and Viceroy needs more age", () => {

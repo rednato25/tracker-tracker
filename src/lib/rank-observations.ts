@@ -31,7 +31,9 @@ export function buildRankObservations(input: RankObservationSource): RankObserva
 
   const observations: RankObservationMap = {
     accountRatio: {
-      value: stats.ratioIsInfinite ? null : stats.ratio,
+      // Zero download with upload is a real ratio, not missing data. Keeping it
+      // as Infinity lets a minimum-ratio condition see the maximum possible value.
+      value: stats.ratioIsInfinite ? Number.POSITIVE_INFINITY : stats.ratio,
       freshness,
       source,
       observedAt,

@@ -229,7 +229,8 @@ function observationMap(tracker: TrackerSummary, now: Date): RankObservationMap 
   const observedAt = tracker.lastPolledAt
   return {
     accountRatio: {
-      value: stats.ratioIsInfinite ? null : stats.ratio,
+      // Zero download with upload is the maximum possible ratio, not missing data.
+      value: stats.ratioIsInfinite ? Number.POSITIVE_INFINITY : stats.ratio,
       freshness,
       source,
       observedAt,

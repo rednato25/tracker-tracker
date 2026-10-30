@@ -38,6 +38,21 @@ export const seedpool: TrackerRegistryEntry = {
   statusPageUrl: "https://status.seedpool.org/",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rank page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "Seed size is not a supported rank metric and stays an unsupported condition.",
+    "ProPool is bought or gifted in IRC and sits outside the earned ladder.",
+    "Request, invite, freeleech and unsatisfied-slot counts are perks, not promotion thresholds.",
+  ],
   userClasses: [
     {
       name: "Cesspool",
@@ -45,24 +60,61 @@ export const seedpool: TrackerRegistryEntry = {
       outsideLadder: "below",
     },
     { name: "KiddiePool", requirements: "Timeoutzone", outsideLadder: "below" },
-    { name: "User", requirements: "Ratio ≥ 0.4 — DL Slots: ∞, Unsatisfied Slots: 20" },
+    {
+      name: "User",
+      requirements: "Ratio ≥ 0.4 — DL Slots: ∞, Unsatisfied Slots: 20",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+        ],
+      },
+    },
     {
       name: "Pool",
       requirements:
         "Seedsize ≥ 256 GiB; Age ≥ 1 month — Can Request, Send Invite, Unsatisfied Slots: 30",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-pool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 256 GiB" },
+        ],
+      },
     },
     {
       name: "PowerPool",
       requirements: "Seedsize ≥ 512 GiB; Age ≥ 3 months — Can Fill Requests, Unsatisfied Slots: 50",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-powerpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 512 GiB" },
+        ],
+      },
     },
     {
       name: "SuperPool",
       requirements:
         "Seedsize ≥ 1 TiB; Age ≥ 6 months — Invite Forums, Freeleech, Unsatisfied Slots: 75",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-superpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 1 TiB" },
+        ],
+      },
     },
     {
       name: "UberPool",
       requirements: "Seedsize ≥ 5 TiB; Age ≥ 9 months — Freeleech, Unsatisfied Slots: 100",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-uberpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 270, scope: "account", label: "At least 9 months registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
+        ],
+      },
     },
     {
       name: "ProPool",
@@ -74,11 +126,25 @@ export const seedpool: TrackerRegistryEntry = {
       name: "MegaPool",
       requirements:
         "Seedsize ≥ 25 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 125",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-megapool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 12 months registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 25 TiB" },
+        ],
+      },
     },
     {
       name: "GodPool",
       requirements:
         "Seedsize ≥ 100 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 150",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-godpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 12 months registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 100 TiB" },
+        ],
+      },
     },
     {
       name: "FoundingPool",

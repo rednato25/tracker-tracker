@@ -166,8 +166,10 @@ export function rankDefinitionForSlug(
 }
 const EMPTY_PROGRESS = { met: 0, unmet: 0, unknown: 0, total: 0 }
 
-function finite(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value)
+function knownNumber(value: unknown): value is number {
+  // Infinity is a real observation for an account ratio with zero download.
+  // It is not missing data, and compare() handles it like any other number.
+  return typeof value === "number" && !Number.isNaN(value)
 }
 
 function observationFor(
@@ -277,7 +279,7 @@ function evaluateCondition(
   }
 
   const observation = observationFor(condition.metric, input)
-  if (!observation || !finite(observation.value)) {
+  if (!observation || !knownNumber(observation.value)) {
     return {
       id,
       kind: "numeric",

@@ -56,6 +56,19 @@ describe("buildRankObservations", () => {
     expect(result.uploads).toBeUndefined()
   })
 
+  it("keeps an infinite ratio as a usable observation", () => {
+    const result = buildRankObservations({
+      latestStats: stats({ ratio: null, ratioIsInfinite: true }),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "unit3d",
+      platformMeta: null,
+      now: NOW,
+    })
+
+    expect(result.accountRatio?.value).toBe(Number.POSITIVE_INFINITY)
+    expect(result.accountRatio?.freshness).toBe("fresh")
+  })
+
   it("marks stale observations consistently", () => {
     const result = buildRankObservations({
       latestStats: stats(),

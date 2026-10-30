@@ -2,6 +2,9 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+const TiB = 1024 ** 4
+
 export const filelist: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "filelist",
@@ -40,19 +43,57 @@ export const filelist: TrackerRegistryEntry = {
   statusPageUrl: "",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: "https://filelist.io/rules.php",
+    title: "FileList Rules - User Classes",
+    accessedAt: "2026-10-30",
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "The rules page is login-gated. Thresholds come from the existing registry text and are not independently re-read here.",
+  },
+  rankUnresolved: [
+    "GB/TB text without a stated unit basis is read as the larger binary GiB/TiB value.",
+    "Demoted-below ratios are demotion states, not promotion conditions.",
+  ],
   userClasses: [
     { name: "User", requirements: "Starting class" },
     {
       name: "Power User",
       requirements: "4 weeks registered, 25 GB upload, ratio > 1.05. Demoted below 0.95",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "fl-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 28, scope: "account", label: "At least 4 weeks registered" },
+          { kind: "numeric", id: "fl-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 25 * GiB, scope: "account", unitReading: "conservative", label: "At least 25 GiB uploaded" },
+          { kind: "numeric", id: "fl-power-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 1.05, scope: "account", label: "Ratio above 1.05" },
+        ],
+      },
     },
     {
       name: "Addict",
       requirements: "26 weeks registered, 500 GB upload, ratio > 4.00. Demoted below 3.00",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "fl-addict-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 182, scope: "account", label: "At least 26 weeks registered" },
+          { kind: "numeric", id: "fl-addict-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 500 * GiB, scope: "account", unitReading: "conservative", label: "At least 500 GiB uploaded" },
+          { kind: "numeric", id: "fl-addict-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 4.0, scope: "account", label: "Ratio above 4.00" },
+        ],
+      },
     },
     {
       name: "Elite",
       requirements: "4 years registered, 4 TB upload, ratio > 5.00. Demoted below 4.00",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "fl-elite-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 1460, scope: "account", label: "At least 4 years registered" },
+          { kind: "numeric", id: "fl-elite-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 4 * TiB, scope: "account", unitReading: "conservative", label: "At least 4 TiB uploaded" },
+          { kind: "numeric", id: "fl-elite-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 5.0, scope: "account", label: "Ratio above 5.00" },
+        ],
+      },
     },
     {
       name: "VIP",

@@ -29,17 +29,49 @@ export const zenith: TrackerRegistryEntry = {
   statusPageUrl: "",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rank page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "Seed size and weighted average seed time are not supported rank metrics and stay as unsupported conditions.",
+    "Upload-path classes add an uploaded-torrent count; the seedsize path does not.",
+    "Download slots, invites, freeleech and H&R immunity are perks, not promotion thresholds.",
+  ],
   userClasses: [
     { name: "User", requirements: "No thresholds" },
     {
       name: "Explorer",
       requirements: "Seedsize 1 TiB, account age 1 week, weighted average seedtime 3 days",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "zn-explorer-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 7, scope: "account", label: "At least 1 week registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 1 TiB" },
+          { kind: "non-numeric", label: "Weighted average seed time ≥ 3 days" },
+        ],
+      },
     },
     {
       name: "Bulker",
       path: "upload",
       requirements:
         "Seedsize 512 GiB, age 1 month, weighted average seedtime 2 weeks, 100 uploaded torrents",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "zn-bulker-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "numeric", id: "zn-bulker-uploads", metric: "uploads", comparison: "gte", requiredValue: 100, scope: "account", label: "At least 100 uploaded torrents" },
+          { kind: "non-numeric", label: "Seed size ≥ 512 GiB" },
+          { kind: "non-numeric", label: "Weighted average seed time ≥ 2 weeks" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 15" },
         { type: "upload", label: "Upload Torrents" },
@@ -52,6 +84,15 @@ export const zenith: TrackerRegistryEntry = {
       path: "upload",
       requirements:
         "Seedsize 1.5 TiB, age 3 months, weighted average seedtime 3 weeks, 200 uploaded torrents",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "zn-force-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "zn-force-uploads", metric: "uploads", comparison: "gte", requiredValue: 200, scope: "account", label: "At least 200 uploaded torrents" },
+          { kind: "non-numeric", label: "Seed size ≥ 1.5 TiB" },
+          { kind: "non-numeric", label: "Weighted average seed time ≥ 3 weeks" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 30" },
         { type: "upload", label: "Upload Torrents" },
@@ -66,6 +107,15 @@ export const zenith: TrackerRegistryEntry = {
       path: "upload",
       requirements:
         "Seedsize 3 TiB, age 6 months, weighted average seedtime 4 weeks, 500 uploaded torrents",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "zn-protector-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
+          { kind: "numeric", id: "zn-protector-uploads", metric: "uploads", comparison: "gte", requiredValue: 500, scope: "account", label: "At least 500 uploaded torrents" },
+          { kind: "non-numeric", label: "Seed size ≥ 3 TiB" },
+          { kind: "non-numeric", label: "Weighted average seed time ≥ 4 weeks" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 50" },
         { type: "upload", label: "Upload Torrents" },
@@ -81,6 +131,14 @@ export const zenith: TrackerRegistryEntry = {
       name: "Climber",
       path: "seedsize",
       requirements: "Seedsize 4 TiB, age 1 month, weighted average seedtime 2 weeks",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "zn-climber-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 4 TiB" },
+          { kind: "non-numeric", label: "Weighted average seed time ≥ 2 weeks" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 15" },
         { type: "upload", label: "Upload Torrents" },
@@ -92,6 +150,14 @@ export const zenith: TrackerRegistryEntry = {
       name: "Builder",
       path: "seedsize",
       requirements: "Seedsize 16 TiB, age 3 months, weighted average seedtime 3 weeks",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "zn-builder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 16 TiB" },
+          { kind: "non-numeric", label: "Weighted average seed time ≥ 3 weeks" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 30" },
         { type: "upload", label: "Upload Torrents" },
@@ -103,6 +169,14 @@ export const zenith: TrackerRegistryEntry = {
       name: "Hoarder",
       path: "seedsize",
       requirements: "Seedsize 30 TiB, age 6 months, weighted average seedtime 4 weeks",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "zn-hoarder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
+          { kind: "non-numeric", label: "Seed size ≥ 30 TiB" },
+          { kind: "non-numeric", label: "Weighted average seed time ≥ 4 weeks" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 50" },
         { type: "upload", label: "Upload Torrents" },

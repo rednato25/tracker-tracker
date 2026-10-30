@@ -2,6 +2,9 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+const TiB = 1024 ** 4
+
 export const digitalcore: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "digitalcore",
@@ -29,32 +32,86 @@ export const digitalcore: TrackerRegistryEntry = {
   statusPageUrl: "https://status.digitalcore.club/status/digitalcore",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rules page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "Request slots, invites, forums and upload moderation are perks, not promotion thresholds.",
+    "GiB and TiB text is read as written.",
+  ],
   userClasses: [
     { name: "Rogue", requirements: "Starting class" },
     {
       name: "Sentinel",
       requirements:
         "Age ≥ 14 days, upload ≥ 50 GiB, ratio ≥ 1.05. Requests, bonus system, moderated uploads",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "dc-sentinel-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 14, scope: "account", label: "At least 14 days registered" },
+          { kind: "numeric", id: "dc-sentinel-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * GiB, scope: "account", label: "At least 50 GiB uploaded" },
+          { kind: "numeric", id: "dc-sentinel-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.05, scope: "account", label: "Ratio at least 1.05" },
+        ],
+      },
     },
     {
       name: "Viceroy",
       requirements:
         "Age ≥ 105 days, upload ≥ 300 GiB, ratio ≥ 1.10. Top lists, extended stats, IP logging cleared",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "dc-viceroy-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 105, scope: "account", label: "At least 105 days registered" },
+          { kind: "numeric", id: "dc-viceroy-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 300 * GiB, scope: "account", label: "At least 300 GiB uploaded" },
+          { kind: "numeric", id: "dc-viceroy-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.10" },
+        ],
+      },
     },
     {
       name: "Sentry",
       requirements:
         "Age ≥ 210 days, upload ≥ 1.2 TiB, ratio ≥ 1.10. 3 request slots, 2 invites, Sentry+ forums",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "dc-sentry-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 210, scope: "account", label: "At least 210 days registered" },
+          { kind: "numeric", id: "dc-sentry-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1.2 * TiB, scope: "account", label: "At least 1.2 TiB uploaded" },
+          { kind: "numeric", id: "dc-sentry-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.10" },
+        ],
+      },
     },
     {
       name: "Guardian",
       requirements:
         "Age ≥ 500 days, upload ≥ 5 TiB, ratio ≥ 20.0. 5 extra invites, 6 extra request slots, unmoderated uploads",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "dc-guardian-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 500, scope: "account", label: "At least 500 days registered" },
+          { kind: "numeric", id: "dc-guardian-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "At least 5 TiB uploaded" },
+          { kind: "numeric", id: "dc-guardian-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 20, scope: "account", label: "Ratio at least 20.0" },
+        ],
+      },
     },
     {
       name: "Vanguard",
       requirements:
         "Age ≥ 730 days, upload ≥ 20 TiB, ratio ≥ 20.0. 10 extra invites, 10 extra request slots",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "dc-vanguard-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 730, scope: "account", label: "At least 730 days registered" },
+          { kind: "numeric", id: "dc-vanguard-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", label: "At least 20 TiB uploaded" },
+          { kind: "numeric", id: "dc-vanguard-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 20, scope: "account", label: "Ratio at least 20.0" },
+        ],
+      },
     },
     {
       name: "Uploader",

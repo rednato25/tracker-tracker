@@ -23,7 +23,7 @@ import { canDetectLogin } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
-import { getTrackerChecks } from "@/lib/tracker-checks"
+import { getTrackerChecks, readLoginWindow } from "@/lib/tracker-checks"
 import {
   isLoginExpiredMessage,
   nextFailureRetryAt,
@@ -300,6 +300,10 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const topOfLadder = !targetRank
   const manualLogin = !canDetectLogin(tracker.platformType)
   const loginMarking = useLoginMarking(tracker, now, onTrackerUpdated)
+  const loginWindow = manualLogin
+    ? readLoginWindow({ ...tracker, lastAccessAt: loginMarking.lastAccessAt }, now)
+    : null
+  const loginDueSoon = loginWindow?.tone === "warn" || loginWindow?.tone === "crit"
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -550,11 +554,12 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             ) : (
               <Button
                 size="sm"
-                variant="secondary"
+                variant={loginDueSoon ? "primary" : "secondary"}
                 onClick={() => void loginMarking.markLogin()}
                 disabled={loginMarking.saving}
                 className="min-h-11 sm:min-h-9"
                 data-login-button
+                data-login-due={loginDueSoon ? "true" : undefined}
               >
                 {loginMarking.saving ? "Saving…" : "Logged in today"}
               </Button>

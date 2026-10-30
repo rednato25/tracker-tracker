@@ -478,6 +478,30 @@ describe("TrackerGrid", () => {
     })
   })
 
+  it("highlights the login button when the login deadline is within seven days", () => {
+    const { rerender } = render(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-06-30" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const dueButton = screen.getByRole("button", { name: "Logged in today" })
+    expect(dueButton).toHaveAttribute("data-login-due", "true")
+    expect(dueButton.className).toContain("bg-accent-fill")
+
+    rerender(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-10-25" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const laterButton = screen.getByRole("button", { name: "Logged in today" })
+    expect(laterButton).not.toHaveAttribute("data-login-due")
+    expect(laterButton.className).not.toContain("bg-accent-fill")
+  })
+
   it("records today's login when the site link opens for an undetectable tracker", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }

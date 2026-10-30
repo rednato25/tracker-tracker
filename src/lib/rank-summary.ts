@@ -18,7 +18,7 @@ import {
   rankDefinitionForSlug,
   type TrackerRankDefinition,
 } from "@/lib/rank-goals"
-import { buildRankLadder } from "@/lib/rank-ladder"
+import { ladderPosition } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -48,7 +48,11 @@ export interface RankGoalSummary {
   currentRankHidden: boolean
   targetRank: string | null
   targetInvalid: boolean
+  targetReached: boolean
   automaticNextRank: string | null
+  nextRankName: string | null
+  nextIsTextOnly: boolean
+  highestAutomatic: boolean
   status: "goal" | "no-target" | "unsupported"
   metCount: number
   unmetCount: number
@@ -140,15 +144,32 @@ function distanceTextFor(target: string | null, bars: RankSummaryBar[]): string 
   return `${target}: ${parts.join(", ")}${!hasUnknown && hasRemaining ? " left" : ""}`
 }
 
-function nextRequirementsFor(
+function nextMetaFor(
   entry: ReturnType<typeof registryEntryFor>,
-  currentRank: string | null
-): string | null {
-  if (!entry) return null
-  const ladder = buildRankLadder(entry.userClasses ?? [], currentRank)
-  if (!ladder) return null
-  const next = ladder.rungs[ladder.currentIndex + 1]
-  return next?.requirements ?? null
+  currentRank: string | null,
+  now: Date
+): {
+  name: string | null
+  requirements: string | null
+  textOnly: boolean
+  highest: boolean
+} {
+  if (!entry) return { name: null, requirements: null, textOnly: false, highest: false }
+  const next = evaluateRankGoal({
+    userClasses: entry.userClasses ?? [],
+    rankPaths: entry.rankPaths,
+    currentRank,
+    observations: {},
+    now,
+    joinedAt: null,
+    structuredGoals: {},
+  })
+  return {
+    name: next.nextRank,
+    requirements: next.freeTextRequirement,
+    textOnly: next.status === "no-structured-goal",
+    highest: next.status === "no-next-rank" || next.status === "appointed",
+  }
 }
 
 function summarizeConditions(result: RankGroupResult | null): {
@@ -204,6 +225,9 @@ function buildSummary(
     structuredGoals: pilot.goals,
   }
 
+  const next = evaluateRankGoal(input)
+  const nextMeta = nextMetaFor(entry, currentRank, now)
+
   if (Object.keys(pilot.goals).length === 0) {
     return {
       trackerId: tracker.id,
@@ -213,7 +237,11 @@ function buildSummary(
       currentRankHidden,
       targetRank: null,
       targetInvalid: false,
-      automaticNextRank: null,
+      targetReached: false,
+      automaticNextRank: nextMeta.name,
+      nextRankName: nextMeta.name,
+      nextIsTextOnly: nextMeta.textOnly,
+      highestAutomatic: nextMeta.highest,
       status: "unsupported",
       metCount: 0,
       unmetCount: 0,
@@ -223,24 +251,34 @@ function buildSummary(
       bars: [],
       totalChecks: 0,
       distanceText: null,
-      nextRankRequirements: nextRequirementsFor(entry, currentRank),
+      nextRankRequirements: nextMeta.requirements,
       linkLabel: "Open tracker",
       linkHref: `/trackers/${tracker.id}#rank-goal`,
     }
   }
 
+  const currentPosition = ladderPosition(entry?.userClasses ?? [], currentRank)
+  const targetPosition = target ? ladderPosition(entry?.userClasses ?? [], target) : null
+  const targetReached = Boolean(
+    target &&
+      currentPosition !== null &&
+      targetPosition !== null &&
+      targetPosition <= currentPosition
+  )
+
   let result: RankGroupResult | null = null
   let automaticNextRank: string | null = null
-  if (target) {
+  if (target && !targetReached) {
     result = evaluateRequirementGroup(pilot.goals[target], input)
+    automaticNextRank = next.nextRank
   } else {
-    const next = evaluateRankGoal(input)
     automaticNextRank = next.nextRank
     result = next.structuredRequirement
   }
 
   const counts = summarizeConditions(result)
   const progress = result?.progress ?? { met: 0, unmet: 0, unknown: 0, total: 0 }
+  const nextIsTextOnly = next.status === "no-structured-goal"
   return {
     trackerId: tracker.id,
     trackerName: tracker.name,
@@ -249,7 +287,11 @@ function buildSummary(
     currentRankHidden,
     targetRank: target,
     targetInvalid,
+    targetReached,
     automaticNextRank,
+    nextRankName: next.nextRank,
+    nextIsTextOnly,
+    highestAutomatic: next.status === "no-next-rank" || next.status === "appointed",
     status: target ? "goal" : "no-target",
     metCount: progress.met,
     unmetCount: progress.unmet,
@@ -258,8 +300,11 @@ function buildSummary(
     unknown: counts.unknown,
     bars: counts.bars,
     totalChecks: progress.total,
-    distanceText: distanceTextFor(target ?? automaticNextRank, counts.bars),
-    nextRankRequirements: nextRequirementsFor(entry, currentRank),
+    distanceText: distanceTextFor(
+      targetReached ? automaticNextRank : (target ?? automaticNextRank),
+      counts.bars
+    ),
+    nextRankRequirements: nextIsTextOnly ? next.freeTextRequirement : null,
     linkLabel: target ? "Open rank goal" : "Choose a target",
     linkHref: `/trackers/${tracker.id}#rank-goal`,
   }
@@ -300,6 +345,7 @@ export function buildRankGoalSummaries(
     if (!pilot) {
       const raw = tracker.latestStats?.group ?? null
       const hidden = Boolean(raw && isRedacted(raw))
+      const nextMeta = nextMetaFor(registryEntryFor(tracker), hidden ? null : raw, now)
       return [
         {
           trackerId: tracker.id,
@@ -309,7 +355,11 @@ export function buildRankGoalSummaries(
           currentRankHidden: hidden,
           targetRank: null,
           targetInvalid: Boolean(savedTarget),
-          automaticNextRank: null,
+          targetReached: false,
+          automaticNextRank: nextMeta.name,
+          nextRankName: nextMeta.name,
+          nextIsTextOnly: nextMeta.textOnly,
+          highestAutomatic: nextMeta.highest,
           status: "unsupported" as const,
           metCount: 0,
           unmetCount: 0,
@@ -319,7 +369,7 @@ export function buildRankGoalSummaries(
           bars: [],
           totalChecks: 0,
           distanceText: null,
-          nextRankRequirements: nextRequirementsFor(registryEntryFor(tracker), raw),
+          nextRankRequirements: nextMeta.requirements,
           linkLabel: "Open tracker",
           linkHref: `/trackers/${tracker.id}#rank-goal`,
         },

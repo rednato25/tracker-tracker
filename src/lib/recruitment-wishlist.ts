@@ -93,18 +93,6 @@ export interface WishlistPathsResult {
   unsupportedOwnedTrackers: TrackerSummary[]
 }
 
-export interface DirectDestinationView {
-  destinationTrackerId: string
-  destinationName: string
-  sourceTrackerId: string
-  sourceName: string
-  requirementText: string | null
-  waitLabel: string
-  ready: boolean
-  daysRemaining: number | null
-  evaluation: RecruitmentRouteEvaluation
-}
-
 function trackerName(slug: string): string {
   return pathwaysTrackerName(slug)
 }
@@ -464,76 +452,6 @@ function buildStepView(input: {
       sourceTracker: owner,
       savedRankGoals: input.savedRankGoals,
     }),
-  }
-}
-
-function compareDirectDestinations(
-  a: DirectDestinationView,
-  b: DirectDestinationView
-): number {
-  if (a.ready !== b.ready) return a.ready ? -1 : 1
-  const aDays = a.daysRemaining ?? Number.POSITIVE_INFINITY
-  const bDays = b.daysRemaining ?? Number.POSITIVE_INFINITY
-  if (aDays !== bDays) return aDays - bDays
-  return (
-    a.destinationName.localeCompare(b.destinationName) ||
-    a.sourceName.localeCompare(b.sourceName)
-  )
-}
-
-/**
- * One row per tracker reachable in one step from an owned account. The same
- * destination from two owned sources keeps the best row: ready first, then the
- * smaller wait, then source name. Closed routes and already-owned destinations
- * are not entry points.
- */
-export function buildDirectDestinations(input: {
-  catalog: RecruitmentCatalog
-  trackers: TrackerSummary[]
-  now: Date
-}): {
-  rows: DirectDestinationView[]
-  unsupportedOwnedTrackers: TrackerSummary[]
-} {
-  const { ownedBySlug, unsupportedOwnedTrackers } = groupOwnedTrackers(input.trackers)
-  const ownedIds = new Set(ownedBySlug.keys())
-  const best = new Map<string, DirectDestinationView>()
-
-  for (const [sourceTrackerId, owner] of ownedBySlug) {
-    for (const route of input.catalog.routes) {
-      if (route.sourceTrackerId !== sourceTrackerId) continue
-      if (route.availability === "closed") continue
-      if (ownedIds.has(route.destinationTrackerId)) continue
-      const step = buildStepView({
-        catalog: input.catalog,
-        route,
-        owner,
-        savedRankGoals: {},
-        now: input.now,
-      })
-      if (!step) continue
-
-      const row: DirectDestinationView = {
-        destinationTrackerId: route.destinationTrackerId,
-        destinationName: step.destinationName,
-        sourceTrackerId,
-        sourceName: step.sourceName,
-        requirementText: stepRequirementText(step),
-        waitLabel: stepWaitStatus(step),
-        ready: stepWaitState(step) === "ready",
-        daysRemaining: step.evaluation.timeGate.daysRemaining,
-        evaluation: step.evaluation,
-      }
-      const existing = best.get(row.destinationTrackerId)
-      if (!existing || compareDirectDestinations(row, existing) < 0) {
-        best.set(row.destinationTrackerId, row)
-      }
-    }
-  }
-
-  return {
-    rows: [...best.values()].sort(compareDirectDestinations),
-    unsupportedOwnedTrackers,
   }
 }
 

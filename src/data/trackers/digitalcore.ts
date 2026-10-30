@@ -34,17 +34,17 @@ export const digitalcore: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; rules page is login-gated",
-    accessedAt: null,
+    url: "https://digitalcore.club/",
+    title: "DigitalCore user-class list",
+    accessedAt: "2026-10-31",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
+      "Confirmed by the owner on 2026-10-31 from the site's user-class list. All comparisons are at least. GB/TB text without a stated basis is read as the larger binary GiB/TiB value.",
   },
   rankUnresolved: [
     "Request slots, invites, forums and upload moderation are perks, not promotion thresholds.",
-    "GiB and TiB text is read as written.",
+    "GB/TB text without a stated basis is read as the larger binary unit.",
   ],
   userClasses: [
     { name: "Rogue", requirements: "Starting class" },
@@ -56,7 +56,7 @@ export const digitalcore: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "dc-sentinel-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 14, scope: "account", label: "At least 14 days registered" },
-          { kind: "numeric", id: "dc-sentinel-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * GiB, scope: "account", label: "At least 50 GiB uploaded" },
+          { kind: "numeric", id: "dc-sentinel-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * GiB, scope: "account", unitReading: "conservative", label: "At least 50 GiB uploaded" },
           { kind: "numeric", id: "dc-sentinel-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.05, scope: "account", label: "Ratio at least 1.05" },
         ],
       },
@@ -69,7 +69,7 @@ export const digitalcore: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "dc-viceroy-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 105, scope: "account", label: "At least 105 days registered" },
-          { kind: "numeric", id: "dc-viceroy-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 300 * GiB, scope: "account", label: "At least 300 GiB uploaded" },
+          { kind: "numeric", id: "dc-viceroy-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 300 * GiB, scope: "account", unitReading: "conservative", label: "At least 300 GiB uploaded" },
           { kind: "numeric", id: "dc-viceroy-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.10" },
         ],
       },
@@ -77,12 +77,12 @@ export const digitalcore: TrackerRegistryEntry = {
     {
       name: "Sentry",
       requirements:
-        "Age ≥ 210 days, upload ≥ 1.2 TiB, ratio ≥ 1.10. 3 request slots, 2 invites, Sentry+ forums",
+        "Age ≥ 210 days, upload ≥ 1200 GiB, ratio ≥ 1.10. 3 request slots, 2 invites, Sentry+ forums",
       structured: {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "dc-sentry-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 210, scope: "account", label: "At least 210 days registered" },
-          { kind: "numeric", id: "dc-sentry-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1.2 * TiB, scope: "account", label: "At least 1.2 TiB uploaded" },
+          { kind: "numeric", id: "dc-sentry-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1200 * GiB, scope: "account", unitReading: "conservative", label: "At least 1200 GiB uploaded" },
           { kind: "numeric", id: "dc-sentry-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.10" },
         ],
       },
@@ -95,7 +95,7 @@ export const digitalcore: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "dc-guardian-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 500, scope: "account", label: "At least 500 days registered" },
-          { kind: "numeric", id: "dc-guardian-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "At least 5 TiB uploaded" },
+          { kind: "numeric", id: "dc-guardian-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", unitReading: "conservative", label: "At least 5 TiB uploaded" },
           { kind: "numeric", id: "dc-guardian-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 20, scope: "account", label: "Ratio at least 20.0" },
         ],
       },
@@ -108,7 +108,7 @@ export const digitalcore: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "dc-vanguard-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 730, scope: "account", label: "At least 730 days registered" },
-          { kind: "numeric", id: "dc-vanguard-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", label: "At least 20 TiB uploaded" },
+          { kind: "numeric", id: "dc-vanguard-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", unitReading: "conservative", label: "At least 20 TiB uploaded" },
           { kind: "numeric", id: "dc-vanguard-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 20, scope: "account", label: "Ratio at least 20.0" },
         ],
       },
@@ -126,6 +126,21 @@ export const digitalcore: TrackerRegistryEntry = {
     {
       name: "VIP",
       requirements: "Staff-granted for significant contributions or donation",
+      outsideLadder: "above",
+    },
+    {
+      name: "FLS",
+      requirements: "Granted or staff class",
+      outsideLadder: "above",
+    },
+    {
+      name: "Moderator",
+      requirements: "Granted or staff class",
+      outsideLadder: "above",
+    },
+    {
+      name: "Admin",
+      requirements: "Granted or staff class",
       outsideLadder: "above",
     },
   ],

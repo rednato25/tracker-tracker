@@ -299,6 +299,15 @@ describe("P35 structured rank requirements", () => {
     expect(viceroy.status).toBe("unmet")
   })
 
+  it("DigitalCore: Sentry reads its upload as 1200 GiB, not 1.2 TiB", () => {
+    const sentry = evaluate("digitalcore", "Sentry", {
+      accountAgeDays: 210,
+      uploadedBytes: 1200 * GiB,
+      accountRatio: 1.1,
+    })
+    expect(sentry.status).toBe("met")
+  })
+
   it("DreadVault: Wanderer meets numeric thresholds and Shadow Walker needs seed checks", () => {
     const wanderer = evaluate("dreadvault", "Wanderer", {
       accountAgeDays: 30,

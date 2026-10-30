@@ -1370,7 +1370,7 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 
-  test("gives the pathways picker a row width and aligns the 390 time block", async ({ page }) => {
+  test("gives the pathways picker a row width and shows route choices", async ({ page }) => {
     test.setTimeout(120_000)
 
     for (const width of [1440, 390]) {
@@ -1396,16 +1396,16 @@ test.describe.serial("P32a foundation visual evidence", () => {
         expect(pickerBox.width).toBeLessThanOrEqual(420)
       }
 
-      const route = page.getByRole("list", { name: "Route" }).first()
-      const time = page.locator("[data-pathway-time]").first()
+      const controls = page.locator("[data-route-controls]").first()
+      const route = page.locator("[data-route-choice]").first()
+      await expect(controls).toBeVisible()
       await expect(route).toBeVisible()
-      await expect(time).toBeVisible()
+      const controlsBox = await controls.boundingBox()
       const routeBox = await route.boundingBox()
-      const timeBox = await time.boundingBox()
+      expect(controlsBox).not.toBeNull()
       expect(routeBox).not.toBeNull()
-      expect(timeBox).not.toBeNull()
-      if (width === 390 && routeBox && timeBox) {
-        expect(Math.abs(routeBox.x - timeBox.x)).toBeLessThanOrEqual(2)
+      if (width === 390 && controlsBox && routeBox) {
+        expect(Math.abs(controlsBox.x - routeBox.x)).toBeLessThanOrEqual(2)
       }
       const sourceLine = page.getByText(/Source: Route data derived/).first()
       await expect(sourceLine).toContainText(/accessed [A-Z][a-z]{2} \d{1,2}, \d{4}/)

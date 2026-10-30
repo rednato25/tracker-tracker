@@ -586,7 +586,7 @@ export function TrackerGrid({
   const byId = new Map(summaries.map((summary) => [summary.trackerId, summary]))
   return (
     <section className="flex flex-col gap-3" aria-label="Tracker cards" data-tracker-grid>
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 className="font-cond text-lg font-semibold leading-6 tracking-[-0.01em] text-primary">
           Trackers
         </h2>

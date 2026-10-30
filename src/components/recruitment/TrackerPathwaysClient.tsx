@@ -370,32 +370,43 @@ export function TrackerPathwaysClient({
           <Paragraph>One step from the accounts you already have. Ready routes come first.</Paragraph>
         </div>
         {direct.rows.length > 0 ? (
-          <ul className="flex flex-col">
-            {direct.rows.map((row) => (
-              <li
-                key={row.destinationTrackerId}
-                data-direct-route={row.destinationTrackerId}
-                className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-border py-2.5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.6fr)_minmax(0,0.9fr)] sm:items-baseline sm:gap-3"
-              >
-                <span className="min-w-0 break-words font-cond text-sm font-semibold uppercase tracking-[0.06em] text-primary">
-                  {row.destinationName}
-                </span>
-                <span
-                  className={`justify-self-end font-mono text-2xs sm:justify-self-start ${
-                    row.ready ? "text-success" : "text-secondary"
-                  }`}
+          <div className="flex flex-col">
+            <div
+              aria-hidden="true"
+              className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.6fr)_minmax(0,0.9fr)] gap-3 pb-1 text-2xs uppercase tracking-[0.12em] text-tertiary sm:grid"
+            >
+              <span>Destination</span>
+              <span>From</span>
+              <span>Needs</span>
+              <span>Wait</span>
+            </div>
+            <ul className="flex flex-col">
+              {direct.rows.map((row) => (
+                <li
+                  key={row.destinationTrackerId}
+                  data-direct-route={row.destinationTrackerId}
+                  className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-border py-2.5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.6fr)_minmax(0,0.9fr)] sm:items-baseline sm:gap-3"
                 >
-                  {row.waitLabel}
-                </span>
-                <span className="col-span-2 break-words text-xs text-secondary sm:col-span-1">
-                  from {row.sourceName}
-                </span>
-                <span className="col-span-2 break-words text-xs text-secondary sm:col-span-1">
-                  {row.requirementText ?? "No requirement text"}
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <span className="order-1 min-w-0 break-words font-cond text-sm font-semibold uppercase tracking-[0.06em] text-primary">
+                    {row.destinationName}
+                  </span>
+                  <span
+                    className={`order-2 justify-self-end font-mono text-2xs sm:order-4 sm:justify-self-start ${
+                      row.ready ? "text-success" : "text-secondary"
+                    }`}
+                  >
+                    {row.waitLabel}
+                  </span>
+                  <span className="order-3 col-span-2 break-words text-xs text-secondary sm:order-2 sm:col-span-1">
+                    from {row.sourceName}
+                  </span>
+                  <span className="order-4 col-span-2 break-words text-xs text-secondary sm:order-3 sm:col-span-1">
+                    {row.requirementText ?? "No requirement text"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <p className="text-sm text-secondary">
             {trackers.length === 0

@@ -33,16 +33,17 @@ export const myanonamouse: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "mixed",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; official wiki not publicly readable",
-    accessedAt: null,
+    url: "https://www.myanonamouse.net/wiki/index.php?title=User_Classes",
+    title: "MyAnonaMouse Wiki - User Classes",
+    accessedAt: "2026-10-30",
     sourceLastModified: null,
     verification: "unresolved",
     note:
-      "The official wiki is login-gated. Only the clear numeric thresholds already present in the registry text are structured; the source itself is not independently verified here.",
+      "The official wiki is login-gated and returned 403 without a session. The numeric thresholds still come from the existing registry text and are not independently re-read here.",
   },
   rankUnresolved: [
     "Source is login-gated; promotion automation and class-appointment rules remain unresolved.",
+    "No earned ladder class is missing structured thresholds: User and Power User are the only stat-earned classes with published numbers.",
     "GB/TB text without a stated unit basis is read as the larger binary GiB/TiB value.",
   ],
   userClasses: [

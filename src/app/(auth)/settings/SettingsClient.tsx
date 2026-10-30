@@ -17,7 +17,6 @@ import { DangerZoneSection } from "@/components/settings/DangerZoneSection"
 import { DataSection } from "@/components/settings/DataSection"
 import { DigestSection } from "@/components/settings/DigestSection"
 import { EventsSection } from "@/components/settings/EventsSection"
-import { ImageHostingSection } from "@/components/settings/ImageHostingSection"
 import { IntegrationsSection } from "@/components/settings/IntegrationsSection"
 import { JackettImportSection } from "@/components/settings/JackettImportSection"
 import { PrivacySection } from "@/components/settings/PrivacySection"
@@ -128,14 +127,6 @@ export function SettingsClient({
           />
 
           <JackettImportSection />
-
-          <ImageHostingSection
-            initialHasKeys={{
-              ptpimg: initialSettings.hasPtpimgKey,
-              oeimg: initialSettings.hasOeimgKey,
-              imgbb: initialSettings.hasImgbbKey,
-            }}
-          />
 
           <SecurityPoliciesSection
             initialLockout={{

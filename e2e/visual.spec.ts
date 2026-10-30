@@ -1283,6 +1283,16 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 
+  test("keeps the image hosting section hidden", async ({ page }) => {
+    test.setTimeout(120_000)
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+      await page.goto("/settings")
+      await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText("Image Hosting", { exact: true })).toHaveCount(0)
+    }
+  })
+
   test("gives the pathways picker a row width and aligns the 390 time block", async ({ page }) => {
     test.setTimeout(120_000)
 

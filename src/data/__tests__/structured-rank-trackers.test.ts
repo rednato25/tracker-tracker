@@ -251,6 +251,22 @@ describe("P35 structured rank requirements", () => {
     expect(seeder.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
   })
 
+  it("Retro Movies Club: Film Buff meets numeric thresholds and Superstar needs seed checks", () => {
+    const filmBuff = evaluate("retromoviesclub", "Film Buff", {
+      accountAgeDays: 30,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 0.4,
+    })
+    expect(filmBuff.status).toBe("met")
+
+    const superstar = evaluate("retromoviesclub", "Superstar", {
+      accountAgeDays: 30,
+      accountRatio: 0.4,
+    })
+    expect(superstar.status).toBe("unknown")
+    expect(superstar.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
+  })
+
   it("Portugas: Hispanus meets the published thresholds and Portuga needs more upload", () => {
     const hispanus = evaluate("portugas", "Hispanus", {
       accountAgeDays: 90,

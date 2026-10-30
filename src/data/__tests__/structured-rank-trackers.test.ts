@@ -177,4 +177,20 @@ describe("P35 structured rank requirements", () => {
     })
     expect(addict.status).toBe("unmet")
   })
+
+  it("M-Team: Power User meets strict greater-than thresholds and Elite User needs more age", () => {
+    const power = evaluate("mteam", "Power User", {
+      accountAgeDays: 29,
+      downloadedBytes: 200 * GiB + 1,
+      accountRatio: 2.1,
+    })
+    expect(power.status).toBe("met")
+
+    const elite = evaluate("mteam", "Elite User", {
+      accountAgeDays: 29,
+      downloadedBytes: 200 * GiB + 1,
+      accountRatio: 2.1,
+    })
+    expect(elite.status).toBe("unmet")
+  })
 })

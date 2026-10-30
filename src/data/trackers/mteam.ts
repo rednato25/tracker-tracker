@@ -2,6 +2,8 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+
 export const mteam: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "mteam",
@@ -43,6 +45,20 @@ export const mteam: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   // The rules page confirms the nine ladder classes and VIP. It does not name
   // the administrative roles, so they are deliberately absent here.
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rank page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "GB text without a stated unit basis is read as the larger binary GiB value.",
+    "Demoted-below ratios in the source text are demotion states, not promotion conditions.",
+  ],
   userClasses: [
     {
       name: "User",
@@ -56,6 +72,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "Power User",
       requirements: "Registered > 4 weeks, download > 200 GB, ratio > 2 (demoted below 1.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-power-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 28, scope: "account", label: "More than 4 weeks registered" },
+          { kind: "numeric", id: "mt-power-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 200 * GiB, scope: "account", unitReading: "conservative", label: "More than 200 GiB downloaded" },
+          { kind: "numeric", id: "mt-power-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 2, scope: "account", label: "Ratio above 2" },
+        ],
+      },
       perks: [
         { type: "custom", label: "Post candidates" },
         { type: "custom", label: "Fun Box access" },
@@ -65,6 +89,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "Elite User",
       requirements: "Registered > 8 weeks, download > 400 GB, ratio > 3 (demoted below 2.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-elite-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 56, scope: "account", label: "More than 8 weeks registered" },
+          { kind: "numeric", id: "mt-elite-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 400 * GiB, scope: "account", unitReading: "conservative", label: "More than 400 GiB downloaded" },
+          { kind: "numeric", id: "mt-elite-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 3, scope: "account", label: "Ratio above 3" },
+        ],
+      },
       perks: [
         { type: "invite", label: "Send Invite" },
         { type: "custom", label: "Post candidates" },
@@ -74,6 +106,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "Crazy User",
       requirements: "Registered > 12 weeks, download > 500 GB, ratio > 4 (demoted below 3.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-crazy-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 84, scope: "account", label: "More than 12 weeks registered" },
+          { kind: "numeric", id: "mt-crazy-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 500 * GiB, scope: "account", unitReading: "conservative", label: "More than 500 GiB downloaded" },
+          { kind: "numeric", id: "mt-crazy-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 4, scope: "account", label: "Ratio above 4" },
+        ],
+      },
       perks: [
         { type: "invite", label: "Send Invite" },
         { type: "custom", label: "Post candidates" },
@@ -83,6 +123,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "Insane User",
       requirements: "Registered > 16 weeks, download > 800 GB, ratio > 5 (demoted below 4.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-insane-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 112, scope: "account", label: "More than 16 weeks registered" },
+          { kind: "numeric", id: "mt-insane-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 800 * GiB, scope: "account", unitReading: "conservative", label: "More than 800 GiB downloaded" },
+          { kind: "numeric", id: "mt-insane-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 5, scope: "account", label: "Ratio above 5" },
+        ],
+      },
       perks: [
         { type: "invite", label: "Send Invite" },
         { type: "custom", label: "Post candidates" },
@@ -92,6 +140,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "Veteran User",
       requirements: "Registered > 20 weeks, download > 1000 GB, ratio > 6 (demoted below 5.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-veteran-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 140, scope: "account", label: "More than 20 weeks registered" },
+          { kind: "numeric", id: "mt-veteran-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 1000 * GiB, scope: "account", unitReading: "conservative", label: "More than 1000 GiB downloaded" },
+          { kind: "numeric", id: "mt-veteran-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 6, scope: "account", label: "Ratio above 6" },
+        ],
+      },
       perks: [
         { type: "invite", label: "Send Invite" },
         { type: "custom", label: "Permanent retention when archived" },
@@ -101,6 +157,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "Extreme User",
       requirements: "Registered > 24 weeks, download > 2000 GB, ratio > 7 (demoted below 6.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-extreme-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 168, scope: "account", label: "More than 24 weeks registered" },
+          { kind: "numeric", id: "mt-extreme-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 2000 * GiB, scope: "account", unitReading: "conservative", label: "More than 2000 GiB downloaded" },
+          { kind: "numeric", id: "mt-extreme-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 7, scope: "account", label: "Ratio above 7" },
+        ],
+      },
       perks: [
         { type: "invite", label: "Send Invite" },
         { type: "custom", label: "Permanent account retention" },
@@ -110,6 +174,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "Ultimate User",
       requirements: "Registered > 28 weeks, download > 2500 GB, ratio > 8 (demoted below 7.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-ultimate-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 196, scope: "account", label: "More than 28 weeks registered" },
+          { kind: "numeric", id: "mt-ultimate-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 2500 * GiB, scope: "account", unitReading: "conservative", label: "More than 2500 GiB downloaded" },
+          { kind: "numeric", id: "mt-ultimate-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 8, scope: "account", label: "Ratio above 8" },
+        ],
+      },
       perks: [
         { type: "invite", label: "Send Invite" },
         { type: "custom", label: "Permanent account retention" },
@@ -119,6 +191,14 @@ export const mteam: TrackerRegistryEntry = {
     {
       name: "mTorrent Master",
       requirements: "Registered > 32 weeks, download > 3000 GB, ratio > 9 (demoted below 8.9)",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "mt-master-age", metric: "accountAgeDays", comparison: "gt", requiredValue: 224, scope: "account", label: "More than 32 weeks registered" },
+          { kind: "numeric", id: "mt-master-download", metric: "downloadedBytes", comparison: "gt", requiredValue: 3000 * GiB, scope: "account", unitReading: "conservative", label: "More than 3000 GiB downloaded" },
+          { kind: "numeric", id: "mt-master-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 9, scope: "account", label: "Ratio above 9" },
+        ],
+      },
       perks: [
         { type: "invite", label: "Send Invite" },
         { type: "custom", label: "Permanent account retention" },

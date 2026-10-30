@@ -13,6 +13,7 @@ import { type ClipboardOutcome, copyTextToClipboard } from "@/lib/clipboard"
 import { formatDate, localDateStr } from "@/lib/formatters"
 import type { RankGoalStatus } from "@/lib/rank-goals"
 import { OUTSIDE_LADDER_NOTE } from "@/lib/rank-ladder"
+import { apiDoesNotReportMessage } from "@/lib/rank-manual-values"
 import { buildRankOverviewMarkdown } from "@/lib/rank-markdown"
 import { buildRankOverviews, type RankOverview as RankOverviewData } from "@/lib/rank-overview"
 import type { RankCheck, RankCheckVerdict } from "@/lib/recruitment-state"
@@ -23,6 +24,7 @@ interface RankOverviewProps {
   savedGoals: Record<string, { targetRank: string }>
   checks: Record<string, RankCheck>
   onSaveCheck: (trackerId: number, check: RankCheck | null) => Promise<void>
+  onEnterValue?: (trackerId: number, conditionId: string) => void
   now?: Date
 }
 
@@ -69,10 +71,20 @@ function Field({
   )
 }
 
-function ConditionRow({ condition }: { condition: RankOverviewData["conditions"][number] }) {
-  const whyUnknown =
+function ConditionRow({
+  trackerName,
+  condition,
+  onEnterValue,
+}: {
+  trackerName: string
+  condition: RankOverviewData["conditions"][number]
+  onEnterValue?: () => void
+}) {
+  const missing =
     condition.status === "unknown"
-      ? condition.unknownReason ?? condition.reason ?? "Unknown"
+      ? condition.metric
+        ? apiDoesNotReportMessage(trackerName, condition.metric)
+        : (condition.reason ?? "This condition cannot be read from the tracker's API.")
       : "\u2014"
   return (
     <div
@@ -97,8 +109,19 @@ function ConditionRow({ condition }: { condition: RankOverviewData["conditions"]
       </Field>
       <Field label="Why unknown" className="col-span-2 md:col-span-1">
         <span className={condition.status === "unknown" ? "text-warn" : "text-tertiary"}>
-          {whyUnknown}
+          {missing}
         </span>
+        {condition.status === "unknown" && condition.metric && onEnterValue && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onEnterValue}
+            className="mt-1 min-h-11 px-2 sm:min-h-8"
+            data-enter-manual-value
+          >
+            Enter value
+          </Button>
+        )}
       </Field>
     </div>
   )
@@ -258,11 +281,13 @@ function TrackerRankSection({
   savedGoal,
   check,
   onSaveCheck,
+  onEnterValue,
 }: {
   overview: RankOverviewData
   savedGoal: string | null
   check: RankCheck | null
   onSaveCheck: (check: RankCheck | null) => Promise<void>
+  onEnterValue?: (conditionId: string) => void
 }) {
   const [showAllClasses, setShowAllClasses] = useState(false)
   const earnedClasses = overview.classes.filter((userClass) => !userClass.outsideLadder)
@@ -386,7 +411,12 @@ function TrackerRankSection({
             <span>Why unknown</span>
           </div>
           {overview.conditions.map((condition) => (
-            <ConditionRow key={condition.id} condition={condition} />
+            <ConditionRow
+              key={condition.id}
+              trackerName={overview.trackerName}
+              condition={condition}
+              onEnterValue={onEnterValue ? () => onEnterValue(condition.id) : undefined}
+            />
           ))}
         </div>
       ) : (
@@ -435,6 +465,7 @@ export function RankOverview({
   savedGoals,
   checks,
   onSaveCheck,
+  onEnterValue,
   now = new Date(),
 }: RankOverviewProps) {
   const overviews = useMemo(
@@ -517,6 +548,11 @@ export function RankOverview({
             savedGoal={savedGoals[String(overview.trackerId)]?.targetRank ?? null}
             check={checks[String(overview.trackerId)] ?? null}
             onSaveCheck={(check) => onSaveCheck(overview.trackerId, check)}
+            onEnterValue={
+              onEnterValue
+                ? (conditionId) => onEnterValue(overview.trackerId, conditionId)
+                : undefined
+            }
           />
         ))}
       </div>

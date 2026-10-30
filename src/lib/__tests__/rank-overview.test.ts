@@ -116,7 +116,8 @@ describe("buildRankOverviews", () => {
     expect(seedTime?.current).toBe("\u2014")
   })
 
-  it("labels a missing supported observation as not collected for this tracker", () => {    const [overview] = buildRankOverviews(
+  it("labels a missing supported observation as not collected for this tracker", () => {
+    const [overview] = buildRankOverviews(
       [
         tracker({
           latestStats: { ...BASE_STATS, uploadedBytes: null },

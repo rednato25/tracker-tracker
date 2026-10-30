@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event"
 import type { ComponentProps } from "react"
 import { describe, expect, it, vi } from "vitest"
 import { RankOverview } from "@/components/dashboard/RankOverview"
-import { UNKNOWN_COLLECTED } from "@/lib/rank-overview"
 import type { TrackerLatestStats, TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-30T12:00:00.000Z")
@@ -102,15 +101,22 @@ describe("RankOverview", () => {
     expect(screen.getAllByText(/12 weeks registered/).length).toBeGreaterThan(0)
   })
 
-  it("writes why an unknown condition has no current value", () => {
+  it("names the tracker API and offers Enter value for an unknown condition", async () => {
+    const user = userEvent.setup()
+    const onEnterValue = vi.fn()
     render(
       overview({
         trackers: [tracker({ latestStats: { ...BASE_STATS, uploadedBytes: null } })],
         savedGoals: { "1": { targetRank: "Power User" } },
+        onEnterValue,
       })
     )
-    expect(screen.getAllByText(UNKNOWN_COLLECTED).length).toBeGreaterThan(0)
-    expect(screen.getAllByText("Unknown").length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText("TorrentLeech's API doesn't report uploaded bytes.").length
+    ).toBeGreaterThan(0)
+    const enter = screen.getAllByRole("button", { name: "Enter value" })[0]
+    await user.click(enter)
+    expect(onEnterValue).toHaveBeenCalledWith(1, expect.any(String))
   })
 
   it("shows registry text when no structured conditions are published", () => {

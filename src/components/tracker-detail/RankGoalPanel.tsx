@@ -21,12 +21,14 @@ import {
   rankDefinitionForSlug,
 } from "@/lib/rank-goals"
 import { buildRankLadder } from "@/lib/rank-ladder"
+import { apiDoesNotReportMessage } from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
 
 interface RankGoalPanelProps {
   trackerId: number
+  trackerName: string
   registrySlug: string | null
   userClasses: TrackerUserClass[]
   rankPaths?: TrackerRankPath[]
@@ -40,6 +42,7 @@ interface RankGoalPanelProps {
   platformMeta: PlatformMeta | null
   initialSavedGoals?: Record<string, { targetRank: string }>
   onSavedGoalsChange?: (goals: Record<string, { targetRank: string }>) => void
+  onEnterValue?: (condition: RankConditionResult) => void
 }
 
 
@@ -92,7 +95,15 @@ function statusLabel(status: "met" | "unmet" | "unknown"): string {
   return status === "met" ? "Met" : status === "unmet" ? "Unmet" : "Unknown"
 }
 
-function ConditionRow({ condition }: { condition: RankConditionResult }) {
+function ConditionRow({
+  trackerName,
+  condition,
+  onEnterValue,
+}: {
+  trackerName: string
+  condition: RankConditionResult
+  onEnterValue?: () => void
+}) {
   const statusClass =
     condition.status === "met"
       ? "text-success"
@@ -162,8 +173,24 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
       {condition.unitReading === "conservative" && (
         <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>
       )}
-      {condition.status === "unknown" && condition.reason && (
-        <p className="mt-1 font-mono text-4xs text-warn">{condition.reason}</p>
+      {condition.status === "unknown" && (
+        <div className="mt-1">
+          <p className="font-mono text-4xs text-warn">
+            {condition.metric
+              ? apiDoesNotReportMessage(trackerName, condition.metric)
+              : (condition.reason ?? "This condition cannot be read from the tracker's API.")}
+          </p>
+          {condition.metric && onEnterValue && (
+            <Button
+              size="sm"
+              variant="ghost"
+              text="Enter value"
+              onClick={onEnterValue}
+              className="mt-1 min-h-11 px-2 sm:min-h-8"
+              data-enter-manual-value
+            />
+          )}
+        </div>
       )}
       <details className="mt-1">
         <summary className="cursor-pointer font-mono text-4xs text-muted">Evidence</summary>
@@ -186,6 +213,7 @@ function groupConditions(
 
 export function RankGoalPanel({
   trackerId,
+  trackerName,
   registrySlug,
   userClasses,
   rankPaths,
@@ -199,6 +227,7 @@ export function RankGoalPanel({
   platformMeta,
   initialSavedGoals,
   onSavedGoalsChange,
+  onEnterValue,
 }: RankGoalPanelProps) {
   const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
@@ -469,7 +498,12 @@ export function RankGoalPanel({
           )}
           <ul className="mt-2">
             {conditions.map((condition) => (
-              <ConditionRow key={condition.id} condition={condition} />
+              <ConditionRow
+                key={condition.id}
+                trackerName={trackerName}
+                condition={condition}
+                onEnterValue={onEnterValue ? () => onEnterValue(condition) : undefined}
+              />
             ))}
           </ul>
           <div className="mt-3 grid gap-2 border-t border-border pt-2 font-mono text-4xs text-secondary sm:grid-cols-2">

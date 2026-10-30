@@ -377,6 +377,7 @@ export function TrackerDetailClient({
 
       <RankGoalPanel
         trackerId={tracker.id}
+        trackerName={tracker.name}
         registrySlug={tracker.registrySlug}
         userClasses={registryEntry?.userClasses ?? []}
         rankPaths={registryEntry?.rankPaths}

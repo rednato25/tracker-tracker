@@ -52,6 +52,14 @@ export function manualMetricLabel(metric: RankMetric | null | undefined): string
   return metric ? (METRIC_LABELS[metric] ?? metric) : "this value"
 }
 
+/** P47 unknown copy: name the tracker and the missing metric, never blame the user. */
+export function apiDoesNotReportMessage(
+  trackerName: string,
+  metric: RankMetric | null | undefined
+): string {
+  return `${trackerName}'s API doesn't report ${manualMetricLabel(metric)}.`
+}
+
 export function manualUnitsFor(metric: RankMetric | null | undefined): RankManualUnit[] {
   if (!metric) return []
   if (BYTE_METRICS.has(metric)) return ["GiB", "TiB"]

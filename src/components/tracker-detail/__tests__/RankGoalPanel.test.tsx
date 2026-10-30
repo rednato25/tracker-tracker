@@ -79,6 +79,7 @@ function renderPanel(
   return render(
     <RankGoalPanel
       trackerId={1}
+      trackerName="TorrentLeech"
       registrySlug={registrySlug}
       userClasses={torrentleech.userClasses}
       currentRank="Registered"

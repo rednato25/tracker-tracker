@@ -47,17 +47,19 @@ export const mteam: TrackerRegistryEntry = {
   // the administrative roles, so they are deliberately absent here.
   rankProgression: "automatic",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; rank page is login-gated",
-    accessedAt: null,
+    url: "https://kp.m-team.cc/",
+    title: "M-Team user-class and account-rules pages",
+    accessedAt: "2026-10-31",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+      "Confirmed by the owner on 2026-10-31 from the site's user-class and account-rules pages. Level comparisons are strict (more than). GB text without a stated basis is read as the larger binary GiB value. The login deadline is 40 days.",
   },
   rankUnresolved: [
-    "GB text without a stated unit basis is read as the larger binary GiB value.",
+    "GB text without a stated basis is read as the larger binary GiB value.",
     "Demoted-below ratios in the source text are demotion states, not promotion conditions.",
+    "The first-30-days newbie assessment (upload > 30 GiB, download > 15 GiB, more than 6,000 Bonus Points) is recorded in the rules text; the rank ladder cannot evaluate it.",
+    "The minimum ratio is tiered by downloaded volume (0.6 above 10 GiB to 1.0 above 500 GiB); rules.minimumRatio carries the strictest tier of 1.0.",
   ],
   userClasses: [
     {
@@ -214,25 +216,28 @@ export const mteam: TrackerRegistryEntry = {
   // ── Rules ───────────────────────────────────────────────────────────
   rules: {
     // Ratio requirements are tiered by download volume, from 0.6 above 10 GB
-    // up to 1.0 above 500 GB; 1.0 is the strictest tier used for alerts.
+    // up to 1.0 above 500 GB. The registry holds one account figure, so it
+    // carries the strictest tier; the tiers themselves are rule notes.
     minimumRatio: 1.0,
     seedTimeHours: 0,
+    // 40 days without a browser login deletes the account (90 days if archived).
     loginIntervalDays: 40,
     fullRulesMarkdown: [
       "## Newbie assessment",
       "",
-      "- Within the first 30 days: upload > 30 GB, download > 15 GB and more than 6000 Bonus Points earned from seeding",
+      "- Within the first 30 days: upload > 30 GB, download > 15 GB and more than 6000 Bonus Points",
       "- Failing any one item bans the account",
+      "- Spending Bonus Points during the assessment can fail it",
       "- Under 30 days old with more than 10 GB downloaded and ratio below 0.3 is an immediate ban",
-      "- Do not spend Bonus Points near the assessment deadline; the system may read it as failing the assessment",
       "",
       "## Account retention",
       "",
       "- No traffic (0 upload and 0 download) after 5 days: account deleted",
-      "- 40 consecutive days without login: account deleted (90 days if the account is archived)",
-      "- Veteran User and above keep an archived account permanently; Extreme User and above are retained permanently",
+      "- 40 consecutive days without a browser login: account deleted (90 days if the account is archived)",
+      "- Seeding and third-party tools do not count as a login",
+      "- Veteran User and above are never deleted when archived; Extreme User and above are kept permanently",
       "- A banned account is cleared after 15 days (immediately if it was already inactive for 40 days)",
-      "- Logging in means opening the site in a browser; seeding or third-party tools do not count",
+      "- Logging in means opening the site in a browser",
       "",
       "## Ratio",
       "",

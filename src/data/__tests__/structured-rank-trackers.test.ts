@@ -274,6 +274,17 @@ describe("P35 structured rank requirements", () => {
     expect(elite.status).toBe("unmet")
   })
 
+  it("M-Team: the login deadline is 40 days and unmodelable rules stay as notes", () => {
+    const entry = getTrackerBySlug("mteam")
+    expect(entry?.rules?.loginIntervalDays).toBe(40)
+
+    const unresolved = entry?.rankUnresolved ?? []
+    expect(unresolved.some((note) => note.startsWith("The first-30-days newbie assessment"))).toBe(
+      true
+    )
+    expect(unresolved.some((note) => note.startsWith("The minimum ratio is tiered"))).toBe(true)
+  })
+
   it("AvistaZ: Member meets the upload, ratio and age thresholds", () => {
     const member = evaluate("avistaz", "Member", {
       accountAgeDays: 7,

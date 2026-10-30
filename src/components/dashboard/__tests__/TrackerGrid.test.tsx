@@ -1,5 +1,5 @@
-﻿import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { TrackerGrid } from "@/components/dashboard/TrackerGrid"
 import type { RankGoalSummary } from "@/lib/rank-summary"
 import type { TrackerSummary } from "@/types/api"
@@ -307,8 +307,8 @@ describe("TrackerGrid", () => {
         summaries={[
           summary({
             targetRank: null,
-            automaticNextRank: "Second rÃ´le",
-            nextRankName: "Second rÃ´le",
+            automaticNextRank: "Second rôle",
+            nextRankName: "Second rôle",
             nextIsTextOnly: true,
             nextRankRequirements: "Level 10, 11 088 XP",
             bars: [],
@@ -319,7 +319,7 @@ describe("TrackerGrid", () => {
       />
     )
     expect(screen.getByText("From tracker rules (not tracked automatically)")).toBeInTheDocument()
-    expect(screen.getByText("Second rÃ´le: Level 10, 11 088 XP")).toBeInTheDocument()
+    expect(screen.getByText("Second rôle: Level 10, 11 088 XP")).toBeInTheDocument()
   })
 
   it("shows the failed-poll pause, next retry and plain error", () => {
@@ -414,5 +414,95 @@ describe("TrackerGrid", () => {
     expect(screen.getByText("Needs above 2.00, now 2.00")).toBeInTheDocument()
     expect(container.querySelector("[data-shortfall-marker]")).not.toBeNull()
     expect(container.querySelector("[data-bar-fill]")?.getAttribute("style")).toContain("width: 0%")
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  function manualTracker(overrides: Partial<TrackerSummary> = {}) {
+    return tracker({
+      name: "MyAnonaMouse",
+      registrySlug: "myanonamouse",
+      platformType: "mam",
+      lastAccessAt: "2026-10-25",
+      ...overrides,
+    })
+  }
+
+  it("offers quick login marking only when the adapter cannot detect a login", () => {
+    const { rerender } = render(
+      <TrackerGrid
+        trackers={[manualTracker()]}
+        summaries={[summary({ currentRank: "Power User" })]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Last login: 3 days ago")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
+
+    rerender(
+      <TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />
+    )
+    expect(screen.queryByRole("button", { name: "Logged in today" })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Last login:/)).not.toBeInTheDocument()
+  })
+
+  it("marks a login and restores the previous date from a 10-second Undo", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }
+      return {
+        ok: true,
+        json: async () => manualTracker({ lastAccessAt: body.lastAccessAt }),
+      } as Response
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <TrackerGrid trackers={[manualTracker()]} summaries={[summary()]} now={NOW} />
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Logged in today" }))
+
+    await waitFor(() => expect(screen.getByText("Logged in today")).toBeInTheDocument())
+    expect(screen.getByText("Last login: today")).toBeInTheDocument()
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      lastAccessAt: "2026-10-28",
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }))
+    await waitFor(() =>
+      expect(screen.getByText("Last login: 3 days ago")).toBeInTheDocument()
+    )
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      lastAccessAt: "2026-10-25",
+    })
+  })
+
+  it("removes the Undo affordance after ten seconds", async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }
+        return {
+          ok: true,
+          json: async () => manualTracker({ lastAccessAt: body.lastAccessAt }),
+        } as Response
+      })
+    )
+
+    render(
+      <TrackerGrid trackers={[manualTracker()]} summaries={[summary()]} now={NOW} />
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Logged in today" }))
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument()
+
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
   })
 })

@@ -5,8 +5,9 @@
 import { ExternalLinkSmallIcon } from "@icons"
 import clsx from "clsx"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
-import { PulseDot } from "@/components/ui"
+import { Button, PulseDot } from "@/components/ui"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   formatAccountAge,
@@ -16,7 +17,9 @@ import {
   formatDate,
   formatMemberSinceDate,
   formatRatioDisplay,
+  localDateStr,
 } from "@/lib/formatters"
+import { canDetectLogin } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
@@ -39,6 +42,7 @@ interface TrackerGridProps {
   trackers: TrackerSummary[]
   summaries: RankGoalSummary[]
   now?: Date
+  onTrackerUpdated?: (tracker: TrackerSummary) => void
 }
 
 function hostOf(tracker: TrackerSummary): string {
@@ -72,6 +76,100 @@ function statusTone(label: string | null): string {
   if (label === "Login expired" || label === "Paused") return "text-danger"
   if (label === "Stale" || label === "Above Min" || label === "No Seeds") return "text-warn"
   return "text-secondary"
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function startOfDay(value: Date): number {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
+}
+
+function loginDate(value: string): Date | null {
+  const bare = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  const date = bare
+    ? new Date(`${value}T00:00:00`)
+    : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function lastLoginLabel(lastAccessAt: string | null, now: Date): string {
+  if (!lastAccessAt) return "Last login: not recorded"
+  const last = loginDate(lastAccessAt)
+  if (!last) return "Last login: not recorded"
+  const days = Math.max(0, Math.floor((startOfDay(now) - startOfDay(last)) / DAY_MS))
+  if (days === 0) return "Last login: today"
+  return `Last login: ${days} day${days === 1 ? "" : "s"} ago`
+}
+
+interface LoginMarkUndo {
+  previous: string | null
+}
+
+function useLoginMarking(
+  tracker: TrackerSummary,
+  now: Date,
+  onUpdated?: (tracker: TrackerSummary) => void
+) {
+  const [lastAccessAt, setLastAccessAt] = useState(tracker.lastAccessAt)
+  const [undo, setUndo] = useState<LoginMarkUndo | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    setLastAccessAt(tracker.lastAccessAt)
+  }, [tracker.lastAccessAt])
+
+  useEffect(() => {
+    if (!undo) return
+    const timer = setTimeout(() => setUndo(null), 10_000)
+    return () => clearTimeout(timer)
+  }, [undo])
+
+  async function patchLastAccess(value: string | null): Promise<TrackerSummary> {
+    const res = await fetch(`/api/trackers/${tracker.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lastAccessAt: value }),
+    })
+    if (!res.ok) throw new Error("Could not record the login")
+    return (await res.json()) as TrackerSummary
+  }
+
+  async function markLogin() {
+    if (saving || undo) return
+    const previous = lastAccessAt
+    setSaving(true)
+    setError(false)
+    try {
+      const updated = await patchLastAccess(localDateStr(now))
+      setLastAccessAt(updated.lastAccessAt)
+      setUndo({ previous })
+      onUpdated?.(updated)
+    } catch {
+      setError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function undoMark() {
+    if (saving || !undo) return
+    const previous = undo.previous
+    setSaving(true)
+    setError(false)
+    try {
+      const updated = await patchLastAccess(previous)
+      setLastAccessAt(updated.lastAccessAt)
+      setUndo(null)
+      onUpdated?.(updated)
+    } catch {
+      setError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return { lastAccessAt, undo, saving, error, markLogin, undoMark }
 }
 
 function bufferValue(tracker: TrackerSummary): string {
@@ -171,10 +269,12 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   tracker,
   summary,
   now,
+  onTrackerUpdated,
 }: {
   tracker: TrackerSummary
   summary: RankGoalSummary | undefined
   now: Date
+  onTrackerUpdated?: (tracker: TrackerSummary) => void
 }) {
   const health = getTrackerHealth(tracker)
   const pause = getPauseState(tracker)
@@ -194,6 +294,8 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const targetRank = summary?.targetReached ? automaticTarget : (savedTarget ?? automaticTarget)
   const isAutomaticTarget = !savedTarget || Boolean(summary?.targetReached)
   const topOfLadder = !targetRank
+  const manualLogin = !canDetectLogin(tracker.platformType)
+  const loginMarking = useLoginMarking(tracker, now, onTrackerUpdated)
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -209,13 +311,15 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
         : undefined
 
   return (
-    <Link
-      href={`/trackers/${tracker.id}`}
+    <article
       data-tracker-card={tracker.id}
-      className="group flex min-w-0 flex-col gap-3 border border-border border-t-2 bg-raised p-4 transition-colors duration-150 hover:border-border-emphasis hover:bg-elevated/40"
+      className="group flex min-w-0 flex-col border border-border border-t-2 bg-raised transition-colors duration-150 hover:border-border-emphasis hover:bg-elevated/40"
       style={{ borderTopColor: tracker.color }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <Link
+        href={`/trackers/${tracker.id}`}
+        className="flex min-w-0 flex-1 flex-col gap-3 p-4"
+      >
         <div className="flex min-w-0 items-start gap-2">
           <PulseDot
             status={getHealthPulseDot(health)}
@@ -243,12 +347,6 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             </p>
           </div>
         </div>
-        <ExternalLinkSmallIcon
-          width="13"
-          height="13"
-          className="mt-0.5 shrink-0 text-tertiary transition-colors group-hover:text-accent"
-        />
-      </div>
 
       {failurePause && (
         <div data-failed-poll-pause className="border-t border-border pt-3 text-xs">
@@ -400,11 +498,77 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           </p>
         )}
       </div>
-    </Link>
+      </Link>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <a
+            href={tracker.baseUrl.startsWith("http") ? tracker.baseUrl : `https://${tracker.baseUrl}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-1 text-xs text-secondary underline-offset-2 hover:text-accent hover:underline sm:min-h-9"
+            data-card-site-link
+          >
+            Open site
+            <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
+          </a>
+          {manualLogin && (
+            <>
+              <span className="text-tertiary">{"\u00b7"}</span>
+              <span className="font-mono text-xs text-secondary" data-last-login>
+                {lastLoginLabel(loginMarking.lastAccessAt, now)}
+              </span>
+            </>
+          )}
+        </div>
+        {manualLogin && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {loginMarking.undo ? (
+              <>
+                <span className="font-mono text-xs text-success" role="status">
+                  Logged in today
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void loginMarking.undoMark()}
+                  disabled={loginMarking.saving}
+                  className="min-h-11 sm:min-h-9"
+                  data-login-undo
+                >
+                  Undo
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void loginMarking.markLogin()}
+                disabled={loginMarking.saving}
+                className="min-h-11 sm:min-h-9"
+                data-login-button
+              >
+                {loginMarking.saving ? "Saving…" : "Logged in today"}
+              </Button>
+            )}
+            {loginMarking.error && (
+              <span className="text-xs text-danger" role="alert">
+                Could not record login
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </article>
   )
 }
 
-export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGridProps) {
+export function TrackerGrid({
+  trackers,
+  summaries,
+  now = new Date(),
+  onTrackerUpdated,
+}: TrackerGridProps) {
   const byId = new Map(summaries.map((summary) => [summary.trackerId, summary]))
   return (
     <section className="flex flex-col gap-3" aria-label="Tracker cards" data-tracker-grid>
@@ -419,7 +583,13 @@ export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGr
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {trackers.map((tracker) => (
-          <TrackerCard key={tracker.id} tracker={tracker} summary={byId.get(tracker.id)} now={now} />
+          <TrackerCard
+            key={tracker.id}
+            tracker={tracker}
+            summary={byId.get(tracker.id)}
+            now={now}
+            onTrackerUpdated={onTrackerUpdated}
+          />
         ))}
       </div>
     </section>

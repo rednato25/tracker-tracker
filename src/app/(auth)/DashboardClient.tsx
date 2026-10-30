@@ -1,7 +1,7 @@
 // src/app/(auth)/DashboardClient.tsx
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import dynamic from "next/dynamic"
 import { useMemo, useState, useTransition } from "react"
 import { DashboardSkeleton } from "@/app/(auth)/DashboardSkeleton"
@@ -36,7 +36,7 @@ import { useSectionCollapse } from "@/hooks/useSectionCollapse"
 import { computeTrackerActions } from "@/lib/actions"
 import { computeAggregateStats } from "@/lib/dashboard"
 import type { FleetAggregation } from "@/lib/fleet-aggregation"
-import { fleetCachedQueryOptions } from "@/lib/query-options"
+import { fleetCachedQueryOptions, trackerQueryOptions } from "@/lib/query-options"
 import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
 import type { RankCheck } from "@/lib/recruitment-state"
 import type { Snapshot, TrackerSummary } from "@/types/api"
@@ -88,6 +88,7 @@ export function DashboardClient({
   now,
 }: DashboardClientProps) {
   const data = useDashboardData({ initialTrackers, snapshotRetentionDays })
+  const queryClient = useQueryClient()
   const savedRankGoals = useMemo(() => parseSavedRankGoals(rankGoals), [rankGoals])
   const dashSettings = useDashboardSettings()
   const sectionCollapse = useSectionCollapse()
@@ -230,6 +231,13 @@ export function DashboardClient({
             trackers={data.trackers}
             summaries={rankSummaries}
             now={new Date(now)}
+            onTrackerUpdated={(updated) => {
+              queryClient.setQueryData<TrackerSummary[]>(
+                trackerQueryOptions.queryKey,
+                (previous) =>
+                  previous?.map((tracker) => (tracker.id === updated.id ? updated : tracker))
+              )
+            }}
           />
         ) : dashboardView === "table" ? (
           <TrackerRegister

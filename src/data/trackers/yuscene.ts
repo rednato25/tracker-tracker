@@ -2,6 +2,8 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const TiB = 1024 ** 4
+
 export const yuscene: TrackerRegistryEntry = {
   slug: "yuscene",
   name: "Yu-Scene",
@@ -19,52 +21,152 @@ export const yuscene: TrackerRegistryEntry = {
   logo: "/tracker-logos/yuscene_logo.png",
   trackerHubSlug: "",
   statusPageUrl: "",
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rank page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "Seed size and average seed time are not supported rank metrics and stay as unsupported conditions.",
+    "Download slots, invites, freeleech, double upload and H&R immunity are perks, not promotion thresholds.",
+  ],
   userClasses: [
-    { name: "User", requirements: "Upload ≥ 0 B, ratio ≥ 0.00, age ≥ 0. 20 download slots" },
+    {
+      name: "User",
+      requirements: "Upload ≥ 0 B, ratio ≥ 0.00, age ≥ 0. 20 download slots",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-user-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 0, scope: "account", label: "Age at least 0 days" },
+          { kind: "numeric", id: "yus-user-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 0, scope: "account", label: "At least 0 B uploaded" },
+          { kind: "numeric", id: "yus-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0, scope: "account", label: "Ratio at least 0.00" },
+        ],
+      },
+    },
     {
       name: "PowerUser",
       requirements:
         "Upload ≥ 1 TiB, ratio ≥ 0.40, age ≥ 1 month. Unlimited download slots, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "numeric", id: "yus-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "yus-power-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+        ],
+      },
     },
     {
       name: "SuperUser",
       requirements:
         "Upload ≥ 5 TiB, ratio ≥ 0.40, age ≥ 2 months. Unlimited download slots, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-super-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 2 months registered" },
+          { kind: "numeric", id: "yus-super-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "At least 5 TiB uploaded" },
+          { kind: "numeric", id: "yus-super-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+        ],
+      },
     },
     {
       name: "ExtremeUser",
       requirements:
         "Upload ≥ 20 TiB, ratio ≥ 0.40, age ≥ 3 months. Unlimited download slots, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-extreme-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "yus-extreme-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", label: "At least 20 TiB uploaded" },
+          { kind: "numeric", id: "yus-extreme-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+        ],
+      },
     },
     {
       name: "InsaneUser",
       requirements:
         "Upload ≥ 50 TiB, ratio ≥ 0.40, age ≥ 6 months. Unlimited download slots, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-insane-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
+          { kind: "numeric", id: "yus-insane-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * TiB, scope: "account", label: "At least 50 TiB uploaded" },
+          { kind: "numeric", id: "yus-insane-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+        ],
+      },
     },
     {
       name: "Veteran",
       requirements:
         "Upload ≥ 100 TiB, ratio ≥ 0.40, age ≥ 1 year. Unlimited download slots, invite sending, freeleech, H&R immune, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-veteran-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 1 year registered" },
+          { kind: "numeric", id: "yus-veteran-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", label: "At least 100 TiB uploaded" },
+          { kind: "numeric", id: "yus-veteran-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+        ],
+      },
     },
     {
       name: "Seeder",
       requirements:
         "Seed size ≥ 4 TiB, ratio ≥ 0.40, age ≥ 1 month. Unlimited download slots, invite, freeleech, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-seeder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "numeric", id: "yus-seeder-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+          { kind: "non-numeric", label: "Seed size ≥ 4 TiB" },
+        ],
+      },
     },
     {
       name: "Curator",
       requirements:
         "Seed size ≥ 10 TiB, ratio ≥ 0.40, age ≥ 2 months, avg seedtime ≥ 1 month. Unlimited download slots, invite, freeleech, H&R immune, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-curator-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 2 months registered" },
+          { kind: "numeric", id: "yus-curator-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
+          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
+        ],
+      },
     },
     {
       name: "Archivist",
       requirements:
         "Seed size ≥ 20 TiB, ratio ≥ 0.40, age ≥ 3 months, avg seedtime ≥ 2 months. Unlimited download slots, invite, freeleech, double upload, H&R immune, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-archivist-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "yus-archivist-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+          { kind: "non-numeric", label: "Seed size ≥ 20 TiB" },
+          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
+        ],
+      },
     },
     {
       name: "Titan",
       requirements:
         "Seed size ≥ 40 TiB, ratio ≥ 0.40, age ≥ 3 months, avg seedtime ≥ 3 months. Unlimited download slots, invite, freeleech, double upload, H&R immune, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "yus-titan-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "yus-titan-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+          { kind: "non-numeric", label: "Seed size ≥ 40 TiB" },
+          { kind: "non-numeric", label: "Average seed time ≥ 3 months" },
+        ],
+      },
     },
   ],
   releaseGroups: [

@@ -135,4 +135,20 @@ describe("P35 structured rank requirements", () => {
     expect(result.status).toBe("no-structured-goal")
     expect(rankDefinitionForSlug("v3x")?.goals).toEqual({})
   })
+
+  it("Yu-Scene: PowerUser meets numeric thresholds and Seeder needs the seed-size check", () => {
+    const power = evaluate("yuscene", "PowerUser", {
+      accountAgeDays: 30,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 0.4,
+    })
+    expect(power.status).toBe("met")
+
+    const seeder = evaluate("yuscene", "Seeder", {
+      accountAgeDays: 30,
+      accountRatio: 0.4,
+    })
+    expect(seeder.status).toBe("unknown")
+    expect(seeder.progress).toEqual({ met: 2, unmet: 0, unknown: 1, total: 3 })
+  })
 })

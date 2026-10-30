@@ -81,6 +81,24 @@ describe("normalizeRecruitmentState", () => {
     expect(state.pinnedRoutes).toEqual({ Aither: "tp:AlphaRatio:Aither" })
   })
 
+  it("keeps well-formed rank checks and drops invalid ids, verdicts, dates and notes", () => {
+    const state = normalizeRecruitmentState({
+      rankChecks: {
+        "1": { verdict: "matches", note: " Same as the site ", checkedAt: "2026-10-30" },
+        "2": { verdict: "wrong", checkedAt: "2026-10-29" },
+        "3": { verdict: "maybe", checkedAt: "2026-10-29" },
+        "4": { verdict: "matches", checkedAt: "2026-02-30" },
+        "0": { verdict: "matches", checkedAt: "2026-10-29" },
+        "5": { verdict: "wrong", note: 42, checkedAt: "2026-10-29" },
+      },
+    })
+    expect(state.rankChecks).toEqual({
+      "1": { verdict: "matches", note: "Same as the site", checkedAt: "2026-10-30" },
+      "2": { verdict: "wrong", note: null, checkedAt: "2026-10-29" },
+      "5": { verdict: "wrong", note: null, checkedAt: "2026-10-29" },
+    })
+  })
+
   it("round-trips through serialization without adding token-like secrets", () => {
     const state = normalizeRecruitmentState({
       desiredTrackerSlug: "torrentleech",

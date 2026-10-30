@@ -68,6 +68,7 @@ describe("/api/recruitment/wishlist", () => {
         hiddenPathKeys: ["a>b"],
         goalLinks: [],
         pinnedRoutes: {},
+        rankChecks: {},
       },
     })
   })

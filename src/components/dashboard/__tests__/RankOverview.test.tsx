@@ -1,11 +1,14 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import type { ComponentProps } from "react"
+import { describe, expect, it, vi } from "vitest"
 import { RankOverview } from "@/components/dashboard/RankOverview"
 import { UNKNOWN_COLLECTED } from "@/lib/rank-overview"
 import type { TrackerLatestStats, TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-30T12:00:00.000Z")
 const TIB = 1024 ** 4
+const noopSave = vi.fn(async () => {})
 
 const BASE_STATS: TrackerLatestStats = {
   ratio: 2.4,
@@ -58,15 +61,22 @@ function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
   }
 }
 
+function overview(props: Partial<ComponentProps<typeof RankOverview>> = {}) {
+  return (
+    <RankOverview
+      trackers={[tracker()]}
+      savedGoals={{ "1": { targetRank: "Super User" } }}
+      checks={{}}
+      onSaveCheck={noopSave}
+      now={NOW}
+      {...props}
+    />
+  )
+}
+
 describe("RankOverview", () => {
   it("shows the current class, target and every condition in its own row", () => {
-    render(
-      <RankOverview
-        trackers={[tracker()]}
-        savedGoals={{ "1": { targetRank: "Super User" } }}
-        now={NOW}
-      />
-    )
+    render(overview())
     expect(screen.getByRole("heading", { name: "Ranks" })).toBeInTheDocument()
     expect(screen.getByText("Power User")).toBeInTheDocument()
     expect(screen.getByText("Target: Super User")).toBeInTheDocument()
@@ -78,13 +88,7 @@ describe("RankOverview", () => {
   })
 
   it("shows the registry source, verification status and a link to the tracker site", () => {
-    render(
-      <RankOverview
-        trackers={[tracker()]}
-        savedGoals={{ "1": { targetRank: "Super User" } }}
-        now={NOW}
-      />
-    )
+    render(overview())
     expect(screen.getByRole("link", { name: "Open TorrentLeech site" })).toHaveAttribute(
       "href",
       "https://www.torrentleech.org"
@@ -100,15 +104,10 @@ describe("RankOverview", () => {
 
   it("writes why an unknown condition has no current value", () => {
     render(
-      <RankOverview
-        trackers={[
-          tracker({
-            latestStats: { ...BASE_STATS, uploadedBytes: null },
-          }),
-        ]}
-        savedGoals={{ "1": { targetRank: "Power User" } }}
-        now={NOW}
-      />
+      overview({
+        trackers: [tracker({ latestStats: { ...BASE_STATS, uploadedBytes: null } })],
+        savedGoals: { "1": { targetRank: "Power User" } },
+      })
     )
     expect(screen.getAllByText(UNKNOWN_COLLECTED).length).toBeGreaterThan(0)
     expect(screen.getAllByText("Unknown").length).toBeGreaterThan(0)
@@ -116,22 +115,89 @@ describe("RankOverview", () => {
 
   it("shows registry text when no structured conditions are published", () => {
     render(
-      <RankOverview
-        trackers={[
+      overview({
+        trackers: [
           tracker({
             id: 2,
             name: "Aither",
             registrySlug: "aither",
             latestStats: { ...BASE_STATS, group: "Phobos" },
           }),
-        ]}
-        savedGoals={{}}
-        now={NOW}
-      />
+        ],
+        savedGoals: {},
+      })
     )
     expect(screen.getByText("Next automatic class: Harmonia")).toBeInTheDocument()
-    expect(screen.getByText("No structured conditions are published for this class.")).toBeInTheDocument()
+    expect(
+      screen.getByText("No structured conditions are published for this class.")
+    ).toBeInTheDocument()
     expect(screen.getByText(/Registry text:/)).toBeInTheDocument()
     expect(screen.getByText("No registry source")).toBeInTheDocument()
+  })
+
+  it("counts checked, wrong and unchecked trackers at the top", () => {
+    render(
+      overview({
+        trackers: [tracker(), tracker({ id: 2, name: "DreadVault", registrySlug: "dreadvault" })],
+        checks: {
+          "1": { verdict: "wrong", note: null, checkedAt: "2026-10-30" },
+        },
+      })
+    )
+    const summary = document.querySelector("[data-rank-check-summary]")
+    expect(summary?.textContent).toContain("Checked 1")
+    expect(summary?.textContent).toContain("Wrong 1")
+    expect(summary?.textContent).toContain("Not checked 1")
+  })
+
+  it("saves a verdict with an optional note and the date checked", async () => {
+    const save = vi.fn(async () => {})
+    const user = userEvent.setup()
+    render(overview({ onSaveCheck: save }))
+
+    await user.click(screen.getByRole("button", { name: "Matches the site" }))
+    await user.type(screen.getByLabelText("Note for TorrentLeech"), "Same thresholds")
+    const date = screen.getByLabelText("Date checked for TorrentLeech") as HTMLInputElement
+    await user.clear(date)
+    await user.type(date, "2026-10-29")
+    await user.click(screen.getByRole("button", { name: "Save check" }))
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1))
+    expect(save).toHaveBeenCalledWith(1, {
+      verdict: "matches",
+      note: "Same thresholds",
+      checkedAt: "2026-10-29",
+    })
+  })
+
+  it("shows a saved wrong check and clears it", async () => {
+    const save = vi.fn(async () => {})
+    const user = userEvent.setup()
+    render(
+      overview({
+        checks: {
+          "1": { verdict: "wrong", note: "Upload is 300 GiB", checkedAt: "2026-10-28" },
+        },
+        onSaveCheck: save,
+      })
+    )
+    expect(screen.getByText("Checked Oct 28, 2026")).toBeInTheDocument()
+    expect(screen.getByLabelText("Note for TorrentLeech")).toHaveValue("Upload is 300 GiB")
+    await user.click(screen.getByRole("button", { name: "Clear" }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith(1, null))
+  })
+
+  it("reports a failed save instead of pretending it worked", async () => {
+    const save = vi.fn(async () => {
+      throw new Error("nope")
+    })
+    const user = userEvent.setup()
+    render(overview({ onSaveCheck: save }))
+
+    await user.click(screen.getByRole("button", { name: "Wrong" }))
+    await user.click(screen.getByRole("button", { name: "Save check" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not save this check. Try again."
+    )
   })
 })

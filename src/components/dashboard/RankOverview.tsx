@@ -7,16 +7,19 @@
 "use client"
 
 import { ExternalLinkSmallIcon } from "@icons"
-import { useMemo } from "react"
-import { Badge } from "@/components/ui"
-import { formatDate } from "@/lib/formatters"
+import { useEffect, useMemo, useState } from "react"
+import { Badge, Button } from "@/components/ui"
+import { formatDate, localDateStr } from "@/lib/formatters"
 import type { RankGoalStatus } from "@/lib/rank-goals"
 import { buildRankOverviews, type RankOverview as RankOverviewData } from "@/lib/rank-overview"
+import type { RankCheck, RankCheckVerdict } from "@/lib/recruitment-state"
 import type { TrackerSummary } from "@/types/api"
 
 interface RankOverviewProps {
   trackers: TrackerSummary[]
   savedGoals: Record<string, { targetRank: string }>
+  checks: Record<string, RankCheck>
+  onSaveCheck: (trackerId: number, check: RankCheck | null) => Promise<void>
   now?: Date
 }
 
@@ -98,12 +101,165 @@ function ConditionRow({ condition }: { condition: RankOverviewData["conditions"]
   )
 }
 
+function CheckControl({
+  trackerName,
+  check,
+  onSave,
+}: {
+  trackerName: string
+  check: RankCheck | null
+  onSave: (check: RankCheck | null) => Promise<void>
+}) {
+  const [verdict, setVerdict] = useState<RankCheckVerdict | null>(check?.verdict ?? null)
+  const [note, setNote] = useState(check?.note ?? "")
+  const [checkedAt, setCheckedAt] = useState(check?.checkedAt ?? localDateStr())
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setVerdict(check?.verdict ?? null)
+    setNote(check?.note ?? "")
+    setCheckedAt(check?.checkedAt ?? localDateStr())
+  }, [check])
+
+  function chooseVerdict(next: RankCheckVerdict) {
+    setVerdict(next)
+    if (!check) setCheckedAt(localDateStr())
+  }
+
+  async function save() {
+    if (!verdict || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave({
+        verdict,
+        note: note.trim() ? note.trim() : null,
+        checkedAt: checkedAt || localDateStr(),
+      })
+    } catch {
+      setError("Could not save this check. Try again.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function clear() {
+    if (saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave(null)
+      setVerdict(null)
+      setNote("")
+      setCheckedAt(localDateStr())
+    } catch {
+      setError("Could not clear this check. Try again.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border pt-2" data-rank-check>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-secondary">
+          My check
+        </span>
+        <span className="font-mono text-xs text-tertiary" aria-live="polite">
+          {saving
+            ? "Saving\u2026"
+            : check
+              ? `Checked ${formatDate(check.checkedAt)}`
+              : "Not checked yet"}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant={verdict === "matches" ? "primary" : "secondary"}
+          aria-pressed={verdict === "matches"}
+          onClick={() => chooseVerdict("matches")}
+          disabled={saving}
+          className="min-h-11 sm:min-h-9"
+          data-rank-check-verdict="matches"
+        >
+          Matches the site
+        </Button>
+        <Button
+          size="sm"
+          variant={verdict === "wrong" ? "danger" : "secondary"}
+          aria-pressed={verdict === "wrong"}
+          onClick={() => chooseVerdict("wrong")}
+          disabled={saving}
+          className="min-h-11 sm:min-h-9"
+          data-rank-check-verdict="wrong"
+        >
+          Wrong
+        </Button>
+        <label className="flex min-h-11 items-center gap-2 text-xs text-tertiary sm:min-h-9">
+          Checked
+          <input
+            type="date"
+            value={checkedAt}
+            onChange={(event) => setCheckedAt(event.target.value)}
+            aria-label={`Date checked for ${trackerName}`}
+            className="min-h-11 rounded-nm-sm border border-border bg-control-bg px-2 py-1 font-mono text-xs text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-control-focus)] sm:min-h-9"
+          />
+        </label>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          type="text"
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Optional note"
+          aria-label={`Note for ${trackerName}`}
+          maxLength={2000}
+          className="min-h-11 flex-1 rounded-nm-sm border border-border bg-control-bg px-2.5 py-1.5 text-xs text-primary placeholder:text-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-control-focus)] sm:min-h-9"
+        />
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => void save()}
+            disabled={saving || !verdict}
+            className="min-h-11 sm:min-h-9"
+          >
+            Save check
+          </Button>
+          {check && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void clear()}
+              disabled={saving}
+              className="min-h-11 sm:min-h-9"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+      {error && (
+        <p className="text-xs text-danger" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function TrackerRankSection({
   overview,
   savedGoal,
+  check,
+  onSaveCheck,
 }: {
   overview: RankOverviewData
   savedGoal: string | null
+  check: RankCheck | null
+  onSaveCheck: (check: RankCheck | null) => Promise<void>
 }) {
   return (
     <section
@@ -175,6 +331,8 @@ function TrackerRankSection({
         </div>
       )}
 
+      <CheckControl trackerName={overview.trackerName} check={check} onSave={onSaveCheck} />
+
       <div className="flex flex-col gap-1 border-t border-border pt-2 text-xs" data-rank-source>
         <p className="text-secondary">
           Registry text:{" "}
@@ -205,11 +363,22 @@ function TrackerRankSection({
   )
 }
 
-export function RankOverview({ trackers, savedGoals, now = new Date() }: RankOverviewProps) {
+export function RankOverview({
+  trackers,
+  savedGoals,
+  checks,
+  onSaveCheck,
+  now = new Date(),
+}: RankOverviewProps) {
   const overviews = useMemo(
     () => buildRankOverviews(trackers, savedGoals, now),
     [trackers, savedGoals, now]
   )
+  const checkedCount = overviews.filter((overview) => checks[String(overview.trackerId)]).length
+  const wrongCount = overviews.filter(
+    (overview) => checks[String(overview.trackerId)]?.verdict === "wrong"
+  ).length
+  const notCheckedCount = overviews.length - checkedCount
 
   if (overviews.length === 0) {
     return (
@@ -230,12 +399,30 @@ export function RankOverview({ trackers, savedGoals, now = new Date() }: RankOve
           {"\u00b7"} every condition on the target or next automatic class
         </p>
       </div>
+      <div
+        className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border border-border bg-raised px-3 py-2 font-mono text-xs"
+        data-rank-check-summary
+      >
+        <span className="text-secondary">
+          Checked <span className="text-primary">{checkedCount}</span>
+        </span>
+        <span className="text-tertiary">{"\u00b7"}</span>
+        <span className={wrongCount > 0 ? "text-danger" : "text-secondary"}>
+          Wrong <span className="text-primary">{wrongCount}</span>
+        </span>
+        <span className="text-tertiary">{"\u00b7"}</span>
+        <span className="text-secondary">
+          Not checked <span className="text-primary">{notCheckedCount}</span>
+        </span>
+      </div>
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {overviews.map((overview) => (
           <TrackerRankSection
             key={overview.trackerId}
             overview={overview}
             savedGoal={savedGoals[String(overview.trackerId)]?.targetRank ?? null}
+            check={checks[String(overview.trackerId)] ?? null}
+            onSaveCheck={(check) => onSaveCheck(overview.trackerId, check)}
           />
         ))}
       </div>

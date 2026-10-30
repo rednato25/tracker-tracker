@@ -38,6 +38,7 @@ import { computeAggregateStats } from "@/lib/dashboard"
 import type { FleetAggregation } from "@/lib/fleet-aggregation"
 import { fleetCachedQueryOptions } from "@/lib/query-options"
 import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
+import type { RankCheck } from "@/lib/recruitment-state"
 import type { Snapshot, TrackerSummary } from "@/types/api"
 import type { TrackerSnapshotSeries } from "@/types/charts"
 
@@ -71,6 +72,7 @@ interface DashboardClientProps {
   initialTrackers: TrackerSummary[]
   snapshotRetentionDays: number | null
   rankGoals: string | null
+  initialRankChecks: Record<string, RankCheck>
   /** Read server-side from two small queries. False skips the Tag Groups fetch entirely. */
   hasTagGroups: boolean
   /** Server time keeps the first client render aligned with the server. */
@@ -81,6 +83,7 @@ export function DashboardClient({
   initialTrackers,
   snapshotRetentionDays,
   rankGoals,
+  initialRankChecks,
   hasTagGroups,
   now,
 }: DashboardClientProps) {
@@ -93,6 +96,7 @@ export function DashboardClient({
   // so a second instance would revert the other surface's last change.
   const chartPrefs = useChartPreferences()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [rankChecks, setRankChecks] = useState<Record<string, RankCheck>>(initialRankChecks)
   const [dashboardView, setDashboardView] = useDashboardView()
   // Two-state tab pattern: dashboardTab updates immediately (drives TabBar pill animation),
   // deferredTab updates via startTransition (drives content switch + query gating).
@@ -240,6 +244,19 @@ export function DashboardClient({
           <RankOverview
             trackers={data.trackers}
             savedGoals={savedRankGoals}
+            checks={rankChecks}
+            onSaveCheck={async (trackerId, check) => {
+              const res = await fetch("/api/recruitment/rank-checks", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ trackerId, check }),
+              })
+              if (!res.ok) throw new Error("Could not save the rank check")
+              const payload = (await res.json()) as {
+                rankChecks?: Record<string, RankCheck>
+              }
+              if (payload.rankChecks) setRankChecks(payload.rankChecks)
+            }}
             now={new Date(now)}
           />
         )}

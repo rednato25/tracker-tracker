@@ -178,7 +178,7 @@ describe("P35 structured rank requirements", () => {
     expect(complete.status).toBe("met")
   })
 
-  it("FileList: Power User meets the clear numeric thresholds", () => {
+  it("FileList: Power User meets the clear thresholds, Addict is met at 4.85 and Elite is unmet", () => {
     const power = evaluate("filelist", "Power User", {
       accountAgeDays: 28,
       uploadedBytes: 25 * GiB,
@@ -186,12 +186,13 @@ describe("P35 structured rank requirements", () => {
     })
     expect(power.status).toBe("met")
 
-    const addict = evaluate("filelist", "Addict", {
-      accountAgeDays: 28,
-      uploadedBytes: 25 * GiB,
-      accountRatio: 1.06,
-    })
-    expect(addict.status).toBe("unmet")
+    const addictValues = {
+      accountAgeDays: 182,
+      uploadedBytes: 500 * GiB,
+      accountRatio: 4.85,
+    }
+    expect(evaluate("filelist", "Addict", addictValues).status).toBe("met")
+    expect(evaluate("filelist", "Elite", addictValues).status).toBe("unmet")
   })
 
   it("M-Team: Power User meets strict greater-than thresholds and Elite User needs more age", () => {

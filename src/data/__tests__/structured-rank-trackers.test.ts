@@ -76,6 +76,21 @@ describe("P35 structured rank requirements", () => {
     })
     expect(trailblazer.status).toBe("unknown")
     expect(trailblazer.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
+
+    const shortTrailblazer = evaluate("onlyencodes", "Trailblazer", {
+      accountAgeDays: 31,
+      uploadedBytes: 3.07 * TiB,
+      accountRatio: 0.4,
+      seedSizeBytes: 1.87 * TiB,
+    })
+    expect(shortTrailblazer.status).toBe("unmet")
+    expect(shortTrailblazer.progress).toEqual({ met: 2, unmet: 2, unknown: 0, total: 4 })
+    expect(shortTrailblazer.conditions.map((condition) => condition.status)).toEqual([
+      "unmet",
+      "unmet",
+      "met",
+      "met",
+    ])
   })
 
   it("RetroToon World: Toon Hero meets the confirmed thresholds and Toon Superstar is met at 89 days", () => {
@@ -154,13 +169,23 @@ describe("P35 structured rank requirements", () => {
     expect(complete.status).toBe("met")
   })
 
-  it("seedpool: User meets the ratio floor and Pool needs the seed-size check", () => {
-    const user = evaluate("seedpool", "User", { accountRatio: 0.4 })
-    expect(user.status).toBe("met")
+  it("Zenith: Explorer splits into the upload and seedsize paths", () => {
+    const entry = getTrackerBySlug("zenith")
+    expect(entry?.rankPaths?.map((path) => path.id)).toEqual(["upload", "seedsize"])
 
-    const pool = evaluate("seedpool", "Pool", { accountAgeDays: 30 })
+    const input = inputFor("zenith", {})
+    const result = evaluateRankGoal({ ...input, currentRank: "Explorer" })
+    expect(result.nextRank).toBeNull()
+    expect(result.nextRankReason).toMatch(/branches here/)
+  })
+
+  it("seedpool: every automatic class needs ratio 1.00 and Pool needs the seed-size check", () => {
+    expect(evaluate("seedpool", "User", { accountRatio: 0.99 }).status).toBe("unmet")
+    expect(evaluate("seedpool", "User", { accountRatio: 1.0 }).status).toBe("met")
+
+    const pool = evaluate("seedpool", "Pool", { accountAgeDays: 30, accountRatio: 1.0 })
     expect(pool.status).toBe("unknown")
-    expect(pool.progress).toEqual({ met: 1, unmet: 0, unknown: 1, total: 2 })
+    expect(pool.progress).toEqual({ met: 2, unmet: 0, unknown: 1, total: 3 })
   })
 
   it("V3X: level and XP thresholds stay text-only", () => {
@@ -171,20 +196,31 @@ describe("P35 structured rank requirements", () => {
     expect(rankDefinitionForSlug("v3x")?.goals).toEqual({})
   })
 
-  it("Yu-Scene: PowerUser meets numeric thresholds and Seeder needs the seed-size check", () => {
+  it("Yu-Scene: User needs ratio 0.70 and the seed ladder uses the corrected ratios", () => {
+    expect(evaluate("yuscene", "User", { accountRatio: 0.69 }).status).toBe("unmet")
+    expect(evaluate("yuscene", "User", { accountRatio: 0.7 }).status).toBe("met")
+
     const power = evaluate("yuscene", "PowerUser", {
       accountAgeDays: 30,
       uploadedBytes: 1 * TiB,
-      accountRatio: 0.4,
+      accountRatio: 0.7,
     })
     expect(power.status).toBe("met")
 
     const seeder = evaluate("yuscene", "Seeder", {
       accountAgeDays: 30,
-      accountRatio: 0.4,
+      accountRatio: 0.7,
     })
     expect(seeder.status).toBe("unknown")
     expect(seeder.progress).toEqual({ met: 2, unmet: 0, unknown: 1, total: 3 })
+
+    const titan = evaluate("yuscene", "Titan", {
+      accountAgeDays: 365,
+      accountRatio: 5,
+      averageSeedTimeSeconds: 180 * DAY,
+      seedSizeBytes: 40 * TiB,
+    })
+    expect(titan.status).toBe("met")
   })
 
   it("CarPT: Power User evaluates seeding points with the other thresholds", () => {
@@ -309,6 +345,11 @@ describe("P35 structured rank requirements", () => {
     })
     expect(superstar.status).toBe("unknown")
     expect(superstar.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
+  })
+
+  it("Portugas: Mouro requires a ratio strictly above 0.40", () => {
+    expect(evaluate("portugas", "Mouro", { accountRatio: 0.4 }).status).toBe("unmet")
+    expect(evaluate("portugas", "Mouro", { accountRatio: 0.41 }).status).toBe("met")
   })
 
   it("Portugas: Hispanus meets the published thresholds and Portuga needs more upload", () => {

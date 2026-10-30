@@ -43,43 +43,38 @@ export const seedpool: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; rank page is login-gated",
-    accessedAt: null,
+    url: "https://seedpool.org/",
+    title: "seedpool user-class list",
+    accessedAt: "2026-10-31",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+      "Confirmed by the owner on 2026-10-31 from the site's user-class list. Every automatic class needs ratio 1.00; 1M means 30 days; all comparisons are at least.",
   },
   rankUnresolved: [
-    "Seed size is not a supported rank metric and stays an unsupported condition.",
+    "Seed size is a structured rank condition; the UNIT3D adapter does not collect it yet, so it stays unknown until collected.",
     "ProPool is bought or gifted in IRC and sits outside the earned ladder.",
     "Request, invite, freeleech and unsatisfied-slot counts are perks, not promotion thresholds.",
   ],
   userClasses: [
     {
-      name: "Cesspool",
-      requirements: "Ratio below 1 — download privileges revoked",
-      outsideLadder: "below",
-    },
-    { name: "KiddiePool", requirements: "Timeoutzone", outsideLadder: "below" },
-    {
       name: "User",
-      requirements: "Ratio ≥ 0.4 — DL Slots: ∞, Unsatisfied Slots: 20",
+      requirements: "Ratio ≥ 1.00 — DL Slots: ∞, Unsatisfied Slots: 20",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "sp-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "numeric", id: "sp-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.00" },
         ],
       },
     },
     {
       name: "Pool",
       requirements:
-        "Seedsize ≥ 256 GiB; Age ≥ 1 month — Can Request, Send Invite, Unsatisfied Slots: 30",
+        "Ratio ≥ 1.00; Seedsize ≥ 256 GiB; Age ≥ 1 month — Can Request, Send Invite, Unsatisfied Slots: 30",
       structured: {
         mode: "all",
         conditions: [
+          { kind: "numeric", id: "sp-pool-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.00" },
           { kind: "numeric", id: "sp-pool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
           { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 256 * GiB, scope: "account", label: "Seed size ≥ 256 GiB" },
         ],
@@ -87,10 +82,12 @@ export const seedpool: TrackerRegistryEntry = {
     },
     {
       name: "PowerPool",
-      requirements: "Seedsize ≥ 512 GiB; Age ≥ 3 months — Can Fill Requests, Unsatisfied Slots: 50",
+      requirements:
+        "Ratio ≥ 1.00; Seedsize ≥ 512 GiB; Age ≥ 3 months — Can Fill Requests, Unsatisfied Slots: 50",
       structured: {
         mode: "all",
         conditions: [
+          { kind: "numeric", id: "sp-powerpool-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.00" },
           { kind: "numeric", id: "sp-powerpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 512 * GiB, scope: "account", label: "Seed size ≥ 512 GiB" },
         ],
@@ -99,10 +96,11 @@ export const seedpool: TrackerRegistryEntry = {
     {
       name: "SuperPool",
       requirements:
-        "Seedsize ≥ 1 TiB; Age ≥ 6 months — Invite Forums, Freeleech, Unsatisfied Slots: 75",
+        "Ratio ≥ 1.00; Seedsize ≥ 1 TiB; Age ≥ 6 months — Invite Forums, Freeleech, Unsatisfied Slots: 75",
       structured: {
         mode: "all",
         conditions: [
+          { kind: "numeric", id: "sp-superpool-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.00" },
           { kind: "numeric", id: "sp-superpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
           { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "Seed size ≥ 1 TiB" },
         ],
@@ -110,28 +108,25 @@ export const seedpool: TrackerRegistryEntry = {
     },
     {
       name: "UberPool",
-      requirements: "Seedsize ≥ 5 TiB; Age ≥ 9 months — Freeleech, Unsatisfied Slots: 100",
+      requirements:
+        "Ratio ≥ 1.00; Seedsize ≥ 5 TiB; Age ≥ 9 months — Freeleech, Unsatisfied Slots: 100",
       structured: {
         mode: "all",
         conditions: [
+          { kind: "numeric", id: "sp-uberpool-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.00" },
           { kind: "numeric", id: "sp-uberpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 270, scope: "account", label: "At least 9 months registered" },
           { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "Seed size ≥ 5 TiB" },
         ],
       },
     },
     {
-      name: "ProPool",
-      requirements:
-        "Can be bought or gifted with buffer in IRC — Freeleech, Double Upload, Unsatisfied Slots: 50",
-      outsideLadder: "above",
-    },
-    {
       name: "MegaPool",
       requirements:
-        "Seedsize ≥ 25 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 125",
+        "Ratio ≥ 1.00; Seedsize ≥ 25 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 125",
       structured: {
         mode: "all",
         conditions: [
+          { kind: "numeric", id: "sp-megapool-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.00" },
           { kind: "numeric", id: "sp-megapool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 12 months registered" },
           { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 25 * TiB, scope: "account", label: "Seed size ≥ 25 TiB" },
         ],
@@ -140,14 +135,24 @@ export const seedpool: TrackerRegistryEntry = {
     {
       name: "GodPool",
       requirements:
-        "Seedsize ≥ 100 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 150",
+        "Ratio ≥ 1.00; Seedsize ≥ 100 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 150",
       structured: {
         mode: "all",
         conditions: [
+          { kind: "numeric", id: "sp-godpool-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.00" },
           { kind: "numeric", id: "sp-godpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 12 months registered" },
           { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", label: "Seed size ≥ 100 TiB" },
         ],
       },
+    },
+    // Off-ladder administrative and staff classes
+    { name: "KiddiePool", requirements: "Timeoutzone", outsideLadder: "below" },
+    { name: "NewPool", requirements: "Administrative state", outsideLadder: "below" },
+    {
+      name: "ProPool",
+      requirements:
+        "Can be bought or gifted with buffer in IRC — Freeleech, Double Upload, Unsatisfied Slots: 50",
+      outsideLadder: "above",
     },
     {
       name: "FoundingPool",

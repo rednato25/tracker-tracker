@@ -35,13 +35,13 @@ export const zenith: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; rank page is login-gated",
-    accessedAt: null,
+    url: "https://znth.cx/",
+    title: "Zenith user-class list",
+    accessedAt: "2026-10-31",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+      "Confirmed by the owner on 2026-10-31 from the site's user-class list. 1W means 7 days and 1M means 30 days; all comparisons are at least. Explorer splits into the upload path and the seedsize path.",
   },
   rankUnresolved: [
     "Seed size and weighted average seed time are rank metrics, but this tracker's adapter does not collect them yet; their conditions stay unknown.",

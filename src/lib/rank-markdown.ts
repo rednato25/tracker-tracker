@@ -11,7 +11,11 @@ const DOT = "\u00b7"
 const DASH = "\u2014"
 
 function cell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ").trim()
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll("|", "\\|")
+    .replace(/\s*\n\s*/g, " ")
+    .trim()
 }
 
 function targetLine(overview: RankOverview): string {

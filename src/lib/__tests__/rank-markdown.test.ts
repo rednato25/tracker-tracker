@@ -81,6 +81,20 @@ describe("buildRankOverviewMarkdown", () => {
     expect(markdown).toContain("Registry text: 12 weeks registered")
   })
 
+  it("escapes pipes and backslashes so the table cannot break", () => {
+    const base = buildRankOverviews(
+      [tracker()],
+      { "1": { targetRank: "Super User" } },
+      NOW
+    )[0]
+    const overview = {
+      ...base,
+      conditions: [{ ...base.conditions[0], requirement: "A | B \\ C" }],
+    }
+    const markdown = buildRankOverviewMarkdown([overview], {})
+    expect(markdown).toContain("| A \\| B \\\\ C |")
+  })
+
   it("includes unchecked trackers and the no-structured-conditions line", () => {
     const overviews = buildRankOverviews(
       [

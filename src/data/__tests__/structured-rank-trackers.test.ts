@@ -12,6 +12,7 @@ import {
 const NOW = new Date("2026-10-30T12:00:00.000Z")
 const GiB = 1024 ** 3
 const TiB = 1024 ** 4
+const DAY = 86_400
 
 type Values = Partial<Record<keyof RankObservationMap, number>>
 
@@ -93,21 +94,47 @@ describe("P35 structured rank requirements", () => {
     expect(superstar.status).toBe("met")
   })
 
-  it("Upload.cx: Member meets numeric thresholds and Master needs seed checks", () => {
-    const member = evaluate("uploadcx", "Member", {
-      accountAgeDays: 14,
-      uploadedBytes: 1 * TiB,
-      accountRatio: 0.6,
-    })
-    expect(member.status).toBe("met")
+  it("Upload.cx: Member does not exist and the seed, upload-count and combined ladders evaluate", () => {
+    const entry = getTrackerBySlug("uploadcx")
+    expect(
+      entry?.userClasses.some((userClass) => userClass.name.toLowerCase() === "member")
+    ).toBe(false)
 
-    const master = evaluate("uploadcx", "Master", {
-      accountAgeDays: 120,
-      uploadedBytes: 50 * TiB,
-      accountRatio: 1.1,
+    expect(evaluate("uploadcx", "User", { accountRatio: 0.6 }).status).toBe("met")
+
+    const seeder = evaluate("uploadcx", "Seeder", {
+      uploadedBytes: 10 * TiB,
+      accountRatio: 0.8,
+      accountAgeDays: 30,
+      averageSeedTimeSeconds: 30 * DAY,
+      seedSizeBytes: 5 * TiB,
     })
-    expect(master.status).toBe("unknown")
-    expect(master.progress).toEqual({ met: 3, unmet: 0, unknown: 2, total: 5 })
+    expect(seeder.status).toBe("met")
+
+    const sharer = evaluate("uploadcx", "Sharer", {
+      accountRatio: 0.8,
+      accountAgeDays: 30,
+      averageSeedTimeSeconds: 30 * DAY,
+      uploads: 50,
+    })
+    expect(sharer.status).toBe("met")
+
+    const legend = evaluate("uploadcx", "Legend", {
+      uploadedBytes: 150 * TiB,
+      accountRatio: 2,
+      accountAgeDays: 730,
+      averageSeedTimeSeconds: 180 * DAY,
+      seedSizeBytes: 50 * TiB,
+      uploads: 1000,
+    })
+    expect(legend.status).toBe("met")
+  })
+
+  it("Upload.cx: the parallel ladders branch at User without a single automatic next class", () => {
+    const input = inputFor("uploadcx", {})
+    const result = evaluateRankGoal({ ...input, currentRank: "User" })
+    expect(result.nextRank).toBeNull()
+    expect(result.nextRankReason).toMatch(/branches here/)
   })
 
   it("Zenith: Bulker evaluates age, uploads, seed size and seed time", () => {

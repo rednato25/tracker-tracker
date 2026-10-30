@@ -133,3 +133,15 @@ describe("buildCoreStatDescriptors hit & runs (zero is not unknown, null is)", (
     expect(hnrDescriptor({ ...baseSnapshot, hitAndRuns: 1234 }).value).toBe("1,234")
   })
 })
+
+describe("buildCoreStatDescriptors metric hues", () => {
+  it("assigns the global metric hue to the five data descriptors", () => {
+    const descriptors = buildCoreStatDescriptors(baseStats, baseSnapshot)
+    const byKey = Object.fromEntries(descriptors.map((descriptor) => [descriptor.key, descriptor]))
+    expect(byKey.uploaded.valueColor).toBe("var(--color-upload)")
+    expect(byKey.downloaded.valueColor).toBe("var(--color-download)")
+    expect(byKey.buffer.valueColor).toBe("var(--color-buffer)")
+    expect(byKey.ratio.valueColor).toBe("var(--color-ratio)")
+    expect(byKey.seeding.valueColor).toBe("var(--color-seeding)")
+  })
+})

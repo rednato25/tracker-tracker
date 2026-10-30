@@ -78,7 +78,7 @@ function SummaryCard({ summary }: { summary: RankGoalSummary }) {
             </li>
           ))}
           {hiddenCount > 0 && (
-            <li className="text-tertiary">+{hiddenCount} more checks</li>
+            <li className="text-tertiary">+{hiddenCount} more requirements</li>
           )}
         </ul>
       )}

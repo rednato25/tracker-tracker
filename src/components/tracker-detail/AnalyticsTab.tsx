@@ -103,6 +103,7 @@ export function AnalyticsTab({
               tooltip={d.tooltip}
               alert={d.alert}
               alertReason={d.alertReason}
+              valueColor={d.valueColor}
             />
           )
         } else {

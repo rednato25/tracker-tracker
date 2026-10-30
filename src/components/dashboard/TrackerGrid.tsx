@@ -15,8 +15,10 @@ import {
 } from "@/lib/formatters"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
+import { getTrackerChecks } from "@/lib/tracker-checks"
 import { getHealthLabel, getHealthPulseDot, getTrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
+import { TrackerChecksStrip } from "./TrackerChecksStrip"
 
 interface TrackerGridProps {
   trackers: TrackerSummary[]
@@ -146,6 +148,7 @@ function TrackerCard({
   const bars = summary?.bars ?? []
   const visibleBars = bars.slice(0, 3)
   const targetRank = summary?.targetRank ?? summary?.automaticNextRank
+  const checks = getTrackerChecks(tracker)
   const snapshot = getSnapshotReadout(tracker, now)
   const snapshotMarker = stats
     ? snapshot.state === "stale"
@@ -261,6 +264,13 @@ function TrackerCard({
         />
       </div>
 
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
+          Checks
+        </span>
+        <TrackerChecksStrip checks={checks} />
+      </div>
+
       <div className="flex flex-col gap-2 border-t border-border pt-3">
         <div className="flex items-center justify-between gap-2">
           <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
@@ -272,7 +282,7 @@ function TrackerCard({
         </div>
         {summary && summary.totalChecks > 0 && (
           <p className="font-mono text-xs text-tertiary">
-            {summary.metCount} of {summary.totalChecks} checks
+            {summary.metCount} of {summary.totalChecks} requirements
           </p>
         )}
         {summary?.distanceText && (
@@ -284,7 +294,7 @@ function TrackerCard({
               <RankBar key={bar.id} bar={bar} />
             ))}
             {bars.length > visibleBars.length && (
-              <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more checks</p>
+              <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more requirements</p>
             )}
           </div>
         ) : summary?.nextRankRequirements ? (
@@ -311,9 +321,9 @@ export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGr
   return (
     <section className="flex flex-col gap-3" aria-label="Tracker cards" data-tracker-grid>
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="font-cond text-3xl font-semibold leading-none tracking-[-0.02em] text-primary">
+        <h2 className="font-cond text-lg font-semibold leading-6 tracking-[-0.01em] text-primary">
           Trackers
-        </h1>
+        </h2>
         <p className="font-mono text-xs text-tertiary">
           {trackers.length} {trackers.length === 1 ? "account" : "accounts"} · as of{" "}
           {now.toISOString().slice(0, 10)}

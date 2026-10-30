@@ -38,8 +38,8 @@ The four shaped surfaces are documented in `docs/YATA_REFERENCE_NOTES.md`:
 - **Dashboard** — totals row plus Grid | Table, answering "what needs attention
   and how far is the next rank".
 - **Tracker card** — header, six-metric stat grid, current/required rank bars.
-- **Pathways** — owned-tracker cards, searchable target profile, best-path card,
-  route chips, one-line steps, collapsed other routes.
+- **Pathways** — owned-tracker cards, searchable target profile, route-choice
+  controls, pinned route, route chips and filterable route list.
 - **Page shell** — one sticky top bar, one page width, shared navigation.
 
 ## Tokens
@@ -250,10 +250,19 @@ the only violet used for controls.
   Show the first six, then a `+N more` control that reveals the rest.
 - Closed routes stay visible but greyed with a written `Closed` label. They are
   never part of a best path.
-- The target picker opens a tracker profile, in this order:
-  1. the best path on top when the user has one;
-  2. the no-route block when there is none;
-  3. the profile card.
+- The target picker opens a tracker profile. List every known route from owned
+  trackers within the current max-hop limit, up to 10, then `Show all (N)`.
+- Controls above the list: sort by `Fastest` (days left) or `Fewest hops`; max
+  hops `1`, `2`, `3` (default `3`); `Start from` all owned trackers or one.
+- Each route row shows its chain, hop count, total wait (`Ready now`,
+  `N days left` or `Unknown`) and `Needs checking` or `No checks pending`.
+- Unknown waits always sort after known waits in both sort orders.
+- Pin one route per target. The pinned route comes first; when it differs, the
+  `Fastest` route sits directly below it. The fastest route always keeps its
+  `Fastest` label.
+- A pinned route's hops and wait appear on that target's chip under
+  `Other targets`. The pin lives in the recruitment-state JSON, so it needs no
+  migration and survives reloads.
 - The profile card shows the target, the class needed on that tracker to send
   invites, its recruiting status and checked date, `Invited from` and
   `Can invite to`. Both lists mark closed routes.
@@ -262,19 +271,8 @@ the only violet used for controls.
   reach`. If no open invite route exists, say:
   `Nobody in the data invites to <tracker>. It may recruit through open signups
   or interviews.`
-- The best-path card starts with a **Best path** badge, route chips from the
-  owned source to the target, and total time left.
-- Each best-path step is one line: `From A to B Â· needs â€¦ Â· N days left`. A step
-  is "Ready now" only when its wait is met and it has no other requirement text.
-  Otherwise the wait and requirement stay together, for example
-  `Wait done, needs 3TB upload`.
-- Total time left uses the same rule and says when any step still needs checking.
-- Route chips use surface-2 with a 1px border and the accent only for the active
-  target. They are selectors, not decorative pills.
-- Details stays collapsed and shows only the source updated date and last
-  verification. No raw ISO timestamps.
-- Other routes stay collapsed, maximum five. No requirement bars in the step
-  row; the one-line requirement text carries the check.
+- Route chips use surface-2 with a 1px border. They are route facts, not
+  decorative pills.
 - No seedbox bar, no Yata target headline copy, no promotion estimate.
 
 ### Controls

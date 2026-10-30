@@ -542,9 +542,10 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
     await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("Aither")
     await pathwaysPage.getByRole("option", { name: "Aither" }).click()
-    await expect(pathwaysPage.getByText("Best path")).toBeVisible({ timeout: 15_000 })
-    await expect(pathwaysPage.getByText("Total time left")).toBeVisible()
-    await expect(pathwaysPage.getByText(/From AlphaRatio to Aither ·/)).toBeVisible()
+    await expect(pathwaysPage.locator("[data-route-controls]")).toBeVisible({ timeout: 15_000 })
+    await expect(pathwaysPage.locator("[data-route-choice]").first()).toBeVisible()
+    await expect(pathwaysPage.locator('[data-route-choice][data-fastest="true"]')).toBeVisible()
+    await expect(pathwaysPage.getByText("Best path")).toHaveCount(0)
     await expect(pathwaysPage.locator('[data-target-profile="Aither"]')).toBeVisible()
     await expect(pathwaysPage.locator("[data-invited-from]")).toBeVisible()
     await expect(pathwaysPage.locator("[data-can-invite-to]")).toBeVisible()
@@ -552,7 +553,6 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await expect(pathwaysPage.getByText(/Checked /)).toBeVisible()
     await expect(pathwaysPage.getByText("Structured requirements")).toHaveCount(0)
     await expect(pathwaysPage.getByText(/Availability:/)).toHaveCount(0)
-    await expect(pathwaysPage.getByText("Saving…")).toHaveCount(0)
 
     await page.setViewportSize({ width: 1440, height: 1400 })
     await page.evaluate(() => {
@@ -565,31 +565,23 @@ test.describe.serial("tracker pathways visual evidence", () => {
     })
     await page.screenshot({ path: "test-results/visual-pathways-dark.png" })
 
+    await pathwaysPage.locator("[data-route-controls]").scrollIntoViewIfNeeded()
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-routes-dark.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-routes-light.png" })
+
     await pathwaysPage.locator('[data-target-profile="Aither"]').scrollIntoViewIfNeeded()
     await page.waitForTimeout(150)
-    await page.screenshot({ path: "test-results/visual-pathways-profile-dark.png" })
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "light"
-    })
-    await page.waitForTimeout(150)
     await page.screenshot({ path: "test-results/visual-pathways-profile-light.png" })
-
-    await page.evaluate(() => {
-      document.documentElement.dataset.theme = "light"
-    })
-    const firstStepDetails = pathwaysPage.locator("details").first()
-    await firstStepDetails.locator("summary").click()
-    await expect(firstStepDetails).toHaveAttribute("open", "")
-    await expect(firstStepDetails).toContainText(/Source updated .+ · last verified /)
-    await expect(firstStepDetails).not.toContainText(/\d{4}-\d{2}-\d{2}T/)
-    await page.waitForTimeout(150)
-    await page.screenshot({ path: "test-results/visual-pathways-details-light.png" })
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
     await page.waitForTimeout(150)
-    await page.screenshot({ path: "test-results/visual-pathways-details-dark.png" })
-    await firstStepDetails.locator("summary").click()
+    await page.screenshot({ path: "test-results/visual-pathways-profile-dark.png" })
 
     await page.setViewportSize({ width: 390, height: 1200 })
     await page.waitForFunction(
@@ -605,14 +597,14 @@ test.describe.serial("tracker pathways visual evidence", () => {
     })
     await page.screenshot({ path: "test-results/visual-pathways-mobile.png" })
 
-    await pathwaysPage.getByText("Best path").scrollIntoViewIfNeeded()
+    await pathwaysPage.locator("[data-route-controls]").scrollIntoViewIfNeeded()
     await page.waitForTimeout(150)
-    await page.screenshot({ path: "test-results/visual-pathways-mobile-best.png" })
+    await page.screenshot({ path: "test-results/visual-pathways-mobile-routes.png" })
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
     })
     await page.waitForTimeout(150)
-    await page.screenshot({ path: "test-results/visual-pathways-mobile-best-dark.png" })
+    await page.screenshot({ path: "test-results/visual-pathways-mobile-routes-dark.png" })
 
     await pathwaysPage.locator('[data-target-profile="Aither"]').scrollIntoViewIfNeeded()
     await page.waitForTimeout(150)
@@ -1749,5 +1741,145 @@ test.describe.serial("P39 rank and pause card states", () => {
     await expect(pauseBlock).toContainText("Paused after 5 failed polls")
     await expect(pauseBlock).toContainText(/next retry \d{2}:\d{2}/)
     await expect(pauseBlock).toContainText("Timeout")
+  })
+})
+
+test.describe.serial("P40 pathway route choices", () => {
+  let trackerId: number | null = null
+  let previousState: string | null = null
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<
+        { encryption_salt: string; recruitment_state: string | null }[]
+      >`
+        select encryption_salt, recruitment_state from app_settings limit 1
+      `
+      previousState = settings.recruitment_state
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const [tracker] = await sql<{ id: number }[]>`
+        insert into trackers (
+          name, base_url, registry_slug, platform_type, is_active, joined_at,
+          last_polled_at, encrypted_api_token, created_at, updated_at
+        ) values (
+          'TEST P40 Routes', 'https://tt-p40.invalid', 'alpharatio', 'unit3d', true,
+          '2025-01-01T00:00:00.000Z', now(), ${encrypt("synthetic-p40-token", key)},
+          now(), now()
+        ) returning id
+      `
+      trackerId = tracker.id
+      await sql`
+        insert into tracker_snapshots (
+          tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio,
+          buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+          required_ratio, warned, freeleech_tokens, is_manual
+        ) values (
+          ${tracker.id}, now(), ${500 * GiB}, ${200 * GiB}, 2.5,
+          ${300 * GiB}, 5, 0, 10, 0, 1, false, 0, false
+        )
+      `
+      await sql`
+        update app_settings
+        set recruitment_state = ${JSON.stringify({
+          version: 2,
+          desiredTrackerSlug: "Aither",
+          hiddenPathKeys: [],
+          goalLinks: [],
+          pinnedRoutes: {},
+        })}
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      if (trackerId !== null) await sql`delete from trackers where id = ${trackerId}`
+      await sql`update app_settings set recruitment_state = ${previousState}`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("sorts, filters, pins and restores the chosen route", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(trackerId).not.toBeNull()
+    await page.goto("/pathways")
+    const pathwaysPage = page.locator("#main-content [data-pathways-page]")
+    await expect(pathwaysPage.locator("[data-route-controls]")).toBeVisible({ timeout: 15_000 })
+    const rows = pathwaysPage.locator("[data-route-choice]")
+    await expect(rows.first()).toBeVisible()
+    const routeCount = await rows.count()
+    expect(routeCount).toBeGreaterThan(3)
+
+    await pathwaysPage.getByRole("button", { name: "Fewest hops" }).click()
+    await expect(rows.first()).toContainText("1 hop")
+
+    await pathwaysPage.getByRole("button", { name: "Fastest" }).click()
+    await expect(
+      pathwaysPage.locator('[data-route-choice][data-fastest="true"]')
+    ).toHaveCount(1)
+
+    await pathwaysPage.getByRole("button", { name: "1" }).click()
+    await expect(rows).toHaveCount(1)
+    await pathwaysPage.getByRole("button", { name: "3" }).click()
+    await expect(rows).toHaveCount(routeCount)
+
+    await pathwaysPage.getByRole("button", { name: "Start from" }).click()
+    await pathwaysPage.getByRole("option", { name: "AlphaRatio" }).click()
+    await expect(rows).toHaveCount(routeCount)
+
+    const pinRow = pathwaysPage.locator('[data-route-choice][data-fastest="false"]').first()
+    await expect(pinRow).toBeVisible()
+    const pinText = (await pinRow.textContent()) ?? ""
+    const pinnedHops = pinText.match(/(\d+) hops?/)?.[1] ?? ""
+    const pinnedWait = pinText.match(/(Ready now|\d+ days? left)/)?.[1] ?? ""
+    await pinRow.getByRole("button", { name: "Pin" }).click()
+    await expect(rows.first()).toHaveAttribute("data-pinned", "true")
+    await expect(rows.nth(1)).toHaveAttribute("data-fastest", "true")
+
+    await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
+    await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("Anthelion")
+    await pathwaysPage.getByRole("option", { name: "Anthelion" }).click()
+    const aitherChip = pathwaysPage.getByRole("button", { name: /Aither · .* hops ·/ })
+    await expect(aitherChip).toBeVisible()
+    await expect(aitherChip).toContainText(`${pinnedHops} hop`)
+    if (pinnedWait) await expect(aitherChip).toContainText(pinnedWait)
+
+    await aitherChip.click()
+    await page.reload()
+    await expect(rows.first()).toHaveAttribute("data-pinned", "true")
+
+    await page.evaluate(() => {
+      const backToTop = document.querySelector('[aria-label="Back to top"]') as HTMLElement | null
+      if (backToTop) backToTop.style.visibility = "hidden"
+    })
+    await page.setViewportSize({ width: 1440, height: 1400 })
+    await pathwaysPage.locator("[data-route-controls]").scrollIntoViewIfNeeded()
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    await page.waitForTimeout(200)
+    await page.screenshot({ path: "test-results/p40-routes-1440-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.screenshot({ path: "test-results/p40-routes-1440-dark.png" })
+
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(() => document.querySelector('[data-mobile="true"]') !== null)
+    await pathwaysPage.locator("[data-route-controls]").scrollIntoViewIfNeeded()
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    await page.waitForTimeout(200)
+    await page.screenshot({ path: "test-results/p40-routes-390-light.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.screenshot({ path: "test-results/p40-routes-390-dark.png" })
   })
 })

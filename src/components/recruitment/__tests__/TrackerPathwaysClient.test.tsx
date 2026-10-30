@@ -75,18 +75,18 @@ const P38_CATALOG: RecruitmentCatalog = {
   overrides: [],
 }
 
-const OPEN_CATALOG: RecruitmentCatalog = {
+const ROUTE_CATALOG: RecruitmentCatalog = {
   ...P38_CATALOG,
-  sourceGates: [],
-}
-
-const REQUIREMENT_CATALOG: RecruitmentCatalog = {
-  ...OPEN_CATALOG,
-  routes: OPEN_CATALOG.routes.map((item) =>
-    item.sourceTrackerId === "AlphaRatio" && item.destinationTrackerId === "BroadcasTheNet"
-      ? { ...item, requirementNotes: ["3TB upload"] }
-      : item
-  ),
+  routes: [
+    route("AlphaRatio", "BroadcasTheNet", { minimumDays: 5 }),
+    route("TorrentLeech", "BroadcasTheNet", { minimumDays: 0 }),
+    route("AlphaRatio", "Mid", { minimumDays: 0 }),
+    route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+    route("AlphaRatio", "Mid2", { minimumDays: 0 }),
+    route("Mid2", "Third", { minimumDays: 0 }),
+    route("Third", "BroadcasTheNet", { minimumDays: 1 }),
+  ],
+  sourceGates: [{ trackerId: "BroadcasTheNet", days: 90, text: "Elite: 6 months" }],
 }
 
 function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
@@ -241,69 +241,157 @@ describe("TrackerPathwaysClient", () => {
     expect(
       canInviteTo.querySelector('[data-profile-route="tp:BroadcasTheNet:ClosedDest"]')
     ).toHaveAttribute("data-closed", "true")
-    expect(screen.getByText("Best path")).toBeInTheDocument()
   })
 
-  it("shows the best path on top with route chips", () => {
-    const { container } = render(
-      <TrackerPathwaysClient
-        trackers={bothTrackers}
-        initialState={stateFor("BroadcasTheNet")}
-        catalog={OPEN_CATALOG}
-      />
-    )
-    const chips = [...container.querySelectorAll("[data-route-chip]")].map((chip) =>
-      chip.textContent?.trim()
-    )
-    expect(chips).toEqual(["AlphaRatio", "BroadcasTheNet"])
-    expect(screen.getByText("Best path")).toBeInTheDocument()
-    expect(screen.getByText("Other routes (1)").closest("details")).not.toHaveAttribute("open")
-  })
-
-  it("renders one line per step and keeps details to the two dates", async () => {
+  it("lists every route, sorts by fewest hops, and applies both filters", async () => {
     const user = userEvent.setup()
     const { container } = render(
       <TrackerPathwaysClient
         trackers={bothTrackers}
         initialState={stateFor("BroadcasTheNet")}
-        catalog={OPEN_CATALOG}
+        catalog={ROUTE_CATALOG}
       />
     )
-    expect(
-      screen.getByText("From AlphaRatio to BroadcasTheNet · Ready now")
-    ).toBeInTheDocument()
-    expect(screen.queryByText("Structured requirements")).not.toBeInTheDocument()
-    expect(screen.queryByText(/Availability:/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/community evidence/)).not.toBeInTheDocument()
+    expect(container.querySelector("[data-route-controls]")).not.toBeNull()
 
-    const details = container.querySelector("details")
-    expect(details).not.toBeNull()
-    expect(details).not.toHaveAttribute("open")
-    await user.click(details?.querySelector("summary") as HTMLElement)
-    expect(details).toHaveAttribute("open")
-    expect(details).toHaveTextContent("Source updated Sep 2026 · last verified never")
-    expect(details?.textContent).not.toMatch(/\d{4}-\d{2}-\d{2}T/)
+    let rows = [...container.querySelectorAll("[data-route-choice]")]
+    expect(rows).toHaveLength(4)
+    expect(rows[0]).toHaveAttribute("data-route-choice", "tp:AlphaRatio:BroadcasTheNet")
+    expect(rows[0]).toHaveAttribute("data-fastest", "true")
+    expect(rows[0]).toHaveTextContent("Fastest")
+    expect(rows[1]).toHaveAttribute("data-route-choice", "tp:TorrentLeech:BroadcasTheNet")
+    expect(rows[2]).toHaveAttribute(
+      "data-route-choice",
+      "tp:AlphaRatio:Mid2>tp:Mid2:Third>tp:Third:BroadcasTheNet"
+    )
+    expect(rows[3]).toHaveAttribute(
+      "data-route-choice",
+      "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet"
+    )
+
+    await user.click(screen.getByRole("button", { name: "Fewest hops" }))
+    rows = [...container.querySelectorAll("[data-route-choice]")]
+    expect(rows[0]).toHaveAttribute("data-route-choice", "tp:AlphaRatio:BroadcasTheNet")
+    expect(rows[1]).toHaveAttribute("data-route-choice", "tp:TorrentLeech:BroadcasTheNet")
+    expect(rows[2]).toHaveAttribute(
+      "data-route-choice",
+      "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet"
+    )
+    expect(rows[3]).toHaveAttribute(
+      "data-route-choice",
+      "tp:AlphaRatio:Mid2>tp:Mid2:Third>tp:Third:BroadcasTheNet"
+    )
+
+    await user.click(screen.getByRole("button", { name: "1" }))
+    rows = [...container.querySelectorAll("[data-route-choice]")]
+    expect(rows).toHaveLength(2)
+
+    await user.click(screen.getByRole("button", { name: "3" }))
+    rows = [...container.querySelectorAll("[data-route-choice]")]
+    expect(rows).toHaveLength(4)
+
+    await user.click(screen.getByRole("button", { name: "Start from" }))
+    await user.click(screen.getByRole("option", { name: "TorrentLeech" }))
+    rows = [...container.querySelectorAll("[data-route-choice]")]
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toHaveAttribute("data-route-choice", "tp:TorrentLeech:BroadcasTheNet")
   })
 
-  it("shows Wait done with the requirement instead of Ready now", () => {
-    render(
+  it("shows the first 10 routes and then Show all", async () => {
+    const user = userEvent.setup()
+    const manyRoutes: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: Array.from({ length: 12 }, (_, index) => {
+        const middle = `Mid${index}`
+        return [
+          route("AlphaRatio", middle),
+          route(middle, "BroadcasTheNet"),
+        ]
+      }).flat(),
+      sourceGates: [],
+    }
+    const { container } = render(
       <TrackerPathwaysClient
-        trackers={[
-          tracker({
-            id: 2,
-            name: "AlphaRatio",
-            registrySlug: "alpharatio",
-            joinedAt: recentJoin,
-          }),
-        ]}
+        trackers={[tracker({ registrySlug: "alpharatio", name: "AlphaRatio" })]}
         initialState={stateFor("BroadcasTheNet")}
-        catalog={REQUIREMENT_CATALOG}
+        catalog={manyRoutes}
       />
     )
-    expect(screen.getByText("Wait done, needs 3TB upload")).toBeInTheDocument()
-    expect(
-      screen.getByText("From AlphaRatio to BroadcasTheNet · Wait done, needs 3TB upload")
-    ).toBeInTheDocument()
+    let rows = [...container.querySelectorAll("[data-route-choice]")]
+    expect(rows).toHaveLength(10)
+    await user.click(screen.getByRole("button", { name: "Show all (12)" }))
+    rows = [...container.querySelectorAll("[data-route-choice]")]
+    expect(rows).toHaveLength(12)
+    expect(screen.getByRole("button", { name: "Show first 10" })).toBeInTheDocument()
+  })
+
+  it("pins a route first and keeps the pin after a remount", async () => {
+    const user = userEvent.setup()
+    const first = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={ROUTE_CATALOG}
+      />
+    )
+    const pinnedKey = "tp:AlphaRatio:Mid2>tp:Mid2:Third>tp:Third:BroadcasTheNet"
+    const pinnedRow = first.container.querySelector(
+      `[data-route-choice="${pinnedKey}"]`
+    ) as HTMLElement
+    expect(pinnedRow).not.toBeNull()
+    await user.click(within(pinnedRow).getByRole("button", { name: "Pin" }))
+
+    await waitFor(() => {
+      const put = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT").at(-1)
+      expect(JSON.parse(String(put?.[1]?.body))).toMatchObject({
+        state: { pinnedRoutes: { BroadcasTheNet: pinnedKey } },
+      })
+    })
+    const put = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT").at(-1)
+    const savedState = JSON.parse(String(put?.[1]?.body)).state
+    first.unmount()
+
+    const second = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={savedState}
+        catalog={ROUTE_CATALOG}
+      />
+    )
+    const remountedRows = [...second.container.querySelectorAll("[data-route-choice]")]
+    expect(remountedRows[0]).toHaveAttribute("data-route-choice", pinnedKey)
+    expect(remountedRows[0]).toHaveAttribute("data-pinned", "true")
+    expect(remountedRows[1]).toHaveAttribute("data-fastest", "true")
+    expect(remountedRows[1]).toHaveTextContent("Fastest")
+  })
+
+  it("shows the pinned route on the other-target chip", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={ROUTE_CATALOG}
+      />
+    )
+    const pinnedKey = "tp:AlphaRatio:Mid2>tp:Mid2:Third>tp:Third:BroadcasTheNet"
+    const pinnedRow = container.querySelector(
+      `[data-route-choice="${pinnedKey}"]`
+    ) as HTMLElement
+    await user.click(within(pinnedRow).getByRole("button", { name: "Pin" }))
+    await waitFor(() => {
+      const put = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT").at(-1)
+      expect(JSON.parse(String(put?.[1]?.body)).state.pinnedRoutes.BroadcasTheNet).toBe(
+        pinnedKey
+      )
+    })
+
+    await user.click(screen.getByRole("button", { name: "Choose a tracker" }))
+    await user.type(screen.getByRole("combobox", { name: "Search trackerpathways" }), "Aither")
+    await user.click(screen.getByRole("option", { name: "Aither" }))
+
+    const chip = screen.getByRole("button", { name: /BroadcasTheNet · 3 hops/ })
+    expect(chip).toHaveTextContent("1 day left")
   })
 
   it("shows the no-route profile and the trackerpathways link", () => {
@@ -327,19 +415,6 @@ describe("TrackerPathwaysClient", () => {
         name: "Tracker missing? It isn't in the trackerpathways data yet.",
       })
     ).toHaveAttribute("href", "https://github.com/handokota/trackerpathways")
-  })
-
-  it("keeps source details hidden by default", () => {
-    const { container } = render(
-      <TrackerPathwaysClient
-        trackers={[tracker({ joinedAt: recentJoin })]}
-        initialState={stateFor("BroadcasTheNet")}
-        catalog={OPEN_CATALOG}
-      />
-    )
-    const details = container.querySelectorAll("details")
-    expect(details.length).toBeGreaterThan(0)
-    expect(details[0]).not.toHaveAttribute("open")
   })
 
   it("marks an owned tracker missing from trackerpathways data", () => {

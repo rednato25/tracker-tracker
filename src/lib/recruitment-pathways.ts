@@ -487,8 +487,9 @@ function compareRouteChoices(
 ): number {
   // Requirement 5 is absolute: unknown waits fall below every known wait,
   // before the selected sort is applied inside each group.
-  const knownOrder = compareKnownWait(a, b)
-  if (knownOrder !== 0) return knownOrder
+  const aKnown = a.totalDaysRemaining !== null
+  const bKnown = b.totalDaysRemaining !== null
+  if (aKnown !== bKnown) return aKnown ? -1 : 1
   if (sort === "fewest-hops") {
     return (
       a.routeIds.length - b.routeIds.length ||
@@ -496,7 +497,11 @@ function compareRouteChoices(
       a.key.localeCompare(b.key)
     )
   }
-  return a.routeIds.length - b.routeIds.length || a.key.localeCompare(b.key)
+  return (
+    compareKnownWait(a, b) ||
+    a.routeIds.length - b.routeIds.length ||
+    a.key.localeCompare(b.key)
+  )
 }
 
 function routeChoice(path: WishlistPathView, fastestKey: string | null, pinnedKey: string | null) {

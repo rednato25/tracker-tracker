@@ -6,7 +6,7 @@ import { ExternalLinkSmallIcon } from "@icons"
 import clsx from "clsx"
 import Link from "next/link"
 import { CHART_THEME } from "@/components/charts/lib/theme"
-import { Badge, PulseDot } from "@/components/ui"
+import { PulseDot } from "@/components/ui"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   formatAccountAge,
@@ -183,10 +183,17 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const stats = tracker.latestStats
   const bars = summary?.bars ?? []
   const visibleBars = bars.slice(0, 3)
-  const targetRank = summary?.targetRank ?? summary?.automaticNextRank
   const checks = getTrackerChecks(tracker)
   const snapshot = getSnapshotReadout(tracker, now)
   const statusLabel = cardStatusLabel(tracker, health, snapshot.state)
+  const currentRankLabel = summary?.currentRankHidden
+    ? "Hidden"
+    : (summary?.currentRank ?? "Unknown")
+  const savedTarget = summary?.targetRank ?? null
+  const automaticTarget = summary?.automaticNextRank ?? null
+  const targetRank = summary?.targetReached ? automaticTarget : (savedTarget ?? automaticTarget)
+  const isAutomaticTarget = !savedTarget || Boolean(summary?.targetReached)
+  const topOfLadder = !targetRank
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -324,35 +331,41 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
-            Rank target
-          </span>
-          <Badge
-            variant={summary?.targetReached ? "success" : summary?.targetRank ? "accent" : "default"}
-          >
-            {summary?.targetReached ? "Target reached" : (targetRank ?? "No target")}
-          </Badge>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          {topOfLadder ? (
+            <p className="min-w-0 break-words font-mono text-xs text-primary">
+              <span className="font-medium">{currentRankLabel}</span>
+              <span className="mx-1.5 text-tertiary">{"\u00b7"}</span>
+              <span className="text-secondary">Highest automatic class reached</span>
+            </p>
+          ) : (
+            <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-mono text-xs">
+              <span className="font-medium text-primary">{currentRankLabel}</span>
+              <span aria-hidden="true" className="text-tertiary">
+                {"\u2192"}
+              </span>
+              <span className="font-medium text-primary">{targetRank}</span>
+              {isAutomaticTarget && (
+                <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-tertiary">
+                  Automatic
+                </span>
+              )}
+            </p>
+          )}
+          <p className="flex shrink-0 flex-wrap items-baseline gap-x-1.5 font-mono text-xs text-tertiary">
+            {summary?.targetReached && summary.targetRank && (
+              <>
+                <span className="text-success">Target reached: {summary.targetRank}</span>
+                {summary.totalChecks > 0 && <span>{"\u00b7"}</span>}
+              </>
+            )}
+            {summary && summary.totalChecks > 0 && (
+              <span>
+                {summary.metCount} of {summary.totalChecks} met
+              </span>
+            )}
+          </p>
         </div>
-        {summary?.targetReached && summary.targetRank && (
-          <p className="text-xs text-tertiary">Target: {summary.targetRank}</p>
-        )}
-        {summary?.targetReached && summary.automaticNextRank && (
-          <p className="text-xs text-secondary">
-            Next automatic class: {summary.automaticNextRank}
-          </p>
-        )}
-        {summary?.targetReached && !summary.automaticNextRank && (
-          <p className="text-xs text-secondary">Highest automatic class reached</p>
-        )}
-        {summary && summary.totalChecks > 0 && (
-          <p className="font-mono text-xs text-tertiary">
-            {summary.metCount} of {summary.totalChecks} requirements
-          </p>
-        )}
-        {summary?.distanceText && (
-          <p className="text-xs text-secondary">{summary.distanceText}</p>
-        )}
         {summary?.nextIsTextOnly && summary.nextRankName ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-tertiary">
@@ -372,11 +385,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
               <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more requirements</p>
             )}
           </div>
-        ) : summary?.highestAutomatic ? (
-          !summary.targetReached && (
-            <p className="text-xs text-secondary">Highest automatic class reached</p>
-          )
-        ) : summary?.nextRankRequirements ? (
+        ) : topOfLadder ? null : summary?.nextRankRequirements ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-tertiary">
               From tracker rules (not tracked automatically)

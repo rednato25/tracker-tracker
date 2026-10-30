@@ -116,9 +116,11 @@ describe("TrackerGrid", () => {
     expect(screen.getByText("TorrentLeech")).toBeInTheDocument()
     expect(screen.getByText("Member since 1 Jan 2025")).toBeInTheDocument()
     expect(screen.getByText(/as of Oct 28, 2026/)).toBeInTheDocument()
-    expect(screen.getByText("1 of 2 requirements")).toBeInTheDocument()
+    expect(screen.getByText("Power User")).toBeInTheDocument()
+    expect(screen.getByText("Elite")).toBeInTheDocument()
+    expect(screen.getByText("1 of 2 met")).toBeInTheDocument()
+    expect(screen.queryByText(/upload left/)).not.toBeInTheDocument()
     expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
-    expect(screen.getByText("Elite: 1.00 TiB upload left")).toBeInTheDocument()
     expect(screen.getByText("2.00 TiB")).toBeInTheDocument()
     expect(screen.getByText("1.00 TiB")).toBeInTheDocument()
     expect(screen.getByText("8")).toBeInTheDocument()
@@ -255,7 +257,7 @@ describe("TrackerGrid", () => {
     expect(screen.queryByText("No structured requirement to show.")).not.toBeInTheDocument()
   })
 
-  it("shows Target reached and the next automatic class", () => {
+  it("offers the next automatic class without dropping a reached saved target", () => {
     render(
       <TrackerGrid
         trackers={[tracker({ latestStats: { ...tracker().latestStats!, group: "Super User" } })]}
@@ -271,9 +273,31 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("Target reached")).toBeInTheDocument()
-    expect(screen.getByText("Target: Power User")).toBeInTheDocument()
-    expect(screen.getByText("Next automatic class: Extreme User")).toBeInTheDocument()
+    expect(screen.getByText("Super User")).toBeInTheDocument()
+    expect(screen.getByText("Extreme User")).toBeInTheDocument()
+    expect(screen.getByText("Automatic")).toBeInTheDocument()
+    expect(screen.getByText("Target reached: Power User")).toBeInTheDocument()
+  })
+
+  it("marks an unsaved automatic next class as automatic", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker()]}
+        summaries={[
+          summary({
+            targetRank: null,
+            automaticNextRank: "Elite",
+            status: "no-target",
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Power User")).toBeInTheDocument()
+    expect(screen.getByText("Elite")).toBeInTheDocument()
+    expect(screen.getByText("Automatic")).toBeInTheDocument()
+    expect(screen.getByText("1 of 2 met")).toBeInTheDocument()
+    expect(screen.queryByText(/upload left/)).not.toBeInTheDocument()
   })
 
   it("names a text-only next class and labels its rule text", () => {

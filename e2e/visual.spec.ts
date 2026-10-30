@@ -1283,6 +1283,27 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 
+  test("keeps the first tracker card in the first screen", async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Grid" }).click()
+    const card = page.locator("[data-tracker-card]").first()
+    await expect(card).toBeVisible({ timeout: 15_000 })
+    const box = await card.boundingBox()
+    expect(box).not.toBeNull()
+    if (!box) return
+    expect(box.y).toBeGreaterThanOrEqual(0)
+    expect(box.y).toBeLessThan(900)
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.waitForTimeout(200)
+    await page.screenshot({
+      path: "test-results/p34b-dashboard-first-screen-1440-dark.png",
+    })
+  })
+
   test("keeps the rank target summary in the first viewport", async ({ page }) => {
     test.setTimeout(120_000)
     expect(foundationTrackerId).not.toBeNull()

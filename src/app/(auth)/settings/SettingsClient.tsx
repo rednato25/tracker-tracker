@@ -94,15 +94,17 @@ export function SettingsClient({
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
 
   return (
-    <div data-settings-page className="flex w-full max-w-4xl flex-col gap-10 pb-16">
+    <div data-settings-page className="flex w-full flex-col gap-10 pb-16">
       <div className="flex flex-col gap-6">
         <H1>Settings</H1>
         <TabBar tabs={SETTINGS_TABS} activeTab={activeTab} onChange={setActiveTab} wrap />
       </div>
 
       {activeTab === "general" && (
-        <>
-          <AccountSection initialUsername={initialSettings.username ?? ""} />
+        <div className="grid grid-cols-1 gap-10 xl:grid-cols-2 xl:items-start">
+          <div className="xl:col-span-2">
+            <AccountSection initialUsername={initialSettings.username ?? ""} />
+          </div>
 
           <TwoFactorSection />
 
@@ -116,31 +118,37 @@ export function SettingsClient({
 
           <DataSection initialPollInterval={initialSettings.trackerPollIntervalMinutes ?? 60} />
 
-          <SecurityPoliciesSection
-            initialLockout={{
-              enabled: initialSettings.lockoutEnabled,
-              threshold: initialSettings.lockoutThreshold,
-              durationMinutes: initialSettings.lockoutDurationMinutes,
-            }}
-            initialSnapshotRetentionDays={initialSettings.snapshotRetentionDays}
-            initialSessionTimeoutMinutes={initialSettings.sessionTimeoutMinutes}
-            databaseSize={databaseSize}
-          />
+          <div className="xl:col-span-2">
+            <SecurityPoliciesSection
+              initialLockout={{
+                enabled: initialSettings.lockoutEnabled,
+                threshold: initialSettings.lockoutThreshold,
+                durationMinutes: initialSettings.lockoutDurationMinutes,
+              }}
+              initialSnapshotRetentionDays={initialSettings.snapshotRetentionDays}
+              initialSessionTimeoutMinutes={initialSettings.sessionTimeoutMinutes}
+              databaseSize={databaseSize}
+            />
+          </div>
 
-          <ProxySection
-            initialProxy={{
-              enabled: initialSettings.proxyEnabled,
-              type: initialSettings.proxyType || "socks5",
-              host: initialSettings.proxyHost ?? "",
-              port: initialSettings.proxyPort ?? 1080,
-              username: initialSettings.proxyUsername ?? "",
-              hasPassword: initialSettings.hasProxyPassword,
-            }}
-            trackers={initialProxyTrackers}
-          />
+          <div className="xl:col-span-2">
+            <ProxySection
+              initialProxy={{
+                enabled: initialSettings.proxyEnabled,
+                type: initialSettings.proxyType || "socks5",
+                host: initialSettings.proxyHost ?? "",
+                port: initialSettings.proxyPort ?? 1080,
+                username: initialSettings.proxyUsername ?? "",
+                hasPassword: initialSettings.hasProxyPassword,
+              }}
+              trackers={initialProxyTrackers}
+            />
+          </div>
 
-          <DangerZoneSection />
-        </>
+          <div className="xl:col-span-2">
+            <DangerZoneSection />
+          </div>
+        </div>
       )}
 
       {activeTab === "clients" && (

@@ -696,6 +696,14 @@ select {
   border: 1px solid #dfe6df;
 }
 
+/* P37: Settings cards use the full page frame; form controls keep a readable
+   width instead of stretching with the card. */
+[data-settings-page] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-settings-page] select,
+[data-settings-page] textarea {
+  max-width: 36rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

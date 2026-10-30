@@ -71,14 +71,18 @@ const snapshots = [
   },
 ] as Snapshot[]
 
-function renderPanel(registrySlug = "torrentleech", polledAt = RECENT_POLL) {
+function renderPanel(
+  registrySlug = "torrentleech",
+  polledAt = RECENT_POLL,
+  statsOverride: TrackerLatestStats = stats
+) {
   return render(
     <RankGoalPanel
       trackerId={1}
       registrySlug={registrySlug}
       userClasses={torrentleech.userClasses}
       currentRank="Registered"
-      stats={stats}
+      stats={statsOverride}
       snapshots={snapshots}
       joinedAt={JOINED_AT}
       lastPolledAt={polledAt}
@@ -195,5 +199,17 @@ describe("RankGoalPanel", () => {
     expect(within(row).getByText("Unknown")).toBeInTheDocument()
     expect(within(row).getAllByText(/stale/i).length).toBeGreaterThan(0)
     expect(within(row).queryByText(/upload/i)).not.toBeInTheDocument()
+  })
+
+  it("writes the strict requirement and draws a shortfall marker at equality", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
+    renderPanel("torrentleech", RECENT_POLL, { ...stats, ratio: 1.1 })
+    const ratioLabel = await screen.findByText("Ratio above 1.1")
+    const row = ratioLabel.closest("li")
+    expect(row).not.toBeNull()
+    if (!row) return
+    expect(within(row).getByText("Needs above 1.10, now 1.10")).toBeInTheDocument()
+    expect(row.querySelector("[data-shortfall-marker]")).not.toBeNull()
+    expect(row.querySelector("[data-bar-fill]")?.getAttribute("style")).toContain("width: 0%")
   })
 })

@@ -7,6 +7,7 @@ import clsx from "clsx"
 import Link from "next/link"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Badge, PulseDot } from "@/components/ui"
+import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   formatAccountAge,
   formatBytesFromString,
@@ -14,6 +15,7 @@ import {
   formatRatioDisplay,
 } from "@/lib/formatters"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
+import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
 import { getTrackerChecks } from "@/lib/tracker-checks"
 import { getHealthLabel, getHealthPulseDot, getTrackerHealth } from "@/lib/tracker-status"
@@ -48,17 +50,6 @@ function bufferValue(tracker: TrackerSummary): string {
   } catch {
     return formatBytesFromString(raw)
   }
-}
-
-function barFraction(bar: RankSummaryBar): number {
-  if (bar.currentValue === null || bar.requiredValue <= 0) return 0
-  let ratio = Math.min(1, bar.currentValue / bar.requiredValue)
-  if (bar.comparison === "lte" || bar.comparison === "lt") {
-    ratio = Math.min(1, bar.requiredValue / Math.max(bar.currentValue, 1))
-  } else if (bar.comparison === "eq") {
-    ratio = bar.status === "met" ? 1 : 0
-  }
-  return bar.status === "unmet" && ratio >= 1 ? 0.98 : ratio
 }
 
 function barTone(bar: RankSummaryBar): string {
@@ -108,8 +99,12 @@ function Metric({
       </span>
     </div>
   )
-}function RankBar({ bar }: { bar: RankSummaryBar }) {
-  const percent = Math.round(barFraction(bar) * 100)
+}
+function RankBar({ bar }: { bar: RankSummaryBar }) {
+  const geometry = requirementBarGeometry(bar)
+  const requirementText = geometry.atStrictThreshold
+    ? strictThresholdRequirement(bar.comparison, bar.current, bar.required)
+    : null
   const stateLabel = bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"
   const stateTone =
     bar.status === "met" ? "text-success" : bar.status === "unmet" ? "text-danger" : "text-warn"
@@ -126,15 +121,19 @@ function Metric({
           </span>
         </span>
       </div>
-      <div className="relative h-1.5 overflow-hidden bg-elevated" aria-hidden="true">
-        <span className={clsx("block h-full", barTone(bar))} style={{ width: `${percent}%` }} />
-        <span className="absolute inset-y-0 right-0 w-px bg-primary/70" data-threshold-tick />
-      </div>
+      <RequirementBarTrack
+        percent={geometry.percent}
+        fillClassName={barTone(bar)}
+        shortfall={geometry.atStrictThreshold}
+      />
+      {requirementText && (
+        <p className="text-xs text-danger" data-strict-requirement>
+          {requirementText}
+        </p>
+      )}
     </div>
   )
-}
-
-function TrackerCard({
+}function TrackerCard({
   tracker,
   summary,
   now,

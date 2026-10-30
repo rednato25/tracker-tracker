@@ -6,6 +6,7 @@ import { H1, H2, Paragraph, Subtext } from "@typography"
 import { useId, useMemo, useRef, useState } from "react"
 import { Badge, Button, Card, Input, Notice } from "@/components/ui"
 import { ChevronDownSmallIcon } from "@/components/ui/Icons"
+import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   PATHWAYS_TRACKERS,
   pathwaysTrackerIdForRegistrySlug,
@@ -19,7 +20,7 @@ import {
   formatCount,
   formatRatio,
 } from "@/lib/formatters"
-import type { RankGoalStatus } from "@/lib/rank-goals"
+import type { RankComparison, RankGoalStatus } from "@/lib/rank-goals"
 import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
   normalizeRecruitmentState,
@@ -31,6 +32,7 @@ import {
   type WishlistPathView,
   type WishlistStepView,
 } from "@/lib/recruitment-wishlist"
+import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import type { TrackerSummary } from "@/types/api"
 
 interface TrackerPathwaysClientProps {
@@ -73,6 +75,7 @@ interface StepRequirementBar {
   required: string
   currentValue: number | null
   requiredValue: number
+  comparison: RankComparison
   status: RankGoalStatus
 }
 
@@ -100,6 +103,7 @@ function stepRequirementBars(step: WishlistStepView): StepRequirementBar[] {
       required: `${formatCount(timeGate.effectiveDays)} days`,
       currentValue: accountAge,
       requiredValue: timeGate.effectiveDays,
+      comparison: "gte",
       status:
         timeGate.status === "open"
           ? "met"
@@ -125,17 +129,12 @@ function stepRequirementBars(step: WishlistStepView): StepRequirementBar[] {
       required: formatBarValue(condition.metric, condition.requiredValue),
       currentValue: condition.observedValue,
       requiredValue: condition.requiredValue,
+      comparison: condition.comparison ?? "gte",
       status: condition.status,
     })
   }
 
   return bars
-}
-
-function requirementPercent(bar: StepRequirementBar): number {
-  if (bar.currentValue === null || bar.requiredValue <= 0) return 0
-  const ratio = Math.min(1, bar.currentValue / bar.requiredValue)
-  return bar.status === "unmet" && ratio >= 1 ? 0.98 : ratio
 }
 
 function requirementTone(status: RankGoalStatus): string {
@@ -153,36 +152,45 @@ function StepRequirementBars({ step }: { step: WishlistStepView }) {
       <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
         Requirement bars
       </span>
-      {bars.map((bar) => (
-        <div key={bar.id} className="flex flex-col gap-1" data-step-requirement-bar={bar.id}>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="min-w-0 truncate text-xs text-secondary">{bar.label}</span>
-            <span className="flex shrink-0 items-baseline gap-2">
-              <span
-                className={`font-cond text-2xs font-semibold uppercase tracking-[0.1em] ${
-                  bar.status === "met"
-                    ? "text-success"
-                    : bar.status === "unmet"
-                      ? "text-danger"
-                      : "text-warn"
-                }`}
-              >
-                {bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"}
+      {bars.map((bar) => {
+        const geometry = requirementBarGeometry(bar)
+        const requirementText = geometry.atStrictThreshold
+          ? strictThresholdRequirement(bar.comparison, bar.current, bar.required)
+          : null
+        return (
+          <div key={bar.id} className="flex flex-col gap-1" data-step-requirement-bar={bar.id}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="min-w-0 truncate text-xs text-secondary">{bar.label}</span>
+              <span className="flex shrink-0 items-baseline gap-2">
+                <span
+                  className={`font-cond text-2xs font-semibold uppercase tracking-[0.1em] ${
+                    bar.status === "met"
+                      ? "text-success"
+                      : bar.status === "unmet"
+                        ? "text-danger"
+                        : "text-warn"
+                  }`}
+                >
+                  {bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"}
+                </span>
+                <span className="font-mono text-xs tabular-nums text-tertiary">
+                  {bar.current} / {bar.required}
+                </span>
               </span>
-              <span className="font-mono text-xs tabular-nums text-tertiary">
-                {bar.current} / {bar.required}
-              </span>
-            </span>
-          </div>
-          <div className="relative h-1.5 overflow-hidden bg-elevated" aria-hidden="true">
-            <span
-              className={`block h-full ${requirementTone(bar.status)}`}
-              style={{ width: `${Math.round(requirementPercent(bar) * 100)}%` }}
+            </div>
+            <RequirementBarTrack
+              percent={geometry.percent}
+              fillClassName={requirementTone(bar.status)}
+              shortfall={geometry.atStrictThreshold}
             />
-            <span className="absolute inset-y-0 right-0 w-px bg-primary/70" data-threshold-tick />
+            {requirementText && (
+              <p className="text-xs text-danger" data-strict-requirement>
+                {requirementText}
+              </p>
+            )}
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

@@ -35,13 +35,13 @@ export const onlyencodes: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; rank page is login-gated",
-    accessedAt: null,
+    url: "https://onlyencodes.cc/",
+    title: "OnlyEncodes user-class list",
+    accessedAt: "2026-10-31",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+      "Confirmed by the owner on 2026-10-31 from the site's user-class list. Sizes are TiB/GiB as written; 1M means 30 days and 1Y means 365 days; all comparisons are at least.",
   },
   rankUnresolved: [
     "Seed size and average seed time are rank metrics, but this tracker's adapter does not collect them yet; their conditions stay unknown.",
@@ -50,7 +50,6 @@ export const onlyencodes: TrackerRegistryEntry = {
   ],
   userClasses: [
     // Dynamic. upload-based
-    { name: "Leech", requirements: "Ratio below 0.4", outsideLadder: "below" },
     {
       name: "User",
       requirements: "Ratio ≥ 0.4",
@@ -207,6 +206,12 @@ export const onlyencodes: TrackerRegistryEntry = {
         ],
       },
     },
+    // Off-ladder administrative and staff classes
+    { name: "Pruned", requirements: "Administrative state", outsideLadder: "below" },
+    { name: "Banned", requirements: "Administrative state", outsideLadder: "below" },
+    { name: "Disabled", requirements: "Administrative state", outsideLadder: "below" },
+    { name: "Guest", requirements: "Administrative state", outsideLadder: "below" },
+    { name: "Validating", requirements: "Administrative state", outsideLadder: "below" },
     {
       name: "OnlyCoinSpender",
       requirements:

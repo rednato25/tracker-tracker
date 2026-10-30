@@ -111,7 +111,8 @@ describe("TrackerGrid", () => {
     expect(screen.getByRole("heading", { name: "Trackers" })).toBeInTheDocument()
     expect(screen.getByText("TorrentLeech")).toBeInTheDocument()
     expect(screen.getByText("Power User")).toBeInTheDocument()
-    expect(screen.getByText("1 of 2 checks")).toBeInTheDocument()
+    expect(screen.getByText("1 of 2 requirements")).toBeInTheDocument()
+    expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
     expect(screen.getByText("Elite: 1.00 TiB upload left")).toBeInTheDocument()
     expect(screen.getByText("2.00 TiB")).toBeInTheDocument()
     expect(screen.getByText("1.00 TiB")).toBeInTheDocument()
@@ -126,6 +127,25 @@ describe("TrackerGrid", () => {
       "href",
       "/trackers/1"
     )
+  })
+
+  it("writes the health state and the stale marker", () => {
+    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    expect(screen.getByText("Healthy")).toBeInTheDocument()
+    expect(screen.queryByText("Needs checking")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("stale snapshot")).not.toBeInTheDocument()
+  })
+
+  it("marks a stale card with the register's star and a written warning", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ lastPolledAt: "2026-10-28T08:00:00.000Z" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Needs checking")).toBeInTheDocument()
+    expect(screen.getAllByLabelText("stale snapshot").length).toBeGreaterThan(0)
   })
 
   it("keeps a tracker with no stats explicitly unknown", () => {
@@ -157,6 +177,39 @@ describe("TrackerGrid", () => {
     )
     expect(screen.getByText("Requirement 2")).toBeInTheDocument()
     expect(screen.queryByText("Requirement 3")).not.toBeInTheDocument()
-    expect(screen.getByText("+2 more checks")).toBeInTheDocument()
+    expect(screen.getByText("+2 more requirements")).toBeInTheDocument()
+    expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
+  })
+
+  it("writes the strict requirement and shortfall marker at equality", () => {
+    const { container } = render(
+      <TrackerGrid
+        trackers={[tracker()]}
+        summaries={[
+          summary({
+            bars: [
+              {
+                ...summary().bars[0],
+                id: "ratio",
+                label: "Ratio above 2.0",
+                current: "2.00",
+                required: "2.00",
+                currentValue: 2,
+                requiredValue: 2,
+                comparison: "gt",
+                status: "unmet",
+              },
+            ],
+            metCount: 0,
+            unmetCount: 1,
+            totalChecks: 1,
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Needs above 2.00, now 2.00")).toBeInTheDocument()
+    expect(container.querySelector("[data-shortfall-marker]")).not.toBeNull()
+    expect(container.querySelector("[data-bar-fill]")?.getAttribute("style")).toContain("width: 0%")
   })
 })

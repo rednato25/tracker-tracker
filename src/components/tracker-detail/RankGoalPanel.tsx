@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
+import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatRatio } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
@@ -21,6 +22,7 @@ import {
 } from "@/lib/rank-goals"
 import { buildRankLadder } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
+import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
 
 interface RankGoalPanelProps {
@@ -99,15 +101,24 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
       : condition.status === "unmet"
         ? "bg-danger"
         : "bg-warn"
-  const percent =
-    condition.observedValue !== null &&
-    condition.requiredValue !== null &&
-    condition.requiredValue > 0
-      ? Math.min(
-          condition.status === "unmet" ? 98 : 100,
-          Math.round((condition.observedValue / condition.requiredValue) * 100)
+  const comparison = condition.comparison ?? "gte"
+  const geometry =
+    condition.requiredValue !== null
+      ? requirementBarGeometry({
+          currentValue: condition.observedValue,
+          requiredValue: condition.requiredValue,
+          comparison,
+          status: condition.status,
+        })
+      : null
+  const requirementText =
+    geometry?.atStrictThreshold && condition.requiredValue !== null
+      ? strictThresholdRequirement(
+          comparison,
+          formatValue(condition.metric ?? "accountRatio", condition.observedValue),
+          formatValue(condition.metric ?? "accountRatio", condition.requiredValue)
         )
-      : 0
+      : null
   return (
     <li className="border-t border-border py-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -130,11 +141,19 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
           </span>
         )}
       </div>
-      {condition.requiredValue !== null && (
-        <div className="relative mt-2 h-1.5 overflow-hidden bg-elevated" aria-hidden="true" data-rank-condition-bar>
-          <span className={`block h-full ${barClass}`} style={{ width: `${percent}%` }} />
-          <span className="absolute inset-y-0 right-0 w-px bg-primary/70" data-threshold-tick />
+      {geometry && (
+        <div className="mt-2" data-rank-condition-bar>
+          <RequirementBarTrack
+            percent={geometry.percent}
+            fillClassName={barClass}
+            shortfall={geometry.atStrictThreshold}
+          />
         </div>
+      )}
+      {requirementText && (
+        <p className="mt-1 font-mono text-4xs text-danger" data-strict-requirement>
+          {requirementText}
+        </p>
       )}
       {condition.unitReading === "conservative" && (
         <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>

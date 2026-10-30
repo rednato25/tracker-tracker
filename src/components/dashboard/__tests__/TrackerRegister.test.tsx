@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TrackerRegister } from "@/components/dashboard/TrackerRegister"
 import { computeAggregateStats } from "@/lib/dashboard"
+import type { RankGoalSummary } from "@/lib/rank-summary"
 import type { TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-27T12:00:00.000Z")
@@ -91,7 +92,9 @@ describe("TrackerRegister transfer metrics", () => {
     expect(screen.getByText("Upload")).toBeInTheDocument()
     expect(screen.getByText("Download")).toBeInTheDocument()
     expect(screen.getByText("Bonus")).toBeInTheDocument()
-    expect(screen.getByText("Checks")).toBeInTheDocument()
+    expect(screen.getAllByText("Checks").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Healthy").length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
     expect(screen.queryByLabelText("stale snapshot")).not.toBeInTheDocument()
   })
 
@@ -273,6 +276,53 @@ describe("TrackerRegister transfer metrics", () => {
     expect(screen.getByRole("columnheader", { name: "Login due" })).toHaveAttribute(
       "aria-sort",
       "ascending"
+    )
+  })
+
+  it("shows the rank target and remaining distance in the Rank cell", () => {
+    const summary: RankGoalSummary = {
+      trackerId: 1,
+      trackerName: "AlphaRatio",
+      color: "#123456",
+      currentRank: "Power User",
+      currentRankHidden: false,
+      targetRank: "Super User",
+      targetInvalid: false,
+      automaticNextRank: null,
+      status: "goal",
+      metCount: 1,
+      unmetCount: 1,
+      unknownCount: 0,
+      unmet: [],
+      unknown: [],
+      bars: [],
+      totalChecks: 2,
+      distanceText: "Super User: 340 GiB upload left",
+      nextRankRequirements: null,
+      linkLabel: "Open rank goal",
+      linkHref: "/trackers/1#rank-goal",
+    }
+    render(<TrackerRegister trackers={[tracker()]} summaries={[summary]} now={NOW} />)
+    expect(screen.getAllByText("Target: Super User").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("340 GiB upload left").length).toBeGreaterThan(0)
+  })
+
+  it("keeps the metric hues in the register cells", () => {
+    const { container } = render(<TrackerRegister trackers={[tracker()]} now={NOW} />)
+    expect(container.querySelector('[data-metric="uploaded"]')?.getAttribute("style")).toContain(
+      "--color-upload"
+    )
+    expect(container.querySelector('[data-metric="downloaded"]')?.getAttribute("style")).toContain(
+      "--color-download"
+    )
+    expect(container.querySelector('[data-metric="buffer"]')?.getAttribute("style")).toContain(
+      "--color-buffer"
+    )
+    expect(container.querySelector('[data-metric="ratio"]')?.getAttribute("style")).toContain(
+      "--color-ratio"
+    )
+    expect(container.querySelector('[data-metric="seeding"]')?.getAttribute("style")).toContain(
+      "--color-seeding"
     )
   })
 })

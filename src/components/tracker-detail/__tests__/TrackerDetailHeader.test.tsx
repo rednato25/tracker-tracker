@@ -71,6 +71,7 @@ describe("TrackerDetailHeader actions", () => {
     expect(screen.getByRole("button", { name: "Poll now" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument()
     expect(screen.getByText("Unit3D")).toBeInTheDocument()
+    expect(container.querySelector("[data-health-label]")).toHaveTextContent("Offline")
 
     const menu = container.querySelector("details")
     expect(menu).not.toBeNull()

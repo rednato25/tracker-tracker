@@ -7,6 +7,7 @@ import clsx from "clsx"
 import Link from "next/link"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Badge, PulseDot } from "@/components/ui"
+import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   formatAccountAge,
   formatBytesFromString,
@@ -14,8 +15,12 @@ import {
   formatRatioDisplay,
 } from "@/lib/formatters"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
+import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
+import { getSnapshotReadout } from "@/lib/snapshot-freshness"
+import { getTrackerChecks } from "@/lib/tracker-checks"
 import { getHealthLabel, getHealthPulseDot, getTrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
+import { TrackerChecksStrip } from "./TrackerChecksStrip"
 
 interface TrackerGridProps {
   trackers: TrackerSummary[]
@@ -47,17 +52,6 @@ function bufferValue(tracker: TrackerSummary): string {
   }
 }
 
-function barFraction(bar: RankSummaryBar): number {
-  if (bar.currentValue === null || bar.requiredValue <= 0) return 0
-  let ratio = Math.min(1, bar.currentValue / bar.requiredValue)
-  if (bar.comparison === "lte" || bar.comparison === "lt") {
-    ratio = Math.min(1, bar.requiredValue / Math.max(bar.currentValue, 1))
-  } else if (bar.comparison === "eq") {
-    ratio = bar.status === "met" ? 1 : 0
-  }
-  return bar.status === "unmet" && ratio >= 1 ? 0.98 : ratio
-}
-
 function barTone(bar: RankSummaryBar): string {
   if (bar.status === "unmet") return "bg-danger"
   if (bar.status === "unknown") return "bg-warn"
@@ -69,31 +63,48 @@ function Metric({
   value,
   color,
   unknown = false,
+  marker = null,
+  markerTitle,
 }: {
   label: string
   value: string
   color: string
   unknown?: boolean
+  marker?: "*" | "?" | null
+  markerTitle?: string
 }) {
+  const effectiveMarker = unknown ? "?" : marker
+  const markerLabel =
+    effectiveMarker === "*" ? "stale snapshot" : effectiveMarker === "?" ? "value unknown" : undefined
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-tertiary">
         {label}
       </span>
-      <span className="truncate font-mono text-sm font-medium tabular-nums" style={{ color }}>
+      <span
+        className="truncate font-mono text-sm font-medium tabular-nums"
+        style={{ color: unknown ? "var(--color-tertiary)" : color }}
+      >
         {value}
-        {unknown && (
-          <span className="ml-1 text-xs text-tertiary" aria-hidden="true">
-            ?
+        {effectiveMarker && (
+          <span
+            role="img"
+            className="ml-1 text-xs text-warn"
+            aria-label={markerLabel}
+            title={markerTitle}
+          >
+            {effectiveMarker}
           </span>
         )}
       </span>
     </div>
   )
 }
-
 function RankBar({ bar }: { bar: RankSummaryBar }) {
-  const percent = Math.round(barFraction(bar) * 100)
+  const geometry = requirementBarGeometry(bar)
+  const requirementText = geometry.atStrictThreshold
+    ? strictThresholdRequirement(bar.comparison, bar.current, bar.required)
+    : null
   const stateLabel = bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"
   const stateTone =
     bar.status === "met" ? "text-success" : bar.status === "unmet" ? "text-danger" : "text-warn"
@@ -110,26 +121,48 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           </span>
         </span>
       </div>
-      <div className="relative h-1.5 overflow-hidden bg-elevated" aria-hidden="true">
-        <span className={clsx("block h-full", barTone(bar))} style={{ width: `${percent}%` }} />
-        <span className="absolute inset-y-0 right-0 w-px bg-primary/70" data-threshold-tick />
-      </div>
+      <RequirementBarTrack
+        percent={geometry.percent}
+        fillClassName={barTone(bar)}
+        shortfall={geometry.atStrictThreshold}
+      />
+      {requirementText && (
+        <p className="text-xs text-danger" data-strict-requirement>
+          {requirementText}
+        </p>
+      )}
     </div>
   )
-}
-
-function TrackerCard({
+}function TrackerCard({
   tracker,
   summary,
+  now,
 }: {
   tracker: TrackerSummary
   summary: RankGoalSummary | undefined
+  now: Date
 }) {
   const health = getTrackerHealth(tracker)
   const stats = tracker.latestStats
   const bars = summary?.bars ?? []
   const visibleBars = bars.slice(0, 3)
   const targetRank = summary?.targetRank ?? summary?.automaticNextRank
+  const checks = getTrackerChecks(tracker)
+  const snapshot = getSnapshotReadout(tracker, now)
+  const snapshotMarker = stats
+    ? snapshot.state === "stale"
+      ? "*"
+      : snapshot.state === "unknown"
+        ? "?"
+        : null
+    : null
+  const needsChecking = Boolean(stats) && snapshot.state !== "fresh"
+  const markerTitle =
+    snapshot.state === "stale"
+      ? `Snapshot polled ${snapshot.age ?? "some time"} ago and is stale (older than 2 hours).`
+      : snapshot.state === "unknown"
+        ? "Snapshot poll time is unknown, so freshness cannot be confirmed."
+        : undefined
 
   return (
     <Link
@@ -152,9 +185,17 @@ function TrackerCard({
             </p>
             <p className="truncate text-xs text-tertiary">{hostOf(tracker)}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
+              <span data-health-label>{getHealthLabel(health)}</span>
+              <span className="text-tertiary">{"\u00b7"}</span>
               <span>{stats?.group ?? "Unknown class"}</span>
-              <span className="text-tertiary">·</span>
+              <span className="text-tertiary">{"\u00b7"}</span>
               <span>{accountAge(tracker)}</span>
+              {needsChecking && (
+                <>
+                  <span className="text-tertiary">{"\u00b7"}</span>
+                  <span className="text-warn">Needs checking</span>
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -171,18 +212,24 @@ function TrackerCard({
           value={stats ? formatBytesFromString(stats.uploadedBytes) : "—"}
           color={CHART_THEME.upload}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Downloaded"
           value={stats ? formatBytesFromString(stats.downloadedBytes) : "—"}
           color={CHART_THEME.download}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Buffer"
           value={bufferValue(tracker)}
           color={CHART_THEME.buffer}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Ratio"
@@ -195,19 +242,32 @@ function TrackerCard({
           }
           color={CHART_THEME.ratio}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Seeding"
           value={stats ? formatCount(stats.seedingCount) : "—"}
           color={CHART_THEME.seeding}
           unknown={!stats || stats.seedingCount === null}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Bonus"
           value={stats ? formatCount(stats.seedbonus) : "—"}
           color={CHART_THEME.bonus}
           unknown={!stats || stats.seedbonus === null}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
+          Checks
+        </span>
+        <TrackerChecksStrip checks={checks} />
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">
@@ -221,7 +281,7 @@ function TrackerCard({
         </div>
         {summary && summary.totalChecks > 0 && (
           <p className="font-mono text-xs text-tertiary">
-            {summary.metCount} of {summary.totalChecks} checks
+            {summary.metCount} of {summary.totalChecks} requirements
           </p>
         )}
         {summary?.distanceText && (
@@ -233,7 +293,7 @@ function TrackerCard({
               <RankBar key={bar.id} bar={bar} />
             ))}
             {bars.length > visibleBars.length && (
-              <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more checks</p>
+              <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more requirements</p>
             )}
           </div>
         ) : summary?.nextRankRequirements ? (
@@ -260,9 +320,9 @@ export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGr
   return (
     <section className="flex flex-col gap-3" aria-label="Tracker cards" data-tracker-grid>
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="font-cond text-3xl font-semibold leading-none tracking-[-0.02em] text-primary">
+        <h2 className="font-cond text-lg font-semibold leading-6 tracking-[-0.01em] text-primary">
           Trackers
-        </h1>
+        </h2>
         <p className="font-mono text-xs text-tertiary">
           {trackers.length} {trackers.length === 1 ? "account" : "accounts"} · as of{" "}
           {now.toISOString().slice(0, 10)}
@@ -270,7 +330,7 @@ export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGr
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {trackers.map((tracker) => (
-          <TrackerCard key={tracker.id} tracker={tracker} summary={byId.get(tracker.id)} />
+          <TrackerCard key={tracker.id} tracker={tracker} summary={byId.get(tracker.id)} now={now} />
         ))}
       </div>
     </section>

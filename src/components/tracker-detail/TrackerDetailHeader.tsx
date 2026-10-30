@@ -30,6 +30,7 @@ import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 import {
   getHealthBadgeVariant,
   getHealthDescription,
+  getHealthLabel,
   getHealthPulseDot,
   getTrackerHealth,
 } from "@/lib/tracker-status"
@@ -89,7 +90,7 @@ export function TrackerDetailHeader({
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex flex-col gap-3">
           {/* Title row */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {registryEntry?.logo && (
               <Image
                 src={registryEntry.logo}
@@ -101,7 +102,15 @@ export function TrackerDetailHeader({
               />
             )}
             <H1>{tracker.name}</H1>
-            <PulseDot status={getHealthPulseDot(health)} size="md" />
+            <span className="flex items-center gap-2">
+              <PulseDot status={getHealthPulseDot(health)} size="md" />
+              <span
+                className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-secondary"
+                data-health-label
+              >
+                {getHealthLabel(health)}
+              </span>
+            </span>
             <Tooltip content={`Open ${tracker.name}`}>
               <a
                 href={tracker.baseUrl}

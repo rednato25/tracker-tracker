@@ -300,7 +300,7 @@ export function TrackerDetailClient({
   const tabs = TRACKER_DETAIL_TABS
 
   return (
-    <div className="flex flex-col gap-10 pb-24" style={trackerStyle}>
+    <div className="flex flex-col gap-10 pb-24" style={trackerStyle} data-page-frame>
       {/* Header */}
       <TrackerDetailHeader
         tracker={tracker}

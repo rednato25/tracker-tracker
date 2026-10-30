@@ -63,23 +63,103 @@ describe("DashboardTotals", () => {
     expect(screen.getByText("Need attention")).toBeInTheDocument()
     expect(screen.getByText("1")).toBeInTheDocument()
     expect(screen.getByText("Action required")).toBeInTheDocument()
+    expect(
+      container
+        .querySelector('[data-total-tile="need-attention"]')
+        ?.getAttribute("data-total-tone")
+    ).toBe("danger")
   })
 
   it("shows unknown instead of zero when no tracker has a snapshot", () => {
-    render(
+    const items = [tracker({ latestStats: null })]
+    const { container } = render(
       <DashboardTotals
-        trackers={[tracker({ latestStats: null })]}
-        aggregateStats={computeAggregateStats([tracker({ latestStats: null })])}
+        trackers={items}
+        aggregateStats={computeAggregateStats(items)}
         attentionCount={0}
         snapshotMap={new Map()}
         now={NOW}
       />
     )
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("\u2014").length).toBeGreaterThan(0)
     expect(screen.queryByText("0 B")).not.toBeInTheDocument()
     expect(screen.getByText("0")).toBeInTheDocument()
     expect(screen.queryByText("00")).not.toBeInTheDocument()
     expect(screen.queryByText("All clear")).not.toBeInTheDocument()
-    expect(screen.getByText("No known actions · coverage incomplete")).toBeInTheDocument()
+    expect(screen.getByText("0 actions \u00b7 1 offline")).toBeInTheDocument()
+    expect(
+      container
+        .querySelector('[data-total-tile="need-attention"]')
+        ?.getAttribute("data-total-tone")
+    ).toBe("warn")
+  })
+
+  it("names offline, stale and unverified coverage instead of claiming all clear", () => {
+    const healthy = tracker()
+    const offline = tracker({
+      id: 2,
+      name: "Offline",
+      latestStats: null,
+      lastPolledAt: null,
+    })
+    const stale = tracker({
+      id: 3,
+      name: "Stale",
+      lastPolledAt: "2026-10-28T08:00:00.000Z",
+    })
+    const { container } = render(
+      <DashboardTotals
+        trackers={[healthy, offline, stale]}
+        aggregateStats={computeAggregateStats([healthy, offline, stale])}
+        attentionCount={0}
+        snapshotMap={new Map()}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("0 actions \u00b7 1 offline \u00b7 1 stale")).toBeInTheDocument()
+    expect(
+      container
+        .querySelector('[data-total-tile="need-attention"]')
+        ?.getAttribute("data-total-tone")
+    ).toBe("warn")
+  })
+
+  it("counts an unresolved verification item as incomplete coverage", () => {
+    const items = [tracker()]
+    const { container } = render(
+      <DashboardTotals
+        trackers={items}
+        aggregateStats={computeAggregateStats(items)}
+        attentionCount={0}
+        verificationCount={1}
+        snapshotMap={new Map([[1, [snapshot()]]])}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("0 actions \u00b7 1 needs verification")).toBeInTheDocument()
+    expect(
+      container
+        .querySelector('[data-total-tile="need-attention"]')
+        ?.getAttribute("data-total-tone")
+    ).toBe("warn")
+  })
+
+  it("stays green only when coverage is complete", () => {
+    const items = [tracker()]
+    const { container } = render(
+      <DashboardTotals
+        trackers={items}
+        aggregateStats={computeAggregateStats(items)}
+        attentionCount={0}
+        snapshotMap={new Map([[1, [snapshot()]]])}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("All clear")).toBeInTheDocument()
+    expect(
+      container
+        .querySelector('[data-total-tile="need-attention"]')
+        ?.getAttribute("data-total-tone")
+    ).toBe("success")
   })
 })

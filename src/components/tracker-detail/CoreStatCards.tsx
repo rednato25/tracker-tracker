@@ -31,6 +31,7 @@ export interface StatDescriptor {
   tooltip?: string
   alert?: AlertLevel
   alertReason?: string
+  valueColor?: string
 }
 
 export function buildCoreStatDescriptors(
@@ -67,6 +68,7 @@ export function buildCoreStatDescriptors(
       icon: <UploadArrowIcon width="16" height="16" />,
       value: upVal,
       unit: upUnit,
+      valueColor: "var(--color-upload)",
     },
     {
       key: "downloaded",
@@ -74,6 +76,7 @@ export function buildCoreStatDescriptors(
       icon: <DownloadArrowIcon width="16" height="16" />,
       value: dlVal,
       unit: dlUnit,
+      valueColor: "var(--color-download)",
     },
     {
       key: "ratio",
@@ -81,6 +84,7 @@ export function buildCoreStatDescriptors(
       icon: <RatioIcon width="16" height="16" />,
       value: formatRatio(ratio),
       unit: ratio != null ? "x" : undefined,
+      valueColor: "var(--color-ratio)",
       trend: ratio == null ? undefined : ratio >= 2 ? "up" : ratio >= 1 ? "flat" : "down",
       alert: ratioBelowRequired ? "danger" : undefined,
       alertReason: ratioAlertReason,
@@ -91,6 +95,7 @@ export function buildCoreStatDescriptors(
       icon: <ShieldIcon width="16" height="16" />,
       value: bufVal,
       unit: bufUnit,
+      valueColor: "var(--color-buffer)",
       alert: bufferNegative ? "danger" : undefined,
       alertReason: bufferNegative ? "Negative buffer" : undefined,
     },
@@ -99,6 +104,7 @@ export function buildCoreStatDescriptors(
       label: "Seeding",
       icon: <SeedingIcon width="16" height="16" />,
       value: formatCount(stats?.seedingCount),
+      valueColor: "var(--color-seeding)",
     },
     {
       key: "leeching",

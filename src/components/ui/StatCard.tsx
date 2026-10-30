@@ -54,6 +54,7 @@ interface StatCardBasicProps extends StatCardBase {
   subtitle?: string
   trend?: TrendDirection
   tooltip?: string
+  valueColor?: string
 }
 
 interface StatCardStackedProps extends StatCardBase {
@@ -208,18 +209,25 @@ function BasicContent({
   trend,
   subtitle,
   subValue,
+  valueColor,
 }: {
   value: string | number
   unit?: string
   trend?: TrendDirection
   subtitle?: string
   subValue?: string
+  valueColor?: string
 }) {
   const trendInfo = trend ? trendConfig[trend] : null
   return (
     <>
       <div className="flex items-end gap-2">
-        <span className="font-mono text-2xl font-semibold text-primary leading-none">{value}</span>
+        <span
+          className="font-mono text-2xl font-semibold text-primary leading-none"
+          style={valueColor ? { color: valueColor } : undefined}
+        >
+          {value}
+        </span>
         {unit && (
           <span className="font-mono text-xs font-normal text-muted leading-none mb-0.5">
             {unit}
@@ -463,6 +471,7 @@ function StatCard(props: StatCardProps) {
     subValue: _subValue,
     subtitle: _subtitle,
     trend: _trend,
+    valueColor: _valueColor,
     ...shellRest
   } = rest as Record<string, unknown>
 
@@ -537,6 +546,7 @@ function StatCard(props: StatCardProps) {
         trend={props.trend}
         subtitle={props.subtitle}
         subValue={props.subValue}
+        valueColor={props.valueColor}
       />
     </Shell>
   )

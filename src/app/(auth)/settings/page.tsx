@@ -22,10 +22,12 @@ export default async function SettingsPage() {
   }
 
   return (
-    <SettingsClient
-      initialSettings={settings}
-      initialProxyTrackers={proxyTrackers}
-      databaseSize={databaseSize}
-    />
+    <div data-page-frame className="flex w-full flex-col">
+      <SettingsClient
+        initialSettings={settings}
+        initialProxyTrackers={proxyTrackers}
+        databaseSize={databaseSize}
+      />
+    </div>
   )
 }

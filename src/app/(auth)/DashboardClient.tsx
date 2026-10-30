@@ -28,6 +28,7 @@ import { useDashboardView } from "@/components/dashboard/useDashboardView"
 import { Button, Divider, GearIcon, TabBar } from "@/components/ui"
 import { SectionToggle } from "@/components/ui/SectionToggle"
 import { ChartGridSkeleton } from "@/components/ui/skeletons"
+import { H1 } from "@/components/ui/Typography"
 import { useDashboardData } from "@/hooks/useDashboardData"
 import { usePollingIntervals } from "@/hooks/usePollingIntervals"
 import { useSectionCollapse } from "@/hooks/useSectionCollapse"
@@ -133,6 +134,10 @@ export function DashboardClient({
     () => actions.filter((action) => action.status === "action-required").length,
     [actions]
   )
+  const verificationCount = useMemo(
+    () => actions.filter((action) => action.status === "needs-verification").length,
+    [actions]
+  )
 
   // Sections render expanded until localStorage has been read. Charts gate the other way
   // (collapsed until hydrated) because mounting echarts is expensive; section content is
@@ -171,11 +176,9 @@ export function DashboardClient({
   }
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full" data-page-frame>
       <div className="mb-4 flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border py-1.5">
-        <div className="font-cond text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-          Dashboard
-        </div>
+        <H1>Dashboard</H1>
         <div className="flex flex-wrap items-center gap-2">
           <fieldset className="m-0 flex min-w-0 items-center rounded-nm-sm border border-border bg-elevated p-0.5">
             <legend className="sr-only">Dashboard view</legend>
@@ -212,6 +215,7 @@ export function DashboardClient({
           trackers={data.trackers}
           aggregateStats={aggregateStats}
           attentionCount={attentionCount}
+          verificationCount={verificationCount}
           snapshotMap={data.snapshotMap}
           now={new Date(now)}
         />
@@ -229,6 +233,7 @@ export function DashboardClient({
             attentionCount={attentionCount}
             now={new Date(now)}
             showTotals={false}
+            summaries={rankSummaries}
           />
         )}
 

@@ -12,7 +12,9 @@ import type {
 import type { RecruitmentState } from "@/lib/recruitment-state"
 import {
   buildWishlistPaths,
+  pathHasUncheckedRequirements,
   pathWaitLabel,
+  pathWaitValue,
   type WishlistPathView,
 } from "@/lib/recruitment-wishlist"
 import type { TrackerSummary } from "@/types/api"
@@ -347,6 +349,7 @@ export function buildTrackerProfile(input: {
   savedRankGoals: Record<string, { targetRank: string }>
   state: RecruitmentState
   now: Date
+  maxHops?: number
 }): TrackerProfileView {
   const targetName = pathwaysTrackerName(input.targetTrackerId)
   const gate =
@@ -395,6 +398,11 @@ export function buildTrackerProfile(input: {
     savedRankGoals: input.savedRankGoals,
     state: input.state,
     now: input.now,
+    maxHops: input.maxHops ?? 3,
+    // The profile has its own pagination (10, then Show all), so keep the full
+    // candidate set instead of the old five-per-source cap.
+    maxPathsPerSource: 200,
+    maxTotal: 500,
   })
   const fastest = result.paths[0] ?? null
   const noRoute =
@@ -434,4 +442,118 @@ export function reachableSourceLabel(source: ReachableSourceView): string {
   if (source.owned) return "You are on this tracker."
   if (source.path) return pathWaitLabel(source.path)
   return "Not reachable from your trackers."
+}
+
+export type PathwayRouteSort = "fastest" | "fewest-hops"
+
+export interface PathwayRouteChoiceView {
+  path: WishlistPathView
+  pinned: boolean
+  fastest: boolean
+  hops: number
+  waitLabel: string
+  needsChecking: boolean
+}
+
+export interface PathwayRouteChoicesResult {
+  choices: PathwayRouteChoiceView[]
+  total: number
+  fastestKey: string | null
+  pinnedKey: string | null
+  pinnedFilteredOut: boolean
+}
+
+function compareKnownWait(a: WishlistPathView, b: WishlistPathView): number {
+  const aDays = a.totalDaysRemaining
+  const bDays = b.totalDaysRemaining
+  if (aDays === null && bDays === null) return 0
+  if (aDays === null) return 1
+  if (bDays === null) return -1
+  return aDays - bDays
+}
+
+function compareFastest(a: WishlistPathView, b: WishlistPathView): number {
+  return (
+    compareKnownWait(a, b) ||
+    a.routeIds.length - b.routeIds.length ||
+    a.key.localeCompare(b.key)
+  )
+}
+
+function compareRouteChoices(
+  a: WishlistPathView,
+  b: WishlistPathView,
+  sort: PathwayRouteSort
+): number {
+  // Requirement 5 is absolute: unknown waits fall below every known wait,
+  // before the selected sort is applied inside each group.
+  const aKnown = a.totalDaysRemaining !== null
+  const bKnown = b.totalDaysRemaining !== null
+  if (aKnown !== bKnown) return aKnown ? -1 : 1
+  if (sort === "fewest-hops") {
+    return (
+      a.routeIds.length - b.routeIds.length ||
+      compareKnownWait(a, b) ||
+      a.key.localeCompare(b.key)
+    )
+  }
+  return (
+    compareKnownWait(a, b) ||
+    a.routeIds.length - b.routeIds.length ||
+    a.key.localeCompare(b.key)
+  )
+}
+
+function routeChoice(path: WishlistPathView, fastestKey: string | null, pinnedKey: string | null) {
+  return {
+    path,
+    pinned: path.key === pinnedKey,
+    fastest: path.key === fastestKey,
+    hops: path.routeIds.length,
+    waitLabel: pathWaitValue(path),
+    needsChecking: pathHasUncheckedRequirements(path),
+  } satisfies PathwayRouteChoiceView
+}
+
+/**
+ * Applies the target-profile controls after the catalog search:
+ * max hops, start-from, sort, pinned route first, and the fastest route right
+ * below a different pinned route. Unknown waits always trail known waits.
+ */
+export function buildRouteChoices(input: {
+  paths: WishlistPathView[]
+  sort: PathwayRouteSort
+  maxHops: number
+  startFrom: string | null
+  pinnedKey: string | null
+}): PathwayRouteChoicesResult {
+  const filtered = input.paths.filter(
+    (path) =>
+      path.routeIds.length <= input.maxHops &&
+      (input.startFrom === null || path.steps[0]?.sourceTrackerId === input.startFrom)
+  )
+  const pinnedPath = input.pinnedKey
+    ? (filtered.find((path) => path.key === input.pinnedKey) ?? null)
+    : null
+  const pinnedFilteredOut = Boolean(
+    input.pinnedKey && !filtered.some((path) => path.key === input.pinnedKey)
+  )
+  const fastest = [...filtered].sort(compareFastest)[0] ?? null
+  const sorted = [...filtered].sort((a, b) => compareRouteChoices(a, b, input.sort))
+
+  const ordered: WishlistPathView[] = []
+  if (pinnedPath) ordered.push(pinnedPath)
+  if (fastest && fastest.key !== pinnedPath?.key) ordered.push(fastest)
+  for (const path of sorted) {
+    if (path.key === pinnedPath?.key || path.key === fastest?.key) continue
+    ordered.push(path)
+  }
+
+  return {
+    choices: ordered.map((path) => routeChoice(path, fastest?.key ?? null, pinnedPath?.key ?? null)),
+    total: ordered.length,
+    fastestKey: fastest?.key ?? null,
+    pinnedKey: pinnedPath?.key ?? null,
+    pinnedFilteredOut,
+  }
 }

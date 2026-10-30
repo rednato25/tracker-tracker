@@ -70,11 +70,23 @@ describe("normalizeRecruitmentState", () => {
     expect(state.goalLinks.map((link) => link.conditionId)).toEqual(["source-age", "second"])
   })
 
+  it("keeps a pinned route per known target and drops invalid pins", () => {
+    const state = normalizeRecruitmentState({
+      pinnedRoutes: {
+        Aither: "tp:AlphaRatio:Aither",
+        TorrentLeech: "",
+        "not-a-tracker": "tp:AlphaRatio:Aither",
+      },
+    })
+    expect(state.pinnedRoutes).toEqual({ Aither: "tp:AlphaRatio:Aither" })
+  })
+
   it("round-trips through serialization without adding token-like secrets", () => {
     const state = normalizeRecruitmentState({
       desiredTrackerSlug: "torrentleech",
       hiddenPathKeys: ["tp:alpharatio:broadcasthenet"],
       goalLinks: [VALID_LINK],
+      pinnedRoutes: { Aither: "tp:AlphaRatio:Aither" },
     })
     const serialized = serializeRecruitmentState(state)
     expect(normalizeRecruitmentState(serialized)).toEqual(state)

@@ -4,7 +4,7 @@
 
 import { H1, H2, H3, Paragraph, Subtext } from "@typography"
 import { useId, useMemo, useRef, useState } from "react"
-import { Badge, Button, Card, Input, Notice } from "@/components/ui"
+import { Badge, Button, Card, Input, Notice, Select } from "@/components/ui"
 import { ChevronDownSmallIcon } from "@/components/ui/Icons"
 import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
@@ -12,9 +12,12 @@ import { useClickOutside } from "@/hooks/useClickOutside"
 import { formatAccountAge, formatDate } from "@/lib/formatters"
 import {
   buildOwnedTrackerCards,
+  buildRouteChoices,
   buildTrackerProfile,
   type NoRouteView,
   type OwnedTrackerCardView,
+  type PathwayRouteChoiceView,
+  type PathwayRouteSort,
   type ProfileRouteView,
   type ReachableSourceView,
   type TrackerProfileView,
@@ -27,11 +30,8 @@ import {
 import {
   buildWishlistPaths,
   pathWaitLabel,
-  stepHasUncheckedRequirements,
-  stepRequirementText,
-  stepWaitLabel,
+  pathWaitValue,
   type WishlistPathView,
-  type WishlistStepView,
 } from "@/lib/recruitment-wishlist"
 import type { TrackerSummary } from "@/types/api"
 
@@ -77,100 +77,6 @@ function RouteChips({ path }: { path: WishlistPathView }) {
         </li>
       ))}
     </ol>
-  )
-}
-
-function stepSentence(step: WishlistStepView): string {
-  const route = `From ${step.sourceName} to ${step.destinationName}`
-  const requirement = stepRequirementText(step)
-  const timeGate = step.evaluation.timeGate
-
-  if (timeGate.status === "waiting") {
-    const days = timeGate.daysRemaining
-    const left = days === null ? "Wait unknown" : `${days} day${days === 1 ? "" : "s"} left`
-    if (requirement) return `${route} · needs ${requirement} · ${left}`
-    return stepHasUncheckedRequirements(step)
-      ? `${route} · ${left} · needs checking`
-      : `${route} · ${left}`
-  }
-
-  return `${route} · ${stepWaitLabel(step)}`
-}
-
-function StepDetails({ step }: { step: WishlistStepView }) {
-  const evidence = step.evaluation.evidence
-  const lastVerified = evidence.lastVerifiedAt ? formatDate(evidence.lastVerifiedAt) : "never"
-
-  return (
-    <details className="mt-2 border-t border-border pt-2">
-      <summary className="cursor-pointer font-cond text-2xs font-semibold uppercase tracking-[0.12em] text-secondary">
-        Details
-      </summary>
-      <p className="mt-2 text-xs text-secondary">
-        Source updated {evidence.sourceUpdatedRaw ?? "unknown"} · last verified {lastVerified}
-      </p>
-    </details>
-  )
-}
-
-function StepRow({ step }: { step: WishlistStepView }) {
-  return (
-    <li className="border-t border-border pt-2 first:border-t-0 first:pt-0">
-      <p className="break-words text-xs text-secondary">{stepSentence(step)}</p>
-      <StepDetails step={step} />
-    </li>
-  )
-}
-
-function FastestRoute({ path }: { path: WishlistPathView }) {
-  return (
-    <Card elevation="raised" className="flex flex-col gap-3 border-t-2 border-t-accent" data-best-path>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col items-start gap-2">
-          <Badge variant="accent">Best path</Badge>
-          <RouteChips path={path} />
-          <p className="text-xs text-secondary">
-            {path.steps.length === 1 ? "1 step" : `${path.steps.length} steps`}
-          </p>
-        </div>
-        <div className="w-full text-left sm:w-auto sm:text-right" data-pathway-time>
-          <p className="font-cond text-2xs font-semibold uppercase tracking-[0.14em] text-secondary">
-            Total time left
-          </p>
-          <p className="font-mono text-sm text-primary">{pathWaitLabel(path)}</p>
-        </div>
-      </div>
-      <ol className="flex flex-col gap-3">
-        {path.steps.map((step) => (
-          <StepRow key={step.routeId} step={step} />
-        ))}
-      </ol>
-    </Card>
-  )
-}
-
-function OtherRoutes({ paths }: { paths: WishlistPathView[] }) {
-  if (paths.length === 0) return null
-  return (
-    <details className="border-t border-border pt-3">
-      <summary className="cursor-pointer font-cond text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
-        Other routes ({paths.length})
-      </summary>
-      <ul className="mt-2 flex flex-col gap-2">
-        {paths.slice(0, 5).map((path) => (
-          <li
-            key={path.key}
-            className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-2 text-xs first:border-t-0 first:pt-0"
-          >
-            <span className="min-w-0 break-words text-secondary">{routeChain(path)}</span>
-            <span className="font-mono text-2xs text-tertiary">
-              {pathWaitLabel(path)} · {path.steps.length}{" "}
-              {path.steps.length === 1 ? "step" : "steps"}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </details>
   )
 }
 
@@ -449,6 +355,132 @@ function NoRouteSource({ source }: { source: ReachableSourceView }) {
   )
 }
 
+function RouteControls({
+  sort,
+  maxHops,
+  startFrom,
+  ownedOptions,
+  onSort,
+  onMaxHops,
+  onStartFrom,
+}: {
+  sort: PathwayRouteSort
+  maxHops: number
+  startFrom: string | null
+  ownedOptions: { id: string; name: string }[]
+  onSort: (sort: PathwayRouteSort) => void
+  onMaxHops: (hops: number) => void
+  onStartFrom: (tracker: string | null) => void
+}) {
+  return (
+    <div
+      data-route-controls
+      className="flex flex-col gap-3 border border-border bg-raised p-3 sm:flex-row sm:flex-wrap sm:items-end"
+    >
+      <div className="flex flex-col gap-1">
+        <span className="font-cond text-2xs font-semibold uppercase tracking-[0.12em] text-tertiary">
+          Sort
+        </span>
+        <div className="flex flex-wrap gap-1">
+          <Button
+            size="sm"
+            variant={sort === "fastest" ? "primary" : "secondary"}
+            aria-pressed={sort === "fastest"}
+            text="Fastest"
+            onClick={() => onSort("fastest")}
+          />
+          <Button
+            size="sm"
+            variant={sort === "fewest-hops" ? "primary" : "secondary"}
+            aria-pressed={sort === "fewest-hops"}
+            text="Fewest hops"
+            onClick={() => onSort("fewest-hops")}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="font-cond text-2xs font-semibold uppercase tracking-[0.12em] text-tertiary">
+          Max hops
+        </span>
+        <div className="flex gap-1">
+          {[1, 2, 3].map((hops) => (
+            <Button
+              key={hops}
+              size="sm"
+              variant={maxHops === hops ? "primary" : "secondary"}
+              aria-pressed={maxHops === hops}
+              text={String(hops)}
+              onClick={() => onMaxHops(hops)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="font-cond text-2xs font-semibold uppercase tracking-[0.12em] text-tertiary">
+          Start from
+        </span>
+        <Select
+          value={startFrom ?? "all"}
+          options={[
+            { value: "all", label: "All my trackers" },
+            ...ownedOptions.map((option) => ({ value: option.id, label: option.name })),
+          ]}
+          onChange={(value) => onStartFrom(value === "all" ? null : value)}
+          ariaLabel="Start from"
+          className="w-48 max-w-full"
+        />
+      </div>
+    </div>
+  )
+}
+
+function RouteChoiceRow({
+  choice,
+  onTogglePin,
+}: {
+  choice: PathwayRouteChoiceView
+  onTogglePin: (key: string) => void
+}) {
+  return (
+    <li
+      data-route-choice={choice.path.key}
+      data-pinned={choice.pinned}
+      data-fastest={choice.fastest}
+      data-needs-checking={choice.needsChecking}
+      className="flex flex-col gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {choice.pinned && <Badge variant="accent">Pinned</Badge>}
+            {choice.fastest && <Badge variant="success">Fastest</Badge>}
+          </div>
+          <RouteChips path={choice.path} />
+        </div>
+        <Button
+          size="sm"
+          variant={choice.pinned ? "primary" : "secondary"}
+          aria-pressed={choice.pinned}
+          className="min-h-11"
+          text={choice.pinned ? "Unpin" : "Pin"}
+          onClick={() => onTogglePin(choice.path.key)}
+        />
+      </div>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-2xs">
+        <span className="text-tertiary">
+          {choice.hops} {choice.hops === 1 ? "hop" : "hops"}
+        </span>
+        <span className="text-secondary">{choice.waitLabel}</span>
+        <span className={choice.needsChecking ? "text-warn" : "text-success"}>
+          {choice.needsChecking ? "Needs checking" : "No checks pending"}
+        </span>
+      </div>
+    </li>
+  )
+}
+
 interface PickerOption {
   id: string
   name: string
@@ -563,12 +595,20 @@ export function TrackerPathwaysClient({
   catalog = RECRUITMENT_CATALOG,
 }: TrackerPathwaysClientProps) {
   const [state, setState] = useState(initialState)
-  const [targets, setTargets] = useState<string[]>(() =>
-    initialState.desiredTrackerSlug ? [initialState.desiredTrackerSlug] : []
-  )
+  const [targets, setTargets] = useState<string[]>(() => {
+    const initial = initialState.desiredTrackerSlug ? [initialState.desiredTrackerSlug] : []
+    for (const target of Object.keys(initialState.pinnedRoutes)) {
+      if (!initial.includes(target)) initial.push(target)
+    }
+    return initial
+  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [now] = useState(() => new Date())
+  const [sort, setSort] = useState<PathwayRouteSort>("fastest")
+  const [maxHops, setMaxHops] = useState(3)
+  const [startFrom, setStartFrom] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
 
   const result = useMemo(
     () =>
@@ -613,14 +653,67 @@ export function TrackerPathwaysClient({
             savedRankGoals: {},
             state,
             now,
+            maxHops: 3,
           })
         : null,
     [activeTarget, catalog, now, state, trackers]
   )
 
-  async function persistTarget(nextTarget: string): Promise<boolean> {
-    const previous = state
-    const next = { ...state, desiredTrackerSlug: nextTarget }
+  const routeChoices = useMemo(
+    () =>
+      profile
+        ? buildRouteChoices({
+            paths: profile.paths,
+            sort,
+            maxHops,
+            startFrom,
+            pinnedKey: activeTarget ? (state.pinnedRoutes[activeTarget] ?? null) : null,
+          })
+        : null,
+    [activeTarget, maxHops, profile, sort, startFrom, state.pinnedRoutes]
+  )
+
+  const ownedOptions = useMemo(
+    () =>
+      [...ownedIds]
+        .map((id) => ({ id, name: pathwaysTrackerName(id) }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [ownedIds]
+  )
+
+  const chipLabels = useMemo(() => {
+    const labels: Record<string, string> = {}
+    for (const target of targets) {
+      if (target === activeTarget) continue
+      const name = pathwaysTrackerName(target)
+      const pinnedKey = state.pinnedRoutes[target]
+      if (!pinnedKey) {
+        labels[target] = name
+        continue
+      }
+      const result = buildWishlistPaths({
+        catalog,
+        desiredTrackerSlug: target,
+        trackers,
+        savedRankGoals: {},
+        state,
+        now,
+        maxHops: 3,
+        maxPathsPerSource: 200,
+        maxTotal: 500,
+      })
+      const pinned = result.paths.find((path) => path.key === pinnedKey)
+      labels[target] = pinned
+        ? `${name} · ${pinned.routeIds.length} ${pinned.routeIds.length === 1 ? "hop" : "hops"} · ${pathWaitValue(pinned)}`
+        : name
+    }
+    return labels
+  }, [activeTarget, catalog, now, state, targets, trackers])
+
+  async function persistState(
+    next: RecruitmentState,
+    previous: RecruitmentState
+  ): Promise<boolean> {
     setState(next)
     setSaving(true)
     setError(null)
@@ -647,9 +740,24 @@ export function TrackerPathwaysClient({
     if (!nextTarget || nextTarget === activeTarget) return
     const previousTargets = targets
     if (!targets.includes(nextTarget)) setTargets([...targets, nextTarget])
-    const saved = await persistTarget(nextTarget)
+    setShowAll(false)
+    const saved = await persistState({ ...state, desiredTrackerSlug: nextTarget }, state)
     if (!saved) setTargets(previousTargets)
   }
+
+  async function togglePin(key: string) {
+    if (!activeTarget) return
+    const previous = state
+    const pinnedRoutes = { ...state.pinnedRoutes }
+    if (pinnedRoutes[activeTarget] === key) {
+      delete pinnedRoutes[activeTarget]
+    } else {
+      pinnedRoutes[activeTarget] = key
+    }
+    await persistState({ ...state, pinnedRoutes }, previous)
+  }
+
+  const visibleChoices = routeChoices?.choices.slice(0, showAll ? undefined : 10) ?? []
 
   return (
     <div className="flex flex-col gap-6 pb-12" data-pathways-page data-page-frame>
@@ -717,7 +825,8 @@ export function TrackerPathwaysClient({
                 key={target}
                 size="sm"
                 variant="secondary"
-                text={pathwaysTrackerName(target)}
+                className="max-w-full whitespace-normal text-left"
+                text={chipLabels[target] ?? pathwaysTrackerName(target)}
                 onClick={() => chooseTarget(target)}
               />
             ))}
@@ -745,13 +854,69 @@ export function TrackerPathwaysClient({
             message="Choose a tracker you are not on to see a route."
           />
         ) : !activeTarget ? (
-          <p className="text-sm text-secondary">Choose a tracker to see its profile and route.</p>
+          <p className="text-sm text-secondary">Choose a tracker to see its profile and routes.</p>
         ) : profile ? (
           <div className="flex flex-col gap-4">
-            {profile.fastest && <FastestRoute path={profile.fastest} />}
-            {profile.noRoute && <NoRouteBlock noRoute={profile.noRoute} />}
+            {profile.paths.length > 0 ? (
+              <div className="flex flex-col gap-3" data-target-routes>
+                <RouteControls
+                  sort={sort}
+                  maxHops={maxHops}
+                  startFrom={startFrom}
+                  ownedOptions={ownedOptions}
+                  onSort={(next) => {
+                    setSort(next)
+                    setShowAll(false)
+                  }}
+                  onMaxHops={(next) => {
+                    setMaxHops(next)
+                    setShowAll(false)
+                  }}
+                  onStartFrom={(next) => {
+                    setStartFrom(next)
+                    setShowAll(false)
+                  }}
+                />
+
+                {routeChoices?.pinnedFilteredOut && (
+                  <p className="text-xs text-tertiary">
+                    Your pinned route is outside these filters.
+                  </p>
+                )}
+
+                {routeChoices && routeChoices.total > 0 ? (
+                  <>
+                    <ul className="flex flex-col gap-3" data-route-list>
+                      {visibleChoices.map((choice) => (
+                        <RouteChoiceRow
+                          key={choice.path.key}
+                          choice={choice}
+                          onTogglePin={togglePin}
+                        />
+                      ))}
+                    </ul>
+                    {routeChoices.total > 10 && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="min-h-11 self-start"
+                        text={
+                          showAll
+                            ? "Show first 10"
+                            : `Show all (${routeChoices.total})`
+                        }
+                        onClick={() => setShowAll((current) => !current)}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-secondary">No routes match these filters.</p>
+                )}
+              </div>
+            ) : (
+              profile.noRoute && <NoRouteBlock noRoute={profile.noRoute} />
+            )}
             <TargetProfile profile={profile} />
-            {profile.otherPaths.length > 0 && <OtherRoutes paths={profile.otherPaths} />}
           </div>
         ) : null}
       </section>

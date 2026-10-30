@@ -14,6 +14,7 @@ import type { RankComparison, RankMetric } from "@/lib/rank-goals"
 export const RECRUITMENT_STATE_VERSION = 2
 export const RECRUITMENT_HIDDEN_PATHS_MAX = 200
 export const RECRUITMENT_GOAL_LINKS_MAX = 100
+export const RECRUITMENT_PINNED_ROUTES_MAX = 50
 
 const PATH_KEY_MAX = 512
 const ROUTE_ID_MAX = 200
@@ -54,6 +55,8 @@ export interface RecruitmentState {
   desiredTrackerSlug: string | null
   hiddenPathKeys: string[]
   goalLinks: RecruitmentGoalLink[]
+  /** target trackerpathways ID -> chosen route key */
+  pinnedRoutes: Record<string, string>
 }
 
 export function emptyRecruitmentState(): RecruitmentState {
@@ -62,6 +65,7 @@ export function emptyRecruitmentState(): RecruitmentState {
     desiredTrackerSlug: null,
     hiddenPathKeys: [],
     goalLinks: [],
+    pinnedRoutes: {},
   }
 }
 
@@ -155,11 +159,22 @@ export function normalizeRecruitmentState(raw: unknown): RecruitmentState {
     }
   }
 
+  const pinnedRoutes: Record<string, string> = {}
+  if (isRecord(value.pinnedRoutes)) {
+    for (const [rawTarget, rawKey] of Object.entries(value.pinnedRoutes)) {
+      if (Object.keys(pinnedRoutes).length >= RECRUITMENT_PINNED_ROUTES_MAX) break
+      const target = normalizePathwaysTarget(rawTarget)
+      const key = boundedString(rawKey, PATH_KEY_MAX)
+      if (target && key) pinnedRoutes[target] = key
+    }
+  }
+
   return {
     version: RECRUITMENT_STATE_VERSION,
     desiredTrackerSlug,
     hiddenPathKeys,
     goalLinks,
+    pinnedRoutes,
   }
 }
 

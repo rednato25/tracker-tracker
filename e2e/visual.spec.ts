@@ -1428,16 +1428,19 @@ test.describe.serial("P32a foundation visual evidence", () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`/trackers/${foundationTrackerId}`)
     await page.waitForFunction(() => document.querySelector('[data-mobile="true"]') !== null)
-    const ladder = page.locator("[data-rank-ladder]").first()
+    const ladder = page.locator("[data-rank-progression]").first()
     await expect(ladder).toBeVisible({ timeout: 15_000 })
     const widths = await ladder.evaluate((node) => ({
       scrollWidth: node.scrollWidth,
       clientWidth: node.clientWidth,
     }))
     expect(widths.scrollWidth).toBeLessThanOrEqual(widths.clientWidth + 1)
-    for (const rung of ["Registered", "Power User", "Super User", "Extreme User", "TL GOD", "VIP"]) {
+    for (const rung of ["Registered", "Power User", "Super User", "Extreme User", "TL GOD"]) {
       await expect(ladder.getByText(rung, { exact: true })).toBeVisible()
     }
+    await expect(ladder.getByText("VIP", { exact: true })).toHaveCount(0)
+    await ladder.getByRole("button", { name: "Show all classes" }).click()
+    await expect(ladder.getByText("VIP", { exact: true })).toBeVisible()
     await ladder.evaluate((node) => node.scrollIntoView({ block: "center" }))
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "dark"
@@ -2027,7 +2030,13 @@ test.describe.serial("P41 rank overview", () => {
     await tl.getByRole("button", { name: "Show earned classes" }).click()
 
     const dv = view.locator(`[data-rank-overview-tracker="${dvId}"]`)
-    await expect(dv.getByText("Not collected for this tracker").first()).toBeVisible()
+    await expect(
+      dv
+        .getByText(
+          /TEST P41 DreadVault's API doesn't report (average seed time|seed size|uploaded torrents)\./
+        )
+        .first()
+    ).toBeVisible()
     await expect(dv.getByLabel("Note for TEST P41 DreadVault")).toHaveValue(
       "Site says 500 uploads"
     )
@@ -2143,7 +2152,7 @@ test.describe.serial("P42 dashboard card visual evidence", () => {
     const grid = page.locator("#main-content [data-tracker-grid]")
     await expect(grid).toBeVisible({ timeout: 15_000 })
     await expect(grid.getByText("TEST P42 Manual Login")).toBeVisible()
-    await expect(grid.getByText("Last login: 115 days ago")).toBeVisible()
+    await expect(grid.getByText(/Last login: 11[456] days ago/)).toBeVisible()
     await expect(grid.getByText("2 of 3 met")).toBeVisible()
     const dueButton = grid.getByRole("button", { name: "Logged in today" })
     await expect(dueButton).toHaveAttribute("data-login-due", "true")

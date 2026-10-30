@@ -20,6 +20,7 @@ export async function putRankManualValue(
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ trackerId, metric, manualValue }),
+    signal: AbortSignal.timeout(10_000),
   })
   if (!res.ok) {
     const payload = (await res.json().catch(() => null)) as RankManualValuesResponse | null

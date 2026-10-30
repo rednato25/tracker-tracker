@@ -108,4 +108,13 @@ describe("P35 structured rank requirements", () => {
     expect(master.status).toBe("unknown")
     expect(master.progress).toEqual({ met: 3, unmet: 0, unknown: 2, total: 5 })
   })
+
+  it("Zenith: Bulker tracks age and uploads while seed size and seed time stay unknown", () => {
+    const bulker = evaluate("zenith", "Bulker", {
+      accountAgeDays: 30,
+      uploads: 100,
+    })
+    expect(bulker.status).toBe("unknown")
+    expect(bulker.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
+  })
 })

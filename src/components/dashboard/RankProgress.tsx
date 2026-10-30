@@ -200,7 +200,8 @@ function RankProgressBar({ userClasses, currentRank, accentColor }: RankProgress
             ? `${currentRank}, not on the earned ladder`
             : `${currentRank}, rank ${currentPos + 1} of ${totalRungs}`
         }
-        className="flex items-center gap-1 w-full overflow-x-auto p-3 -m-3 styled-scrollbar"
+        className="flex flex-wrap items-center gap-1 gap-y-2 w-full p-3 -m-3"
+        data-rank-ladder
       >
       {userClasses.map((uc, i) => {
         const isCurrent = i === currentIndex

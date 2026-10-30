@@ -1283,6 +1283,32 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 
+  test("wraps the 390 rank ladder instead of clipping it", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`/trackers/${foundationTrackerId}`)
+    await page.waitForFunction(() => document.querySelector('[data-mobile="true"]') !== null)
+    const ladder = page.locator("[data-rank-ladder]").first()
+    await expect(ladder).toBeVisible({ timeout: 15_000 })
+    const widths = await ladder.evaluate((node) => ({
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth,
+    }))
+    expect(widths.scrollWidth).toBeLessThanOrEqual(widths.clientWidth + 1)
+    for (const rung of ["Registered", "Power User", "Super User", "Extreme User", "TL GOD", "VIP"]) {
+      await expect(ladder.getByText(rung, { exact: true })).toBeVisible()
+    }
+    await ladder.evaluate((node) => node.scrollIntoView({ block: "center" }))
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.waitForTimeout(200)
+    await page.screenshot({
+      path: "test-results/p34b-rank-ladder-390-dark.png",
+    })
+  })
+
   test("keeps the first tracker card in the first screen", async ({ page }) => {
     test.setTimeout(120_000)
     await page.setViewportSize({ width: 1440, height: 900 })

@@ -6,8 +6,10 @@
 
 "use client"
 
+import { ExternalLinkSmallIcon } from "@icons"
 import { useMemo } from "react"
 import { Badge } from "@/components/ui"
+import { formatDate } from "@/lib/formatters"
 import type { RankGoalStatus } from "@/lib/rank-goals"
 import { buildRankOverviews, type RankOverview as RankOverviewData } from "@/lib/rank-overview"
 import type { TrackerSummary } from "@/types/api"
@@ -34,6 +36,12 @@ function targetLabel(overview: RankOverviewData): string {
   if (!overview.targetClass) return "No target"
   if (overview.targetKind === "saved") return `Target: ${overview.targetClass}`
   return `Next automatic class: ${overview.targetClass}`
+}
+
+function verificationLabel(verification: RankOverviewData["source"]["verification"]): string {
+  if (verification === "published") return "Published source"
+  if (verification === "unresolved") return "Source unresolved"
+  return "No registry source"
 }
 
 function Field({
@@ -105,9 +113,22 @@ function TrackerRankSection({
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="break-words font-cond text-sm font-semibold text-primary">
-            {overview.trackerName}
-          </h3>
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h3 className="break-words font-cond text-sm font-semibold text-primary">
+              {overview.trackerName}
+            </h3>
+            <a
+              href={overview.siteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-accent underline-offset-2 hover:underline"
+              aria-label={`Open ${overview.trackerName} site`}
+              data-rank-site-link
+            >
+              Site
+              <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
+            </a>
+          </div>
           <p className="mt-0.5 text-xs text-secondary">
             Current class:{" "}
             <span className="font-mono text-primary">
@@ -148,12 +169,38 @@ function TrackerRankSection({
       ) : (
         <div className="border-t border-border pt-2 text-xs text-secondary">
           <p>No structured conditions are published for this class.</p>
-          {overview.ruleText && <p className="mt-1 text-tertiary">Registry text: {overview.ruleText}</p>}
           {overview.highestAutomatic && (
             <p className="mt-1 text-tertiary">Highest automatic class reached.</p>
           )}
         </div>
       )}
+
+      <div className="flex flex-col gap-1 border-t border-border pt-2 text-xs" data-rank-source>
+        <p className="text-secondary">
+          Registry text:{" "}
+          <span className="text-tertiary">
+            {overview.ruleText ?? "No class requirement text in the registry."}
+          </span>
+        </p>
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-tertiary">
+          <span data-rank-source-verification>{verificationLabel(overview.source.verification)}</span>
+          {overview.source.title && <span>{overview.source.title}</span>}
+          {overview.source.url && (
+            <a
+              href={overview.source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-accent underline-offset-2 hover:underline"
+            >
+              {overview.source.url}
+            </a>
+          )}
+        </p>
+        {overview.source.accessedAt && (
+          <p className="text-tertiary">Accessed {formatDate(overview.source.accessedAt)}</p>
+        )}
+        {overview.source.note && <p className="text-tertiary">{overview.source.note}</p>}
+      </div>
     </section>
   )
 }

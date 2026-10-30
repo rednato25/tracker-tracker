@@ -77,6 +77,27 @@ describe("RankOverview", () => {
     expect(document.querySelectorAll("[data-rank-condition]")).toHaveLength(3)
   })
 
+  it("shows the registry source, verification status and a link to the tracker site", () => {
+    render(
+      <RankOverview
+        trackers={[tracker()]}
+        savedGoals={{ "1": { targetRank: "Super User" } }}
+        now={NOW}
+      />
+    )
+    expect(screen.getByRole("link", { name: "Open TorrentLeech site" })).toHaveAttribute(
+      "href",
+      "https://www.torrentleech.org"
+    )
+    expect(screen.getByText("Published source")).toBeInTheDocument()
+    expect(screen.getByText("TorrentLeech Wiki - User Classes")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /user_classes/ })).toHaveAttribute(
+      "target",
+      "_blank"
+    )
+    expect(screen.getAllByText(/12 weeks registered/).length).toBeGreaterThan(0)
+  })
+
   it("writes why an unknown condition has no current value", () => {
     render(
       <RankOverview
@@ -111,5 +132,6 @@ describe("RankOverview", () => {
     expect(screen.getByText("Next automatic class: Harmonia")).toBeInTheDocument()
     expect(screen.getByText("No structured conditions are published for this class.")).toBeInTheDocument()
     expect(screen.getByText(/Registry text:/)).toBeInTheDocument()
+    expect(screen.getByText("No registry source")).toBeInTheDocument()
   })
 })

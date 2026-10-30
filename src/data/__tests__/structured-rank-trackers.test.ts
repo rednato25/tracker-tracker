@@ -151,4 +151,14 @@ describe("P35 structured rank requirements", () => {
     expect(seeder.status).toBe("unknown")
     expect(seeder.progress).toEqual({ met: 2, unmet: 0, unknown: 1, total: 3 })
   })
+
+  it("CarPT: Power User tracks numeric thresholds while seeding points stay unknown", () => {
+    const power = evaluate("carpt", "Power User", {
+      accountAgeDays: 28,
+      downloadedBytes: 200 * GiB,
+      accountRatio: 2.1,
+    })
+    expect(power.status).toBe("unknown")
+    expect(power.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
+  })
 })

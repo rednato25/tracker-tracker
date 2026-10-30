@@ -17,10 +17,7 @@ import { DangerZoneSection } from "@/components/settings/DangerZoneSection"
 import { DataSection } from "@/components/settings/DataSection"
 import { DigestSection } from "@/components/settings/DigestSection"
 import { EventsSection } from "@/components/settings/EventsSection"
-import { IntegrationsSection } from "@/components/settings/IntegrationsSection"
-import { JackettImportSection } from "@/components/settings/JackettImportSection"
 import { PrivacySection } from "@/components/settings/PrivacySection"
-import { ProwlarrImportSection } from "@/components/settings/ProwlarrImportSection"
 import { ProxySection } from "@/components/settings/ProxySection"
 import { SecurityPoliciesSection } from "@/components/settings/SecurityPoliciesSection"
 import { TwoFactorSection } from "@/components/settings/TwoFactorSection"
@@ -28,13 +25,12 @@ import { TagGroups } from "@/components/TagGroups"
 import { TabBar } from "@/components/ui/TabBar"
 import type { QbitmanageTagConfig } from "@/types/api"
 
-type SettingsTab = "general" | "clients" | "notifications" | "integrations" | "backups" | "events" | "about"
+type SettingsTab = "general" | "clients" | "notifications" | "backups" | "events" | "about"
 
 const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
   { key: "general", label: "General" },
   { key: "clients", label: "Download Clients" },
   { key: "notifications", label: "Notifications" },
-  { key: "integrations", label: "Integrations" },
   { key: "backups", label: "Backups" },
   { key: "events", label: "Events" },
   { key: "about", label: "About" },
@@ -120,14 +116,6 @@ export function SettingsClient({
 
           <DataSection initialPollInterval={initialSettings.trackerPollIntervalMinutes ?? 60} />
 
-          <ProwlarrImportSection
-            initialUrl={initialSettings.prowlarrUrl}
-            initialHasKey={initialSettings.hasProwlarrApiKey}
-            initialAllowPrivate={initialSettings.prowlarrAllowPrivate}
-          />
-
-          <JackettImportSection />
-
           <SecurityPoliciesSection
             initialLockout={{
               enabled: initialSettings.lockoutEnabled,
@@ -184,10 +172,6 @@ export function SettingsClient({
             }}
           />
         </>
-      )}
-
-      {activeTab === "integrations" && (
-        <IntegrationsSection initialIdentityMode={initialSettings.integrationIdentityMode} />
       )}
 
       {activeTab === "backups" && (

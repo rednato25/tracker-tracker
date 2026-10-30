@@ -234,7 +234,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     await page.screenshot({ path: "test-results/visual-budget-queue-after-mobile.png" })
   })
 
-  test("previews and imports a selected Prowlarr indexer", async ({ page, request }) => {
+  // P37 hides the Settings import UI. The import code remains for now.
+  test.skip("previews and imports a selected Prowlarr indexer", async ({ page, request }) => {
     const server = createServer((req, res) => {
       if (req.url === "/api/v1/indexer") {
         res.writeHead(200, { "content-type": "application/json" })
@@ -323,7 +324,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     }
   })
 
-  test("previews and imports a selected Jackett indexer", async ({ page }) => {
+  // P37 hides the Settings import UI. The import code remains for now.
+  test.skip("previews and imports a selected Jackett indexer", async ({ page }) => {
     const server = createServer((req, res) => {
       if (req.url === "/UI/Dashboard" && req.method === "POST") {
         let body = ""
@@ -416,7 +418,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     }
   })
 })
-test.describe.serial("integration token visual evidence", () => {
+// P37 hides the Integrations settings tab. The token code remains for now.
+test.describe.skip("integration token visual evidence (hidden in P37)", () => {
   test("captures desktop light/dark and mobile token management", async ({ page }) => {
     try {
       await page.goto("/settings")

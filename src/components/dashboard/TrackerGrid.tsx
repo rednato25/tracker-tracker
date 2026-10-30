@@ -12,6 +12,7 @@ import {
   formatAccountAge,
   formatBytesFromString,
   formatCount,
+  formatDate,
   formatRatioDisplay,
 } from "@/lib/formatters"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
@@ -325,7 +326,7 @@ export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGr
         </h2>
         <p className="font-mono text-xs text-tertiary">
           {trackers.length} {trackers.length === 1 ? "account" : "accounts"} · as of{" "}
-          {now.toISOString().slice(0, 10)}
+          {formatDate(now)}
         </p>
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">

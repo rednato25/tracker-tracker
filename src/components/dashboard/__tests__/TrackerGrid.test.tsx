@@ -111,6 +111,7 @@ describe("TrackerGrid", () => {
     expect(screen.getByRole("heading", { name: "Trackers" })).toBeInTheDocument()
     expect(screen.getByText("TorrentLeech")).toBeInTheDocument()
     expect(screen.getByText("Power User")).toBeInTheDocument()
+    expect(screen.getByText(/as of Oct 28, 2026/)).toBeInTheDocument()
     expect(screen.getByText("1 of 2 requirements")).toBeInTheDocument()
     expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
     expect(screen.getByText("Elite: 1.00 TiB upload left")).toBeInTheDocument()

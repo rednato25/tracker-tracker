@@ -18,6 +18,7 @@ import {
   formatAccountAge,
   formatBytesNum,
   formatCount,
+  formatDate,
   formatRatio,
 } from "@/lib/formatters"
 import type { RankComparison, RankGoalStatus } from "@/lib/rank-goals"
@@ -46,7 +47,7 @@ const NO_REQUIREMENT = /^(none|no requirements?|removed)$/i
 const TRACKERPATHWAYS_URL = "https://github.com/handokota/trackerpathways"
 
 function dateOnly(value: string | null): string {
-  return value ? value.slice(0, 10) : "unknown"
+  return value ? formatDate(value) : "unknown"
 }
 
 function waitLabel(days: number | null): string {
@@ -319,7 +320,7 @@ function FastestRoute({ path }: { path: WishlistPathView }) {
             {path.steps.length === 1 ? "1 step" : `${path.steps.length} steps`}
           </p>
         </div>
-        <div className="text-right">
+        <div className="w-full text-left sm:w-auto sm:text-right" data-pathway-time>
           <p className="font-cond text-2xs font-semibold uppercase tracking-[0.14em] text-secondary">
             Total time left
           </p>
@@ -399,7 +400,7 @@ function TrackerPicker({
   }
 
   return (
-    <div ref={ref} className="relative max-w-xl">
+    <div ref={ref} className="relative w-full sm:w-96" data-pathway-picker>
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}

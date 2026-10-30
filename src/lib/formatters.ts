@@ -252,6 +252,23 @@ export function formatPercent(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`
 }
 
+/** Formats a Date, ISO date string, or timestamp as the app date format. */
+export function formatDate(dateOrIso: Date | string | number): string {
+  if (typeof dateOrIso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateOrIso)) {
+    const [year, month, day] = dateOrIso.split("-").map(Number)
+    const date = new Date(year, month - 1, day)
+    return Number.isNaN(date.getTime())
+      ? "\u2014"
+      : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  }
+  const date =
+    typeof dateOrIso === "string" || typeof dateOrIso === "number"
+      ? new Date(dateOrIso)
+      : dateOrIso
+  if (Number.isNaN(date.getTime())) return "\u2014"
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
 /** Formats a Date, ISO string, or timestamp as a locale-pinned datetime string. */
 export function formatDateTime(dateOrIso: Date | string | number): string {
   const d =

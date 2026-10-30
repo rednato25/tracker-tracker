@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { registryEntryFor } from "@/data/tracker-registry"
 import { calculateDownloadBudget } from "@/lib/download-budget"
-import { formatBytesNum, formatRatio } from "@/lib/formatters"
+import { formatBytesNum, formatDateTime, formatRatio } from "@/lib/formatters"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
 import type { TrackerLatestStats } from "@/types/api"
 
@@ -192,7 +192,11 @@ export function DownloadBudgetPanel({
             Tracker minimum:{" "}
             {minimum === null ? "unknown" : minimum === 0 ? "none" : formatRatio(minimum)}
           </p>
-          <p>{lastPolledAt ? `Last observed: ${lastPolledAt}` : "No observation timestamp"}</p>
+          <p>
+            {lastPolledAt
+              ? `Last observed: ${formatDateTime(lastPolledAt)}`
+              : "No observation timestamp"}
+          </p>
         </div>
       )}
 

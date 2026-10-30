@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import { DownloadBudgetPanel } from "@/components/tracker-detail/DownloadBudgetPanel"
+import { formatDateTime } from "@/lib/formatters"
 import type { TrackerLatestStats } from "@/types/api"
 
 const GiB = 1024 ** 3
@@ -118,6 +119,14 @@ describe("DownloadBudgetPanel", () => {
     ).toBe(true)
   })
 
+  it("formats the observation timestamp with the app date format", () => {
+    const observedAt = "2026-01-01T00:00:00.000Z"
+    renderPanel({ lastPolledAt: observedAt })
+    expect(
+      screen.getByText(`Last observed: ${formatDateTime(observedAt)}`)
+    ).toBeInTheDocument()
+    expect(screen.queryByText(new RegExp(observedAt))).not.toBeInTheDocument()
+  })
   it("marks stale data and unavailable observations", () => {
     renderPanel({ lastPolledAt: "2026-01-01T00:00:00.000Z" })
     expect(screen.getByText(/stale/)).toBeInTheDocument()

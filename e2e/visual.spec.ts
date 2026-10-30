@@ -1283,6 +1283,148 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 
+  test("keeps the image hosting section hidden", async ({ page }) => {
+    test.setTimeout(120_000)
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+      await page.goto("/settings")
+      await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText("Image Hosting", { exact: true })).toHaveCount(0)
+    }
+  })
+
+  test("gives the pathways picker a row width and aligns the 390 time block", async ({ page }) => {
+    test.setTimeout(120_000)
+
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+      await page.goto("/pathways")
+      await expect(page.locator("#main-content [data-pathways-page]")).toBeVisible({
+        timeout: 15_000,
+      })
+      if (width === 390) {
+        await page.waitForFunction(
+          () => document.querySelector('[data-mobile="true"]') !== null
+        )
+      }
+      const picker = page.locator("[data-pathway-picker]").first()
+      await expect(picker).toBeVisible()
+      const pickerBox = await picker.boundingBox()
+      expect(pickerBox).not.toBeNull()
+      if (!pickerBox) continue
+      if (width === 390) {
+        expect(pickerBox.width).toBeGreaterThanOrEqual(300)
+      } else {
+        expect(pickerBox.width).toBeGreaterThanOrEqual(320)
+        expect(pickerBox.width).toBeLessThanOrEqual(420)
+      }
+
+      const route = page.getByRole("list", { name: "Route" }).first()
+      const time = page.locator("[data-pathway-time]").first()
+      await expect(route).toBeVisible()
+      await expect(time).toBeVisible()
+      const routeBox = await route.boundingBox()
+      const timeBox = await time.boundingBox()
+      expect(routeBox).not.toBeNull()
+      expect(timeBox).not.toBeNull()
+      if (width === 390 && routeBox && timeBox) {
+        expect(Math.abs(routeBox.x - timeBox.x)).toBeLessThanOrEqual(2)
+      }
+      const sourceLine = page.getByText(/Source: Route data derived/).first()
+      await expect(sourceLine).toContainText(/accessed [A-Z][a-z]{2} \d{1,2}, \d{4}/)
+
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        await page.waitForTimeout(150)
+        await page.screenshot({
+          path: `test-results/p34b-pathways-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
+  test("wraps the 390 rank ladder instead of clipping it", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`/trackers/${foundationTrackerId}`)
+    await page.waitForFunction(() => document.querySelector('[data-mobile="true"]') !== null)
+    const ladder = page.locator("[data-rank-ladder]").first()
+    await expect(ladder).toBeVisible({ timeout: 15_000 })
+    const widths = await ladder.evaluate((node) => ({
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth,
+    }))
+    expect(widths.scrollWidth).toBeLessThanOrEqual(widths.clientWidth + 1)
+    for (const rung of ["Registered", "Power User", "Super User", "Extreme User", "TL GOD", "VIP"]) {
+      await expect(ladder.getByText(rung, { exact: true })).toBeVisible()
+    }
+    await ladder.evaluate((node) => node.scrollIntoView({ block: "center" }))
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.waitForTimeout(200)
+    await page.screenshot({
+      path: "test-results/p34b-rank-ladder-390-dark.png",
+    })
+  })
+
+  test("keeps the first tracker card in the first screen", async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Grid" }).click()
+    const card = page.locator("[data-tracker-card]").first()
+    await expect(card).toBeVisible({ timeout: 15_000 })
+    const box = await card.boundingBox()
+    expect(box).not.toBeNull()
+    if (!box) return
+    expect(box.y).toBeGreaterThanOrEqual(0)
+    expect(box.y).toBeLessThan(900)
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark"
+    })
+    await page.waitForTimeout(200)
+    await page.screenshot({
+      path: "test-results/p34b-dashboard-first-screen-1440-dark.png",
+    })
+  })
+
+  test("keeps the rank target summary in the first viewport", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+
+    for (const { width, height } of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      for (const theme of ["light", "dark"] as const) {
+        await page.setViewportSize({ width, height })
+        await page.goto(`/trackers/${foundationTrackerId}`)
+        if (width === 390) {
+          await page.waitForFunction(
+            () => document.querySelector('[data-mobile="true"]') !== null
+          )
+        }
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        const summary = page.locator("[data-rank-target-summary]").first()
+        await expect(summary).toBeVisible({ timeout: 15_000 })
+        const box = await summary.boundingBox()
+        expect(box).not.toBeNull()
+        if (!box) continue
+        expect(box.y).toBeGreaterThanOrEqual(0)
+        expect(box.y + box.height).toBeLessThanOrEqual(height)
+        await page.screenshot({
+          path: `test-results/p34b-tracker-summary-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
   test("keeps one page frame and the Dashboard H1 in both views", async ({ page }) => {
     test.setTimeout(120_000)
     expect(foundationTrackerId).not.toBeNull()

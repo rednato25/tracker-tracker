@@ -79,6 +79,13 @@ describe("RankProgress pills", () => {
     expect(screen.getByText("Power User")).not.toHaveAttribute("title")
   })
 
+  it("wraps the rungs instead of clipping them in a scroller", () => {
+    const { container } = renderPills("User")
+    const ladder = container.querySelector("[data-rank-ladder]")
+    expect(ladder).toHaveClass("flex-wrap")
+    expect(ladder).not.toHaveClass("overflow-x-auto")
+  })
+
   it("names the ladder and prints n of N", () => {
     renderPills("Power User")
     expect(screen.getByRole("img", { name: "Power User, rank 2 of 2" })).toBeInTheDocument()

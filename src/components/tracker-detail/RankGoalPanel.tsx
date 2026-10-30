@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
-import { formatBytesNum, formatRatio } from "@/lib/formatters"
+import { formatBytesNum, formatDate, formatRatio } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
   evaluateRankGoal,
@@ -38,6 +38,8 @@ interface RankGoalPanelProps {
   accentColor: string
   platformType: string
   platformMeta: PlatformMeta | null
+  initialSavedGoals?: Record<string, { targetRank: string }>
+  onSavedGoalsChange?: (goals: Record<string, { targetRank: string }>) => void
 }
 
 
@@ -193,6 +195,8 @@ export function RankGoalPanel({
   accentColor,
   platformType,
   platformMeta,
+  initialSavedGoals,
+  onSavedGoalsChange,
 }: RankGoalPanelProps) {
   const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
@@ -201,8 +205,13 @@ export function RankGoalPanel({
     const next = ladder?.rungs[ladder.currentIndex + 1]
     return next?.requirements ?? null
   }, [userClasses, currentRank])
-  const [target, setTarget] = useState<string | null>(null)
-  const [savedGoals, setSavedGoals] = useState<Record<string, { targetRank: string }>>({})
+  const initialTarget = initialSavedGoals?.[String(trackerId)]?.targetRank ?? null
+  const [target, setTarget] = useState<string | null>(
+    initialTarget && targetOptions.includes(initialTarget) ? initialTarget : null
+  )
+  const [savedGoals, setSavedGoals] = useState<Record<string, { targetRank: string }>>(
+    initialSavedGoals ?? {}
+  )
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -222,12 +231,13 @@ export function RankGoalPanel({
           parsed = {}
         }
         setSavedGoals(parsed)
+        onSavedGoalsChange?.(parsed)
         const saved = parsed[String(trackerId)]?.targetRank
         setTarget(saved && targetOptions.includes(saved) ? saved : null)
       })
       .catch(() => setTarget(null))
       .finally(() => setLoaded(true))
-  }, [trackerId, targetOptions])
+  }, [trackerId, targetOptions, onSavedGoalsChange])
 
   const observationMap = useMemo<RankObservationMap>(
     () =>
@@ -273,9 +283,7 @@ export function RankGoalPanel({
   const joined = joinedAt ? new Date(joinedAt) : null
   const ageDate =
     age && joined && now && !Number.isNaN(joined.getTime())
-      ? new Date(joined.getTime() + age.requiredValue * 86_400_000)
-          .toISOString()
-          .slice(0, 10)
+      ? formatDate(new Date(joined.getTime() + age.requiredValue * 86_400_000))
       : null
   const counts = result?.progress ?? { met: 0, unmet: 0, unknown: 0, total: 0 }
   const eligible = result?.status === "met"
@@ -301,6 +309,7 @@ export function RankGoalPanel({
         return
       }
       setSavedGoals(updated)
+      onSavedGoalsChange?.(updated)
     } catch {
       setTarget(previous)
       setError("Network error. Could not save the selected rank goal")
@@ -329,6 +338,7 @@ export function RankGoalPanel({
         return
       }
       setSavedGoals(updated)
+      onSavedGoalsChange?.(updated)
       setTarget(null)
     } catch {
       setError("Network error. Could not clear the selected rank goal")
@@ -483,8 +493,14 @@ export function RankGoalPanel({
             <div className="mt-1 space-y-1 font-mono text-4xs text-tertiary">
               <p>{pilot.source.title}</p>
               <p>
-                accessed {pilot.source.accessedAt ?? "not available"} · page modified{" "}
-                {pilot.source.sourceLastModified ?? "unknown"}
+                accessed{" "}
+                {pilot.source.accessedAt
+                  ? formatDate(pilot.source.accessedAt)
+                  : "not available"}{" "}
+                Â· page modified{" "}
+                {pilot.source.sourceLastModified
+                  ? formatDate(pilot.source.sourceLastModified)
+                  : "unknown"}
               </p>
               <p>{pilot.source.note}</p>
               {pilot.unresolved.map((item) => (

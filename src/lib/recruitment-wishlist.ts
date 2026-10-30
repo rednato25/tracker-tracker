@@ -204,6 +204,14 @@ export function pathHasUncheckedRequirements(path: WishlistPathView): boolean {
   return path.steps.some(stepHasUncheckedRequirements)
 }
 
+/** The route list's total wait, without the "needs checking" suffix. */
+export function pathWaitValue(path: WishlistPathView): string {
+  const days = path.totalDaysRemaining
+  if (days === null) return "Unknown"
+  if (days === 0) return "Ready now"
+  return `${days} day${days === 1 ? "" : "s"} left`
+}
+
 export function pathWaitLabel(path: WishlistPathView): string {
   const days = path.totalDaysRemaining
   const unchecked = pathHasUncheckedRequirements(path)

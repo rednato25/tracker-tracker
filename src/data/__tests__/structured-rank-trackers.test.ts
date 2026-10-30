@@ -58,4 +58,21 @@ describe("P35 structured rank requirements", () => {
     })
     expect(result.status).toBe("met")
   })
+
+  it("OnlyEncodes: Explorer meets numeric thresholds and seed-size classes stay unknown", () => {
+    const explorer = evaluate("onlyencodes", "Explorer", {
+      accountAgeDays: 30,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 0.4,
+    })
+    expect(explorer.status).toBe("met")
+
+    const trailblazer = evaluate("onlyencodes", "Trailblazer", {
+      accountAgeDays: 60,
+      uploadedBytes: 5 * TiB,
+      accountRatio: 0.4,
+    })
+    expect(trailblazer.status).toBe("unknown")
+    expect(trailblazer.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
+  })
 })

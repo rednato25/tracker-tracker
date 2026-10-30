@@ -2,6 +2,9 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+const TiB = 1024 ** 4
+
 export const onlyencodes: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "onlyencodes",
@@ -29,57 +32,179 @@ export const onlyencodes: TrackerRegistryEntry = {
   statusPageUrl: "",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rank page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "Seed size and average seed time are not supported rank metrics and stay as unsupported conditions.",
+    "Invite sending, freeleech, H&R immunity and upload slots are perks, not promotion thresholds.",
+    "TiB/GiB text is read as written.",
+  ],
   userClasses: [
     // Dynamic. upload-based
     { name: "Leech", requirements: "Ratio below 0.4", outsideLadder: "below" },
-    { name: "User", requirements: "Ratio ≥ 0.4" },
-    { name: "Explorer", requirements: "Upload ≥ 1 TiB, ratio ≥ 0.4, age ≥ 1 month" },
+    {
+      name: "User",
+      requirements: "Ratio ≥ 0.4",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+        ],
+      },
+    },
+    {
+      name: "Explorer",
+      requirements: "Upload ≥ 1 TiB, ratio ≥ 0.4, age ≥ 1 month",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-explorer-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "numeric", id: "oe-explorer-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "oe-explorer-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+        ],
+      },
+    },
     {
       name: "Trailblazer",
       requirements:
         "Upload ≥ 5 TiB, ratio ≥ 0.4, age ≥ 2 months, seed size ≥ 100 GiB. Invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-trailblazer-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 2 months registered" },
+          { kind: "numeric", id: "oe-trailblazer-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "At least 5 TiB uploaded" },
+          { kind: "numeric", id: "oe-trailblazer-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "non-numeric", label: "Seed size ≥ 100 GiB" },
+        ],
+      },
     },
     {
       name: "Adventurer",
       requirements:
         "Upload ≥ 20 TiB, ratio ≥ 0.4, age ≥ 3 months, seed size ≥ 100 GiB. Invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-adventurer-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "oe-adventurer-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", label: "At least 20 TiB uploaded" },
+          { kind: "numeric", id: "oe-adventurer-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "non-numeric", label: "Seed size ≥ 100 GiB" },
+        ],
+      },
     },
     {
       name: "Legendary",
       requirements:
         "Upload ≥ 50 TiB, ratio ≥ 0.4, age ≥ 6 months, seed size ≥ 100 GiB. Invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-legendary-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
+          { kind: "numeric", id: "oe-legendary-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * TiB, scope: "account", label: "At least 50 TiB uploaded" },
+          { kind: "numeric", id: "oe-legendary-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "non-numeric", label: "Seed size ≥ 100 GiB" },
+        ],
+      },
     },
     {
       name: "Ascendan",
       requirements:
         "Upload ≥ 100 TiB, ratio ≥ 0.4, age ≥ 1 year, seed size ≥ 100 GiB. Freeleech, H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-ascendan-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 1 year registered" },
+          { kind: "numeric", id: "oe-ascendan-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", label: "At least 100 TiB uploaded" },
+          { kind: "numeric", id: "oe-ascendan-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "non-numeric", label: "Seed size ≥ 100 GiB" },
+        ],
+      },
     },
     // Dynamic. seed-based
     {
       name: "Eternal",
       requirements:
         "Upload ≥ 1 TiB, ratio ≥ 0.4, age ≥ 1 month, avg seedtime ≥ 1 month, seed size ≥ 5 TiB. H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-eternal-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "numeric", id: "oe-eternal-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "oe-eternal-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
+          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
+        ],
+      },
     },
     {
       name: "Video Virtuoso",
       requirements:
         "Upload ≥ 1 TiB, ratio ≥ 0.4, age ≥ 3 months, avg seedtime ≥ 2 months, seed size ≥ 10 TiB. Freeleech, H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-video-virtuoso-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "oe-video-virtuoso-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "oe-video-virtuoso-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
+          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
+        ],
+      },
     },
     {
       name: "Encode Lover",
       requirements:
         "Upload ≥ 1 TiB, ratio ≥ 0.4, age ≥ 6 months, avg seedtime ≥ 3 months, seed size ≥ 20 TiB. Freeleech, 2x upload, H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-encode-lover-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
+          { kind: "numeric", id: "oe-encode-lover-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "oe-encode-lover-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
+          { kind: "non-numeric", label: "Average seed time ≥ 3 months" },
+          { kind: "non-numeric", label: "Seed size ≥ 20 TiB" },
+        ],
+      },
     },
     // Dynamic. hybrid
     {
       name: "BeachBum",
       requirements:
         "Upload ≥ 100 TiB, ratio ≥ 1.0, age ≥ 2 months, avg seedtime ≥ 6 days, seed size ≥ 20 TiB. Freeleech, 2x upload, H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-beachbum-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 2 months registered" },
+          { kind: "numeric", id: "oe-beachbum-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", label: "At least 100 TiB uploaded" },
+          { kind: "numeric", id: "oe-beachbum-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
+          { kind: "non-numeric", label: "Average seed time ≥ 6 days" },
+          { kind: "non-numeric", label: "Seed size ≥ 20 TiB" },
+        ],
+      },
     },
     {
       name: "OnlyKings",
       requirements:
         "Upload ≥ 1 TiB, ratio ≥ 1.0, age ≥ 3 months, avg seedtime ≥ 2 months, seed size ≥ 10 TiB, 35+ uploads. Freeleech, 2x upload, H&R immune, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "oe-onlykings-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "oe-onlykings-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "oe-onlykings-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
+          { kind: "numeric", id: "oe-onlykings-uploads", metric: "uploads", comparison: "gte", requiredValue: 35, scope: "account", label: "At least 35 uploads" },
+          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
+          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
+        ],
+      },
     },
     {
       name: "OnlyCoinSpender",

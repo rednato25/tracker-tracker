@@ -1,7 +1,8 @@
 // src/lib/tracker-platforms/adapters/digitalcore.ts
 //
 // Functions: parseDigitalCoreCredentials, dcFlag, dcClassNameFromId,
-//            parseJsonSafe, fetchDCJson, readStatusUser, DigitalCoreAdapter
+//            dcSeedSizeBytes, parseJsonSafe, fetchDCJson, readStatusUser,
+//            DigitalCoreAdapter
 
 import { computeBufferBytes, computeRatio } from "@/lib/data-transforms"
 import { log } from "@/lib/logger"

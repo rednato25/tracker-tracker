@@ -117,4 +117,13 @@ describe("P35 structured rank requirements", () => {
     expect(bulker.status).toBe("unknown")
     expect(bulker.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
   })
+
+  it("seedpool: User meets the ratio floor and Pool needs the seed-size check", () => {
+    const user = evaluate("seedpool", "User", { accountRatio: 0.4 })
+    expect(user.status).toBe("met")
+
+    const pool = evaluate("seedpool", "Pool", { accountAgeDays: 30 })
+    expect(pool.status).toBe("unknown")
+    expect(pool.progress).toEqual({ met: 1, unmet: 0, unknown: 1, total: 2 })
+  })
 })

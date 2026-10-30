@@ -1730,9 +1730,9 @@ test.describe.serial("P39 rank and pause card states", () => {
     await expect(top).toContainText("Highest automatic class reached")
 
     const reached = cardFor(reachedId as number)
-    await expect(reached).toContainText("Target reached")
-    await expect(reached).toContainText("Target: Power User")
-    await expect(reached).toContainText("Next automatic class: Extreme User")
+    await expect(reached).toContainText("Target reached: Power User")
+    await expect(reached).toContainText("Extreme User")
+    await expect(reached).toContainText("Automatic")
 
     const paused = cardFor(pausedId as number)
     const pauseBlock = paused.locator("[data-failed-poll-pause]")

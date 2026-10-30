@@ -1283,6 +1283,56 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 
+  test("gives the pathways picker a row width and aligns the 390 time block", async ({ page }) => {
+    test.setTimeout(120_000)
+
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+      await page.goto("/pathways")
+      await expect(page.locator("#main-content [data-pathways-page]")).toBeVisible({
+        timeout: 15_000,
+      })
+      if (width === 390) {
+        await page.waitForFunction(
+          () => document.querySelector('[data-mobile="true"]') !== null
+        )
+      }
+      const picker = page.locator("[data-pathway-picker]").first()
+      await expect(picker).toBeVisible()
+      const pickerBox = await picker.boundingBox()
+      expect(pickerBox).not.toBeNull()
+      if (!pickerBox) continue
+      if (width === 390) {
+        expect(pickerBox.width).toBeGreaterThanOrEqual(300)
+      } else {
+        expect(pickerBox.width).toBeGreaterThanOrEqual(320)
+        expect(pickerBox.width).toBeLessThanOrEqual(420)
+      }
+
+      const route = page.getByRole("list", { name: "Route" }).first()
+      const time = page.locator("[data-pathway-time]").first()
+      await expect(route).toBeVisible()
+      await expect(time).toBeVisible()
+      const routeBox = await route.boundingBox()
+      const timeBox = await time.boundingBox()
+      expect(routeBox).not.toBeNull()
+      expect(timeBox).not.toBeNull()
+      if (width === 390 && routeBox && timeBox) {
+        expect(Math.abs(routeBox.x - timeBox.x)).toBeLessThanOrEqual(2)
+      }
+
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        await page.waitForTimeout(150)
+        await page.screenshot({
+          path: `test-results/p34b-pathways-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
   test("wraps the 390 rank ladder instead of clipping it", async ({ page }) => {
     test.setTimeout(120_000)
     expect(foundationTrackerId).not.toBeNull()

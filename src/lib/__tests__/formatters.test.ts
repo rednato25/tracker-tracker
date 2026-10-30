@@ -10,9 +10,11 @@ import {
 } from "@/lib/data-transforms"
 import {
   bytesToGiB,
+  formatAccountAge,
   formatCount,
   formatDate,
   formatDateTime,
+  formatMemberSinceDate,
   formatOrdinal,
   formatPercent,
   formatRatio,
@@ -353,5 +355,33 @@ describe("formatOrdinal", () => {
   it("returns a dash for a missing value", () => {
     expect(formatOrdinal(null)).toBe("—")
     expect(formatOrdinal(undefined)).toBe("—")
+  })
+})
+
+describe("formatAccountAge", () => {
+  const now = new Date("2026-10-28T12:00:00.000Z")
+
+  it("shows days under a month", () => {
+    expect(formatAccountAge("2026-10-02", now)).toBe("26 days")
+  })
+
+  it("uses calendar years and months past a year", () => {
+    expect(formatAccountAge("2021-08-01", now)).toBe("5 years, 2 months")
+    expect(formatAccountAge("2025-10-01", now)).toBe("1 year")
+  })
+
+  it("returns null for a missing or invalid date", () => {
+    expect(formatAccountAge(null, now)).toBeNull()
+    expect(formatAccountAge("not-a-date", now)).toBeNull()
+  })
+})
+
+describe("formatMemberSinceDate", () => {
+  it("writes the day before the month", () => {
+    expect(formatMemberSinceDate("2026-10-04")).toBe("4 Oct 2026")
+  })
+
+  it("returns null for a missing date", () => {
+    expect(formatMemberSinceDate(null)).toBeNull()
   })
 })

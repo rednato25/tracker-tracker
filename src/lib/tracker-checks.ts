@@ -25,7 +25,7 @@ interface TrackerChecks {
   known: boolean
 }
 
-function readLoginWindow(tracker: TrackerSummary): LoginWindow {
+function readLoginWindow(tracker: TrackerSummary, now: Date = new Date()): LoginWindow {
   const interval = registryEntryFor(tracker)?.rules?.loginIntervalDays
   if (interval === undefined) {
     return {
@@ -60,7 +60,7 @@ function readLoginWindow(tracker: TrackerSummary): LoginWindow {
       reason: "The captured last-access date could not be parsed.",
     }
   }
-  const remaining = interval * 86_400_000 - (Date.now() - last)
+  const remaining = interval * 86_400_000 - (now.getTime() - last)
   const days = Math.max(0, Math.floor(remaining / 86_400_000))
   const tone: TrackerCheckTone = days <= 2 ? "crit" : days <= 7 ? "warn" : "ok"
   if (remaining <= 0) {

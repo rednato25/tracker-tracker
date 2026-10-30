@@ -1730,9 +1730,9 @@ test.describe.serial("P39 rank and pause card states", () => {
     await expect(top).toContainText("Highest automatic class reached")
 
     const reached = cardFor(reachedId as number)
-    await expect(reached).toContainText("Target reached")
-    await expect(reached).toContainText("Target: Power User")
-    await expect(reached).toContainText("Next automatic class: Extreme User")
+    await expect(reached).toContainText("Target reached: Power User")
+    await expect(reached).toContainText("Extreme User")
+    await expect(reached).toContainText("Automatic")
 
     const paused = cardFor(pausedId as number)
     const pauseBlock = paused.locator("[data-failed-poll-pause]")
@@ -2063,5 +2063,116 @@ test.describe.serial("P41 rank overview", () => {
       await page.waitForTimeout(150)
       await page.screenshot({ path: `test-results/p41-ranks-390-${theme}.png` })
     }
+  })
+})
+
+test.describe.serial("P42 dashboard card visual evidence", () => {
+  const ids: number[] = []
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const rows = [
+        {
+          name: "TEST P42 Manual Login",
+          slug: "myanonamouse",
+          platform: "mam",
+          group: "User",
+          target: "Power User",
+          lastAccessAt: new Date(Date.now() - 115 * 24 * 60 * 60 * 1000),
+        },
+        {
+          name: "TEST P42 Detected Login",
+          slug: "aither",
+          platform: "unit3d",
+          group: "Zeus",
+          target: "Helios",
+          lastAccessAt: new Date(),
+        },
+      ]
+      for (const row of rows) {
+        const [tracker] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active, joined_at,
+            last_access_at, last_polled_at, encrypted_api_token, created_at, updated_at
+          ) values (
+            ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, ${row.platform}, true,
+            '2021-08-01', ${row.lastAccessAt}, now(), ${encrypt("synthetic-p42-token", key)},
+            now(), now()
+          ) returning id
+        `
+        ids.push(tracker.id)
+        await sql`
+          insert into tracker_snapshots (
+            tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+            buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+            required_ratio, warned, freeleech_tokens, is_manual
+          ) values (
+            ${tracker.id}, now(), ${2 * 1024 ** 4}, ${1.5 * 1024 ** 4}, 1.5, ${row.group},
+            ${0.5 * 1024 ** 4}, 8, 1, 1234, 0, 1, false, 0, false
+          )
+        `
+      }
+      const goals = Object.fromEntries(
+        rows.map((row, index) => [String(ids[index]), { targetRank: row.target }])
+      )
+      await sql`update app_settings set rank_goals = ${JSON.stringify(goals)}`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      await sql`update app_settings set rank_goals = null`
+      for (const id of ids) await sql`delete from trackers where id = ${id}`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  async function capture(page: import("@playwright/test").Page, width: number, height: number) {
+    await page.setViewportSize({ width, height })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Grid" }).click()
+    const grid = page.locator("#main-content [data-tracker-grid]")
+    await expect(grid).toBeVisible({ timeout: 15_000 })
+    await expect(grid.getByText("TEST P42 Manual Login")).toBeVisible()
+    await expect(grid.getByText("Last login: 115 days ago")).toBeVisible()
+    await expect(grid.getByText("2 of 3 met")).toBeVisible()
+    const dueButton = grid.getByRole("button", { name: "Logged in today" })
+    await expect(dueButton).toHaveAttribute("data-login-due", "true")
+    await expect(grid.getByRole("button", { name: "Logged in today" })).toHaveCount(1)
+
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((nextTheme) => {
+        document.documentElement.dataset.theme = nextTheme
+      }, theme)
+      await page.waitForTimeout(150)
+      await grid.screenshot({
+        path: `test-results/p42-dashboard-cards-${width}-${theme}.png`,
+      })
+    }
+
+    const overflow = await page.evaluate(() => ({
+      html: document.documentElement.scrollWidth > window.innerWidth,
+      main: (() => {
+        const main = document.querySelector<HTMLElement>("#main-content")
+        return main ? main.scrollWidth > main.clientWidth : false
+      })(),
+    }))
+    expect(overflow.html, `page overflows horizontally at ${width}px`).toBe(false)
+    expect(overflow.main, `main overflows horizontally at ${width}px`).toBe(false)
+  }
+
+  test("captures the card grid light and dark at 1440px and 390px", async ({ page }) => {
+    test.setTimeout(90_000)
+    await capture(page, 1440, 1000)
+    await capture(page, 390, 1200)
   })
 })

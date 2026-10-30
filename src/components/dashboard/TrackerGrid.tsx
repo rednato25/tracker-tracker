@@ -5,8 +5,9 @@
 import { ExternalLinkSmallIcon } from "@icons"
 import clsx from "clsx"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
-import { Badge, PulseDot } from "@/components/ui"
+import { Button, PulseDot } from "@/components/ui"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   formatAccountAge,
@@ -14,13 +15,20 @@ import {
   formatClockTime,
   formatCount,
   formatDate,
+  formatMemberSinceDate,
   formatRatioDisplay,
+  localDateStr,
 } from "@/lib/formatters"
+import { canDetectLogin } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
-import { getTrackerChecks } from "@/lib/tracker-checks"
-import { nextFailureRetryAt, plainPollError } from "@/lib/tracker-recovery"
+import { getTrackerChecks, readLoginWindow } from "@/lib/tracker-checks"
+import {
+  isLoginExpiredMessage,
+  nextFailureRetryAt,
+  plainPollError,
+} from "@/lib/tracker-recovery"
 import {
   getHealthLabel,
   getHealthPulseDot,
@@ -34,6 +42,9 @@ interface TrackerGridProps {
   trackers: TrackerSummary[]
   summaries: RankGoalSummary[]
   now?: Date
+  onTrackerUpdated?: (tracker: TrackerSummary) => void
+  /** Defaults to on; the dashboard passes the saved setting. */
+  markLoginOnSiteOpen?: boolean
 }
 
 function hostOf(tracker: TrackerSummary): string {
@@ -44,8 +55,123 @@ function hostOf(tracker: TrackerSummary): string {
   }
 }
 
-function accountAge(tracker: TrackerSummary): string {
-  return formatAccountAge(tracker.joinedAt) ?? "Unknown"
+function accountAge(tracker: TrackerSummary, now: Date): string {
+  return formatAccountAge(tracker.joinedAt, now) ?? "Unknown"
+}
+
+function memberSince(tracker: TrackerSummary): string {
+  return formatMemberSinceDate(tracker.joinedAt) ?? "Unknown"
+}
+
+function cardStatusLabel(
+  tracker: TrackerSummary,
+  health: ReturnType<typeof getTrackerHealth>,
+  snapshotState: "fresh" | "stale" | "unknown"
+): string | null {
+  if (isLoginExpiredMessage(tracker.lastError)) return "Login expired"
+  if (getPauseState(tracker).isPaused) return "Paused"
+  if (snapshotState === "stale") return "Stale"
+  return health === "healthy" ? null : getHealthLabel(health)
+}
+
+function statusTone(label: string | null): string {
+  if (label === "Login expired" || label === "Paused") return "text-danger"
+  if (label === "Stale" || label === "Above Min" || label === "No Seeds") return "text-warn"
+  return "text-secondary"
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function startOfDay(value: Date): number {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
+}
+
+function loginDate(value: string): Date | null {
+  const bare = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  const date = bare
+    ? new Date(`${value}T00:00:00`)
+    : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function lastLoginLabel(lastAccessAt: string | null, now: Date): string {
+  if (!lastAccessAt) return "Last login: not recorded"
+  const last = loginDate(lastAccessAt)
+  if (!last) return "Last login: not recorded"
+  const days = Math.max(0, Math.floor((startOfDay(now) - startOfDay(last)) / DAY_MS))
+  if (days === 0) return "Last login: today"
+  return `Last login: ${days} day${days === 1 ? "" : "s"} ago`
+}
+
+interface LoginMarkUndo {
+  previous: string | null
+}
+
+function useLoginMarking(
+  tracker: TrackerSummary,
+  now: Date,
+  onUpdated?: (tracker: TrackerSummary) => void
+) {
+  const [lastAccessAt, setLastAccessAt] = useState(tracker.lastAccessAt)
+  const [undo, setUndo] = useState<LoginMarkUndo | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    setLastAccessAt(tracker.lastAccessAt)
+  }, [tracker.lastAccessAt])
+
+  useEffect(() => {
+    if (!undo) return
+    const timer = setTimeout(() => setUndo(null), 10_000)
+    return () => clearTimeout(timer)
+  }, [undo])
+
+  async function patchLastAccess(value: string | null): Promise<TrackerSummary> {
+    const res = await fetch(`/api/trackers/${tracker.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lastAccessAt: value }),
+    })
+    if (!res.ok) throw new Error("Could not record the login")
+    return (await res.json()) as TrackerSummary
+  }
+
+  async function markLogin() {
+    if (saving || undo) return
+    const previous = lastAccessAt
+    setSaving(true)
+    setError(false)
+    try {
+      const updated = await patchLastAccess(localDateStr(now))
+      setLastAccessAt(updated.lastAccessAt)
+      setUndo({ previous })
+      onUpdated?.(updated)
+    } catch {
+      setError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function undoMark() {
+    if (saving || !undo) return
+    const previous = undo.previous
+    setSaving(true)
+    setError(false)
+    try {
+      const updated = await patchLastAccess(previous)
+      setLastAccessAt(updated.lastAccessAt)
+      setUndo(null)
+      onUpdated?.(updated)
+    } catch {
+      setError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return { lastAccessAt, undo, saving, error, markLogin, undoMark }
 }
 
 function bufferValue(tracker: TrackerSummary): string {
@@ -145,10 +271,14 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   tracker,
   summary,
   now,
+  onTrackerUpdated,
+  markLoginOnSiteOpen = true,
 }: {
   tracker: TrackerSummary
   summary: RankGoalSummary | undefined
   now: Date
+  onTrackerUpdated?: (tracker: TrackerSummary) => void
+  markLoginOnSiteOpen?: boolean
 }) {
   const health = getTrackerHealth(tracker)
   const pause = getPauseState(tracker)
@@ -157,9 +287,23 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const stats = tracker.latestStats
   const bars = summary?.bars ?? []
   const visibleBars = bars.slice(0, 3)
-  const targetRank = summary?.targetRank ?? summary?.automaticNextRank
   const checks = getTrackerChecks(tracker)
   const snapshot = getSnapshotReadout(tracker, now)
+  const statusLabel = cardStatusLabel(tracker, health, snapshot.state)
+  const currentRankLabel = summary?.currentRankHidden
+    ? "Hidden"
+    : (summary?.currentRank ?? "Unknown")
+  const savedTarget = summary?.targetRank ?? null
+  const automaticTarget = summary?.automaticNextRank ?? null
+  const targetRank = summary?.targetReached ? automaticTarget : (savedTarget ?? automaticTarget)
+  const isAutomaticTarget = !savedTarget || Boolean(summary?.targetReached)
+  const topOfLadder = !targetRank
+  const manualLogin = !canDetectLogin(tracker.platformType)
+  const loginMarking = useLoginMarking(tracker, now, onTrackerUpdated)
+  const loginWindow = manualLogin
+    ? readLoginWindow({ ...tracker, lastAccessAt: loginMarking.lastAccessAt }, now)
+    : null
+  const loginDueSoon = loginWindow?.tone === "warn" || loginWindow?.tone === "crit"
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -167,7 +311,6 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
         ? "?"
         : null
     : null
-  const needsChecking = Boolean(stats) && snapshot.state !== "fresh"
   const markerTitle =
     snapshot.state === "stale"
       ? `Snapshot polled ${snapshot.age ?? "some time"} ago and is stale (older than 2 hours).`
@@ -176,13 +319,15 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
         : undefined
 
   return (
-    <Link
-      href={`/trackers/${tracker.id}`}
+    <article
       data-tracker-card={tracker.id}
-      className="group flex min-w-0 flex-col gap-3 border border-border border-t-2 bg-raised p-4 transition-colors duration-150 hover:border-border-emphasis hover:bg-elevated/40"
+      className="group flex min-w-0 flex-col border border-border border-t-2 bg-raised transition-colors duration-150 hover:border-border-emphasis hover:bg-elevated/40"
       style={{ borderTopColor: tracker.color }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <Link
+        href={`/trackers/${tracker.id}`}
+        className="flex min-w-0 flex-1 flex-col gap-3 p-4"
+      >
         <div className="flex min-w-0 items-start gap-2">
           <PulseDot
             status={getHealthPulseDot(health)}
@@ -196,26 +341,20 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             </p>
             <p className="truncate text-xs text-tertiary">{hostOf(tracker)}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
-              <span data-health-label>{getHealthLabel(health)}</span>
+              <span>Member since {memberSince(tracker)}</span>
               <span className="text-tertiary">{"\u00b7"}</span>
-              <span>{stats?.group ?? "Unknown class"}</span>
-              <span className="text-tertiary">{"\u00b7"}</span>
-              <span>{accountAge(tracker)}</span>
-              {needsChecking && (
+              <span>{accountAge(tracker, now)}</span>
+              {statusLabel && (
                 <>
                   <span className="text-tertiary">{"\u00b7"}</span>
-                  <span className="text-warn">Needs checking</span>
+                  <span className={statusTone(statusLabel)} data-card-status>
+                    {statusLabel}
+                  </span>
                 </>
               )}
             </p>
           </div>
         </div>
-        <ExternalLinkSmallIcon
-          width="13"
-          height="13"
-          className="mt-0.5 shrink-0 text-tertiary transition-colors group-hover:text-accent"
-        />
-      </div>
 
       {failurePause && (
         <div data-failed-poll-pause className="border-t border-border pt-3 text-xs">
@@ -298,35 +437,41 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
-            Rank target
-          </span>
-          <Badge
-            variant={summary?.targetReached ? "success" : summary?.targetRank ? "accent" : "default"}
-          >
-            {summary?.targetReached ? "Target reached" : (targetRank ?? "No target")}
-          </Badge>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          {topOfLadder ? (
+            <p className="min-w-0 break-words font-mono text-xs text-primary">
+              <span className="font-medium">{currentRankLabel}</span>
+              <span className="mx-1.5 text-tertiary">{"\u00b7"}</span>
+              <span className="text-secondary">Highest automatic class reached</span>
+            </p>
+          ) : (
+            <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-mono text-xs">
+              <span className="font-medium text-primary">{currentRankLabel}</span>
+              <span aria-hidden="true" className="text-tertiary">
+                {"\u2192"}
+              </span>
+              <span className="font-medium text-primary">{targetRank}</span>
+              {isAutomaticTarget && (
+                <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-tertiary">
+                  Automatic
+                </span>
+              )}
+            </p>
+          )}
+          <p className="flex shrink-0 flex-wrap items-baseline gap-x-1.5 font-mono text-xs text-tertiary">
+            {summary?.targetReached && summary.targetRank && (
+              <>
+                <span className="text-success">Target reached: {summary.targetRank}</span>
+                {summary.totalChecks > 0 && <span>{"\u00b7"}</span>}
+              </>
+            )}
+            {summary && summary.totalChecks > 0 && (
+              <span>
+                {summary.metCount} of {summary.totalChecks} met
+              </span>
+            )}
+          </p>
         </div>
-        {summary?.targetReached && summary.targetRank && (
-          <p className="text-xs text-tertiary">Target: {summary.targetRank}</p>
-        )}
-        {summary?.targetReached && summary.automaticNextRank && (
-          <p className="text-xs text-secondary">
-            Next automatic class: {summary.automaticNextRank}
-          </p>
-        )}
-        {summary?.targetReached && !summary.automaticNextRank && (
-          <p className="text-xs text-secondary">Highest automatic class reached</p>
-        )}
-        {summary && summary.totalChecks > 0 && (
-          <p className="font-mono text-xs text-tertiary">
-            {summary.metCount} of {summary.totalChecks} requirements
-          </p>
-        )}
-        {summary?.distanceText && (
-          <p className="text-xs text-secondary">{summary.distanceText}</p>
-        )}
         {summary?.nextIsTextOnly && summary.nextRankName ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-tertiary">
@@ -346,11 +491,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
               <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more requirements</p>
             )}
           </div>
-        ) : summary?.highestAutomatic ? (
-          !summary.targetReached && (
-            <p className="text-xs text-secondary">Highest automatic class reached</p>
-          )
-        ) : summary?.nextRankRequirements ? (
+        ) : topOfLadder ? null : summary?.nextRankRequirements ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-tertiary">
               From tracker rules (not tracked automatically)
@@ -365,15 +506,87 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           </p>
         )}
       </div>
-    </Link>
+      </Link>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <a
+            href={tracker.baseUrl.startsWith("http") ? tracker.baseUrl : `https://${tracker.baseUrl}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-1 text-xs text-secondary underline-offset-2 hover:text-accent hover:underline sm:min-h-9"
+            onClick={() => {
+              if (manualLogin && markLoginOnSiteOpen) void loginMarking.markLogin()
+            }}
+            data-card-site-link
+            aria-label={`Open ${tracker.name} site`}
+          >
+            Open site
+            <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
+          </a>
+          {manualLogin && (
+            <>
+              <span className="text-tertiary">{"\u00b7"}</span>
+              <span className="font-mono text-xs text-secondary" data-last-login>
+                {lastLoginLabel(loginMarking.lastAccessAt, now)}
+              </span>
+            </>
+          )}
+        </div>
+        {manualLogin && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {loginMarking.undo ? (
+              <>
+                <span className="font-mono text-xs text-success" role="status">
+                  Logged in today
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void loginMarking.undoMark()}
+                  disabled={loginMarking.saving}
+                  className="min-h-11 sm:min-h-9"
+                  data-login-undo
+                >
+                  Undo
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant={loginDueSoon ? "primary" : "secondary"}
+                onClick={() => void loginMarking.markLogin()}
+                disabled={loginMarking.saving}
+                className="min-h-11 sm:min-h-9"
+                data-login-button
+                data-login-due={loginDueSoon ? "true" : undefined}
+              >
+                {loginMarking.saving ? "Saving…" : "Logged in today"}
+              </Button>
+            )}
+            {loginMarking.error && (
+              <span className="text-xs text-danger" role="alert">
+                Could not record login
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </article>
   )
 }
 
-export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGridProps) {
+export function TrackerGrid({
+  trackers,
+  summaries,
+  now = new Date(),
+  onTrackerUpdated,
+  markLoginOnSiteOpen = true,
+}: TrackerGridProps) {
   const byId = new Map(summaries.map((summary) => [summary.trackerId, summary]))
   return (
     <section className="flex flex-col gap-3" aria-label="Tracker cards" data-tracker-grid>
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 className="font-cond text-lg font-semibold leading-6 tracking-[-0.01em] text-primary">
           Trackers
         </h2>
@@ -384,7 +597,14 @@ export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGr
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {trackers.map((tracker) => (
-          <TrackerCard key={tracker.id} tracker={tracker} summary={byId.get(tracker.id)} now={now} />
+          <TrackerCard
+            key={tracker.id}
+            tracker={tracker}
+            summary={byId.get(tracker.id)}
+            now={now}
+            onTrackerUpdated={onTrackerUpdated}
+            markLoginOnSiteOpen={markLoginOnSiteOpen}
+          />
         ))}
       </div>
     </section>

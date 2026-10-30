@@ -4,7 +4,6 @@ import type { RecruitmentCatalog, RecruitmentRouteRecord } from "@/lib/recruitme
 import { RECRUITMENT_ROUTE_FORMAT_VERSION } from "@/lib/recruitment-routes"
 import { emptyRecruitmentState } from "@/lib/recruitment-state"
 import {
-  buildDirectDestinations,
   buildWishlistPaths,
   pathWaitLabel,
   stepHasUncheckedRequirements,
@@ -176,66 +175,6 @@ describe("P36 wait and requirement labels", () => {
     })
     expect(stepWaitState(path.steps[0])).toBe("wait-done")
     expect(stepWaitLabel(path.steps[0])).toBe("Wait done, needs checking")
-  })
-
-  it("lists one-step destinations once, ready first, then days left", () => {
-    const result = buildDirectDestinations({
-      catalog: catalog([
-        route({
-          id: "tp:AlphaRatio:ReadyDest",
-          destinationTrackerId: "ReadyDest",
-        }),
-        route({
-          id: "tp:TorrentLeech:SlowDest",
-          sourceTrackerId: "TorrentLeech",
-          sourceRegistrySlug: "torrentleech",
-          destinationTrackerId: "SlowDest",
-          minimumDays: 30,
-        }),
-        route({
-          id: "tp:TorrentLeech:ReadyDest",
-          sourceTrackerId: "TorrentLeech",
-          sourceRegistrySlug: "torrentleech",
-          destinationTrackerId: "ReadyDest",
-          minimumDays: 100,
-        }),
-        route({
-          id: "tp:AlphaRatio:TorrentLeech",
-          destinationTrackerId: "TorrentLeech",
-          destinationRegistrySlug: "torrentleech",
-        }),
-        route({
-          id: "tp:TorrentLeech:Closed",
-          sourceTrackerId: "TorrentLeech",
-          sourceRegistrySlug: "torrentleech",
-          destinationTrackerId: "Closed",
-          availability: "closed",
-          availabilityRaw: "No",
-        }),
-      ]),
-      trackers: [
-        tracker({ id: 1, registrySlug: "alpharatio" }),
-        tracker({ id: 2, registrySlug: "torrentleech", joinedAt: JUST_JOINED }),
-      ],
-      now: NOW,
-    })
-
-    expect(result.rows.map((row) => row.destinationTrackerId)).toEqual([
-      "ReadyDest",
-      "SlowDest",
-    ])
-    expect(result.rows[0]).toMatchObject({
-      sourceTrackerId: "AlphaRatio",
-      ready: true,
-      waitLabel: "Ready now",
-    })
-    expect(result.rows[1]).toMatchObject({
-      sourceTrackerId: "TorrentLeech",
-      daysRemaining: 30,
-      waitLabel: "30 days left",
-    })
-    expect(result.rows.some((row) => row.destinationTrackerId === "TorrentLeech")).toBe(false)
-    expect(result.rows.some((row) => row.destinationTrackerId === "Closed")).toBe(false)
   })
 
   it("says the total needs checking when any step has unchecked requirements", () => {

@@ -223,7 +223,7 @@ describe("P35 structured rank requirements", () => {
     expect(titan.status).toBe("met")
   })
 
-  it("CarPT: Power User evaluates seeding points with the other thresholds", () => {
+  it("CarPT: Power User needs more than 40,000 seeding points", () => {
     const power = evaluate("carpt", "Power User", {
       accountAgeDays: 28,
       downloadedBytes: 200 * GiB,
@@ -232,11 +232,19 @@ describe("P35 structured rank requirements", () => {
     expect(power.status).toBe("unknown")
     expect(power.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
 
-    const complete = evaluate("carpt", "Power User", {
+    const exact = evaluate("carpt", "Power User", {
       accountAgeDays: 28,
       downloadedBytes: 200 * GiB,
       accountRatio: 2.1,
       seedingPoints: 40_000,
+    })
+    expect(exact.status).toBe("unmet")
+
+    const complete = evaluate("carpt", "Power User", {
+      accountAgeDays: 28,
+      downloadedBytes: 200 * GiB,
+      accountRatio: 2.1,
+      seedingPoints: 40_001,
     })
     expect(complete.status).toBe("met")
   })

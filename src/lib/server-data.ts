@@ -348,7 +348,7 @@ export async function getTrackerListForDashboard(limit?: number): Promise<Tracke
           .selectDistinctOn([trackerSnapshots.trackerId])
           .from(trackerSnapshots)
           .where(inArray(trackerSnapshots.trackerId, trackerIds))
-          .orderBy(trackerSnapshots.trackerId, desc(trackerSnapshots.polledAt))
+          .orderBy(trackerSnapshots.trackerId, desc(trackerSnapshots.polledAt), desc(trackerSnapshots.id))
 
   // Enforce masking at response time
   // Fallback true = "store usernames" = no masking. Matches createPrivacyMask()
@@ -381,7 +381,7 @@ export async function getTrackerForClient(id: number): Promise<TrackerSummary | 
       .select()
       .from(trackerSnapshots)
       .where(eq(trackerSnapshots.trackerId, id))
-      .orderBy(desc(trackerSnapshots.polledAt))
+      .orderBy(desc(trackerSnapshots.polledAt), desc(trackerSnapshots.id))
       .limit(1),
     db.select({ storeUsernames: appSettings.storeUsernames }).from(appSettings).limit(1),
   ])

@@ -1,6 +1,7 @@
 // src/lib/tracker-platforms/helpers/html-parse.ts
 //
-// Functions: normalizeWhitespace, datePrefix, tryParseCount, tryParseSiteBytes
+// Functions: normalizeWhitespace, datePrefix, tryParseCount, tryParseSiteBytes,
+//            tryParseTbdevBytes
 
 import { parseBytes } from "@/lib/parser"
 
@@ -68,6 +69,33 @@ export function tryParseSiteBytes(value: string): bigint | undefined {
   const match = value.trim().match(/^([\d,.]+)\s*([A-Za-z]+)$/)
   if (!match) return undefined
   const unit = CANONICAL_UNITS[match[2].toLowerCase()]
+  if (!unit) return undefined
+  try {
+    return parseBytes(`${match[1].replace(/,/g, "")} ${unit}`)
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * TBDev's mksize() divides by 1024 at every step but labels the result kB, MB,
+ * GB and TB. Reading those labels with the decimal table understates a TB by
+ * about 10%, so a TBDev-derived site needs this binary reading instead.
+ * Source: tbdevnet/tbdev include/bittorrent.php, mksize().
+ */
+const TBDEV_UNITS: Record<string, string> = {
+  b: "B",
+  kb: "KiB",
+  mb: "MiB",
+  gb: "GiB",
+  tb: "TiB",
+  pb: "PiB",
+}
+
+export function tryParseTbdevBytes(value: string): bigint | undefined {
+  const match = value.trim().match(/^([\d,.]+)\s*([A-Za-z]+)$/)
+  if (!match) return undefined
+  const unit = TBDEV_UNITS[match[2].toLowerCase()]
   if (!unit) return undefined
   try {
     return parseBytes(`${match[1].replace(/,/g, "")} ${unit}`)

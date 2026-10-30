@@ -333,28 +333,28 @@ describe("parseFilelistProfile", () => {
     expect(parseFilelistProfile(placeholderCoins, HOST).seedbonus).toBeNull()
   })
 
-  it("derives ratio from byte totals even when the header strip disagrees", () => {
+  it("reads TBDev TB/GB labels as binary units", () => {
     const stats = parseFilelistProfile(POPULATED_PAGE, HOST)
-    expect(stats.uploadedBytes).toBe(12_530_000_000_000n) // synthetic-fixture
-    expect(stats.downloadedBytes).toBe(3_670_000_000_000n) // synthetic-fixture
+    expect(stats.uploadedBytes).toBe(13_776_880_696_033n) // synthetic-fixture
+    expect(stats.downloadedBytes).toBe(4_035_207_673_938n) // synthetic-fixture
     // The header strip says 3.41; the derived value keeps full precision.
-    expect(stats.ratio).toBeCloseTo(12.53 / 3.67, 4) // synthetic-fixture
+    expect(stats.ratio).toBeCloseTo(13_776_880_696_033 / 4_035_207_673_938, 4) // synthetic-fixture
     expect(stats.ratio).not.toBe(3.41) // synthetic-fixture
-    expect(stats.bufferBytes).toBe(8_860_000_000_000n) // synthetic-fixture
+    expect(stats.bufferBytes).toBe(9_741_673_022_095n) // synthetic-fixture
   })
 
-  it("parses the site's lowercase kB unit and returns Infinity on zero download", () => {
+  it("parses the site's lowercase kB unit as KiB and returns Infinity on zero download", () => {
     const stats = parseFilelistProfile(INFINITY_PAGE, HOST)
-    expect(stats.uploadedBytes).toBe(123_450n) // synthetic-fixture
+    expect(stats.uploadedBytes).toBe(126_413n) // synthetic-fixture
     expect(stats.downloadedBytes).toBe(0n) // synthetic-fixture
     expect(stats.ratio).toBe(Infinity) // synthetic-fixture
   })
 
   it("preserves a negative buffer unclamped", () => {
     const stats = parseFilelistProfile(DEFICIT_PAGE, HOST)
-    expect(stats.uploadedBytes).toBe(500_000_000_000n) // synthetic-fixture
-    expect(stats.downloadedBytes).toBe(1_200_000_000_000n) // synthetic-fixture
-    expect(stats.bufferBytes).toBe(-700_000_000_000n) // synthetic-fixture
+    expect(stats.uploadedBytes).toBe(536_870_912_000n) // synthetic-fixture
+    expect(stats.downloadedBytes).toBe(1_319_413_953_331n) // synthetic-fixture
+    expect(stats.bufferBytes).toBe(-782_543_041_331n) // synthetic-fixture
   })
 
   it("returns null for every field FileList does not show", () => {
@@ -381,7 +381,7 @@ describe("parseFilelistProfile", () => {
     expect(stats.freeleechTokens).toBe(3) // synthetic-fixture
     expect(meta.invites).toBe(2) // synthetic-fixture
     expect(meta.reputation).toBe(512) // synthetic-fixture
-    expect(meta.totalSeedSizeBytes).toBe(18_200_000_000_000) // synthetic-fixture
+    expect(meta.totalSeedSizeBytes).toBe(20_011_111_625_523) // synthetic-fixture
   })
 
   it("falls back to the header Invites count when the Invitations row is missing", () => {

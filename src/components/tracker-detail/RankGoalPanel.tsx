@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
-import { formatBytesNum, formatRatio } from "@/lib/formatters"
+import { formatBytesNum, formatDate, formatRatio } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
   evaluateRankGoal,
@@ -283,9 +283,7 @@ export function RankGoalPanel({
   const joined = joinedAt ? new Date(joinedAt) : null
   const ageDate =
     age && joined && now && !Number.isNaN(joined.getTime())
-      ? new Date(joined.getTime() + age.requiredValue * 86_400_000)
-          .toISOString()
-          .slice(0, 10)
+      ? formatDate(new Date(joined.getTime() + age.requiredValue * 86_400_000))
       : null
   const counts = result?.progress ?? { met: 0, unmet: 0, unknown: 0, total: 0 }
   const eligible = result?.status === "met"
@@ -495,8 +493,14 @@ export function RankGoalPanel({
             <div className="mt-1 space-y-1 font-mono text-4xs text-tertiary">
               <p>{pilot.source.title}</p>
               <p>
-                accessed {pilot.source.accessedAt ?? "not available"} · page modified{" "}
-                {pilot.source.sourceLastModified ?? "unknown"}
+                accessed{" "}
+                {pilot.source.accessedAt
+                  ? formatDate(pilot.source.accessedAt)
+                  : "not available"}{" "}
+                Â· page modified{" "}
+                {pilot.source.sourceLastModified
+                  ? formatDate(pilot.source.sourceLastModified)
+                  : "unknown"}
               </p>
               <p>{pilot.source.note}</p>
               {pilot.unresolved.map((item) => (

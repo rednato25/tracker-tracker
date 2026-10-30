@@ -18,6 +18,7 @@ import {
   formatAccountAge,
   formatBytesNum,
   formatCount,
+  formatDate,
   formatRatio,
 } from "@/lib/formatters"
 import type { RankComparison, RankGoalStatus } from "@/lib/rank-goals"
@@ -46,7 +47,7 @@ const NO_REQUIREMENT = /^(none|no requirements?|removed)$/i
 const TRACKERPATHWAYS_URL = "https://github.com/handokota/trackerpathways"
 
 function dateOnly(value: string | null): string {
-  return value ? value.slice(0, 10) : "unknown"
+  return value ? formatDate(value) : "unknown"
 }
 
 function waitLabel(days: number | null): string {

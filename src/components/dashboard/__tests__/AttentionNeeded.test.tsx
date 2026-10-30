@@ -1,8 +1,9 @@
-﻿import { render, screen } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import { AttentionNeeded } from "@/components/dashboard/AttentionNeeded"
 import type { TrackerAction } from "@/lib/actions"
+import { formatDateTime } from "@/lib/formatters"
 import type { TrackerSummary } from "@/types/api"
 
 const AS_OF = "2026-10-24T12:00:00.000Z"
@@ -162,6 +163,16 @@ describe("AttentionNeeded", () => {
     expect(screen.getByText(/All clear/)).toBeInTheDocument()
   })
 
+  it("formats the evidence timestamp with the app date format", async () => {
+    const user = userEvent.setup()
+    renderView({ actions: [verification] })
+    await user.click(screen.getByRole("button", { name: /Unknown/ }))
+    await user.click(screen.getByText("Evidence and source"))
+    expect(
+      screen.getByText(formatDateTime("2026-10-24T08:00:00.000Z"))
+    ).toBeInTheDocument()
+    expect(screen.queryByText("2026-10-24T08:00:00.000Z")).not.toBeInTheDocument()
+  })
   it("shows evidence through progressive disclosure", async () => {
     const user = userEvent.setup()
     renderView()

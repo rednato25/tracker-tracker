@@ -1330,6 +1330,8 @@ test.describe.serial("P32a foundation visual evidence", () => {
       if (width === 390 && routeBox && timeBox) {
         expect(Math.abs(routeBox.x - timeBox.x)).toBeLessThanOrEqual(2)
       }
+      const sourceLine = page.getByText(/Source: Route data derived/).first()
+      await expect(sourceLine).toContainText(/accessed [A-Z][a-z]{2} \d{1,2}, \d{4}/)
 
       for (const theme of ["light", "dark"] as const) {
         await page.evaluate((nextTheme) => {

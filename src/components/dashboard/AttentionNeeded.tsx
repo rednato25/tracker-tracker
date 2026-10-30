@@ -1,9 +1,10 @@
-﻿import clsx from "clsx"
+import clsx from "clsx"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { FilterPill } from "@/components/ui/FilterPill"
 import { InfoIcon, TriangleWarningIcon } from "@/components/ui/Icons"
 import type { TrackerAction } from "@/lib/actions"
+import { formatDateTime } from "@/lib/formatters"
 import type { TrackerSummary } from "@/types/api"
 
 type AttentionFilter = "attention" | "unknown" | "healthy" | "all"
@@ -95,13 +96,13 @@ function ActionEvidence({ action }: { action: TrackerAction }) {
         {evidence.observedAt && (
           <div className="flex gap-2">
             <dt className="text-muted">timestamp</dt>
-            <dd>{evidence.observedAt}</dd>
+            <dd>{formatDateTime(evidence.observedAt)}</dd>
           </div>
         )}
         {evidence.verifiedAt && (
           <div className="flex gap-2">
             <dt className="text-muted">verified</dt>
-            <dd>{evidence.verifiedAt}</dd>
+            <dd>{formatDateTime(evidence.verifiedAt)}</dd>
           </div>
         )}
         {evidence.source && (

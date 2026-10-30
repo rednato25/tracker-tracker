@@ -11,6 +11,7 @@ import {
 import {
   bytesToGiB,
   formatCount,
+  formatDate,
   formatDateTime,
   formatOrdinal,
   formatPercent,
@@ -195,6 +196,25 @@ describe("formatPercent", () => {
   it("handles edge values", () => {
     expect(formatPercent(-5.1)).toBe("-5.1%")
     expect(formatPercent(0.05, 0)).toBe("0%")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// formatDate
+// ---------------------------------------------------------------------------
+
+describe("formatDate", () => {
+  it("formats a date-only string without timezone drift", () => {
+    expect(formatDate("2026-10-28")).toBe("Oct 28, 2026")
+  })
+
+  it("formats an ISO timestamp and a Date", () => {
+    expect(formatDate("2026-03-15T14:30:00.000Z")).toContain("2026")
+    expect(formatDate(new Date(2026, 2, 15))).toContain("2026")
+  })
+
+  it("returns an em dash for an invalid date", () => {
+    expect(formatDate("not a date")).toBe("\u2014")
   })
 })
 

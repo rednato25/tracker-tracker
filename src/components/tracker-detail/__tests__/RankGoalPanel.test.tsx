@@ -201,6 +201,13 @@ describe("RankGoalPanel", () => {
     expect(within(row).queryByText(/upload/i)).not.toBeInTheDocument()
   })
 
+  it("formats threshold and source dates instead of printing ISO strings", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
+    renderPanel()
+    const threshold = await screen.findByText(/Account-age threshold date:/)
+    expect(threshold.textContent).toMatch(/[A-Z][a-z]{2} \d{1,2}, \d{4}/)
+    expect(document.body.textContent ?? "").not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)
+  })
   it("writes the strict requirement and draws a shortfall marker at equality", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel("torrentleech", RECENT_POLL, { ...stats, ratio: 1.1 })

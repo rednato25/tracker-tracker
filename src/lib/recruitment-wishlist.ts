@@ -133,6 +133,90 @@ export function flattenRequirementResults(group: RankGroupResult | null): RankCo
   return out
 }
 
+const NO_REQUIREMENT = /^(none|no requirements?|removed)$/i
+
+/**
+ * The readable requirement for a step. Route prose wins; when the route has no
+ * prose, the source invite class is the only requirement text left. A source
+ * gate belongs to the tracker being left, never the destination.
+ */
+export function stepRequirementText(step: WishlistStepView): string | null {
+  const notes = step.evaluation.eligibility.requirementNotes
+    .map((note) => note.trim())
+    .filter((note) => note && !NO_REQUIREMENT.test(note))
+  if (notes.length > 0) return notes.join(" · ")
+
+  const gate = step.evaluation.eligibility.sourceRequirements.inviteGate
+  if (!gate) return null
+  return gate.text.split(":")[0]?.trim() || gate.text
+}
+
+export function stepHasUncheckedRequirements(step: WishlistStepView): boolean {
+  if (stepRequirementText(step)) return true
+  if (step.evaluation.eligibility.sourceRequirements.inviteGate) return true
+  const structured = step.evaluation.eligibility.structured
+  return structured !== null && structured.status !== "met"
+}
+
+export type StepWaitState = "ready" | "wait-done" | "waiting" | "unknown"
+
+export function stepWaitState(step: WishlistStepView): StepWaitState {
+  const gate = step.evaluation.timeGate
+  if (gate.status === "open") {
+    return stepHasUncheckedRequirements(step) ? "wait-done" : "ready"
+  }
+  return gate.status === "waiting" ? "waiting" : "unknown"
+}
+
+export function stepWaitStatus(step: WishlistStepView): string {
+  const state = stepWaitState(step)
+  if (state === "ready") return "Ready now"
+  if (state === "wait-done") return "Wait done"
+  if (state === "waiting") {
+    const days = step.evaluation.timeGate.daysRemaining
+    return days === null ? "Wait unknown" : `${days} day${days === 1 ? "" : "s"} left`
+  }
+  return "Wait unknown"
+}
+
+/**
+ * "Ready now" needs both an elapsed wait and no other requirement text. A
+ * completed wait with an unresolved requirement reads as "Wait done, needs …"
+ * so the wait and the requirement cannot contradict each other.
+ */
+export function stepWaitLabel(step: WishlistStepView): string {
+  const state = stepWaitState(step)
+  const requirement = stepRequirementText(step)
+  if (state === "ready") return "Ready now"
+  if (state === "wait-done") {
+    return requirement ? `Wait done, needs ${requirement}` : "Wait done, needs checking"
+  }
+
+  const status = stepWaitStatus(step)
+  if (state === "unknown") {
+    return requirement ? `Wait unknown · needs ${requirement}` : "Wait unknown"
+  }
+  if (requirement) return `${status} · needs ${requirement}`
+  return stepHasUncheckedRequirements(step) ? `${status} · needs checking` : status
+}
+
+export function pathHasUncheckedRequirements(path: WishlistPathView): boolean {
+  return path.steps.some(stepHasUncheckedRequirements)
+}
+
+export function pathWaitLabel(path: WishlistPathView): string {
+  const days = path.totalDaysRemaining
+  const unchecked = pathHasUncheckedRequirements(path)
+  if (days === null) return unchecked ? "Wait unknown · needs checking" : "Wait unknown"
+  if (days === 0) {
+    if (!unchecked) return "Ready now"
+    if (path.steps.length === 1) return stepWaitLabel(path.steps[0])
+    return "Wait done · needs checking"
+  }
+  const left = `${days} day${days === 1 ? "" : "s"} left`
+  return unchecked ? `${left} · needs checking` : left
+}
+
 function observationMap(tracker: TrackerSummary, now: Date): RankObservationMap {
   const stats = tracker.latestStats
   if (!stats) return {}

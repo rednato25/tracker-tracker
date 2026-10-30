@@ -18,7 +18,7 @@ import {
   rankDefinitionForSlug,
   type TrackerRankDefinition,
 } from "@/lib/rank-goals"
-import { ladderPosition } from "@/lib/rank-ladder"
+import { hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -168,7 +168,9 @@ function nextMetaFor(
     name: next.nextRank,
     requirements: next.freeTextRequirement,
     textOnly: next.status === "no-structured-goal",
-    highest: next.status === "no-next-rank" || next.status === "appointed",
+    highest:
+      (next.status === "no-next-rank" || next.status === "appointed") &&
+      !hasAutomaticClassAbove(entry.userClasses ?? [], entry.rankPaths, currentRank),
   }
 }
 
@@ -291,7 +293,9 @@ function buildSummary(
     automaticNextRank,
     nextRankName: next.nextRank,
     nextIsTextOnly,
-    highestAutomatic: next.status === "no-next-rank" || next.status === "appointed",
+    highestAutomatic:
+      (next.status === "no-next-rank" || next.status === "appointed") &&
+      !hasAutomaticClassAbove(entry?.userClasses ?? [], entry?.rankPaths, currentRank),
     status: target ? "goal" : "no-target",
     metCount: progress.met,
     unmetCount: progress.unmet,

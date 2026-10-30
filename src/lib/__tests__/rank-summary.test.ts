@@ -135,6 +135,24 @@ describe("buildRankGoalSummaries", () => {
     expect(summary.bars).toEqual([])
   })
 
+  it("does not call a branching prefix the top of the ladder", () => {
+    const summary = buildRankGoalSummaries(
+      [
+        tracker({
+          registrySlug: "zenith",
+          name: "Zenith",
+          latestStats: { ...tracker().latestStats!, group: "Explorer" },
+        }),
+      ],
+      { "1": { targetRank: "Bulker" } },
+      NOW
+    )[0]
+    expect(summary.targetRank).toBe("Bulker")
+    expect(summary.highestAutomatic).toBe(false)
+    expect(summary.automaticNextRank).toBeNull()
+    expect(summary.totalChecks).toBe(4)
+  })
+
   it("marks a saved target at or below the current class as reached and offers the next class", () => {
     const summary = buildRankGoalSummaries(
       [tracker({ latestStats: { ...tracker().latestStats!, group: "Super User" } })],

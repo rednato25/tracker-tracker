@@ -102,6 +102,35 @@ export function ladderPosition(
   return findClassIndex(rungs, cls.name)
 }
 
+/**
+ * True when the member has an earned class still ahead of them. A forest that
+ * branches after the shared prefix cannot name the next class, but it is not
+ * the top of the ladder: every branch above the current rung is still ahead.
+ */
+export function hasAutomaticClassAbove(
+  classes: TrackerUserClass[],
+  paths: TrackerRankPath[] | undefined,
+  currentClass: string | null | undefined
+): boolean {
+  const forest = paths?.length ? buildRankForest(classes, paths, currentClass) : null
+  if (forest) {
+    if (forest.appointedClass || forest.unknownClass) return false
+    if (forest.activePathId) {
+      const path = forest.paths.find((candidate) => candidate.id === forest.activePathId)
+      return Boolean(
+        path && path.currentIndex >= 0 && path.currentIndex < path.rungs.length - 1
+      )
+    }
+    if (forest.sharedCurrentIndex < 0) return false
+    if (forest.sharedCurrentIndex < forest.shared.length - 1) return true
+    return forest.paths.some((path) => path.rungs.length > 0)
+  }
+
+  const ladder = buildRankLadder(classes, currentClass)
+  if (!ladder || ladder.appointedClass) return false
+  return ladder.currentIndex >= 0 && ladder.currentIndex < ladder.rungs.length - 1
+}
+
 export function buildRankLadder(
   classes: TrackerUserClass[],
   currentClass: string | null | undefined

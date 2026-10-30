@@ -19,7 +19,7 @@ import {
   type RankObservationMap,
   type RankRequirementGroup,
 } from "@/lib/rank-goals"
-import { ladderPosition } from "@/lib/rank-ladder"
+import { hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -241,7 +241,8 @@ function buildOne(
     targetReached: savedTargetReached,
     reachedTarget: savedTargetReached ? (savedClass?.name ?? null) : null,
     highestAutomatic:
-      evaluation.status === "no-next-rank" || evaluation.status === "appointed",
+      (evaluation.status === "no-next-rank" || evaluation.status === "appointed") &&
+      !hasAutomaticClassAbove(entry?.userClasses ?? [], entry?.rankPaths, currentClass),
     hasStructuredRules: Boolean(focusClass?.structured),
     ruleText: focusClass?.requirements ?? null,
     conditions,

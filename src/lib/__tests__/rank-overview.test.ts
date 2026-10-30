@@ -172,6 +172,26 @@ describe("buildRankOverviews", () => {
     expect(overview.siteUrl).toBe("https://tl.invalid")
   })
 
+  it("does not call a branching prefix the top of the ladder", () => {
+    const [overview] = buildRankOverviews(
+      [
+        tracker({
+          id: 5,
+          name: "Zenith",
+          registrySlug: "zenith",
+          latestStats: { ...BASE_STATS, group: "Explorer" },
+        }),
+      ],
+      { "5": { targetRank: "Bulker" } },
+      NOW
+    )
+    expect(overview.targetClass).toBe("Bulker")
+    expect(overview.targetKind).toBe("saved")
+    expect(overview.highestAutomatic).toBe(false)
+    expect(overview.hasStructuredRules).toBe(true)
+    expect(overview.conditions).toHaveLength(4)
+  })
+
   it("marks a saved target at or below the current class and keeps the next automatic class", () => {
     const [overview] = buildRankOverviews(
       [tracker()],

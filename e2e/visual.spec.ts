@@ -597,7 +597,9 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await page.screenshot({ path: "test-results/visual-pathways-mobile-best-dark.png" })
   })
 })
-test.describe.serial("Prowlarr search visual evidence", () => {
+// P37 hides the Search UI. The Prowlarr search code remains, so this visual
+// evidence is parked until the feature is exposed again.
+test.describe.skip("Prowlarr search visual evidence (hidden in P37)", () => {
   let searchTrackerId: number | null = null
   let searchServer: ReturnType<typeof createServer> | null = null
 
@@ -1095,7 +1097,6 @@ test.describe.serial("P32a foundation visual evidence", () => {
       { slug: "dashboard", path: "/" },
       { slug: "tracker", path: `/trackers/${foundationTrackerId}` },
       { slug: "settings", path: "/settings" },
-      { slug: "search", path: "/search" },
     ]
 
     for (const route of routes) {
@@ -1507,6 +1508,12 @@ test.describe.serial("P32a foundation visual evidence", () => {
         })
       }
     }
+  })
+
+  test("redirects the removed Search page to Dashboard", async ({ page }) => {
+    await page.goto("/search")
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.locator("#main-content h1").first()).toHaveText("Dashboard")
   })
 
   test("captures the detail metric hues at 1440 and 390", async ({ page }) => {

@@ -76,12 +76,6 @@ function AppHeader() {
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5">
-            <Link
-              href="/search"
-              className="hidden px-2 py-1.5 text-xs font-medium text-secondary transition-colors duration-150 hover:text-primary sm:block"
-            >
-              Search
-            </Link>
             <Button
               size="sm"
               className="hidden h-9 sm:inline-flex"
@@ -154,9 +148,6 @@ function AppHeader() {
           <div className="border-t border-border bg-base px-4 py-3 md:hidden">
             <nav className="flex flex-col gap-1" aria-label="Main">
               {navLinks}
-              <Link href="/search" className="px-1 py-2 text-xs text-secondary hover:text-primary">
-                Search
-              </Link>
               <button
                 type="button"
                 onClick={() => setAddOpen(true)}

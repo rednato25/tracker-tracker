@@ -25,6 +25,12 @@ import { hexToRgba } from "@/lib/color-utils"
 import { computeDelta } from "@/lib/data-transforms"
 import { localDateStr } from "@/lib/formatters"
 import { trackerQueryOptions } from "@/lib/query-options"
+import type { RankMetric } from "@/lib/rank-goals"
+import type {
+  RankManualValue,
+  RankManualValuesByTracker,
+} from "@/lib/rank-manual-values"
+import { putRankManualValue } from "@/lib/rank-manual-values-client"
 import { buildRankObservations } from "@/lib/rank-observations"
 import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
@@ -55,6 +61,7 @@ interface TrackerDetailClientProps {
   initialTagGroups: TagGroup[]
   initialQbitmanageConfig: { enabled: boolean; tags: QbitmanageTagConfig } | null
   initialRankGoals: string | null
+  initialRankManualValues: RankManualValuesByTracker
   initialTab?: string | null
 }
 
@@ -65,6 +72,7 @@ export function TrackerDetailClient({
   initialTagGroups,
   initialQbitmanageConfig,
   initialRankGoals,
+  initialRankManualValues,
   initialTab: initialTabProp,
 }: TrackerDetailClientProps) {
   const router = useRouter()
@@ -93,6 +101,8 @@ export function TrackerDetailClient({
   const [markLoginLoading, setMarkLoginLoading] = useState(false)
   const [settingsSaves, setSettingsSaves] = useState(0)
   const [savedRankGoals, setSavedRankGoals] = useState(() => parseSavedRankGoals(initialRankGoals))
+  const [rankManualValues, setRankManualValues] =
+    useState<RankManualValuesByTracker>(initialRankManualValues)
 
   const torrentData = useTrackerTorrents({
     trackerId,
@@ -299,8 +309,11 @@ export function TrackerDetailClient({
   }, [tracker, latestSnapshot, registryEntry, tc])
 
   const rankSummary = useMemo(
-    () => buildRankGoalSummaries([tracker], savedRankGoals, new Date())[0] ?? null,
-    [tracker, savedRankGoals]
+    () =>
+      buildRankGoalSummaries([tracker], savedRankGoals, new Date(), {
+        [String(trackerId)]: rankManualValues[String(trackerId)] ?? {},
+      })[0] ?? null,
+    [tracker, savedRankGoals, rankManualValues, trackerId]
   )
 
   const rankObservations = useMemo(
@@ -332,6 +345,22 @@ export function TrackerDetailClient({
       setSavedRankGoals(updated)
     },
     [savedRankGoals, trackerId]
+  )
+
+  const saveManualValue = useCallback(
+    async (metric: RankMetric, value: RankManualValue) => {
+      const next = await putRankManualValue(trackerId, metric, value)
+      setRankManualValues(next)
+    },
+    [trackerId]
+  )
+
+  const clearManualValue = useCallback(
+    async (metric: RankMetric) => {
+      const next = await putRankManualValue(trackerId, metric, null)
+      setRankManualValues(next)
+    },
+    [trackerId]
   )
 
   const gazelleMeta: GazellePlatformMeta | null =
@@ -372,6 +401,7 @@ export function TrackerDetailClient({
         savedTargetRank={savedRankGoals[String(trackerId)]?.targetRank ?? null}
         onSetTarget={saveRankTarget}
         observations={rankObservations}
+        manualValues={rankManualValues[String(trackerId)] ?? {}}
         now={new Date()}
       />
 
@@ -391,6 +421,9 @@ export function TrackerDetailClient({
         platformMeta={tracker.platformMeta}
         initialSavedGoals={savedRankGoals}
         onSavedGoalsChange={setSavedRankGoals}
+        manualValues={rankManualValues[String(trackerId)] ?? {}}
+        onSaveManualValue={saveManualValue}
+        onClearManualValue={clearManualValue}
       />
 
       {/* Shutdown notice. Ranks above the pause/error banners because a defunct

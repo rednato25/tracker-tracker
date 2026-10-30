@@ -62,16 +62,24 @@ describe("PUT /api/settings/dashboard", () => {
   // The regression guard. A key-by-key allowlist passes for the keys someone remembered and
   // fails here for the one they forgot, which is the whole failure mode.
   it.each(KEYS)("persists %s instead of silently dropping it", async (key) => {
-    const flipped = !DASHBOARD_SETTINGS_DEFAULTS[key]
+    const fallback = DASHBOARD_SETTINGS_DEFAULTS[key]
+    const flipped =
+      typeof fallback === "object"
+        ? {
+            "1": {
+              uploadedBytes: { value: 2 * 1024 ** 3, unit: "GiB", enteredAt: "2026-10-30" },
+            },
+          }
+        : !fallback
 
     const body = await put({ [key]: flipped })
 
-    expect(body[key], `${key} missing from the PUT response`).toBe(flipped)
+    expect(body[key], `${key} missing from the PUT response`).toEqual(flipped)
     expect(written, "handler wrote nothing to the database").not.toBeNull()
     expect(
       (JSON.parse(written as string) as DashboardSettings)[key],
       `${key} was not written to the database`
-    ).toBe(flipped)
+    ).toEqual(flipped)
   })
 
   it("leaves keys the caller did not send untouched", async () => {

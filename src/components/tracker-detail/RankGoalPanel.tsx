@@ -2,6 +2,7 @@
 
 import { H2 } from "@typography"
 import { useEffect, useMemo, useState } from "react"
+import { ManualValueEditor } from "@/components/dashboard/ManualValueEditor"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
@@ -15,13 +16,18 @@ import {
   type RankConditionResult,
   type RankGoalInput,
   type RankGroupResult,
+  type RankMetric,
   type RankNumericCondition,
   type RankObservationMap,
   type RankRequirementGroup,
   rankDefinitionForSlug,
 } from "@/lib/rank-goals"
 import { buildRankLadder } from "@/lib/rank-ladder"
-import { apiDoesNotReportMessage } from "@/lib/rank-manual-values"
+import {
+  apiDoesNotReportMessage,
+  type RankManualValue,
+  type RankManualValues,
+} from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
@@ -42,7 +48,9 @@ interface RankGoalPanelProps {
   platformMeta: PlatformMeta | null
   initialSavedGoals?: Record<string, { targetRank: string }>
   onSavedGoalsChange?: (goals: Record<string, { targetRank: string }>) => void
-  onEnterValue?: (condition: RankConditionResult) => void
+  manualValues?: RankManualValues
+  onSaveManualValue?: (metric: RankMetric, value: RankManualValue) => Promise<void>
+  onClearManualValue?: (metric: RankMetric) => Promise<void>
 }
 
 
@@ -98,11 +106,17 @@ function statusLabel(status: "met" | "unmet" | "unknown"): string {
 function ConditionRow({
   trackerName,
   condition,
-  onEnterValue,
+  now,
+  manual,
+  onSaveManual,
+  onClearManual,
 }: {
   trackerName: string
   condition: RankConditionResult
-  onEnterValue?: () => void
+  now: Date
+  manual: RankManualValue | null
+  onSaveManual?: (value: RankManualValue) => Promise<void>
+  onClearManual?: () => Promise<void>
 }) {
   const statusClass =
     condition.status === "met"
@@ -134,12 +148,31 @@ function ConditionRow({
           formatValue(condition.metric ?? "accountRatio", condition.requiredValue)
         )
       : null
+  const observed =
+    condition.observedValue !== null && condition.source !== "manual" && condition.manual !== true
+  const canEnter =
+    condition.status === "unknown" &&
+    !observed &&
+    !manual &&
+    condition.metric !== undefined &&
+    condition.scope !== "per-torrent" &&
+    condition.verification !== "unresolved"
+  const showManual =
+    Boolean(onSaveManual && onClearManual && condition.metric) && (manual !== null || canEnter)
+
   return (
     <li className="border-t border-border py-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="text-xs text-primary">{condition.label}</span>
-        <span className={`font-mono text-3xs uppercase tracking-[0.1em] ${statusClass}`}>
-          {statusLabel(condition.status)}
+        <span className="flex items-center gap-2">
+          {condition.manual && (
+            <span className="font-mono text-3xs uppercase tracking-[0.1em] text-accent">
+              Manual
+            </span>
+          )}
+          <span className={`font-mono text-3xs uppercase tracking-[0.1em] ${statusClass}`}>
+            {statusLabel(condition.status)}
+          </span>
         </span>
       </div>
       <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono text-4xs text-secondary">
@@ -174,23 +207,28 @@ function ConditionRow({
         <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>
       )}
       {condition.status === "unknown" && (
-        <div className="mt-1">
-          <p className="font-mono text-4xs text-warn">
-            {condition.metric
+        <p className="mt-1 font-mono text-4xs text-warn">
+          {observed
+            ? (condition.reason ?? "The observation needs checking.")
+            : condition.metric
               ? apiDoesNotReportMessage(trackerName, condition.metric)
               : (condition.reason ?? "This condition cannot be read from the tracker's API.")}
-          </p>
-          {condition.metric && onEnterValue && (
-            <Button
-              size="sm"
-              variant="ghost"
-              text="Enter value"
-              onClick={onEnterValue}
-              className="mt-1 min-h-11 px-2 sm:min-h-8"
-              data-enter-manual-value
-            />
-          )}
-        </div>
+        </p>
+      )}
+      {showManual && condition.metric && (
+        <ManualValueEditor
+          trackerName={trackerName}
+          metric={condition.metric}
+          label={condition.label}
+          manual={manual}
+          manualUsed={condition.manual === true}
+          manualStale={condition.manualStale === true}
+          observed={observed}
+          canEnter={canEnter}
+          now={now}
+          onSave={onSaveManual as (value: RankManualValue) => Promise<void>}
+          onClear={onClearManual as () => Promise<void>}
+        />
       )}
       <details className="mt-1">
         <summary className="cursor-pointer font-mono text-4xs text-muted">Evidence</summary>
@@ -227,7 +265,9 @@ export function RankGoalPanel({
   platformMeta,
   initialSavedGoals,
   onSavedGoalsChange,
-  onEnterValue,
+  manualValues = {},
+  onSaveManualValue,
+  onClearManualValue,
 }: RankGoalPanelProps) {
   const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
@@ -289,11 +329,12 @@ export function RankGoalPanel({
       rankPaths,
       currentRank,
       observations: observationMap,
+      manualValues,
       now: now ?? new Date(0),
       joinedAt,
       structuredGoals: pilot?.goals,
     }),
-    [userClasses, rankPaths, currentRank, observationMap, now, joinedAt, pilot]
+    [userClasses, rankPaths, currentRank, observationMap, manualValues, now, joinedAt, pilot]
   )
   const goal = target ? pilot?.goals[target] : undefined
   const result = goal && now ? evaluateRequirementGroup(goal, goalInput) : null
@@ -502,7 +543,20 @@ export function RankGoalPanel({
                 key={condition.id}
                 trackerName={trackerName}
                 condition={condition}
-                onEnterValue={onEnterValue ? () => onEnterValue(condition) : undefined}
+                now={now ?? new Date(0)}
+                manual={
+                  condition.metric ? (manualValues[condition.metric] ?? null) : null
+                }
+                onSaveManual={
+                  onSaveManualValue && condition.metric
+                    ? (value) => onSaveManualValue(condition.metric as RankMetric, value)
+                    : undefined
+                }
+                onClearManual={
+                  onClearManualValue && condition.metric
+                    ? () => onClearManualValue(condition.metric as RankMetric)
+                    : undefined
+                }
               />
             ))}
           </ul>

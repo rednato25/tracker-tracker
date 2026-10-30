@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
   for (const key of Object.keys(DEFAULTS) as (keyof DashboardSettings)[]) {
     const value = body[key]
     if (typeof value === typeof DEFAULTS[key]) {
-      merged[key] = value as DashboardSettings[typeof key]
+      ;(merged as unknown as Record<string, unknown>)[key] = value
     }
   }
 

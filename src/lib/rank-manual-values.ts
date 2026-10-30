@@ -5,7 +5,7 @@
 // dashboardSettings JSON, so it needs no migration. Observations always win;
 // the evaluator only falls back to these values when no observed value exists.
 
-import { isRankMetric, type RankMetric } from "@/lib/rank-goals"
+import type { RankMetric } from "@/lib/rank-goals"
 
 export const MANUAL_VALUE_STALE_DAYS = 14
 
@@ -52,6 +52,10 @@ export function manualMetricLabel(metric: RankMetric | null | undefined): string
   return metric ? (METRIC_LABELS[metric] ?? metric) : "this value"
 }
 
+export function isRankMetricName(value: unknown): value is RankMetric {
+  return typeof value === "string" && value in METRIC_LABELS
+}
+
 /** P47 unknown copy: name the tracker and the missing metric, never blame the user. */
 export function apiDoesNotReportMessage(
   trackerName: string,
@@ -95,7 +99,7 @@ export function manualValueToCanonical(
   return value
 }
 
-function normalizeManualValue(
+export function normalizeRankManualValue(
   metric: RankMetric,
   raw: unknown
 ): RankManualValue | null {
@@ -118,8 +122,8 @@ export function normalizeRankManualValues(raw: unknown): RankManualValues {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {}
   const parsed: RankManualValues = {}
   for (const [metric, value] of Object.entries(raw)) {
-    if (!isRankMetric(metric)) continue
-    const normalized = normalizeManualValue(metric, value)
+    if (!isRankMetricName(metric)) continue
+    const normalized = normalizeRankManualValue(metric, value)
     if (normalized) parsed[metric] = normalized
   }
   return parsed

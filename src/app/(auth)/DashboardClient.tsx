@@ -37,6 +37,12 @@ import { computeTrackerActions } from "@/lib/actions"
 import { computeAggregateStats } from "@/lib/dashboard"
 import type { FleetAggregation } from "@/lib/fleet-aggregation"
 import { fleetCachedQueryOptions, trackerQueryOptions } from "@/lib/query-options"
+import type { RankMetric } from "@/lib/rank-goals"
+import type {
+  RankManualValue,
+  RankManualValuesByTracker,
+} from "@/lib/rank-manual-values"
+import { putRankManualValue } from "@/lib/rank-manual-values-client"
 import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
 import type { RankCheck } from "@/lib/recruitment-state"
 import type { Snapshot, TrackerSummary } from "@/types/api"
@@ -72,6 +78,7 @@ interface DashboardClientProps {
   initialTrackers: TrackerSummary[]
   snapshotRetentionDays: number | null
   rankGoals: string | null
+  initialRankManualValues: RankManualValuesByTracker
   initialRankChecks: Record<string, RankCheck>
   /** Read server-side from two small queries. False skips the Tag Groups fetch entirely. */
   hasTagGroups: boolean
@@ -83,6 +90,7 @@ export function DashboardClient({
   initialTrackers,
   snapshotRetentionDays,
   rankGoals,
+  initialRankManualValues,
   initialRankChecks,
   hasTagGroups,
   now,
@@ -90,6 +98,8 @@ export function DashboardClient({
   const data = useDashboardData({ initialTrackers, snapshotRetentionDays })
   const queryClient = useQueryClient()
   const savedRankGoals = useMemo(() => parseSavedRankGoals(rankGoals), [rankGoals])
+  const [rankManualValues, setRankManualValues] =
+    useState<RankManualValuesByTracker>(initialRankManualValues)
   const dashSettings = useDashboardSettings()
   const sectionCollapse = useSectionCollapse()
   // One instance for the whole page, like sectionCollapse above. The analytics grid and the
@@ -120,8 +130,8 @@ export function DashboardClient({
 
   const aggregateStats = useMemo(() => computeAggregateStats(data.trackers), [data.trackers])
   const rankSummaries = useMemo(
-    () => buildRankGoalSummaries(data.trackers, savedRankGoals, new Date(now)),
-    [data.trackers, savedRankGoals, now]
+    () => buildRankGoalSummaries(data.trackers, savedRankGoals, new Date(now), rankManualValues),
+    [data.trackers, savedRankGoals, now, rankManualValues]
   )
   const trackerSeries = useMemo(
     () => buildTrackerSeries(data.trackers, data.snapshotMap),
@@ -150,6 +160,20 @@ export function DashboardClient({
   // already in the server-rendered HTML, so hiding it until hydration would blank the page
   // and pop it back open for the common case of nothing being collapsed at all.
   const isExpanded = (id: string) => !sectionCollapse.isCollapsed(id)
+
+  async function saveManualValue(
+    trackerId: number,
+    metric: RankMetric,
+    value: RankManualValue
+  ) {
+    const next = await putRankManualValue(trackerId, metric, value)
+    setRankManualValues(next)
+  }
+
+  async function clearManualValue(trackerId: number, metric: RankMetric) {
+    const next = await putRankManualValue(trackerId, metric, null)
+    setRankManualValues(next)
+  }
 
   const todayAtAGlanceExpanded = isExpanded("today-at-a-glance")
   const leaderboardExpanded = isExpanded("leaderboard")
@@ -266,6 +290,9 @@ export function DashboardClient({
               }
               if (payload.rankChecks) setRankChecks(payload.rankChecks)
             }}
+            manualValues={rankManualValues}
+            onSaveManualValue={saveManualValue}
+            onClearManualValue={clearManualValue}
             now={new Date(now)}
           />
         )}

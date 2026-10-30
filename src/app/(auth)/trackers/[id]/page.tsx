@@ -5,6 +5,7 @@ import { OutageBandsProvider } from "@/components/charts/lib/OutageBandsProvider
 import { db } from "@/lib/db"
 import { appSettings } from "@/lib/db/schema"
 import { parseQbitmanageTags } from "@/lib/download-clients/qbt/qbitmanage-defaults"
+import { parseRankManualValuesFromSettings } from "@/lib/rank-manual-values"
 import {
   getSnapshotsForTracker,
   getTagGroupsWithMembers,
@@ -33,6 +34,7 @@ export default async function TrackerDetailPage(props: {
         qbitmanageEnabled: appSettings.qbitmanageEnabled,
         qbitmanageTags: appSettings.qbitmanageTags,
         rankGoals: appSettings.rankGoals,
+        dashboardSettings: appSettings.dashboardSettings,
       })
       .from(appSettings)
       .limit(1)
@@ -60,6 +62,9 @@ export default async function TrackerDetailPage(props: {
         initialTagGroups={tagGroupsData}
         initialQbitmanageConfig={qbitmanageConfig}
         initialRankGoals={settings?.rankGoals ?? null}
+        initialRankManualValues={parseRankManualValuesFromSettings(
+          settings?.dashboardSettings ?? null
+        )}
         initialTab={initialTab}
       />
     </OutageBandsProvider>

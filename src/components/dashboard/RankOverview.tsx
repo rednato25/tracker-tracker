@@ -8,12 +8,17 @@
 
 import { ExternalLinkSmallIcon } from "@icons"
 import { useEffect, useMemo, useState } from "react"
+import { ManualValueEditor } from "@/components/dashboard/ManualValueEditor"
 import { Badge, Button } from "@/components/ui"
 import { type ClipboardOutcome, copyTextToClipboard } from "@/lib/clipboard"
 import { formatDate, localDateStr } from "@/lib/formatters"
-import type { RankGoalStatus } from "@/lib/rank-goals"
+import type { RankGoalStatus, RankMetric } from "@/lib/rank-goals"
 import { OUTSIDE_LADDER_NOTE } from "@/lib/rank-ladder"
-import { apiDoesNotReportMessage } from "@/lib/rank-manual-values"
+import {
+  apiDoesNotReportMessage,
+  type RankManualValue,
+  type RankManualValuesByTracker,
+} from "@/lib/rank-manual-values"
 import { buildRankOverviewMarkdown } from "@/lib/rank-markdown"
 import { buildRankOverviews, type RankOverview as RankOverviewData } from "@/lib/rank-overview"
 import type { RankCheck, RankCheckVerdict } from "@/lib/recruitment-state"
@@ -24,7 +29,9 @@ interface RankOverviewProps {
   savedGoals: Record<string, { targetRank: string }>
   checks: Record<string, RankCheck>
   onSaveCheck: (trackerId: number, check: RankCheck | null) => Promise<void>
-  onEnterValue?: (trackerId: number, conditionId: string) => void
+  manualValues?: RankManualValuesByTracker
+  onSaveManualValue?: (trackerId: number, metric: RankMetric, value: RankManualValue) => Promise<void>
+  onClearManualValue?: (trackerId: number, metric: RankMetric) => Promise<void>
   now?: Date
 }
 
@@ -74,18 +81,31 @@ function Field({
 function ConditionRow({
   trackerName,
   condition,
-  onEnterValue,
+  now,
+  onSaveManual,
+  onClearManual,
 }: {
   trackerName: string
   condition: RankOverviewData["conditions"][number]
-  onEnterValue?: () => void
+  now: Date
+  onSaveManual?: (value: RankManualValue) => Promise<void>
+  onClearManual?: () => Promise<void>
 }) {
   const missing =
     condition.status === "unknown"
-      ? condition.metric
-        ? apiDoesNotReportMessage(trackerName, condition.metric)
-        : (condition.reason ?? "This condition cannot be read from the tracker's API.")
+      ? condition.observed
+        ? (condition.reason ?? "The observation needs checking.")
+        : condition.manualUsed
+          ? "Manual value is used for this check."
+          : condition.metric
+            ? apiDoesNotReportMessage(trackerName, condition.metric)
+            : (condition.reason ?? "This condition cannot be read from the tracker's API.")
       : "\u2014"
+  const showManual =
+    Boolean(onSaveManual && onClearManual) &&
+    condition.metric !== null &&
+    (condition.manual !== null || (!condition.observed && condition.canEnterManual))
+
   return (
     <div
       className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-border py-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,1.5fr)] md:items-baseline"
@@ -96,6 +116,11 @@ function ConditionRow({
       </Field>
       <Field label="Current">
         <span className="font-mono tabular-nums text-primary">{condition.current}</span>
+        {condition.manualUsed && (
+          <span className="ml-1 font-cond text-2xs uppercase tracking-[0.1em] text-accent">
+            manual
+          </span>
+        )}
       </Field>
       <Field label="Required">
         <span className="font-mono tabular-nums text-primary">{condition.required}</span>
@@ -111,16 +136,20 @@ function ConditionRow({
         <span className={condition.status === "unknown" ? "text-warn" : "text-tertiary"}>
           {missing}
         </span>
-        {condition.status === "unknown" && condition.metric && onEnterValue && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onEnterValue}
-            className="mt-1 min-h-11 px-2 sm:min-h-8"
-            data-enter-manual-value
-          >
-            Enter value
-          </Button>
+        {showManual && condition.metric && (
+          <ManualValueEditor
+            trackerName={trackerName}
+            metric={condition.metric}
+            label={condition.requirement}
+            manual={condition.manual}
+            manualUsed={condition.manualUsed}
+            manualStale={condition.manualStale}
+            observed={condition.observed}
+            canEnter={condition.canEnterManual}
+            now={now}
+            onSave={onSaveManual as (value: RankManualValue) => Promise<void>}
+            onClear={onClearManual as () => Promise<void>}
+          />
         )}
       </Field>
     </div>
@@ -281,13 +310,17 @@ function TrackerRankSection({
   savedGoal,
   check,
   onSaveCheck,
-  onEnterValue,
+  onSaveManualValue,
+  onClearManualValue,
+  now,
 }: {
   overview: RankOverviewData
   savedGoal: string | null
   check: RankCheck | null
   onSaveCheck: (check: RankCheck | null) => Promise<void>
-  onEnterValue?: (conditionId: string) => void
+  onSaveManualValue?: (metric: RankMetric, value: RankManualValue) => Promise<void>
+  onClearManualValue?: (metric: RankMetric) => Promise<void>
+  now: Date
 }) {
   const [showAllClasses, setShowAllClasses] = useState(false)
   const earnedClasses = overview.classes.filter((userClass) => !userClass.outsideLadder)
@@ -415,7 +448,17 @@ function TrackerRankSection({
               key={condition.id}
               trackerName={overview.trackerName}
               condition={condition}
-              onEnterValue={onEnterValue ? () => onEnterValue(condition.id) : undefined}
+              now={now}
+              onSaveManual={
+                onSaveManualValue && condition.metric
+                  ? (value) => onSaveManualValue(condition.metric as RankMetric, value)
+                  : undefined
+              }
+              onClearManual={
+                onClearManualValue && condition.metric
+                  ? () => onClearManualValue(condition.metric as RankMetric)
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -465,12 +508,14 @@ export function RankOverview({
   savedGoals,
   checks,
   onSaveCheck,
-  onEnterValue,
+  manualValues = {},
+  onSaveManualValue,
+  onClearManualValue,
   now = new Date(),
 }: RankOverviewProps) {
   const overviews = useMemo(
-    () => buildRankOverviews(trackers, savedGoals, now),
-    [trackers, savedGoals, now]
+    () => buildRankOverviews(trackers, savedGoals, now, manualValues),
+    [trackers, savedGoals, now, manualValues]
   )
   const checkedCount = overviews.filter((overview) => checks[String(overview.trackerId)]).length
   const wrongCount = overviews.filter(
@@ -548,11 +593,17 @@ export function RankOverview({
             savedGoal={savedGoals[String(overview.trackerId)]?.targetRank ?? null}
             check={checks[String(overview.trackerId)] ?? null}
             onSaveCheck={(check) => onSaveCheck(overview.trackerId, check)}
-            onEnterValue={
-              onEnterValue
-                ? (conditionId) => onEnterValue(overview.trackerId, conditionId)
+            onSaveManualValue={
+              onSaveManualValue
+                ? (metric, value) => onSaveManualValue(overview.trackerId, metric, value)
                 : undefined
             }
+            onClearManualValue={
+              onClearManualValue
+                ? (metric) => onClearManualValue(overview.trackerId, metric)
+                : undefined
+            }
+            now={now}
           />
         ))}
       </div>

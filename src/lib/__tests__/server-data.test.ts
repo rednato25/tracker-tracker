@@ -270,6 +270,7 @@ describe("serializeSettingsResponse", () => {
     credentialVaultEnabled: false,
     integrationIdentityMode: "none",
     rankGoals: null,
+    dashboardSettings: null,
     prowlarrUrl: null,
     hasProwlarrApiKey: false,
     prowlarrAllowPrivate: false,

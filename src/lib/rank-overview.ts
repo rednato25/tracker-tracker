@@ -26,6 +26,11 @@ import {
   type RankRequirementGroup,
 } from "@/lib/rank-goals"
 import { hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
+import type {
+  RankManualValue,
+  RankManualValues,
+  RankManualValuesByTracker,
+} from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -59,6 +64,11 @@ export interface RankOverviewCondition {
   unknownReason: RankUnknownReason | null
   reason: string | null
   metric: RankMetric | null
+  manual: RankManualValue | null
+  manualUsed: boolean
+  manualStale: boolean
+  observed: boolean
+  canEnterManual: boolean
 }
 
 export interface RankOverviewClass {
@@ -133,8 +143,15 @@ function unknownReasonFor(condition: RankConditionResult): RankUnknownReason | n
   return UNKNOWN_COLLECTED
 }
 
-function toCondition(condition: RankConditionResult): RankOverviewCondition {
+function toCondition(
+  condition: RankConditionResult,
+  manualValues: RankManualValues
+): RankOverviewCondition {
   const metric = condition.metric ?? null
+  const manual = metric ? (manualValues[metric] ?? null) : null
+  const manualUsed = condition.manual === true
+  const observed =
+    condition.observedValue !== null && condition.source !== "manual" && !manualUsed
   return {
     id: condition.id,
     requirement: condition.label,
@@ -144,6 +161,16 @@ function toCondition(condition: RankConditionResult): RankOverviewCondition {
     unknownReason: unknownReasonFor(condition),
     reason: condition.reason || null,
     metric,
+    manual,
+    manualUsed,
+    manualStale: condition.manualStale === true,
+    observed,
+    canEnterManual:
+      Boolean(metric) &&
+      condition.scope !== "per-torrent" &&
+      condition.verification !== "unresolved" &&
+      !observed &&
+      !manualUsed,
   }
 }
 
@@ -175,7 +202,8 @@ function sourceFor(entry: TrackerRegistryEntry | undefined): RankOverviewSource 
 function buildOne(
   tracker: TrackerSummary,
   savedTargetRank: string | null,
-  now: Date
+  now: Date,
+  manualValues: RankManualValues
 ): RankOverview {
   const entry = registryEntryFor(tracker)
   const rawRank = tracker.latestStats?.group ?? null
@@ -197,6 +225,7 @@ function buildOne(
     rankPaths: entry?.rankPaths,
     currentRank: currentClass,
     observations,
+    manualValues,
     now,
     joinedAt: tracker.joinedAt,
     structuredGoals,
@@ -229,7 +258,7 @@ function buildOne(
     ? evaluateRequirementGroup(focusClass.structured, input)
     : null
   const conditions = result
-    ? flattenConditions(result).map((condition) => toCondition(condition))
+    ? flattenConditions(result).map((condition) => toCondition(condition, manualValues))
     : []
 
   return {
@@ -266,10 +295,18 @@ function buildOne(
 export function buildRankOverviews(
   trackers: TrackerSummary[],
   savedGoals: Record<string, { targetRank: string }>,
-  now: Date
+  now: Date,
+  manualValuesByTracker: RankManualValuesByTracker = {}
 ): RankOverview[] {
   return trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []
-    return [buildOne(tracker, savedGoals[String(tracker.id)]?.targetRank ?? null, now)]
+    return [
+      buildOne(
+        tracker,
+        savedGoals[String(tracker.id)]?.targetRank ?? null,
+        now,
+        manualValuesByTracker[String(tracker.id)] ?? {}
+      ),
+    ]
   })
 }

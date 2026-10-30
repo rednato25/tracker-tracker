@@ -25,6 +25,7 @@ import {
   type TrackerRankDefinition,
 } from "@/lib/rank-goals"
 import { hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
+import type { RankManualValues, RankManualValuesByTracker } from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -222,7 +223,8 @@ function buildSummary(
   tracker: TrackerSummary,
   pilot: TrackerRankDefinition,
   savedTarget: string | null,
-  now: Date
+  now: Date,
+  manualValues: RankManualValues = {}
 ): RankGoalSummary {
   const entry = registryEntryFor(tracker)
   const rawRank = tracker.latestStats?.group ?? null
@@ -236,6 +238,7 @@ function buildSummary(
     rankPaths: entry?.rankPaths,
     currentRank,
     observations: observation,
+    manualValues,
     now,
     joinedAt: tracker.joinedAt,
     structuredGoals: pilot.goals,
@@ -353,7 +356,8 @@ export function parseSavedRankGoals(
 export function buildRankGoalSummaries(
   trackers: TrackerSummary[],
   savedGoals: Record<string, { targetRank: string }>,
-  now: Date
+  now: Date,
+  manualValuesByTracker: RankManualValuesByTracker = {}
 ): RankGoalSummary[] {
   return trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []
@@ -393,6 +397,14 @@ export function buildRankGoalSummaries(
         },
       ]
     }
-    return [buildSummary(tracker, pilot, savedTarget, now)]
+    return [
+      buildSummary(
+        tracker,
+        pilot,
+        savedTarget,
+        now,
+        manualValuesByTracker[String(tracker.id)] ?? {}
+      ),
+    ]
   })
 }

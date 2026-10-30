@@ -15,6 +15,7 @@ import type { PlatformType } from "@/data/platform-types"
 import type { DownloadClientRow, NotificationTargetRow } from "@/lib/db/schema"
 import type { SystemEvent } from "@/lib/events"
 import type { NotificationThresholds } from "@/lib/notifications/types"
+import type { RankManualValuesByTracker } from "@/lib/rank-manual-values"
 import type { PlatformMeta } from "@/types/tracker-stats"
 
 /** Fields shared between TrackerLatestStats and Snapshot */
@@ -141,6 +142,8 @@ export interface DashboardSettings {
    * feature exists to prevent, so the explanation has to be opt-out.
    */
   showOutageBands: boolean
+  /** P47 manual rank values, stored in the existing dashboardSettings JSON. */
+  rankManualValues: RankManualValuesByTracker
 }
 
 export interface TodayAtAGlance {
@@ -213,6 +216,7 @@ export const DASHBOARD_SETTINGS_DEFAULTS: DashboardSettings = {
   markLoginOnSiteOpen: true,
   enable3DCharts: true,
   showOutageBands: true,
+  rankManualValues: {},
 }
 
 /** API response shape for download clients (credentials stripped, dates serialized) */

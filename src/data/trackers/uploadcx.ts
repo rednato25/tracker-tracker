@@ -3,6 +3,7 @@
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
 const TiB = 1024 ** 4
+const DAY = 86_400
 
 export const uploadcx: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
@@ -128,8 +129,8 @@ export const uploadcx: TrackerRegistryEntry = {
           { kind: "numeric", id: "ucx-master-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 120, scope: "account", label: "At least 4 months registered" },
           { kind: "numeric", id: "ucx-master-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * TiB, scope: "account", label: "At least 50 TiB uploaded" },
           { kind: "numeric", id: "ucx-master-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.1" },
-          { kind: "non-numeric", label: "Average seed time ≥ 3 months" },
-          { kind: "non-numeric", label: "Seed size ≥ 20 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 90 * DAY, scope: "account", label: "Average seed time ≥ 3 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", label: "Seed size ≥ 20 TiB" },
         ],
       },
       perks: [
@@ -151,8 +152,8 @@ export const uploadcx: TrackerRegistryEntry = {
           { kind: "numeric", id: "ucx-veteran-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 150, scope: "account", label: "At least 5 months registered" },
           { kind: "numeric", id: "ucx-veteran-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", label: "At least 100 TiB uploaded" },
           { kind: "numeric", id: "ucx-veteran-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.1" },
-          { kind: "non-numeric", label: "Average seed time ≥ 4 months" },
-          { kind: "non-numeric", label: "Seed size ≥ 30 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 120 * DAY, scope: "account", label: "Average seed time ≥ 4 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 30 * TiB, scope: "account", label: "Seed size ≥ 30 TiB" },
         ],
       },
       perks: [
@@ -174,8 +175,8 @@ export const uploadcx: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "ucx-seeder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 2 months registered" },
           { kind: "numeric", id: "ucx-seeder-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
-          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
-          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 30 * DAY, scope: "account", label: "Average seed time ≥ 1 month" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "Seed size ≥ 5 TiB" },
         ],
       },
       perks: [
@@ -193,8 +194,8 @@ export const uploadcx: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "ucx-archivist-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", id: "ucx-archivist-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
-          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
-          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 60 * DAY, scope: "account", label: "Average seed time ≥ 2 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", label: "Seed size ≥ 10 TiB" },
         ],
       },
       perks: [

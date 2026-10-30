@@ -3,6 +3,7 @@
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
 const TiB = 1024 ** 4
+const DAY = 86_400
 
 export const retromoviesclub: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
@@ -144,8 +145,8 @@ export const retromoviesclub: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "rmc-superstar-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
           { kind: "numeric", id: "rmc-superstar-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
-          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 30 * DAY, scope: "account", label: "Average seed time ≥ 1 month" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "Seed size ≥ 5 TiB" },
         ],
       },
     },
@@ -158,8 +159,8 @@ export const retromoviesclub: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "rmc-preservationist-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", id: "rmc-preservationist-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
-          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 60 * DAY, scope: "account", label: "Average seed time ≥ 2 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", label: "Seed size ≥ 10 TiB" },
         ],
       },
     },

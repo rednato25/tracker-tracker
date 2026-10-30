@@ -2,6 +2,9 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+const TiB = 1024 ** 4
+
 export const seedpool: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "seedpool",
@@ -78,7 +81,7 @@ export const seedpool: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "sp-pool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 256 GiB" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 256 * GiB, scope: "account", label: "Seed size ≥ 256 GiB" },
         ],
       },
     },
@@ -89,7 +92,7 @@ export const seedpool: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "sp-powerpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 512 GiB" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 512 * GiB, scope: "account", label: "Seed size ≥ 512 GiB" },
         ],
       },
     },
@@ -101,7 +104,7 @@ export const seedpool: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "sp-superpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 1 TiB" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "Seed size ≥ 1 TiB" },
         ],
       },
     },
@@ -112,7 +115,7 @@ export const seedpool: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "sp-uberpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 270, scope: "account", label: "At least 9 months registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "Seed size ≥ 5 TiB" },
         ],
       },
     },
@@ -130,7 +133,7 @@ export const seedpool: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "sp-megapool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 12 months registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 25 TiB" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 25 * TiB, scope: "account", label: "Seed size ≥ 25 TiB" },
         ],
       },
     },
@@ -142,7 +145,7 @@ export const seedpool: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "sp-godpool-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 12 months registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 100 TiB" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", label: "Seed size ≥ 100 TiB" },
         ],
       },
     },

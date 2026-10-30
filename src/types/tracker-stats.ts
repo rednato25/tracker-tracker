@@ -134,6 +134,8 @@ export interface DigitalCorePlatformMeta {
   invites?: number
   invitees?: number
   leechBonus?: number
+  /** Bytes currently seeding, from `user.currentGbSeed` on /api/v1/status. */
+  seedSizeBytes?: number
   uploadedReal?: number
   downloadedReal?: number
   torrents?: number

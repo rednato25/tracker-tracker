@@ -3,6 +3,7 @@
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
 const TiB = 1024 ** 4
+const DAY = 86_400
 
 export const dreadvault: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ export const dreadvault: TrackerRegistryEntry = {
       "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
   },
   rankUnresolved: [
-    "Seed size and average seed time are not supported rank metrics and stay as unsupported conditions.",
+    "Seed size and average seed time are rank metrics, but this tracker's adapter does not collect them yet; their conditions stay unknown.",
     "TiB text is read as written.",
     "VIP, patron and staff-assigned classes are outside the earned ladder.",
   ],
@@ -126,8 +127,8 @@ export const dreadvault: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "dv-shadow-walker-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
           { kind: "numeric", id: "dv-shadow-walker-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
-          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
-          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "Seed size ≥ 5 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 30 * DAY, scope: "account", label: "Average seed time ≥ 1 month" },
         ],
       },
     },
@@ -140,8 +141,8 @@ export const dreadvault: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "dv-bloodbound-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", id: "dv-bloodbound-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.4" },
-          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
-          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", label: "Seed size ≥ 10 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 60 * DAY, scope: "account", label: "Average seed time ≥ 2 months" },
         ],
       },
     },
@@ -156,8 +157,8 @@ export const dreadvault: TrackerRegistryEntry = {
           { kind: "numeric", id: "dv-ancient-one-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", label: "At least 10 TiB uploaded" },
           { kind: "numeric", id: "dv-ancient-one-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.5, scope: "account", label: "Ratio at least 1.5" },
           { kind: "numeric", id: "dv-ancient-one-uploads", metric: "uploads", comparison: "gte", requiredValue: 500, scope: "account", label: "At least 500 uploads" },
-          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
-          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 30 * DAY, scope: "account", label: "Average seed time ≥ 1 month" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "Seed size ≥ 5 TiB" },
         ],
       },
     },

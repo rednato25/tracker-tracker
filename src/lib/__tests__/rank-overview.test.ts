@@ -207,6 +207,12 @@ describe("buildRankOverviews", () => {
     expect(overview.highestAutomatic).toBe(false)
     expect(overview.hasStructuredRules).toBe(true)
     expect(overview.conditions).toHaveLength(4)
+    const seedTime = overview.conditions.find(
+      (condition) => condition.metric === "averageSeedTimeSeconds"
+    )
+    expect(seedTime?.status).toBe("unknown")
+    expect(seedTime?.unknownReason).toBe(UNKNOWN_COLLECTED)
+    expect(seedTime?.current).toBe("\u2014")
   })
 
   it("marks a saved target at or below the current class and keeps the next automatic class", () => {

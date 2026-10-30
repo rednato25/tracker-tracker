@@ -38,6 +38,8 @@ interface RankGoalPanelProps {
   accentColor: string
   platformType: string
   platformMeta: PlatformMeta | null
+  initialSavedGoals?: Record<string, { targetRank: string }>
+  onSavedGoalsChange?: (goals: Record<string, { targetRank: string }>) => void
 }
 
 
@@ -193,6 +195,8 @@ export function RankGoalPanel({
   accentColor,
   platformType,
   platformMeta,
+  initialSavedGoals,
+  onSavedGoalsChange,
 }: RankGoalPanelProps) {
   const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
@@ -201,8 +205,13 @@ export function RankGoalPanel({
     const next = ladder?.rungs[ladder.currentIndex + 1]
     return next?.requirements ?? null
   }, [userClasses, currentRank])
-  const [target, setTarget] = useState<string | null>(null)
-  const [savedGoals, setSavedGoals] = useState<Record<string, { targetRank: string }>>({})
+  const initialTarget = initialSavedGoals?.[String(trackerId)]?.targetRank ?? null
+  const [target, setTarget] = useState<string | null>(
+    initialTarget && targetOptions.includes(initialTarget) ? initialTarget : null
+  )
+  const [savedGoals, setSavedGoals] = useState<Record<string, { targetRank: string }>>(
+    initialSavedGoals ?? {}
+  )
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -222,12 +231,13 @@ export function RankGoalPanel({
           parsed = {}
         }
         setSavedGoals(parsed)
+        onSavedGoalsChange?.(parsed)
         const saved = parsed[String(trackerId)]?.targetRank
         setTarget(saved && targetOptions.includes(saved) ? saved : null)
       })
       .catch(() => setTarget(null))
       .finally(() => setLoaded(true))
-  }, [trackerId, targetOptions])
+  }, [trackerId, targetOptions, onSavedGoalsChange])
 
   const observationMap = useMemo<RankObservationMap>(
     () =>
@@ -301,6 +311,7 @@ export function RankGoalPanel({
         return
       }
       setSavedGoals(updated)
+      onSavedGoalsChange?.(updated)
     } catch {
       setTarget(previous)
       setError("Network error. Could not save the selected rank goal")
@@ -329,6 +340,7 @@ export function RankGoalPanel({
         return
       }
       setSavedGoals(updated)
+      onSavedGoalsChange?.(updated)
       setTarget(null)
     } catch {
       setError("Network error. Could not clear the selected rank goal")

@@ -32,6 +32,7 @@ export default async function TrackerDetailPage(props: {
       .select({
         qbitmanageEnabled: appSettings.qbitmanageEnabled,
         qbitmanageTags: appSettings.qbitmanageTags,
+        rankGoals: appSettings.rankGoals,
       })
       .from(appSettings)
       .limit(1)
@@ -58,6 +59,7 @@ export default async function TrackerDetailPage(props: {
         initialAllTimeSnapshots={allTimeSnapshots}
         initialTagGroups={tagGroupsData}
         initialQbitmanageConfig={qbitmanageConfig}
+        initialRankGoals={settings?.rankGoals ?? null}
         initialTab={initialTab}
       />
     </OutageBandsProvider>

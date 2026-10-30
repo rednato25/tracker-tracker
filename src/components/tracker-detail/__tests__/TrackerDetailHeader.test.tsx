@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { TrackerDetailHeader } from "@/components/tracker-detail/TrackerDetailHeader"
+import type { RankGoalSummary } from "@/lib/rank-summary"
 import type { TrackerSummary } from "@/types/api"
 
 vi.mock("next/image", () => ({
@@ -38,7 +39,10 @@ const tracker: TrackerSummary = {
   latestStats: null,
 }
 
-function renderHeader(onMarkLoginToday = vi.fn()) {
+function renderHeader(
+  onMarkLoginToday = vi.fn(),
+  rankSummary: RankGoalSummary | null = null
+) {
   return {
     onMarkLoginToday,
     ...render(
@@ -59,6 +63,7 @@ function renderHeader(onMarkLoginToday = vi.fn()) {
         onMarkLoginToday={onMarkLoginToday}
         markLoginLoading={false}
         settingsSaves={0}
+        rankSummary={rankSummary}
       />
     ),
   }
@@ -97,5 +102,36 @@ describe("TrackerDetailHeader actions", () => {
 
     await user.click(screen.getByRole("button", { name: "Record login" }))
     expect(onMarkLoginToday).toHaveBeenCalledTimes(1)
+  })
+
+  it("shows current, target and remaining distance in the header", () => {
+    const summary: RankGoalSummary = {
+      trackerId: 1,
+      trackerName: "TorrentLeech",
+      color: "#6d56eb",
+      currentRank: "Power User",
+      currentRankHidden: false,
+      targetRank: "Super User",
+      targetInvalid: false,
+      automaticNextRank: null,
+      status: "goal",
+      metCount: 2,
+      unmetCount: 1,
+      unknownCount: 0,
+      unmet: [],
+      unknown: [],
+      bars: [],
+      totalChecks: 3,
+      distanceText: "Super User: ratio above 2.00",
+      nextRankRequirements: null,
+      linkLabel: "Open rank goal",
+      linkHref: "/trackers/1#rank-goal",
+    }
+    renderHeader(vi.fn(), summary)
+    const block = screen.getByLabelText("Rank target summary")
+    expect(within(block).getByText("Current")).toBeInTheDocument()
+    expect(within(block).getByText("Power User")).toBeInTheDocument()
+    expect(within(block).getByText("Super User")).toBeInTheDocument()
+    expect(within(block).getByText("ratio above 2.00")).toBeInTheDocument()
   })
 })

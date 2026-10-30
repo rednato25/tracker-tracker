@@ -27,6 +27,7 @@ import { PulseDot } from "@/components/ui/PulseDot"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { platformTypeLabel } from "@/data/platform-types"
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
+import type { RankGoalSummary } from "@/lib/rank-summary"
 import {
   getHealthBadgeVariant,
   getHealthDescription,
@@ -57,6 +58,53 @@ interface TrackerDetailHeaderProps {
   onMarkLoginToday: () => void
   markLoginLoading: boolean
   settingsSaves: number
+  rankSummary?: RankGoalSummary | null
+}
+
+function RankTargetSummary({
+  summary,
+  currentRank,
+}: {
+  summary?: RankGoalSummary | null
+  currentRank: string | null
+}) {
+  const target = summary?.targetRank ?? summary?.automaticNextRank ?? null
+  const distance = summary?.distanceText
+  const prefix = target ? `${target}: ` : null
+  const remaining =
+    distance && prefix && distance.startsWith(prefix) ? distance.slice(prefix.length) : distance
+  const current = summary?.currentRankHidden
+    ? "Hidden"
+    : (summary?.currentRank ?? currentRank ?? "Unknown")
+
+  return (
+    <section
+      data-rank-target-summary
+      aria-label="Rank target summary"
+      className="grid grid-cols-3 gap-2 border-t border-border pt-4"
+    >
+      <div className="min-w-0">
+        <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-tertiary">
+          Current
+        </span>
+        <p className="mt-0.5 break-words font-mono text-xs text-primary">{current}</p>
+      </div>
+      <div className="min-w-0">
+        <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-tertiary">
+          Target
+        </span>
+        <p className="mt-0.5 break-words font-mono text-xs text-primary">{target ?? "No target"}</p>
+      </div>
+      <div className="min-w-0">
+        <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-tertiary">
+          Distance
+        </span>
+        <p className="mt-0.5 break-words font-mono text-xs text-secondary">
+          {remaining ?? summary?.nextRankRequirements ?? "Choose a target below"}
+        </p>
+      </div>
+    </section>
+  )
 }
 
 export function TrackerDetailHeader({
@@ -76,6 +124,7 @@ export function TrackerDetailHeader({
   onMarkLoginToday,
   markLoginLoading,
   settingsSaves,
+  rankSummary,
 }: TrackerDetailHeaderProps) {
   const health = getTrackerHealth(tracker)
   const menuRef = useRef<HTMLDetailsElement>(null)
@@ -237,6 +286,8 @@ export function TrackerDetailHeader({
           accentColor={tc}
         />
       )}
+
+      <RankTargetSummary summary={rankSummary} currentRank={stats?.group ?? null} />
 
       <Dialog
         open={confirmLoginOpen}

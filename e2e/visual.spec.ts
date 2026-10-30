@@ -1283,6 +1283,39 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 
+  test("keeps the rank target summary in the first viewport", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+
+    for (const { width, height } of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      for (const theme of ["light", "dark"] as const) {
+        await page.setViewportSize({ width, height })
+        await page.goto(`/trackers/${foundationTrackerId}`)
+        if (width === 390) {
+          await page.waitForFunction(
+            () => document.querySelector('[data-mobile="true"]') !== null
+          )
+        }
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        const summary = page.locator("[data-rank-target-summary]").first()
+        await expect(summary).toBeVisible({ timeout: 15_000 })
+        const box = await summary.boundingBox()
+        expect(box).not.toBeNull()
+        if (!box) continue
+        expect(box.y).toBeGreaterThanOrEqual(0)
+        expect(box.y + box.height).toBeLessThanOrEqual(height)
+        await page.screenshot({
+          path: `test-results/p34b-tracker-summary-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
   test("keeps one page frame and the Dashboard H1 in both views", async ({ page }) => {
     test.setTimeout(120_000)
     expect(foundationTrackerId).not.toBeNull()

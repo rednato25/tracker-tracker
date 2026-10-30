@@ -16,6 +16,7 @@ import {
   type TrackerRegistryEntry,
 } from "@/data/tracker-registry"
 import { buildRankForest, buildRankLadder } from "@/lib/rank-ladder"
+import type { RankManualValues } from "@/lib/rank-manual-values"
 
 export const RANK_METRICS = [
   "accountRatio",
@@ -131,6 +132,8 @@ export interface RankGoalInput {
   rankPaths?: TrackerRankPath[]
   currentRank: string | null
   observations: RankObservationMap
+  /** Used only when a metric has no observed value. */
+  manualValues?: RankManualValues
   now: Date
   joinedAt?: string | null
   structuredGoals?: Record<string, RankRequirementGroup>

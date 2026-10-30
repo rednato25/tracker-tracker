@@ -25,6 +25,7 @@ import { hexToRgba } from "@/lib/color-utils"
 import { computeDelta } from "@/lib/data-transforms"
 import { localDateStr } from "@/lib/formatters"
 import { trackerQueryOptions } from "@/lib/query-options"
+import { buildRankObservations } from "@/lib/rank-observations"
 import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
 import type {
@@ -302,6 +303,37 @@ export function TrackerDetailClient({
     [tracker, savedRankGoals]
   )
 
+  const rankObservations = useMemo(
+    () =>
+      buildRankObservations({
+        latestStats: stats,
+        lastPolledAt: tracker.lastPolledAt,
+        platformType: tracker.platformType,
+        platformMeta: tracker.platformMeta,
+        now: new Date(),
+      }),
+    [stats, tracker.lastPolledAt, tracker.platformMeta, tracker.platformType]
+  )
+
+  const saveRankTarget = useCallback(
+    async (target: string | null) => {
+      const updated = { ...savedRankGoals }
+      if (target) {
+        updated[String(trackerId)] = { targetRank: target }
+      } else {
+        delete updated[String(trackerId)]
+      }
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rankGoals: updated }),
+      })
+      if (!res.ok) throw new Error("Could not save the rank target")
+      setSavedRankGoals(updated)
+    },
+    [savedRankGoals, trackerId]
+  )
+
   const gazelleMeta: GazellePlatformMeta | null =
     tracker.platformType === "gazelle" ? (tracker.platformMeta as GazellePlatformMeta | null) : null
 
@@ -336,8 +368,11 @@ export function TrackerDetailClient({
         rankPaths={registryEntry?.rankPaths}
         currentRank={stats?.group ?? null}
         snapshots={allTimeSnapshots}
-        accentColor={tc}
         joinedAt={tracker.joinedAt}
+        savedTargetRank={savedRankGoals[String(trackerId)]?.targetRank ?? null}
+        onSetTarget={saveRankTarget}
+        observations={rankObservations}
+        now={new Date()}
       />
 
       <RankGoalPanel

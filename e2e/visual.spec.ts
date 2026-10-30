@@ -1609,3 +1609,145 @@ test.describe.serial("P32a foundation visual evidence", () => {
     }
   })
 })
+
+test.describe.serial("P39 rank and pause card states", () => {
+  let topId: number | null = null
+  let reachedId: number | null = null
+  let pausedId: number | null = null
+  let previousRankGoals: string | null = null
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string; rank_goals: string | null }[]>`
+        select encryption_salt, rank_goals from app_settings limit 1
+      `
+      previousRankGoals = settings.rank_goals
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const token = encrypt("synthetic-p39-token", key)
+
+      const insertTracker = async (name: string, suffix: string) => {
+        const [row] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active, joined_at,
+            last_polled_at, encrypted_api_token, color, created_at, updated_at
+          ) values (
+            ${name}, ${`https://tt-p39-${suffix}.invalid`}, 'torrentleech', 'unit3d',
+            true, '2024-01-01T00:00:00.000Z', now(), ${token}, '#6d56eb', now(), now()
+          ) returning id
+        `
+        return row.id
+      }
+
+      const insertSnapshot = async (trackerId: number, group: string) => {
+        await sql`
+          insert into tracker_snapshots (
+            tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+            buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+            required_ratio, warned, freeleech_tokens, is_manual
+          ) values (
+            ${trackerId}, now(), ${2 * GiB}, ${GiB}, 2.0, ${group},
+            ${GiB}, 8, 1, 1234, 0, 1, false, 0, false
+          )
+        `
+      }
+
+      topId = await insertTracker("TEST P39 Top", "top")
+      reachedId = await insertTracker("TEST P39 Reached", "reached")
+      pausedId = await insertTracker("TEST P39 Paused", "paused")
+      await insertSnapshot(topId, "TL GOD")
+      await insertSnapshot(reachedId, "Super User")
+      await insertSnapshot(pausedId, "Power User")
+
+      const failedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+      await sql`
+        update trackers
+        set paused_at = ${failedAt},
+            consecutive_failures = 5,
+            last_error = 'Request timed out',
+            last_error_at = ${failedAt}
+        where id = ${pausedId}
+      `
+      await sql`
+        update app_settings
+        set rank_goals = ${JSON.stringify({ [reachedId]: { targetRank: "Power User" } })}
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const ids = [topId, reachedId, pausedId].filter((id): id is number => id !== null)
+    if (ids.length === 0) return
+    const sql = e2eSql()
+    try {
+      for (const id of ids) await sql`delete from trackers where id = ${id}`
+      await sql`update app_settings set rank_goals = ${previousRankGoals}`
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures top-of-ladder, target-reached and failed-poll cards", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(topId).not.toBeNull()
+    expect(reachedId).not.toBeNull()
+    expect(pausedId).not.toBeNull()
+
+    const cards = [
+      ["top", topId as number],
+      ["reached", reachedId as number],
+      ["paused", pausedId as number],
+    ] as const
+    const cardFor = (id: number) =>
+      page.locator(`[data-tracker-card="${id}"]`).filter({ visible: true }).first()
+
+    for (const width of [1440, 390]) {
+      for (const theme of ["light", "dark"] as const) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+        await page.goto("/")
+        await expect(page.locator("[data-tracker-card]").first()).toBeVisible({ timeout: 15_000 })
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+          const backToTop = document.querySelector('[aria-label="Back to top"]') as HTMLElement | null
+          if (backToTop) backToTop.style.visibility = "hidden"
+        }, theme)
+        for (const [name, id] of cards) {
+          const card = cardFor(id)
+          await card.scrollIntoViewIfNeeded()
+          await page.waitForTimeout(150)
+          const box = await card.boundingBox()
+          if (!box) throw new Error(`no box for ${name} card`)
+          const viewport = page.viewportSize()
+          if (!viewport) throw new Error("no viewport")
+          const x = Math.max(0, box.x - 12)
+          const y = Math.max(0, box.y - 12)
+          await page.screenshot({
+            path: `test-results/p39-${name}-${width}-${theme}.png`,
+            clip: {
+              x,
+              y,
+              width: Math.min(viewport.width - x, box.width + 24),
+              height: Math.min(viewport.height - y, box.height + 24),
+            },
+          })
+        }
+      }
+    }
+
+    const top = cardFor(topId as number)
+    await expect(top).toContainText("Highest automatic class reached")
+
+    const reached = cardFor(reachedId as number)
+    await expect(reached).toContainText("Target reached")
+    await expect(reached).toContainText("Target: Power User")
+    await expect(reached).toContainText("Next automatic class: Extreme User")
+
+    const paused = cardFor(pausedId as number)
+    const pauseBlock = paused.locator("[data-failed-poll-pause]")
+    await expect(pauseBlock).toContainText("Paused after 5 failed polls")
+    await expect(pauseBlock).toContainText(/next retry \d{2}:\d{2}/)
+    await expect(pauseBlock).toContainText("Timeout")
+  })
+})

@@ -211,6 +211,17 @@ the only violet used for controls.
   Unknown current or required values show `?`; stale values show `*`.
 - Rank targets come from the registry and saved rank goals. There is no ETA, no
   promotion date and no invented threshold.
+- At the top of the automatic ladder, say `Highest automatic class reached`.
+  Never invent thresholds for staff, VIP, awarded or unpublished classes.
+- A saved target at or below the current class says `Target reached`; offer the
+  next automatic class when one exists, otherwise repeat the highest-automatic
+  line. Do not silently drop the saved target.
+- A next class with only rule text shows the class name and its requirement,
+  labelled `From tracker rules (not tracked automatically)`.
+- A failure-paused tracker shows `Paused after N failed polls · next retry HH:MM`
+  and the plain cause (`Timeout`, `Site down`, `Login expired, update
+  credentials`). Manual pauses never show a retry. A rejected login stops after
+  the first retry.
 - One-of groups are labelled "One of"; all-of groups stack normally.
 
 ### Register table

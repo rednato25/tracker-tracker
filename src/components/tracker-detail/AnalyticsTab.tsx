@@ -135,15 +135,19 @@ export function AnalyticsTab({
       <SlotRenderer slots={progressSlots} className="flex flex-col gap-10" />
 
       {/* Mobile: 2-col with explicit positioning */}
-      <div className="grid grid-cols-2 gap-5 md:hidden">{renderLayoutCards(layout2)}</div>
+      <div className="grid grid-cols-2 gap-5 md:hidden" data-core-stat-cards>
+        {renderLayoutCards(layout2)}
+      </div>
 
       {/* Medium: 3-col with explicit positioning */}
-      <div className="hidden gap-5 md:grid md:grid-cols-3 lg:hidden">
+      <div className="hidden gap-5 md:grid md:grid-cols-3 lg:hidden" data-core-stat-cards>
         {renderLayoutCards(layout3)}
       </div>
 
       {/* Large: 3 or 4-col with explicit positioning */}
-      <div className={`hidden gap-5 lg:grid ${lgColClass}`}>{renderLayoutCards(layout4)}</div>
+      <div className={`hidden gap-5 lg:grid ${lgColClass}`} data-core-stat-cards>
+        {renderLayoutCards(layout4)}
+      </div>
 
       <hr className="border-border" />
       <PollLog

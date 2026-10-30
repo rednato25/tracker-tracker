@@ -326,8 +326,8 @@ export function AttentionNeeded({
           )}
           {hasVerification && !hasConfirmed && (
             <p className="border-b border-border px-3 py-2 font-mono text-xs text-secondary" role="status">
-              No confirmed problems. {verification} item{verification === 1 ? "" : "s"} still need
-              verification.
+              No confirmed problems. {verification} item{verification === 1 ? "" : "s"} still{" "}
+              {verification === 1 ? "needs" : "need"} verification.
             </p>
           )}
           {allClear && !clientsUnavailable && (

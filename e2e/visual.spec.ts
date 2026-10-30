@@ -1193,7 +1193,7 @@ test.describe.serial("P32a foundation visual evidence", () => {
         await page.goto(route.path)
         await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
         if (width === 1440 && route.slug === "settings") {
-          const box = await page.locator("[data-settings-page]").boundingBox()
+          const box = await page.locator("[data-settings-page]").first().boundingBox()
           expect(box?.width ?? 0).toBeLessThanOrEqual(896)
         }
         if (width === 390 && route.slug === "settings") {
@@ -1280,6 +1280,97 @@ test.describe.serial("P32a foundation visual evidence", () => {
       await page.screenshot({
         path: `test-results/p33b-pathways-details-${width}-dark.png`,
       })
+    }
+  })
+
+  test("keeps one page frame and the Dashboard H1 in both views", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+    const routes = [
+      { slug: "dashboard", path: "/" },
+      { slug: "pathways", path: "/pathways" },
+      { slug: "tracker", path: `/trackers/${foundationTrackerId}` },
+      { slug: "settings", path: "/settings" },
+    ]
+
+    for (const width of [1440, 390]) {
+      const measurements: { slug: string; frame: number }[] = []
+      for (const route of routes) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+        await page.goto(route.path)
+        await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+        if (width === 390) {
+          await page.waitForFunction(() => document.querySelector('[data-mobile="true"]') !== null)
+        }
+        const measurement = await page.evaluate(() => {
+          const frame = document.querySelector<HTMLElement>("[data-page-frame]")
+          return {
+            frame: frame?.getBoundingClientRect().width ?? 0,
+          }
+        })
+        expect(
+          measurement.frame,
+          `${route.slug} fills the shared frame at ${width}`
+        ).toBeGreaterThan(0)
+        measurements.push({ slug: route.slug, ...measurement })
+      }
+      const widths = measurements.map((measurement) => measurement.frame)
+      expect(
+        Math.max(...widths) - Math.min(...widths),
+        `page frames agree at ${width}`
+      ).toBeLessThanOrEqual(8)
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.goto("/")
+    await expect(page.locator("#main-content h1").first()).toHaveText("Dashboard")
+    await page.getByRole("button", { name: "Table" }).click()
+    await expect(page.locator("#main-content h1").first()).toHaveText("Dashboard")
+  })
+
+  test("captures the dashboard grid cards at 1440 and 390", async ({ page }) => {
+    test.setTimeout(120_000)
+
+    for (const width of [1440, 390]) {
+      for (const theme of ["light", "dark"] as const) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+        await page.goto("/")
+        await page.getByRole("button", { name: "Grid" }).click()
+        await expect(page.locator("#main-content [data-tracker-grid]")).toBeVisible()
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        await page.waitForTimeout(150)
+        await page.screenshot({
+          path: `test-results/p34a-dashboard-grid-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
+  test("captures the detail metric hues at 1440 and 390", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(foundationTrackerId).not.toBeNull()
+
+    for (const width of [1440, 390]) {
+      for (const theme of ["light", "dark"] as const) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 })
+        await page.goto(`/trackers/${foundationTrackerId}`)
+        if (width === 390) {
+          await page.waitForFunction(
+            () => document.querySelector('[data-mobile="true"]') !== null
+          )
+        }
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        const cards = page.locator("[data-core-stat-cards]:visible").first()
+        await cards.scrollIntoViewIfNeeded()
+        await page.waitForTimeout(150)
+        await page.screenshot({
+          path: `test-results/p34a-tracker-stats-${width}-${theme}.png`,
+        })
+      }
     }
   })
 })

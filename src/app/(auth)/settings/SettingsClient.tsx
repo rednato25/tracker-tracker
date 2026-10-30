@@ -99,7 +99,7 @@ export function SettingsClient({
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
 
   return (
-    <div data-settings-page className="mx-auto flex w-full max-w-4xl flex-col gap-10 pb-16">
+    <div data-settings-page className="flex w-full max-w-4xl flex-col gap-10 pb-16">
       <div className="flex flex-col gap-6">
         <H1>Settings</H1>
         <TabBar tabs={SETTINGS_TABS} activeTab={activeTab} onChange={setActiveTab} wrap />

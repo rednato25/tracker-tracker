@@ -16,6 +16,7 @@ interface DashboardTotalsProps {
   trackers: TrackerSummary[]
   aggregateStats: AggregateStats
   attentionCount: number
+  verificationCount?: number
   snapshotMap: Map<number, Snapshot[]>
   now?: Date
 }
@@ -34,6 +35,7 @@ export function DashboardTotals({
   trackers,
   aggregateStats,
   attentionCount,
+  verificationCount = 0,
   snapshotMap,
   now = new Date(),
 }: DashboardTotalsProps) {
@@ -50,11 +52,15 @@ export function DashboardTotals({
   const unverifiedCount = included.filter(
     (tracker) => getSnapshotReadout(tracker, now).state === "unknown"
   ).length
-  const coverageIncomplete = missing > 0 || staleCount > 0 || unverifiedCount > 0
+  const coverageIncomplete =
+    missing > 0 || staleCount > 0 || unverifiedCount > 0 || verificationCount > 0
   const coverageParts = [
     offline > 0 ? `${offline} offline` : null,
     staleCount > 0 ? `${staleCount} stale` : null,
     unverifiedCount > 0 ? `${unverifiedCount} unverified` : null,
+    verificationCount > 0
+      ? `${verificationCount} ${verificationCount === 1 ? "needs" : "need"} verification`
+      : null,
   ].filter((part): part is string => part !== null)
   const coverageText = coverageParts.join(" \u00b7 ") || "coverage incomplete"
   const actionLabel = `${attentionCount} ${attentionCount === 1 ? "action" : "actions"}`

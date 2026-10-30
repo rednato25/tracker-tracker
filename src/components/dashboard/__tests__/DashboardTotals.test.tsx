@@ -124,6 +124,26 @@ describe("DashboardTotals", () => {
     ).toBe("warn")
   })
 
+  it("counts an unresolved verification item as incomplete coverage", () => {
+    const items = [tracker()]
+    const { container } = render(
+      <DashboardTotals
+        trackers={items}
+        aggregateStats={computeAggregateStats(items)}
+        attentionCount={0}
+        verificationCount={1}
+        snapshotMap={new Map([[1, [snapshot()]]])}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("0 actions \u00b7 1 needs verification")).toBeInTheDocument()
+    expect(
+      container
+        .querySelector('[data-total-tile="need-attention"]')
+        ?.getAttribute("data-total-tone")
+    ).toBe("warn")
+  })
+
   it("stays green only when coverage is complete", () => {
     const items = [tracker()]
     const { container } = render(

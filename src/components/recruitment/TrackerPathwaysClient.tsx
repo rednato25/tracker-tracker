@@ -582,7 +582,7 @@ export function TrackerPathwaysClient({
   }
 
   return (
-    <div className="flex flex-col gap-10 pb-24" data-pathways-page>
+    <div className="flex flex-col gap-10 pb-24" data-pathways-page data-page-frame>
       <div className="flex flex-col gap-1">
         <H1>Tracker pathways</H1>
         <Paragraph className="max-w-3xl">

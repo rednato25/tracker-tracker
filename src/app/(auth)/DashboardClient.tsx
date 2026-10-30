@@ -134,6 +134,10 @@ export function DashboardClient({
     () => actions.filter((action) => action.status === "action-required").length,
     [actions]
   )
+  const verificationCount = useMemo(
+    () => actions.filter((action) => action.status === "needs-verification").length,
+    [actions]
+  )
 
   // Sections render expanded until localStorage has been read. Charts gate the other way
   // (collapsed until hydrated) because mounting echarts is expensive; section content is
@@ -172,7 +176,7 @@ export function DashboardClient({
   }
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full" data-page-frame>
       <div className="mb-4 flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border py-1.5">
         <H1>Dashboard</H1>
         <div className="flex flex-wrap items-center gap-2">
@@ -211,6 +215,7 @@ export function DashboardClient({
           trackers={data.trackers}
           aggregateStats={aggregateStats}
           attentionCount={attentionCount}
+          verificationCount={verificationCount}
           snapshotMap={data.snapshotMap}
           now={new Date(now)}
         />

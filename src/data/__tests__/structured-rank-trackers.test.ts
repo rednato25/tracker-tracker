@@ -77,20 +77,20 @@ describe("P35 structured rank requirements", () => {
     expect(trailblazer.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
   })
 
-  it("RetroToon World: Toon Hero meets the FAQ thresholds and Toon Legend needs more upload", () => {
+  it("RetroToon World: Toon Hero meets the confirmed thresholds and Toon Superstar is met at 89 days", () => {
     const hero = evaluate("retrotoon", "Toon Hero", {
-      accountAgeDays: 60,
+      accountAgeDays: 14,
       uploadedBytes: 50 * GiB,
       accountRatio: 1.05,
     })
     expect(hero.status).toBe("met")
 
-    const legend = evaluate("retrotoon", "Toon Legend", {
-      accountAgeDays: 180,
-      uploadedBytes: 50 * GiB,
-      accountRatio: 2.05,
+    const superstar = evaluate("retrotoon", "Toon Superstar", {
+      accountAgeDays: 89,
+      uploadedBytes: 1.32 * TiB,
+      accountRatio: 2.5,
     })
-    expect(legend.status).toBe("unmet")
+    expect(superstar.status).toBe("met")
   })
 
   it("Upload.cx: Member meets numeric thresholds and Master needs seed checks", () => {

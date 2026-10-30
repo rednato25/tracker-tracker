@@ -105,9 +105,12 @@ export function sanitizeNetworkError(raw: string, fallback = "Connection failed"
   if (/EHOSTUNREACH/i.test(raw)) return "Host unreachable"
   if (/ECONNRESET/i.test(raw)) return "Connection reset"
   if (/ip.*ban|ban.*ip|rate.?limit/i.test(raw)) return "IP temporarily banned by tracker"
+  if (/invalid .*api key|api key.*invalid/i.test(raw)) return "Invalid API key"
   if (/401|403|Unauthorized|Forbidden/i.test(raw)) return "Authentication failed"
   if (/Session expired/i.test(raw)) return "Session expired"
-  if (/Credentials.*missing|invalid/i.test(raw)) return "Invalid credentials"
+  if (/Credentials.*missing|invalid|api key is missing or invalid/i.test(raw)) {
+    return "Invalid credentials"
+  }
   if (/proxy/i.test(raw)) return "Proxy connection failed"
   const apiMatch = raw.match(/Tracker API error: (\d+)/i)
   if (apiMatch) return `API returned ${apiMatch[1]}`

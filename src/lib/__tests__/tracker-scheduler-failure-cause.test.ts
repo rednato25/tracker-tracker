@@ -36,6 +36,7 @@ vi.mock("@/lib/tracker-platforms", () => ({
 
 import { db } from "@/lib/db"
 import { log } from "@/lib/logger"
+import { LOGIN_EXPIRED_STOP_MESSAGE } from "@/lib/tracker-recovery"
 import { pollTracker } from "@/lib/tracker-scheduler"
 
 /** Drizzle-shaped chain: any method sequence resolves to `result`. */
@@ -106,6 +107,52 @@ describe("pollTracker failure logging", () => {
     expect(entry).toBeDefined()
     expect(entry?.[1]).toBe("Poll failed for tracker 42: Poll failed")
     expect(entry?.[0]).toMatchObject({ trackerId: 42, trackerName: "LST", cause: raw })
+  })
+
+  it("allows the first retry after an auth rejection, then stores the stop marker", async () => {
+    const set = vi.fn(() => chain([{ consecutiveFailures: 5, pausedAt: new Date() }]))
+    vi.mocked(db.update).mockImplementation((() => ({ set })) as never)
+    vi.mocked(db.select).mockImplementation(((cols: Record<string, unknown>) => {
+      const keys = Object.keys(cols ?? {})
+      if (keys.includes("encryptedApiToken")) {
+        return chain([
+          {
+            ...TRACKER_ROW,
+            pausedAt: new Date("2026-10-30T10:00:00.000Z"),
+            consecutiveFailures: 4,
+            lastError: "Authentication failed",
+          },
+        ])
+      }
+      return chain([])
+    }) as never)
+    fetchStats.mockRejectedValue(new Error("Session expired"))
+
+    await pollTracker(42, KEY, false)
+
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({ lastError: LOGIN_EXPIRED_STOP_MESSAGE })
+    )
+  })
+
+  it("stores the ordinary auth error on the pause failure so one retry still happens", async () => {
+    const set = vi.fn(() => chain([{ consecutiveFailures: 4, pausedAt: new Date() }]))
+    vi.mocked(db.update).mockImplementation((() => ({ set })) as never)
+    vi.mocked(db.select).mockImplementation(((cols: Record<string, unknown>) => {
+      const keys = Object.keys(cols ?? {})
+      if (keys.includes("encryptedApiToken")) {
+        return chain([{ ...TRACKER_ROW, pausedAt: null, consecutiveFailures: 3 }])
+      }
+      return chain([])
+    }) as never)
+    fetchStats.mockRejectedValue(new Error("Session expired"))
+
+    await pollTracker(42, KEY, false)
+
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ lastError: "Session expired" }))
+    expect(set).not.toHaveBeenCalledWith(
+      expect.objectContaining({ lastError: LOGIN_EXPIRED_STOP_MESSAGE })
+    )
   })
 
   it("drops the bound params from a database failure's cause", async () => {

@@ -4,7 +4,7 @@
 // formatRatio, formatAccountAge, formatJoinedDate, formatStatValue,
 // formatDuration, formatTimeAgo, splitValueUnit,
 // localDateStr, formatSpeed,
-// formatRatioDisplay, formatCount, formatPercent, formatDateTime
+// formatRatioDisplay, formatCount, formatPercent, formatClockTime, formatDateTime
 
 import type { TrackerLatestStats } from "@/types/api"
 
@@ -267,6 +267,18 @@ export function formatDate(dateOrIso: Date | string | number): string {
       : dateOrIso
   if (Number.isNaN(date.getTime())) return "\u2014"
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
+/** Formats a Date, ISO string, or timestamp as HH:MM in 24-hour time. */
+export function formatClockTime(dateOrIso: Date | string | number): string {
+  const d =
+    typeof dateOrIso === "string" || typeof dateOrIso === "number" ? new Date(dateOrIso) : dateOrIso
+  if (Number.isNaN(d.getTime())) return "\u2014"
+  return d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
 }
 
 /** Formats a Date, ISO string, or timestamp as a locale-pinned datetime string. */

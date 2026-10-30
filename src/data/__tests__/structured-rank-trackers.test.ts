@@ -91,4 +91,21 @@ describe("P35 structured rank requirements", () => {
     })
     expect(legend.status).toBe("unmet")
   })
+
+  it("Upload.cx: Member meets numeric thresholds and Master needs seed checks", () => {
+    const member = evaluate("uploadcx", "Member", {
+      accountAgeDays: 14,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 0.6,
+    })
+    expect(member.status).toBe("met")
+
+    const master = evaluate("uploadcx", "Master", {
+      accountAgeDays: 120,
+      uploadedBytes: 50 * TiB,
+      accountRatio: 1.1,
+    })
+    expect(master.status).toBe("unknown")
+    expect(master.progress).toEqual({ met: 3, unmet: 0, unknown: 2, total: 5 })
+  })
 })

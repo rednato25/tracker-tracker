@@ -2,6 +2,8 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const TiB = 1024 ** 4
+
 export const uploadcx: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "uploadcx",
@@ -29,6 +31,20 @@ export const uploadcx: TrackerRegistryEntry = {
   statusPageUrl: "",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rank page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "Average seed time and seed size are not supported rank metrics and stay as unsupported conditions.",
+    "Download slots, invites, freeleech and H&R immunity are perks, not promotion thresholds.",
+  ],
   userClasses: [
     // Dynamic. upload-based
     {
@@ -39,6 +55,12 @@ export const uploadcx: TrackerRegistryEntry = {
     {
       name: "User",
       requirements: "Ratio ≥ 0.6. 10 download slots, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.6, scope: "account", label: "Ratio at least 0.6" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 10" },
         { type: "invite", label: "Send Invite" },
@@ -47,6 +69,14 @@ export const uploadcx: TrackerRegistryEntry = {
     {
       name: "Member",
       requirements: "Upload ≥ 1 TiB, ratio ≥ 0.6, age ≥ 2 weeks. 15 download slots",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-member-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 14, scope: "account", label: "At least 2 weeks registered" },
+          { kind: "numeric", id: "ucx-member-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "ucx-member-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.6, scope: "account", label: "Ratio at least 0.6" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 15" },
         { type: "invite", label: "Send Invite" },
@@ -55,6 +85,14 @@ export const uploadcx: TrackerRegistryEntry = {
     {
       name: "Power User",
       requirements: "Upload ≥ 3 TiB, ratio ≥ 1.0, age ≥ 2 weeks. 20 download slots",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 14, scope: "account", label: "At least 2 weeks registered" },
+          { kind: "numeric", id: "ucx-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 3 * TiB, scope: "account", label: "At least 3 TiB uploaded" },
+          { kind: "numeric", id: "ucx-power-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 20" },
         { type: "upload", label: "Upload Torrents" },
@@ -65,6 +103,14 @@ export const uploadcx: TrackerRegistryEntry = {
       name: "Elite",
       requirements:
         "Upload ≥ 10 TiB, ratio ≥ 1.05, age ≥ 1 month. 25 download slots, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-elite-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
+          { kind: "numeric", id: "ucx-elite-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", label: "At least 10 TiB uploaded" },
+          { kind: "numeric", id: "ucx-elite-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.05, scope: "account", label: "Ratio at least 1.05" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 25" },
         { type: "upload", label: "Upload Torrents" },
@@ -76,6 +122,16 @@ export const uploadcx: TrackerRegistryEntry = {
       name: "Master",
       requirements:
         "Upload ≥ 50 TiB, ratio ≥ 1.1, age ≥ 4 months, avg seedtime ≥ 3 months, seed size ≥ 20 TiB. Unlimited download slots, freeleech, H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-master-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 120, scope: "account", label: "At least 4 months registered" },
+          { kind: "numeric", id: "ucx-master-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * TiB, scope: "account", label: "At least 50 TiB uploaded" },
+          { kind: "numeric", id: "ucx-master-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.1" },
+          { kind: "non-numeric", label: "Average seed time ≥ 3 months" },
+          { kind: "non-numeric", label: "Seed size ≥ 20 TiB" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: ∞" },
         { type: "upload", label: "Upload Torrents" },
@@ -89,6 +145,16 @@ export const uploadcx: TrackerRegistryEntry = {
       name: "Veteran",
       requirements:
         "Upload ≥ 100 TiB, ratio ≥ 1.1, age ≥ 5 months, avg seedtime ≥ 4 months, seed size ≥ 30 TiB. Unlimited download slots, freeleech, H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-veteran-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 150, scope: "account", label: "At least 5 months registered" },
+          { kind: "numeric", id: "ucx-veteran-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", label: "At least 100 TiB uploaded" },
+          { kind: "numeric", id: "ucx-veteran-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.1, scope: "account", label: "Ratio at least 1.1" },
+          { kind: "non-numeric", label: "Average seed time ≥ 4 months" },
+          { kind: "non-numeric", label: "Seed size ≥ 30 TiB" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: ∞" },
         { type: "upload", label: "Upload Torrents" },
@@ -103,6 +169,15 @@ export const uploadcx: TrackerRegistryEntry = {
       name: "Seeder",
       requirements:
         "Ratio ≥ 1.0, age ≥ 2 months, avg seedtime ≥ 1 month, seed size ≥ 5 TiB. 25 download slots, H&R immune, torrent mod bypass",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-seeder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 2 months registered" },
+          { kind: "numeric", id: "ucx-seeder-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
+          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
+          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: 25" },
         { type: "hnr-immune", label: "H&R Immune" },
@@ -113,6 +188,15 @@ export const uploadcx: TrackerRegistryEntry = {
       name: "Archivist",
       requirements:
         "Ratio ≥ 1.0, age ≥ 3 months, avg seedtime ≥ 2 months, seed size ≥ 10 TiB. Unlimited download slots, freeleech, H&R immune",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ucx-archivist-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "ucx-archivist-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
+          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
+          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
+        ],
+      },
       perks: [
         { type: "download-slots", label: "DL Slots: ∞" },
         { type: "freeleech", label: "Freeleech" },

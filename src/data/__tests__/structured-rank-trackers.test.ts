@@ -203,6 +203,22 @@ describe("P35 structured rank requirements", () => {
     expect(member.status).toBe("met")
   })
 
+  it("DigitalCore: Sentinel meets its numeric thresholds and Viceroy needs more age", () => {
+    const sentinel = evaluate("digitalcore", "Sentinel", {
+      accountAgeDays: 14,
+      uploadedBytes: 50 * GiB,
+      accountRatio: 1.05,
+    })
+    expect(sentinel.status).toBe("met")
+
+    const viceroy = evaluate("digitalcore", "Viceroy", {
+      accountAgeDays: 14,
+      uploadedBytes: 50 * GiB,
+      accountRatio: 1.05,
+    })
+    expect(viceroy.status).toBe("unmet")
+  })
+
   it("Portugas: Hispanus meets the published thresholds and Portuga needs more upload", () => {
     const hispanus = evaluate("portugas", "Hispanus", {
       accountAgeDays: 90,

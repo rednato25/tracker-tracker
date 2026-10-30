@@ -21,7 +21,7 @@ import {
   datePrefix,
   normalizeWhitespace,
   tryParseCount,
-  tryParseSiteBytes,
+  tryParseTbdevBytes,
 } from "../helpers/html-parse"
 
 // ---------------------------------------------------------------------------
@@ -111,9 +111,9 @@ export function parseFilelistProfile(html: string, hostname: string): TrackerSta
     const value = normalizeWhitespace(valueCell.textContent ?? "")
 
     if (label === "Uploaded") {
-      uploadedBytes = tryParseSiteBytes(value) ?? uploadedBytes
+      uploadedBytes = tryParseTbdevBytes(value) ?? uploadedBytes
     } else if (label === "Downloaded") {
-      downloadedBytes = tryParseSiteBytes(value) ?? downloadedBytes
+      downloadedBytes = tryParseTbdevBytes(value) ?? downloadedBytes
     } else if (label === "Class") {
       group = value || null
     } else if (label === "Join date") {
@@ -137,7 +137,7 @@ export function parseFilelistProfile(html: string, hostname: string): TrackerSta
       )
       if (match) {
         seedingCount = Number.parseInt(match[1].replace(/,/g, ""), 10)
-        const size = tryParseSiteBytes(match[2])
+        const size = tryParseTbdevBytes(match[2])
         // platformMeta is JSON-serialized; bigint does not survive JSON.
         if (size !== undefined) totalSeedSizeBytes = Number(size)
       }

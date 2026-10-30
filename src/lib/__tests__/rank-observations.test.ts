@@ -102,4 +102,65 @@ describe("buildRankObservations", () => {
       })
     ).toEqual({})
   })
+
+  it("reads stored seed size from each platform's own metadata key", () => {
+    const filelist = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "filelist",
+      platformMeta: { totalSeedSizeBytes: 5 * 1024 ** 4 },
+      now: NOW,
+    })
+    expect(filelist.seedSizeBytes?.value).toBe(5 * 1024 ** 4)
+
+    const portugas = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "portugas",
+      platformMeta: { seedSizeBytes: 2 * 1024 ** 4 },
+      now: NOW,
+    })
+    expect(portugas.seedSizeBytes?.value).toBe(2 * 1024 ** 4)
+
+    const digitalcore = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "digitalcore",
+      platformMeta: { seedSizeBytes: 3 * 1024 ** 3 },
+      now: NOW,
+    })
+    expect(digitalcore.seedSizeBytes?.value).toBe(3 * 1024 ** 3)
+  })
+
+  it("reads CarPT seeding points and leaves average seed time uncollected", () => {
+    const result = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "carpt",
+      platformMeta: { seedingPoints: 27730.1 },
+      now: NOW,
+    })
+    expect(result.seedingPoints?.value).toBe(27730.1)
+    expect(result.averageSeedTimeSeconds).toBeUndefined()
+  })
+
+  it("keeps a missing seed size or seeding points absent instead of zero", () => {
+    const filelist = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "filelist",
+      platformMeta: {},
+      now: NOW,
+    })
+    expect(filelist.seedSizeBytes).toBeUndefined()
+
+    const carpt = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "carpt",
+      platformMeta: {},
+      now: NOW,
+    })
+    expect(carpt.seedingPoints).toBeUndefined()
+  })
 })

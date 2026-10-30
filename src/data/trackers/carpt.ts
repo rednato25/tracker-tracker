@@ -43,7 +43,7 @@ export const carpt: TrackerRegistryEntry = {
       "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
   },
   rankUnresolved: [
-    "Seeding points are a separate CarPT statistic, not seedbonus; they stay as unsupported conditions.",
+    "Seeding points are a separate CarPT statistic, not seedbonus; they are collected from platformMeta.",
     "GB/TB text without a stated unit basis is read as the larger binary GiB/TiB value.",
     "Demotion ratios in the source text are not promotion conditions.",
   ],
@@ -65,7 +65,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 28, scope: "account", label: "At least 4 weeks registered" },
           { kind: "numeric", id: "cpt-power-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 200 * GiB, scope: "account", unitReading: "conservative", label: "At least 200 GiB downloaded" },
           { kind: "numeric", id: "cpt-power-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 2, scope: "account", label: "Ratio above 2" },
-          { kind: "non-numeric", label: "At least 40,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 40000, scope: "account", label: "At least 40,000 seeding points" },
         ],
       },
       perks: [
@@ -84,7 +84,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-elite-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 56, scope: "account", label: "At least 8 weeks registered" },
           { kind: "numeric", id: "cpt-elite-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 500 * GiB, scope: "account", unitReading: "conservative", label: "At least 500 GiB downloaded" },
           { kind: "numeric", id: "cpt-elite-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 3, scope: "account", label: "Ratio above 3" },
-          { kind: "non-numeric", label: "At least 80,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 80000, scope: "account", label: "At least 80,000 seeding points" },
         ],
       },
       perks: [
@@ -103,7 +103,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-crazy-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 105, scope: "account", label: "At least 15 weeks registered" },
           { kind: "numeric", id: "cpt-crazy-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", unitReading: "conservative", label: "At least 1 TiB downloaded" },
           { kind: "numeric", id: "cpt-crazy-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 4, scope: "account", label: "Ratio above 4" },
-          { kind: "non-numeric", label: "At least 150,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 150000, scope: "account", label: "At least 150,000 seeding points" },
         ],
       },
       perks: [
@@ -122,7 +122,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-insane-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 175, scope: "account", label: "At least 25 weeks registered" },
           { kind: "numeric", id: "cpt-insane-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 2 * TiB, scope: "account", unitReading: "conservative", label: "At least 2 TiB downloaded" },
           { kind: "numeric", id: "cpt-insane-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 5, scope: "account", label: "Ratio above 5" },
-          { kind: "non-numeric", label: "At least 250,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 250000, scope: "account", label: "At least 250,000 seeding points" },
         ],
       },
       perks: [
@@ -141,7 +141,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-veteran-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 280, scope: "account", label: "At least 40 weeks registered" },
           { kind: "numeric", id: "cpt-veteran-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 4 * TiB, scope: "account", unitReading: "conservative", label: "At least 4 TiB downloaded" },
           { kind: "numeric", id: "cpt-veteran-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 6, scope: "account", label: "Ratio above 6" },
-          { kind: "non-numeric", label: "At least 400,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 400000, scope: "account", label: "At least 400,000 seeding points" },
         ],
       },
       perks: [
@@ -160,7 +160,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-extreme-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 420, scope: "account", label: "At least 60 weeks registered" },
           { kind: "numeric", id: "cpt-extreme-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 6 * TiB, scope: "account", unitReading: "conservative", label: "At least 6 TiB downloaded" },
           { kind: "numeric", id: "cpt-extreme-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 7, scope: "account", label: "Ratio above 7" },
-          { kind: "non-numeric", label: "At least 600,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 600000, scope: "account", label: "At least 600,000 seeding points" },
         ],
       },
       perks: [
@@ -179,7 +179,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-ultimate-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 560, scope: "account", label: "At least 80 weeks registered" },
           { kind: "numeric", id: "cpt-ultimate-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 8 * TiB, scope: "account", unitReading: "conservative", label: "At least 8 TiB downloaded" },
           { kind: "numeric", id: "cpt-ultimate-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 8, scope: "account", label: "Ratio above 8" },
-          { kind: "non-numeric", label: "At least 800,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 800000, scope: "account", label: "At least 800,000 seeding points" },
         ],
       },
       perks: [
@@ -198,7 +198,7 @@ export const carpt: TrackerRegistryEntry = {
           { kind: "numeric", id: "cpt-nexus-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 700, scope: "account", label: "At least 100 weeks registered" },
           { kind: "numeric", id: "cpt-nexus-download", metric: "downloadedBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", unitReading: "conservative", label: "At least 10 TiB downloaded" },
           { kind: "numeric", id: "cpt-nexus-ratio", metric: "accountRatio", comparison: "gt", requiredValue: 9, scope: "account", label: "Ratio above 9" },
-          { kind: "non-numeric", label: "At least 1,000,000 seeding points" },
+          { kind: "numeric", metric: "seedingPoints", comparison: "gte", requiredValue: 1000000, scope: "account", label: "At least 1,000,000 seeding points" },
         ],
       },
       perks: [

@@ -6,7 +6,7 @@
 // model is introduced; this reads the registry and the P09 evaluator.
 
 import { registryEntryFor, type TrackerRegistryEntry } from "@/data/tracker-registry"
-import { formatBytesNum, formatCount, formatRatio } from "@/lib/formatters"
+import { formatBytesNum, formatCount, formatDuration, formatRatio } from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
 import {
   evaluateRankGoal,
@@ -19,7 +19,7 @@ import {
   type RankObservationMap,
   type RankRequirementGroup,
 } from "@/lib/rank-goals"
-import { ladderPosition } from "@/lib/rank-ladder"
+import { hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -36,6 +36,9 @@ const SUPPORTED_METRICS = new Set<RankMetric>([
   "bufferBytes",
   "seedingCount",
   "seedbonus",
+  "seedSizeBytes",
+  "seedingPoints",
+  "averageSeedTimeSeconds",
   "accountAgeDays",
   "uploads",
   "hitAndRuns",
@@ -101,6 +104,8 @@ function formatValue(metric: RankMetric | null, value: number | null): string {
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
     return formatBytesNum(value)
   }
+  if (metric === "seedSizeBytes") return formatBytesNum(value)
+  if (metric === "averageSeedTimeSeconds") return formatDuration(value)
   if (metric === "accountRatio") return formatRatio(value)
   if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
   return formatCount(value)
@@ -112,25 +117,17 @@ function flattenConditions(result: RankGroupResult): RankConditionResult[] {
   )
 }
 
-function unknownReasonFor(
-  condition: RankConditionResult,
-  platformType: string | null
-): RankUnknownReason | null {
+function unknownReasonFor(condition: RankConditionResult): RankUnknownReason | null {
   if (condition.status !== "unknown" || condition.freshness === "stale") return null
   if (condition.kind !== "numeric") return UNKNOWN_UNSUPPORTED
   if (condition.scope === "per-torrent" || condition.verification === "unresolved") {
     return UNKNOWN_UNSUPPORTED
   }
   if (!condition.metric || !SUPPORTED_METRICS.has(condition.metric)) return UNKNOWN_UNSUPPORTED
-  // Upload count is only exposed by Gazelle's community profile.
-  if (condition.metric === "uploads" && platformType !== "gazelle") return UNKNOWN_UNSUPPORTED
   return UNKNOWN_COLLECTED
 }
 
-function toCondition(
-  condition: RankConditionResult,
-  platformType: string | null
-): RankOverviewCondition {
+function toCondition(condition: RankConditionResult): RankOverviewCondition {
   const metric = condition.metric ?? null
   return {
     id: condition.id,
@@ -138,7 +135,7 @@ function toCondition(
     current: formatValue(metric, condition.observedValue),
     required: formatValue(metric, condition.requiredValue),
     status: condition.status,
-    unknownReason: unknownReasonFor(condition, platformType),
+    unknownReason: unknownReasonFor(condition),
     reason: condition.reason || null,
     metric,
   }
@@ -226,7 +223,7 @@ function buildOne(
     ? evaluateRequirementGroup(focusClass.structured, input)
     : null
   const conditions = result
-    ? flattenConditions(result).map((condition) => toCondition(condition, tracker.platformType))
+    ? flattenConditions(result).map((condition) => toCondition(condition))
     : []
 
   return {
@@ -241,7 +238,8 @@ function buildOne(
     targetReached: savedTargetReached,
     reachedTarget: savedTargetReached ? (savedClass?.name ?? null) : null,
     highestAutomatic:
-      evaluation.status === "no-next-rank" || evaluation.status === "appointed",
+      (evaluation.status === "no-next-rank" || evaluation.status === "appointed") &&
+      !hasAutomaticClassAbove(entry?.userClasses ?? [], entry?.rankPaths, currentClass),
     hasStructuredRules: Boolean(focusClass?.structured),
     ruleText: focusClass?.requirements ?? null,
     conditions,

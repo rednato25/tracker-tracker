@@ -3,6 +3,7 @@
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
 const TiB = 1024 ** 4
+const DAY = 86_400
 
 export const seedcore: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
@@ -129,8 +130,8 @@ export const seedcore: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "sc-seeder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
           { kind: "numeric", id: "sc-seeder-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Seed size ≥ 5 TiB" },
-          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "Seed size ≥ 5 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 30 * DAY, scope: "account", label: "Average seed time ≥ 1 month" },
         ],
       },
     },
@@ -142,8 +143,8 @@ export const seedcore: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "sc-archivist-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", id: "sc-archivist-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
-          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", label: "Seed size ≥ 10 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 60 * DAY, scope: "account", label: "Average seed time ≥ 2 months" },
         ],
       },
     },

@@ -1,7 +1,8 @@
 // src/lib/tracker-platforms/adapters/digitalcore.ts
 //
 // Functions: parseDigitalCoreCredentials, dcFlag, dcClassNameFromId,
-//            parseJsonSafe, fetchDCJson, readStatusUser, DigitalCoreAdapter
+//            dcSeedSizeBytes, parseJsonSafe, fetchDCJson, readStatusUser,
+//            DigitalCoreAdapter
 
 import { computeBufferBytes, computeRatio } from "@/lib/data-transforms"
 import { log } from "@/lib/logger"
@@ -140,6 +141,16 @@ function dcClassNameFromId(classId: unknown): string | null {
   return DC_CLASS_MAP[String(classId)] ?? `Class ${classId}`
 }
 
+/**
+ * `/api/v1/status` reports the seeding size in GB, and its GB is binary
+ * (2^30). Rounding keeps the stored value an integer number of bytes.
+ */
+function dcSeedSizeBytes(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.round(value * 1024 ** 3)
+    : undefined
+}
+
 // ---------------------------------------------------------------------------
 // API response types
 // ---------------------------------------------------------------------------
@@ -157,6 +168,7 @@ interface DCStatusUser {
   hnr: number
   hnr_warned: string
   myseedstotal: number
+  currentGbSeed?: number
   invites: number
   donor: string
   seedboxdonor: string
@@ -316,6 +328,7 @@ export class DigitalCoreAdapter implements TrackerAdapter {
       // which is the same distinction TrackerStats keeps with null.
       invites: user.invites ?? undefined,
       leechBonus: user.leechbonus ?? undefined,
+      seedSizeBytes: dcSeedSizeBytes(user.currentGbSeed),
       hnr: user.hnr ?? undefined,
       hnrWarned: dcFlag(user.hnr_warned, "yes"),
       downloadBan: dcFlag(user.downloadban, 1),
@@ -379,6 +392,10 @@ export class DigitalCoreAdapter implements TrackerAdapter {
           : {}),
         uploadedReal: profile.uploaded_real,
         downloadedReal: profile.downloaded_real,
+        // Kept as a profile counter only. The users endpoint's `torrents` field
+        // is not confirmed to be an uploaded-torrent count, so it is not fed to
+        // the rank `uploads` metric; /status carries the separate mytorrents
+        // figure that other clients use for that purpose.
         torrents: profile.torrents ?? undefined,
         requests: profile.requests ?? undefined,
         forumPosts: profile.forumPosts ?? undefined,

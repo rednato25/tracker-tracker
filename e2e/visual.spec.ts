@@ -2027,7 +2027,7 @@ test.describe.serial("P41 rank overview", () => {
     await tl.getByRole("button", { name: "Show earned classes" }).click()
 
     const dv = view.locator(`[data-rank-overview-tracker="${dvId}"]`)
-    await expect(dv.getByText("Not a supported metric").first()).toBeVisible()
+    await expect(dv.getByText("Not collected for this tracker").first()).toBeVisible()
     await expect(dv.getByLabel("Note for TEST P41 DreadVault")).toHaveValue(
       "Site says 500 uploads"
     )

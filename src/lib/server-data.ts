@@ -341,6 +341,8 @@ export async function getTrackerListForDashboard(limit?: number): Promise<Tracke
   // Bound the snapshot lookup to the trackers actually returned. The extra row
   // (limit + 1) lets the caller detect truncation without a count query.
   const trackerIds = allTrackers.map((tracker) => tracker.id)
+  // `id` breaks a same-polledAt tie so the dashboard card and a single-tracker
+  // read cannot pick different rows from the same poll.
   const latestSnapshots =
     trackerIds.length === 0
       ? []
@@ -348,7 +350,7 @@ export async function getTrackerListForDashboard(limit?: number): Promise<Tracke
           .selectDistinctOn([trackerSnapshots.trackerId])
           .from(trackerSnapshots)
           .where(inArray(trackerSnapshots.trackerId, trackerIds))
-          .orderBy(trackerSnapshots.trackerId, desc(trackerSnapshots.polledAt))
+          .orderBy(trackerSnapshots.trackerId, desc(trackerSnapshots.polledAt), desc(trackerSnapshots.id))
 
   // Enforce masking at response time
   // Fallback true = "store usernames" = no masking. Matches createPrivacyMask()
@@ -381,7 +383,7 @@ export async function getTrackerForClient(id: number): Promise<TrackerSummary | 
       .select()
       .from(trackerSnapshots)
       .where(eq(trackerSnapshots.trackerId, id))
-      .orderBy(desc(trackerSnapshots.polledAt))
+      .orderBy(desc(trackerSnapshots.polledAt), desc(trackerSnapshots.id))
       .limit(1),
     db.select({ storeUsernames: appSettings.storeUsernames }).from(appSettings).limit(1),
   ])

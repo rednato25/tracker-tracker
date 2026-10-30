@@ -4,7 +4,7 @@
 // P10 definitions and P11 saved target; it does not create a second rank model.
 
 import { registryEntryFor } from "@/data/tracker-registry"
-import { formatBytesNum, formatCount, formatRatio } from "@/lib/formatters"
+import { formatBytesNum, formatCount, formatDuration, formatRatio } from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
 import { 
   evaluateRankGoal,
@@ -18,7 +18,7 @@ import {
   rankDefinitionForSlug,
   type TrackerRankDefinition,
 } from "@/lib/rank-goals"
-import { ladderPosition } from "@/lib/rank-ladder"
+import { hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -72,6 +72,8 @@ function formatValue(metric: RankMetric | undefined, value: number | null): stri
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
     return formatBytesNum(value)
   }
+  if (metric === "seedSizeBytes") return formatBytesNum(value)
+  if (metric === "averageSeedTimeSeconds") return formatDuration(value)
   if (metric === "accountRatio") return formatRatio(value)
   if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
   return formatCount(value)
@@ -119,6 +121,12 @@ function shortMetricLabel(bar: RankSummaryBar): string {
       return "ratio"
     case "seedbonus":
       return "bonus"
+    case "seedSizeBytes":
+      return "seed size"
+    case "seedingPoints":
+      return "seeding points"
+    case "averageSeedTimeSeconds":
+      return "average seed time"
     default:
       return bar.label.toLowerCase()
   }
@@ -168,7 +176,9 @@ function nextMetaFor(
     name: next.nextRank,
     requirements: next.freeTextRequirement,
     textOnly: next.status === "no-structured-goal",
-    highest: next.status === "no-next-rank" || next.status === "appointed",
+    highest:
+      (next.status === "no-next-rank" || next.status === "appointed") &&
+      !hasAutomaticClassAbove(entry.userClasses ?? [], entry.rankPaths, currentRank),
   }
 }
 
@@ -291,7 +301,9 @@ function buildSummary(
     automaticNextRank,
     nextRankName: next.nextRank,
     nextIsTextOnly,
-    highestAutomatic: next.status === "no-next-rank" || next.status === "appointed",
+    highestAutomatic:
+      (next.status === "no-next-rank" || next.status === "appointed") &&
+      !hasAutomaticClassAbove(entry?.userClasses ?? [], entry?.rankPaths, currentRank),
     status: target ? "goal" : "no-target",
     metCount: progress.met,
     unmetCount: progress.unmet,

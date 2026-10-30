@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 import {
   buildRankOverviews,
   UNKNOWN_COLLECTED,
-  UNKNOWN_UNSUPPORTED,
 } from "@/lib/rank-overview"
 import type { TrackerLatestStats, TrackerSummary } from "@/types/api"
 
@@ -111,7 +110,7 @@ describe("buildRankOverviews", () => {
     expect(upload?.unknownReason).toBe(UNKNOWN_COLLECTED)
   })
 
-  it("labels a metric the observation builder never supplies as not supported", () => {
+  it("labels a supported metric with no observation as not collected, even off Gazelle", () => {
     const [overview] = buildRankOverviews(
       [
         tracker({
@@ -126,7 +125,25 @@ describe("buildRankOverviews", () => {
     )
     const uploads = overview.conditions.find((condition) => condition.metric === "uploads")
     expect(uploads?.status).toBe("unknown")
-    expect(uploads?.unknownReason).toBe(UNKNOWN_UNSUPPORTED)
+    expect(uploads?.unknownReason).toBe(UNKNOWN_COLLECTED)
+  })
+
+  it("labels an uploads requirement on a UNIT3D tracker as not collected", () => {
+    const [overview] = buildRankOverviews(
+      [
+        tracker({
+          id: 5,
+          name: "Zenith",
+          registrySlug: "zenith",
+          latestStats: { ...BASE_STATS, group: "Explorer" },
+        }),
+      ],
+      { "5": { targetRank: "Bulker" } },
+      NOW
+    )
+    const uploads = overview.conditions.find((condition) => condition.metric === "uploads")
+    expect(uploads?.status).toBe("unknown")
+    expect(uploads?.unknownReason).toBe(UNKNOWN_COLLECTED)
   })
 
   it("keeps free-text ladders when the registry publishes no structured goal", () => {
@@ -170,6 +187,32 @@ describe("buildRankOverviews", () => {
     expect(overview.conditions).toEqual([])
     expect(overview.source.verification).toBe("missing")
     expect(overview.siteUrl).toBe("https://tl.invalid")
+  })
+
+  it("does not call a branching prefix the top of the ladder", () => {
+    const [overview] = buildRankOverviews(
+      [
+        tracker({
+          id: 5,
+          name: "Zenith",
+          registrySlug: "zenith",
+          latestStats: { ...BASE_STATS, group: "Explorer" },
+        }),
+      ],
+      { "5": { targetRank: "Bulker" } },
+      NOW
+    )
+    expect(overview.targetClass).toBe("Bulker")
+    expect(overview.targetKind).toBe("saved")
+    expect(overview.highestAutomatic).toBe(false)
+    expect(overview.hasStructuredRules).toBe(true)
+    expect(overview.conditions).toHaveLength(4)
+    const seedTime = overview.conditions.find(
+      (condition) => condition.metric === "averageSeedTimeSeconds"
+    )
+    expect(seedTime?.status).toBe("unknown")
+    expect(seedTime?.unknownReason).toBe(UNKNOWN_COLLECTED)
+    expect(seedTime?.current).toBe("\u2014")
   })
 
   it("marks a saved target at or below the current class and keeps the next automatic class", () => {

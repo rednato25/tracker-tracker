@@ -24,6 +24,7 @@ function mockStatusResponse(overrides?: Partial<Record<string, unknown>>) {
       hnr: 1,
       hnr_warned: "no",
       myseedstotal: 88,
+      currentGbSeed: 120.5,
       invites: 2,
       donor: "no",
       seedboxdonor: "yes",
@@ -374,6 +375,28 @@ describe("DigitalCoreAdapter.fetchStats - core stats", () => {
     const stats = await adapter.fetchStats("https://digitalcore.club", validToken, "")
 
     expect(stats.seedingCount).toBe(77)
+  })
+
+  it("stores currentGbSeed as binary seed size bytes", async () => {
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce(mockResponse(mockStatusResponse({ currentGbSeed: 120.5 })))
+      .mockResolvedValueOnce(mockResponse(mockUserProfileResponse()))
+
+    const stats = await adapter.fetchStats("https://digitalcore.club", validToken, "")
+    const meta = stats.platformMeta as DigitalCorePlatformMeta
+
+    expect(meta.seedSizeBytes).toBe(129_385_889_792)
+  })
+
+  it("leaves seed size absent when the status omits currentGbSeed", async () => {
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce(mockResponse(mockStatusResponse({ currentGbSeed: undefined })))
+      .mockResolvedValueOnce(mockResponse(mockUserProfileResponse()))
+
+    const stats = await adapter.fetchStats("https://digitalcore.club", validToken, "")
+    const meta = stats.platformMeta as DigitalCorePlatformMeta
+
+    expect(meta.seedSizeBytes).toBeUndefined()
   })
 
   it("maps hitAndRuns from hit_and_run_total", async () => {

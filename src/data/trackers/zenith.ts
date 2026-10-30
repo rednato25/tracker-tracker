@@ -2,6 +2,10 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+const TiB = 1024 ** 4
+const DAY = 86_400
+
 export const zenith: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "zenith",
@@ -40,7 +44,7 @@ export const zenith: TrackerRegistryEntry = {
       "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
   },
   rankUnresolved: [
-    "Seed size and weighted average seed time are not supported rank metrics and stay as unsupported conditions.",
+    "Seed size and weighted average seed time are rank metrics, but this tracker's adapter does not collect them yet; their conditions stay unknown.",
     "Upload-path classes add an uploaded-torrent count; the seedsize path does not.",
     "Download slots, invites, freeleech and H&R immunity are perks, not promotion thresholds.",
   ],
@@ -53,8 +57,8 @@ export const zenith: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "zn-explorer-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 7, scope: "account", label: "At least 1 week registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 1 TiB" },
-          { kind: "non-numeric", label: "Weighted average seed time ≥ 3 days" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "Seed size ≥ 1 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 3 * DAY, scope: "account", label: "Weighted average seed time ≥ 3 days" },
         ],
       },
     },
@@ -68,8 +72,8 @@ export const zenith: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "zn-bulker-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
           { kind: "numeric", id: "zn-bulker-uploads", metric: "uploads", comparison: "gte", requiredValue: 100, scope: "account", label: "At least 100 uploaded torrents" },
-          { kind: "non-numeric", label: "Seed size ≥ 512 GiB" },
-          { kind: "non-numeric", label: "Weighted average seed time ≥ 2 weeks" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 512 * GiB, scope: "account", label: "Seed size ≥ 512 GiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 14 * DAY, scope: "account", label: "Weighted average seed time ≥ 2 weeks" },
         ],
       },
       perks: [
@@ -89,8 +93,8 @@ export const zenith: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "zn-force-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", id: "zn-force-uploads", metric: "uploads", comparison: "gte", requiredValue: 200, scope: "account", label: "At least 200 uploaded torrents" },
-          { kind: "non-numeric", label: "Seed size ≥ 1.5 TiB" },
-          { kind: "non-numeric", label: "Weighted average seed time ≥ 3 weeks" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 1.5 * TiB, scope: "account", label: "Seed size ≥ 1.5 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 21 * DAY, scope: "account", label: "Weighted average seed time ≥ 3 weeks" },
         ],
       },
       perks: [
@@ -112,8 +116,8 @@ export const zenith: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "zn-protector-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
           { kind: "numeric", id: "zn-protector-uploads", metric: "uploads", comparison: "gte", requiredValue: 500, scope: "account", label: "At least 500 uploaded torrents" },
-          { kind: "non-numeric", label: "Seed size ≥ 3 TiB" },
-          { kind: "non-numeric", label: "Weighted average seed time ≥ 4 weeks" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 3 * TiB, scope: "account", label: "Seed size ≥ 3 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 28 * DAY, scope: "account", label: "Weighted average seed time ≥ 4 weeks" },
         ],
       },
       perks: [
@@ -135,8 +139,8 @@ export const zenith: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "zn-climber-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 4 TiB" },
-          { kind: "non-numeric", label: "Weighted average seed time ≥ 2 weeks" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 4 * TiB, scope: "account", label: "Seed size ≥ 4 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 14 * DAY, scope: "account", label: "Weighted average seed time ≥ 2 weeks" },
         ],
       },
       perks: [
@@ -154,8 +158,8 @@ export const zenith: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "zn-builder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 16 TiB" },
-          { kind: "non-numeric", label: "Weighted average seed time ≥ 3 weeks" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 16 * TiB, scope: "account", label: "Seed size ≥ 16 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 21 * DAY, scope: "account", label: "Weighted average seed time ≥ 3 weeks" },
         ],
       },
       perks: [
@@ -173,8 +177,8 @@ export const zenith: TrackerRegistryEntry = {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "zn-hoarder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
-          { kind: "non-numeric", label: "Seed size ≥ 30 TiB" },
-          { kind: "non-numeric", label: "Weighted average seed time ≥ 4 weeks" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 30 * TiB, scope: "account", label: "Seed size ≥ 30 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 28 * DAY, scope: "account", label: "Weighted average seed time ≥ 4 weeks" },
         ],
       },
       perks: [

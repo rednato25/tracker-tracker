@@ -110,13 +110,21 @@ describe("P35 structured rank requirements", () => {
     expect(master.progress).toEqual({ met: 3, unmet: 0, unknown: 2, total: 5 })
   })
 
-  it("Zenith: Bulker tracks age and uploads while seed size and seed time stay unknown", () => {
+  it("Zenith: Bulker evaluates age, uploads, seed size and seed time", () => {
     const bulker = evaluate("zenith", "Bulker", {
       accountAgeDays: 30,
       uploads: 100,
     })
     expect(bulker.status).toBe("unknown")
     expect(bulker.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
+
+    const complete = evaluate("zenith", "Bulker", {
+      accountAgeDays: 30,
+      uploads: 100,
+      seedSizeBytes: 512 * GiB,
+      averageSeedTimeSeconds: 14 * 86_400,
+    })
+    expect(complete.status).toBe("met")
   })
 
   it("seedpool: User meets the ratio floor and Pool needs the seed-size check", () => {
@@ -152,7 +160,7 @@ describe("P35 structured rank requirements", () => {
     expect(seeder.progress).toEqual({ met: 2, unmet: 0, unknown: 1, total: 3 })
   })
 
-  it("CarPT: Power User tracks numeric thresholds while seeding points stay unknown", () => {
+  it("CarPT: Power User evaluates seeding points with the other thresholds", () => {
     const power = evaluate("carpt", "Power User", {
       accountAgeDays: 28,
       downloadedBytes: 200 * GiB,
@@ -160,6 +168,14 @@ describe("P35 structured rank requirements", () => {
     })
     expect(power.status).toBe("unknown")
     expect(power.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
+
+    const complete = evaluate("carpt", "Power User", {
+      accountAgeDays: 28,
+      downloadedBytes: 200 * GiB,
+      accountRatio: 2.1,
+      seedingPoints: 40_000,
+    })
+    expect(complete.status).toBe("met")
   })
 
   it("FileList: Power User meets the clear numeric thresholds", () => {

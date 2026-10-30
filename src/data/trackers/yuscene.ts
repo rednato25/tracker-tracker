@@ -3,6 +3,7 @@
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
 const TiB = 1024 ** 4
+const DAY = 86_400
 
 export const yuscene: TrackerRegistryEntry = {
   slug: "yuscene",
@@ -122,7 +123,7 @@ export const yuscene: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "yus-seeder-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 1 month registered" },
           { kind: "numeric", id: "yus-seeder-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Seed size ≥ 4 TiB" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 4 * TiB, scope: "account", label: "Seed size ≥ 4 TiB" },
         ],
       },
     },
@@ -135,8 +136,8 @@ export const yuscene: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "yus-curator-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 2 months registered" },
           { kind: "numeric", id: "yus-curator-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Seed size ≥ 10 TiB" },
-          { kind: "non-numeric", label: "Average seed time ≥ 1 month" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 10 * TiB, scope: "account", label: "Seed size ≥ 10 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 30 * DAY, scope: "account", label: "Average seed time ≥ 1 month" },
         ],
       },
     },
@@ -149,8 +150,8 @@ export const yuscene: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "yus-archivist-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", id: "yus-archivist-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Seed size ≥ 20 TiB" },
-          { kind: "non-numeric", label: "Average seed time ≥ 2 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", label: "Seed size ≥ 20 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 60 * DAY, scope: "account", label: "Average seed time ≥ 2 months" },
         ],
       },
     },
@@ -163,8 +164,8 @@ export const yuscene: TrackerRegistryEntry = {
         conditions: [
           { kind: "numeric", id: "yus-titan-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
           { kind: "numeric", id: "yus-titan-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-          { kind: "non-numeric", label: "Seed size ≥ 40 TiB" },
-          { kind: "non-numeric", label: "Average seed time ≥ 3 months" },
+          { kind: "numeric", metric: "seedSizeBytes", comparison: "gte", requiredValue: 40 * TiB, scope: "account", label: "Seed size ≥ 40 TiB" },
+          { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 90 * DAY, scope: "account", label: "Average seed time ≥ 3 months" },
         ],
       },
     },

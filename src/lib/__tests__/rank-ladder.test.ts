@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { REDACTED_PREFIX } from "@/lib/privacy"
-import { buildRankForest, buildRankLadder, findClassIndex, ladderPosition } from "@/lib/rank-ladder"
+import { buildRankForest, buildRankLadder, findClassIndex, hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
 
 const classes: TrackerUserClass[] = [
   { name: "Banned", requirements: "Broke the rules", outsideLadder: "below" },
@@ -184,5 +184,19 @@ describe("buildRankForest", () => {
     const forest = buildRankForest(forestClasses, paths, "Ghost")
     expect(forest?.unknownClass).toBe(true)
     expect(forest?.summary).toBe("Ghost, not on the registry ladder")
+  })
+
+  it("sees automatic classes beyond a branching shared prefix", () => {
+    expect(hasAutomaticClassAbove(forestClasses, paths, "Explorer")).toBe(true)
+    expect(hasAutomaticClassAbove(forestClasses, paths, "Bulker")).toBe(true)
+    expect(hasAutomaticClassAbove(forestClasses, paths, "Protector")).toBe(false)
+    expect(hasAutomaticClassAbove(forestClasses, paths, "Hoarder")).toBe(false)
+    expect(hasAutomaticClassAbove(forestClasses, paths, "VIP")).toBe(false)
+  })
+
+  it("sees the next rung on a linear ladder", () => {
+    expect(hasAutomaticClassAbove(classes, [], "User")).toBe(true)
+    expect(hasAutomaticClassAbove(classes, [], "Power User")).toBe(false)
+    expect(hasAutomaticClassAbove(classes, [], "VIP")).toBe(false)
   })
 })

@@ -235,6 +235,22 @@ describe("P35 structured rank requirements", () => {
     expect(shadow.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
   })
 
+  it("SeedCore: PowerUser meets numeric thresholds and Seeder needs seed checks", () => {
+    const power = evaluate("seedcore", "PowerUser", {
+      accountAgeDays: 30,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 0.4,
+    })
+    expect(power.status).toBe("met")
+
+    const seeder = evaluate("seedcore", "Seeder", {
+      accountAgeDays: 30,
+      accountRatio: 0.4,
+    })
+    expect(seeder.status).toBe("unknown")
+    expect(seeder.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
+  })
+
   it("Portugas: Hispanus meets the published thresholds and Portuga needs more upload", () => {
     const hispanus = evaluate("portugas", "Hispanus", {
       accountAgeDays: 90,

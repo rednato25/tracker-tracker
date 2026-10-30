@@ -128,6 +128,11 @@ export interface DashboardSettings {
   showHealthIndicators: boolean
   showLoginTimers: boolean
   showTodayAtAGlance: boolean
+  /**
+   * For trackers whose adapter cannot detect a login, opening the site from a
+   * card records today's login. The 10-second Undo stays available on the card.
+   */
+  markLoginOnSiteOpen: boolean
   /** When false, WebGL charts are swapped for 2D substitutes. Defaults to true. */
   enable3DCharts: boolean
   /**
@@ -205,6 +210,7 @@ export const DASHBOARD_SETTINGS_DEFAULTS: DashboardSettings = {
   showHealthIndicators: true,
   showLoginTimers: true,
   showTodayAtAGlance: true,
+  markLoginOnSiteOpen: true,
   enable3DCharts: true,
   showOutageBands: true,
 }

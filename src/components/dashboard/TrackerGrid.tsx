@@ -43,6 +43,8 @@ interface TrackerGridProps {
   summaries: RankGoalSummary[]
   now?: Date
   onTrackerUpdated?: (tracker: TrackerSummary) => void
+  /** Defaults to on; the dashboard passes the saved setting. */
+  markLoginOnSiteOpen?: boolean
 }
 
 function hostOf(tracker: TrackerSummary): string {
@@ -270,11 +272,13 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   summary,
   now,
   onTrackerUpdated,
+  markLoginOnSiteOpen = true,
 }: {
   tracker: TrackerSummary
   summary: RankGoalSummary | undefined
   now: Date
   onTrackerUpdated?: (tracker: TrackerSummary) => void
+  markLoginOnSiteOpen?: boolean
 }) {
   const health = getTrackerHealth(tracker)
   const pause = getPauseState(tracker)
@@ -507,7 +511,11 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-h-11 items-center gap-1 text-xs text-secondary underline-offset-2 hover:text-accent hover:underline sm:min-h-9"
+            onClick={() => {
+              if (manualLogin && markLoginOnSiteOpen) void loginMarking.markLogin()
+            }}
             data-card-site-link
+            aria-label={`Open ${tracker.name} site`}
           >
             Open site
             <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
@@ -568,6 +576,7 @@ export function TrackerGrid({
   summaries,
   now = new Date(),
   onTrackerUpdated,
+  markLoginOnSiteOpen = true,
 }: TrackerGridProps) {
   const byId = new Map(summaries.map((summary) => [summary.trackerId, summary]))
   return (
@@ -589,6 +598,7 @@ export function TrackerGrid({
             summary={byId.get(tracker.id)}
             now={now}
             onTrackerUpdated={onTrackerUpdated}
+            markLoginOnSiteOpen={markLoginOnSiteOpen}
           />
         ))}
       </div>

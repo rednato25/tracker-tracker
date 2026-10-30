@@ -231,6 +231,7 @@ export function DashboardClient({
             trackers={data.trackers}
             summaries={rankSummaries}
             now={new Date(now)}
+            markLoginOnSiteOpen={dashSettings.settings.markLoginOnSiteOpen}
             onTrackerUpdated={(updated) => {
               queryClient.setQueryData<TrackerSummary[]>(
                 trackerQueryOptions.queryKey,

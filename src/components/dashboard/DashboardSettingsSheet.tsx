@@ -119,6 +119,13 @@ function DashboardSettingsSheet({
             onChange={(checked) => dashSettings.update("showLoginTimers", checked)}
             disabled={!dashSettings.loaded}
           />
+          <Toggle
+            label="Record login when opening a tracker site"
+            description="For trackers whose login the app cannot detect, opening the site from a card records today's login. A 10-second Undo stays on the card."
+            checked={dashSettings.settings.markLoginOnSiteOpen}
+            onChange={(checked) => dashSettings.update("markLoginOnSiteOpen", checked)}
+            disabled={!dashSettings.loaded}
+          />
         </div>
 
         <Divider compact />

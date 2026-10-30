@@ -130,7 +130,7 @@ describe("TrackerGrid", () => {
     expect(screen.getAllByText("Unmet").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Met").length).toBeGreaterThan(0)
     expect(document.querySelectorAll("[data-threshold-tick]").length).toBeGreaterThan(0)
-    expect(screen.getByRole("link", { name: /TorrentLeech/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Member since 1 Jan 2025/ })).toHaveAttribute(
       "href",
       "/trackers/1"
     )
@@ -307,8 +307,8 @@ describe("TrackerGrid", () => {
         summaries={[
           summary({
             targetRank: null,
-            automaticNextRank: "Second rôle",
-            nextRankName: "Second rôle",
+            automaticNextRank: "Second rÃ´le",
+            nextRankName: "Second rÃ´le",
             nextIsTextOnly: true,
             nextRankRequirements: "Level 10, 11 088 XP",
             bars: [],
@@ -319,7 +319,7 @@ describe("TrackerGrid", () => {
       />
     )
     expect(screen.getByText("From tracker rules (not tracked automatically)")).toBeInTheDocument()
-    expect(screen.getByText("Second rôle: Level 10, 11 088 XP")).toBeInTheDocument()
+    expect(screen.getByText("Second rÃ´le: Level 10, 11 088 XP")).toBeInTheDocument()
   })
 
   it("shows the failed-poll pause, next retry and plain error", () => {
@@ -476,6 +476,56 @@ describe("TrackerGrid", () => {
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       lastAccessAt: "2026-10-25",
     })
+  })
+
+  it("records today's login when the site link opens for an undetectable tracker", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }
+      return {
+        ok: true,
+        json: async () => manualTracker({ lastAccessAt: body.lastAccessAt }),
+      } as Response
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <TrackerGrid trackers={[manualTracker()]} summaries={[summary()]} now={NOW} />
+    )
+    fireEvent.click(screen.getByRole("link", { name: "Open MyAnonaMouse site" }))
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument())
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      lastAccessAt: "2026-10-28",
+    })
+  })
+
+  it("does not record a login from the site link when the setting is off", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <TrackerGrid
+        trackers={[manualTracker()]}
+        summaries={[summary()]}
+        now={NOW}
+        markLoginOnSiteOpen={false}
+      />
+    )
+    fireEvent.click(screen.getByRole("link", { name: "Open MyAnonaMouse site" }))
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
+  })
+
+  it("does not record a login from the site link when the adapter detects it", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    fireEvent.click(screen.getByRole("link", { name: "Open TorrentLeech site" }))
+
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("removes the Undo affordance after ten seconds", async () => {

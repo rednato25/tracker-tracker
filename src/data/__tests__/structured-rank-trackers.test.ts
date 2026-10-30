@@ -219,6 +219,22 @@ describe("P35 structured rank requirements", () => {
     expect(viceroy.status).toBe("unmet")
   })
 
+  it("DreadVault: Wanderer meets numeric thresholds and Shadow Walker needs seed checks", () => {
+    const wanderer = evaluate("dreadvault", "Wanderer", {
+      accountAgeDays: 30,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 0.4,
+    })
+    expect(wanderer.status).toBe("met")
+
+    const shadow = evaluate("dreadvault", "Shadow Walker", {
+      accountAgeDays: 30,
+      accountRatio: 0.4,
+    })
+    expect(shadow.status).toBe("unknown")
+    expect(shadow.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
+  })
+
   it("Portugas: Hispanus meets the published thresholds and Portuga needs more upload", () => {
     const hispanus = evaluate("portugas", "Hispanus", {
       accountAgeDays: 90,

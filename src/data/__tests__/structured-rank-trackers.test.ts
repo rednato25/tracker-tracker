@@ -193,4 +193,20 @@ describe("P35 structured rank requirements", () => {
     })
     expect(elite.status).toBe("unmet")
   })
+
+  it("Portugas: Hispanus meets the published thresholds and Portuga needs more upload", () => {
+    const hispanus = evaluate("portugas", "Hispanus", {
+      accountAgeDays: 90,
+      uploadedBytes: 250 * GiB,
+      accountRatio: 1.25,
+    })
+    expect(hispanus.status).toBe("met")
+
+    const portugas = evaluate("portugas", "Portuga", {
+      accountAgeDays: 90,
+      uploadedBytes: 250 * GiB,
+      accountRatio: 1.25,
+    })
+    expect(portugas.status).toBe("unmet")
+  })
 })

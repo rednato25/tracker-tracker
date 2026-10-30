@@ -2,6 +2,9 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+const TiB = 1024 ** 4
+
 export const portugas: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "portugas",
@@ -19,25 +22,82 @@ export const portugas: TrackerRegistryEntry = {
   logo: "/tracker-logos/portugas_logo.png",
   trackerHubSlug: "",
   statusPageUrl: "",
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rank page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rank page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "GiB and TiB text is read as written.",
+    "Download slots, upload rights and invites are perks, not promotion thresholds.",
+  ],
   userClasses: [
-    { name: "Mouro", requirements: "Upload ≥ 0 B, ratio ≥ 0.40, age ≥ 0. DL slots: 3" },
+    {
+      name: "Mouro",
+      requirements: "Upload ≥ 0 B, ratio ≥ 0.40, age ≥ 0. DL slots: 3",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ptg-mouro-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 0, scope: "account", label: "Age at least 0 days" },
+          { kind: "numeric", id: "ptg-mouro-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 0, scope: "account", label: "At least 0 B uploaded" },
+          { kind: "numeric", id: "ptg-mouro-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
+        ],
+      },
+    },
     {
       name: "Hispanus",
       requirements: "Upload ≥ 250 GiB, ratio ≥ 1.25, age ≥ 3 months. DL slots: 5, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ptg-hispanus-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 3 months registered" },
+          { kind: "numeric", id: "ptg-hispanus-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 250 * GiB, scope: "account", label: "At least 250 GiB uploaded" },
+          { kind: "numeric", id: "ptg-hispanus-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.25, scope: "account", label: "Ratio at least 1.25" },
+        ],
+      },
     },
     {
       name: "Lusitanus",
       requirements: "Upload ≥ 1 TiB, ratio ≥ 1.25, age ≥ 6 months. DL slots: 10, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ptg-lusitanus-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 6 months registered" },
+          { kind: "numeric", id: "ptg-lusitanus-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "ptg-lusitanus-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.25, scope: "account", label: "Ratio at least 1.25" },
+        ],
+      },
     },
     {
       name: "Portucale",
       requirements:
         "Upload ≥ 5 TiB, ratio ≥ 1.25, age ≥ 1 year. DL slots: 15, upload torrents, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ptg-portucale-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 1 year registered" },
+          { kind: "numeric", id: "ptg-portucale-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", label: "At least 5 TiB uploaded" },
+          { kind: "numeric", id: "ptg-portucale-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.25, scope: "account", label: "Ratio at least 1.25" },
+        ],
+      },
     },
     {
       name: "Portuga",
       requirements:
         "Upload ≥ 15 TiB, ratio ≥ 1.25, age ≥ 1 year. DL slots: 20, upload torrents, invite sending",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "ptg-portuga-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 1 year registered" },
+          { kind: "numeric", id: "ptg-portuga-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 15 * TiB, scope: "account", label: "At least 15 TiB uploaded" },
+          { kind: "numeric", id: "ptg-portuga-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.25, scope: "account", label: "Ratio at least 1.25" },
+        ],
+      },
     },
   ],
   releaseGroups: [],

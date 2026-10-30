@@ -3,10 +3,10 @@ import { getTrackerBySlug } from "@/data/tracker-registry"
 import {
   evaluateRankGoal,
   evaluateRequirementGroup,
-  rankDefinitionForSlug,
   type RankGoalInput,
   type RankGroupResult,
   type RankObservationMap,
+  rankDefinitionForSlug,
 } from "@/lib/rank-goals"
 
 const NOW = new Date("2026-10-30T12:00:00.000Z")

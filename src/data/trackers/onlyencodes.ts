@@ -2,7 +2,6 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
-const GiB = 1024 ** 3
 const TiB = 1024 ** 4
 
 export const onlyencodes: TrackerRegistryEntry = {

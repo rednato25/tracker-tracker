@@ -61,6 +61,22 @@ const CATALOG: RecruitmentCatalog = {
   overrides: [],
 }
 
+const OPEN_CATALOG: RecruitmentCatalog = {
+  ...CATALOG,
+  sourceGates: [],
+}
+
+const REQUIREMENT_CATALOG: RecruitmentCatalog = {
+  ...OPEN_CATALOG,
+  routes: [
+    {
+      ...CATALOG.routes[0],
+      minimumDays: 0,
+      requirementNotes: ["3TB upload"],
+    },
+  ],
+}
+
 function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
   return {
     id: 1,
@@ -174,7 +190,7 @@ describe("TrackerPathwaysClient", () => {
           tracker({ id: 2, name: "AlphaRatio", registrySlug: "alpharatio" }),
         ]}
         initialState={stateFor("BroadcasTheNet")}
-        catalog={CATALOG}
+        catalog={OPEN_CATALOG}
       />
     )
     expect(screen.getByText("Best path")).toBeInTheDocument()
@@ -188,28 +204,47 @@ describe("TrackerPathwaysClient", () => {
     expect(other.closest("details")).not.toHaveAttribute("open")
   })
 
-  it("shows requirement bars on the best-path step by default", async () => {
+  it("renders one line per step and keeps details to the two dates", async () => {
     const user = userEvent.setup()
     const { container } = render(
       <TrackerPathwaysClient
-        trackers={[tracker({ joinedAt: recentJoin })]}
+        trackers={[
+          tracker({ id: 1, name: "TorrentLeech", joinedAt: recentJoin }),
+          tracker({ id: 2, name: "AlphaRatio", registrySlug: "alpharatio" }),
+        ]}
         initialState={stateFor("BroadcasTheNet")}
-        catalog={CATALOG}
+        catalog={OPEN_CATALOG}
       />
     )
+    expect(
+      screen.getByText("From AlphaRatio to BroadcasTheNet · Ready now")
+    ).toBeInTheDocument()
+    expect(container.querySelector("[data-step-requirement-bars]")).toBeNull()
+    expect(screen.queryByText("Structured requirements")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Availability:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/community evidence/)).not.toBeInTheDocument()
+
     const details = container.querySelector("details")
     expect(details).not.toBeNull()
     expect(details).not.toHaveAttribute("open")
-    const bars = container.querySelector("[data-step-requirement-bars]")
-    expect(bars).not.toBeNull()
-    expect(details?.contains(bars)).toBe(false)
-    expect(bars?.querySelector('[data-step-requirement-bar="time-on-source"]')).not.toBeNull()
-    expect(bars?.querySelector("[data-threshold-tick]")).not.toBeNull()
-    expect(screen.getAllByText("Unmet").length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/\/ 30 days/).length).toBeGreaterThan(0)
-
     await user.click(details?.querySelector("summary") as HTMLElement)
     expect(details).toHaveAttribute("open")
+    expect(details).toHaveTextContent("Source updated Sep 2026 · last verified never")
+    expect(details?.textContent).not.toMatch(/\d{4}-\d{2}-\d{2}T/)
+  })
+
+  it("shows Wait done with the requirement instead of Ready now", () => {
+    render(
+      <TrackerPathwaysClient
+        trackers={[tracker({ joinedAt: recentJoin })]}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={REQUIREMENT_CATALOG}
+      />
+    )
+    expect(screen.getByText("Wait done, needs 3TB upload")).toBeInTheDocument()
+    expect(
+      screen.getByText("From TorrentLeech to BroadcasTheNet · Wait done, needs 3TB upload")
+    ).toBeInTheDocument()
   })
 
   it("shows the no-route state and the trackerpathways link", () => {
@@ -235,7 +270,7 @@ describe("TrackerPathwaysClient", () => {
       <TrackerPathwaysClient
         trackers={[tracker({ joinedAt: recentJoin })]}
         initialState={stateFor("BroadcasTheNet")}
-        catalog={CATALOG}
+        catalog={OPEN_CATALOG}
       />
     )
     const details = container.querySelectorAll("details")

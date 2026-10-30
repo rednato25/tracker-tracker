@@ -6,7 +6,6 @@ import { H1, H2, Paragraph, Subtext } from "@typography"
 import { useId, useMemo, useRef, useState } from "react"
 import { Badge, Button, Card, Input, Notice } from "@/components/ui"
 import { ChevronDownSmallIcon } from "@/components/ui/Icons"
-import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import {
   PATHWAYS_TRACKERS,
   pathwaysTrackerIdForRegistrySlug,
@@ -14,14 +13,7 @@ import {
 } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import { useClickOutside } from "@/hooks/useClickOutside"
-import {
-  formatAccountAge,
-  formatBytesNum,
-  formatCount,
-  formatDate,
-  formatRatio,
-} from "@/lib/formatters"
-import type { RankComparison, RankGoalStatus } from "@/lib/rank-goals"
+import { formatAccountAge, formatDate } from "@/lib/formatters"
 import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
   normalizeRecruitmentState,
@@ -29,11 +21,13 @@ import {
 } from "@/lib/recruitment-state"
 import {
   buildWishlistPaths,
-  flattenRequirementResults,
+  pathWaitLabel,
+  stepHasUncheckedRequirements,
+  stepRequirementText,
+  stepWaitLabel,
   type WishlistPathView,
   type WishlistStepView,
 } from "@/lib/recruitment-wishlist"
-import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import type { TrackerSummary } from "@/types/api"
 
 interface TrackerPathwaysClientProps {
@@ -43,157 +37,16 @@ interface TrackerPathwaysClientProps {
   catalog?: RecruitmentCatalog
 }
 
-const NO_REQUIREMENT = /^(none|no requirements?|removed)$/i
 const TRACKERPATHWAYS_URL = "https://github.com/handokota/trackerpathways"
 
 function dateOnly(value: string | null): string {
   return value ? formatDate(value) : "unknown"
 }
 
-function waitLabel(days: number | null): string {
-  if (days === null) return "Unknown"
-  if (days === 0) return "Ready now"
-  return `${days} day${days === 1 ? "" : "s"} left`
-}
-
-function inviteClassLabel(step: WishlistStepView): string {
-  const gate = step.evaluation.eligibility.sourceRequirements.inviteGate
-  if (!gate) return "No invite class listed"
-  const label = gate.text.split(":")[0]?.trim()
-  return label || gate.text
-}
-
 function routeChain(path: WishlistPathView): string {
   const first = path.steps[0]
   if (!first) return ""
   return [first.sourceName, ...path.steps.map((step) => step.destinationName)].join(" → ")
-}
-
-interface StepRequirementBar {
-  id: string
-  label: string
-  current: string
-  required: string
-  currentValue: number | null
-  requiredValue: number
-  comparison: RankComparison
-  status: RankGoalStatus
-}
-
-function formatBarValue(metric: string | undefined, value: number | null): string {
-  if (value === null || metric === undefined) return "?"
-  if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
-    return formatBytesNum(value)
-  }
-  if (metric === "accountRatio") return formatRatio(value)
-  if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
-  return formatCount(value)
-}
-
-function stepRequirementBars(step: WishlistStepView): StepRequirementBar[] {
-  const evaluation = step.evaluation
-  const bars: StepRequirementBar[] = []
-  const timeGate = evaluation.timeGate
-
-  if (timeGate.effectiveDays !== null && timeGate.effectiveDays > 0) {
-    const accountAge = step.scenario ? null : timeGate.accountAgeDays
-    bars.push({
-      id: "time-on-source",
-      label: "Time on source",
-      current: accountAge === null ? "?" : `${formatCount(accountAge)} days`,
-      required: `${formatCount(timeGate.effectiveDays)} days`,
-      currentValue: accountAge,
-      requiredValue: timeGate.effectiveDays,
-      comparison: "gte",
-      status:
-        timeGate.status === "open"
-          ? "met"
-          : timeGate.status === "waiting"
-            ? "unmet"
-            : "unknown",
-    })
-  }
-
-  for (const condition of flattenRequirementResults(evaluation.eligibility.structured)) {
-    if (
-      condition.kind !== "numeric" ||
-      condition.requiredValue === null ||
-      condition.metric === undefined ||
-      condition.metric === "accountAgeDays"
-    ) {
-      continue
-    }
-    bars.push({
-      id: condition.id,
-      label: condition.label,
-      current: formatBarValue(condition.metric, condition.observedValue),
-      required: formatBarValue(condition.metric, condition.requiredValue),
-      currentValue: condition.observedValue,
-      requiredValue: condition.requiredValue,
-      comparison: condition.comparison ?? "gte",
-      status: condition.status,
-    })
-  }
-
-  return bars
-}
-
-function requirementTone(status: RankGoalStatus): string {
-  if (status === "unmet") return "bg-danger"
-  if (status === "unknown") return "bg-warn"
-  return "bg-success"
-}
-
-function StepRequirementBars({ step }: { step: WishlistStepView }) {
-  const bars = stepRequirementBars(step)
-  if (bars.length === 0) return null
-
-  return (
-    <div className="flex flex-col gap-2" data-step-requirement-bars>
-      <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
-        Requirement bars
-      </span>
-      {bars.map((bar) => {
-        const geometry = requirementBarGeometry(bar)
-        const requirementText = geometry.atStrictThreshold
-          ? strictThresholdRequirement(bar.comparison, bar.current, bar.required)
-          : null
-        return (
-          <div key={bar.id} className="flex flex-col gap-1" data-step-requirement-bar={bar.id}>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="min-w-0 truncate text-xs text-secondary">{bar.label}</span>
-              <span className="flex shrink-0 items-baseline gap-2">
-                <span
-                  className={`font-cond text-2xs font-semibold uppercase tracking-[0.1em] ${
-                    bar.status === "met"
-                      ? "text-success"
-                      : bar.status === "unmet"
-                        ? "text-danger"
-                        : "text-warn"
-                  }`}
-                >
-                  {bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"}
-                </span>
-                <span className="font-mono text-xs tabular-nums text-tertiary">
-                  {bar.current} / {bar.required}
-                </span>
-              </span>
-            </div>
-            <RequirementBarTrack
-              percent={geometry.percent}
-              fillClassName={requirementTone(bar.status)}
-              shortfall={geometry.atStrictThreshold}
-            />
-            {requirementText && (
-              <p className="text-xs text-danger" data-strict-requirement>
-                {requirementText}
-              </p>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
 }
 
 function RouteChips({ path }: { path: WishlistPathView }) {
@@ -221,89 +74,43 @@ function RouteChips({ path }: { path: WishlistPathView }) {
   )
 }
 
+function stepSentence(step: WishlistStepView): string {
+  const route = `From ${step.sourceName} to ${step.destinationName}`
+  const requirement = stepRequirementText(step)
+  const timeGate = step.evaluation.timeGate
+
+  if (timeGate.status === "waiting") {
+    const days = timeGate.daysRemaining
+    const left = days === null ? "Wait unknown" : `${days} day${days === 1 ? "" : "s"} left`
+    if (requirement) return `${route} · needs ${requirement} · ${left}`
+    return stepHasUncheckedRequirements(step)
+      ? `${route} · ${left} · needs checking`
+      : `${route} · ${left}`
+  }
+
+  return `${route} · ${stepWaitLabel(step)}`
+}
+
 function StepDetails({ step }: { step: WishlistStepView }) {
-  const evaluation = step.evaluation
-  const notes = evaluation.eligibility.requirementNotes.filter(
-    (note) => !NO_REQUIREMENT.test(note.trim())
-  )
-  const gate = evaluation.eligibility.sourceRequirements.inviteGate
-  const structured = flattenRequirementResults(evaluation.eligibility.structured)
-  const evidence = evaluation.evidence
-  const hasStale = evidence.sourceFreshness === "stale"
+  const evidence = step.evaluation.evidence
+  const lastVerified = evidence.lastVerifiedAt ? formatDate(evidence.lastVerifiedAt) : "never"
 
   return (
     <details className="mt-2 border-t border-border pt-2">
       <summary className="cursor-pointer font-cond text-2xs font-semibold uppercase tracking-[0.12em] text-secondary">
         Details
       </summary>
-      <div className="mt-2 flex flex-col gap-2 text-xs text-secondary">
-        {gate && (
-          <div className="flex flex-col gap-0.5">
-            <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
-              Full invite text
-            </span>
-            <p className="break-words">{gate.text}</p>
-            {gate.days !== null && (
-              <p className="text-2xs text-tertiary">{gate.days} days listed by trackerpathways.</p>
-            )}
-          </div>
-        )}
-        {notes.length > 0 && (
-          <div className="flex flex-col gap-0.5">
-            <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">Source text</span>
-            <p className="break-words whitespace-pre-wrap">{notes.join("\n")}</p>
-          </div>
-        )}
-        {structured.length > 0 && (
-          <div className="flex flex-col gap-0.5">
-            <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
-              Structured requirements
-            </span>
-            <p className="break-words">
-              {structured
-                .map((result) => `${result.label}: ${result.status}`)
-                .join(" · ")}
-            </p>
-          </div>
-        )}
-        <p className="break-words">{step.observationNote}</p>
-        <p className="break-words">
-          Availability: {evaluation.availability.note}
-          {evaluation.availability.raw ? ` Source value: ${evaluation.availability.raw}.` : ""}
-        </p>
-        <p className="break-words">
-          Source updated {evidence.sourceUpdatedRaw ?? "unknown"} · snapshot accessed{" "}
-          {dateOnly(evidence.sourceAccessedAt)} · last independent verification{" "}
-          {evidence.lastVerifiedAt ? dateOnly(evidence.lastVerifiedAt) : "never"}.
-        </p>
-        {hasStale && (
-          <p className="text-warn">
-            The community source update is stale. A recent page visit does not make it verified.
-          </p>
-        )}
-        {evidence.evidenceFreshness === "unknown" && (
-          <p>This is community evidence, not a verified active recruiter or invitation.</p>
-        )}
-      </div>
+      <p className="mt-2 text-xs text-secondary">
+        Source updated {evidence.sourceUpdatedRaw ?? "unknown"} · last verified {lastVerified}
+      </p>
     </details>
   )
 }
 
-function StepRow({ step, index }: { step: WishlistStepView; index: number }) {
+function StepRow({ step }: { step: WishlistStepView }) {
   return (
-    <li className="border-t border-border pt-3 first:border-t-0 first:pt-0">
-      <div className="flex flex-col gap-1">
-        <p className="font-mono text-2xs text-tertiary">Step {index + 1}</p>
-        <p className="break-words font-cond text-sm font-semibold uppercase tracking-[0.08em] text-primary">
-          {step.destinationName}
-        </p>
-        <p className="break-words text-xs text-secondary">
-          Invite class: <span className="text-primary">{inviteClassLabel(step)}</span>
-        </p>
-      </div>
-      <div className="mt-2">
-        <StepRequirementBars step={step} />
-      </div>
+    <li className="border-t border-border pt-2 first:border-t-0 first:pt-0">
+      <p className="break-words text-xs text-secondary">{stepSentence(step)}</p>
       <StepDetails step={step} />
     </li>
   )
@@ -324,14 +131,12 @@ function FastestRoute({ path }: { path: WishlistPathView }) {
           <p className="font-cond text-2xs font-semibold uppercase tracking-[0.14em] text-secondary">
             Total time left
           </p>
-          <p className="font-mono text-sm text-primary">
-            {waitLabel(path.totalDaysRemaining)}
-          </p>
+          <p className="font-mono text-sm text-primary">{pathWaitLabel(path)}</p>
         </div>
       </div>
       <ol className="flex flex-col gap-3">
-        {path.steps.map((step, index) => (
-          <StepRow key={step.routeId} step={step} index={index} />
+        {path.steps.map((step) => (
+          <StepRow key={step.routeId} step={step} />
         ))}
       </ol>
     </Card>
@@ -353,7 +158,7 @@ function OtherRoutes({ paths }: { paths: WishlistPathView[] }) {
           >
             <span className="min-w-0 break-words text-secondary">{routeChain(path)}</span>
             <span className="font-mono text-2xs text-tertiary">
-              {waitLabel(path.totalDaysRemaining)} · {path.steps.length}{" "}
+              {pathWaitLabel(path)} · {path.steps.length}{" "}
               {path.steps.length === 1 ? "step" : "steps"}
             </span>
           </li>

@@ -1340,10 +1340,8 @@ test.describe.serial("P32a foundation visual evidence", () => {
           () => document.querySelector('[data-mobile="true"]') !== null
         )
       }
-      await expect(page.getByText(/^From .+ to .+ ·/).first()).toBeVisible()
-      const details = page.locator("#main-content details").first()
-      await details.locator("summary").click()
-      await expect(details).toContainText(/Source updated .+ · last verified /)
+      await expect(page.locator("#main-content [data-route-controls]")).toBeVisible()
+      await expect(page.locator("#main-content [data-route-choice]").first()).toBeVisible()
       await page.evaluate(() => {
         document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
         document.documentElement.dataset.theme = "light"

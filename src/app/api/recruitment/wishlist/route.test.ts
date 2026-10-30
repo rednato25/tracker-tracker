@@ -67,6 +67,7 @@ describe("/api/recruitment/wishlist", () => {
         desiredTrackerSlug: "TorrentLeech",
         hiddenPathKeys: ["a>b"],
         goalLinks: [],
+        pinnedRoutes: {},
       },
     })
   })

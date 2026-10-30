@@ -88,6 +88,8 @@ export interface RankConditionResult {
   kind: "numeric" | "manual" | "non-numeric"
   metric?: RankMetric
   comparison?: RankComparison
+  scope?: "account" | "per-torrent"
+  verification?: "verified" | "unresolved"
   label: string
   requiredValue: number | null
   observedValue: number | null
@@ -246,6 +248,8 @@ function evaluateCondition(
       kind: "numeric",
       metric: condition.metric,
       comparison: condition.comparison,
+      scope: condition.scope,
+      verification: condition.verification,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
@@ -266,6 +270,8 @@ function evaluateCondition(
       kind: "numeric",
       metric: condition.metric,
       comparison: condition.comparison,
+      scope: condition.scope,
+      verification: condition.verification,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
@@ -285,6 +291,8 @@ function evaluateCondition(
       kind: "numeric",
       metric: condition.metric,
       comparison: condition.comparison,
+      scope: condition.scope,
+      verification: condition.verification,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,
@@ -303,6 +311,8 @@ function evaluateCondition(
       kind: "numeric",
       metric: condition.metric,
       comparison: condition.comparison,
+      scope: condition.scope,
+      verification: condition.verification,
       unitReading: condition.unitReading,
       label,
       requiredValue: condition.requiredValue,

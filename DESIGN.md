@@ -26,7 +26,7 @@ and the distance to the next rank without opening a detail page. Tracker cards
 and the register are two views of the same truth.
 
 **First viewport.** A 58px sticky top bar with the Tracker Tracker identity,
-Dashboard (Grid | Table), Pathways and Settings. Beneath it, one 1600px content
+Dashboard (Grid | Table | Ranks), Pathways and Settings. Beneath it, one 1600px content
 frame starts with a five-tile totals row: uploaded, downloaded, buffer, overall
 ratio and need attention. Sparklines use existing snapshot history only. The
 dashboard body follows as tracker cards or the existing register, restyled.
@@ -166,8 +166,8 @@ the only violet used for controls.
 
 - Tracker Tracker identity at the left. Keep the product name and mark; do not
   use the Yata name or logo.
-- Primary navigation: **Dashboard** with a Grid | Table segmented control,
-  **Pathways**, **Settings**. Secondary tools (search, docs, add tracker,
+- Primary navigation: **Dashboard** with a Grid | Table | Ranks segmented
+  control, **Pathways**, **Settings**. Secondary tools (search, docs, add tracker,
   session) live in a right-side utility group or overflow menu.
 - Active navigation uses the accent background and a 2px accent underline; it is
   never only color.
@@ -190,8 +190,16 @@ the only violet used for controls.
 - **Grid** is the tracker card grid. **Table** is the existing register restyled,
   not a new table with different semantics. Both use the same totals row and the
   same metric colors.
-- The Grid | Table choice is a view toggle, not a route. Preserve the current
-  register columns and default order. Sorting is owned by the register itself.
+- **Ranks** is the verification view: one compact section per tracker with the
+  current class, the saved target or next automatic class, and every condition
+  in one row (requirement, current, required, status, and why an unknown value
+  is unknown). It also carries the registry source, a tracker-site link, the
+  user's own "Matches the site" / "Wrong" check, and Copy as Markdown.
+- The Grid | Table | Ranks choice is a view toggle, not a route. Preserve the
+  current register columns and default order. Sorting is owned by the register
+  itself.
+- Rank ladders show earned classes by default. Staff, VIP and other off-ladder
+  classes sit behind a "Show all classes" toggle.
 - Do not add a seedbox strip, per-tracker health score or time-to-next-rank
   estimate.
 

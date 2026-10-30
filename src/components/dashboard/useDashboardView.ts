@@ -6,7 +6,9 @@ import { useCallback } from "react"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 
-export type DashboardView = "grid" | "table"
+export type DashboardView = "grid" | "table" | "ranks"
+
+const VIEWS: DashboardView[] = ["grid", "table", "ranks"]
 
 /** Dashboard view preference, remembered per browser. */
 export function useDashboardView(): [DashboardView, (view: DashboardView) => void] {
@@ -14,7 +16,7 @@ export function useDashboardView(): [DashboardView, (view: DashboardView) => voi
     STORAGE_KEYS.DASHBOARD_VIEW,
     "grid"
   )
-  const view: DashboardView = stored === "table" ? "table" : "grid"
+  const view: DashboardView = VIEWS.includes(stored) ? stored : "grid"
   const setView = useCallback(
     (next: DashboardView) => {
       setStored(next)

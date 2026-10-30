@@ -15,6 +15,8 @@ export const RECRUITMENT_STATE_VERSION = 2
 export const RECRUITMENT_HIDDEN_PATHS_MAX = 200
 export const RECRUITMENT_GOAL_LINKS_MAX = 100
 export const RECRUITMENT_PINNED_ROUTES_MAX = 50
+export const RANK_CHECKS_MAX = 500
+export const RANK_CHECK_NOTE_MAX = 2000
 
 const PATH_KEY_MAX = 512
 const ROUTE_ID_MAX = 200
@@ -50,6 +52,15 @@ export interface RecruitmentGoalLink {
   requiredValue: number
 }
 
+export type RankCheckVerdict = "matches" | "wrong"
+
+export interface RankCheck {
+  verdict: RankCheckVerdict
+  note: string | null
+  /** YYYY-MM-DD, the day the owner compared the overview with the site. */
+  checkedAt: string
+}
+
 export interface RecruitmentState {
   version: typeof RECRUITMENT_STATE_VERSION
   desiredTrackerSlug: string | null
@@ -57,6 +68,8 @@ export interface RecruitmentState {
   goalLinks: RecruitmentGoalLink[]
   /** target trackerpathways ID -> chosen route key */
   pinnedRoutes: Record<string, string>
+  /** database tracker id -> the owner's own comparison with the site. */
+  rankChecks: Record<string, RankCheck>
 }
 
 export function emptyRecruitmentState(): RecruitmentState {
@@ -66,6 +79,7 @@ export function emptyRecruitmentState(): RecruitmentState {
     hiddenPathKeys: [],
     goalLinks: [],
     pinnedRoutes: {},
+    rankChecks: {},
   }
 }
 
@@ -89,6 +103,29 @@ export function isRankMetric(value: unknown): value is RankMetric {
 
 export function isRankComparison(value: unknown): value is RankComparison {
   return typeof value === "string" && (COMPARISONS as readonly string[]).includes(value)
+}
+
+/** Accepts only a real calendar date in the stored YYYY-MM-DD shape. */
+function isStoredDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split("-").map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return (
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day
+  )
+}
+
+export function normalizeRankCheck(raw: unknown): RankCheck | null {
+  if (!isRecord(raw)) return null
+  if (raw.verdict !== "matches" && raw.verdict !== "wrong") return null
+  if (!isStoredDate(raw.checkedAt)) return null
+  const note =
+    typeof raw.note === "string" && raw.note.trim()
+      ? raw.note.trim().slice(0, RANK_CHECK_NOTE_MAX)
+      : null
+  return { verdict: raw.verdict, note, checkedAt: raw.checkedAt }
 }
 
 export function normalizeRecruitmentState(raw: unknown): RecruitmentState {
@@ -169,12 +206,23 @@ export function normalizeRecruitmentState(raw: unknown): RecruitmentState {
     }
   }
 
+  const rankChecks: Record<string, RankCheck> = {}
+  if (isRecord(value.rankChecks)) {
+    for (const [trackerId, rawCheck] of Object.entries(value.rankChecks)) {
+      if (Object.keys(rankChecks).length >= RANK_CHECKS_MAX) break
+      if (!/^[1-9]\d*$/.test(trackerId)) continue
+      const check = normalizeRankCheck(rawCheck)
+      if (check) rankChecks[trackerId] = check
+    }
+  }
+
   return {
     version: RECRUITMENT_STATE_VERSION,
     desiredTrackerSlug,
     hiddenPathKeys,
     goalLinks,
     pinnedRoutes,
+    rankChecks,
   }
 }
 

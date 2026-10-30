@@ -333,7 +333,8 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
               From tracker rules (not tracked automatically)
             </span>
             <p className="text-xs text-secondary">
-              {summary.nextRankName}: {summary.nextRankRequirements}
+              {summary.nextRankName}
+              {summary.nextRankRequirements ? `: ${summary.nextRankRequirements}` : ""}
             </p>
           </div>
         ) : visibleBars.length > 0 ? (

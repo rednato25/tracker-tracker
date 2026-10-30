@@ -112,25 +112,17 @@ function flattenConditions(result: RankGroupResult): RankConditionResult[] {
   )
 }
 
-function unknownReasonFor(
-  condition: RankConditionResult,
-  platformType: string | null
-): RankUnknownReason | null {
+function unknownReasonFor(condition: RankConditionResult): RankUnknownReason | null {
   if (condition.status !== "unknown" || condition.freshness === "stale") return null
   if (condition.kind !== "numeric") return UNKNOWN_UNSUPPORTED
   if (condition.scope === "per-torrent" || condition.verification === "unresolved") {
     return UNKNOWN_UNSUPPORTED
   }
   if (!condition.metric || !SUPPORTED_METRICS.has(condition.metric)) return UNKNOWN_UNSUPPORTED
-  // Upload count is only exposed by Gazelle's community profile.
-  if (condition.metric === "uploads" && platformType !== "gazelle") return UNKNOWN_UNSUPPORTED
   return UNKNOWN_COLLECTED
 }
 
-function toCondition(
-  condition: RankConditionResult,
-  platformType: string | null
-): RankOverviewCondition {
+function toCondition(condition: RankConditionResult): RankOverviewCondition {
   const metric = condition.metric ?? null
   return {
     id: condition.id,
@@ -138,7 +130,7 @@ function toCondition(
     current: formatValue(metric, condition.observedValue),
     required: formatValue(metric, condition.requiredValue),
     status: condition.status,
-    unknownReason: unknownReasonFor(condition, platformType),
+    unknownReason: unknownReasonFor(condition),
     reason: condition.reason || null,
     metric,
   }
@@ -226,7 +218,7 @@ function buildOne(
     ? evaluateRequirementGroup(focusClass.structured, input)
     : null
   const conditions = result
-    ? flattenConditions(result).map((condition) => toCondition(condition, tracker.platformType))
+    ? flattenConditions(result).map((condition) => toCondition(condition))
     : []
 
   return {

@@ -152,6 +152,26 @@ describe("buildRankOverviews", () => {
     expect(overview.classes.map((userClass) => userClass.name)).toContain("Leech")
   })
 
+  it("keeps an active tracker with no registry entry or stats instead of dropping it", () => {
+    const [overview] = buildRankOverviews(
+      [
+        tracker({
+          id: 4,
+          name: "Private Unknown",
+          registrySlug: "not-in-the-registry",
+          latestStats: null,
+        }),
+      ],
+      {},
+      NOW
+    )
+    expect(overview.currentClass).toBeNull()
+    expect(overview.targetClass).toBeNull()
+    expect(overview.conditions).toEqual([])
+    expect(overview.source.verification).toBe("missing")
+    expect(overview.siteUrl).toBe("https://tl.invalid")
+  })
+
   it("marks a saved target at or below the current class and keeps the next automatic class", () => {
     const [overview] = buildRankOverviews(
       [tracker()],

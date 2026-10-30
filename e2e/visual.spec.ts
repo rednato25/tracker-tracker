@@ -1881,3 +1881,187 @@ test.describe.serial("P40 pathway route choices", () => {
     await page.screenshot({ path: "test-results/p40-routes-390-dark.png" })
   })
 })
+
+test.describe.serial("P41 rank overview", () => {
+  let torrentLeechId: number | null = null
+  let dreadVaultId: number | null = null
+  let aitherId: number | null = null
+  let previousRankGoals: string | null = null
+  let previousRecruitmentState: string | null = null
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<
+        {
+          encryption_salt: string
+          rank_goals: string | null
+          recruitment_state: string | null
+        }[]
+      >`
+        select encryption_salt, rank_goals, recruitment_state
+        from app_settings limit 1
+      `
+      previousRankGoals = settings.rank_goals
+      previousRecruitmentState = settings.recruitment_state
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const token = encrypt("synthetic-p41-token", key)
+
+      const insertTracker = async (
+        name: string,
+        slug: string,
+        suffix: string,
+        group: string
+      ) => {
+        const [row] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active, joined_at,
+            last_polled_at, encrypted_api_token, color, created_at, updated_at
+          ) values (
+            ${name}, ${`https://tt-p41-${suffix}.invalid`}, ${slug}, 'unit3d', true,
+            '2026-01-01T00:00:00.000Z', now(), ${token}, '#6d56eb', now(), now()
+          ) returning id
+        `
+        await sql`
+          insert into tracker_snapshots (
+            tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+            buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+            required_ratio, warned, freeleech_tokens, is_manual
+          ) values (
+            ${row.id}, now(), ${2 * 1024 * GiB}, ${1024 * GiB}, 2.4, ${group},
+            ${1024 * GiB}, 8, 1, 1234, 0, 1, false, 0, false
+          )
+        `
+        return row.id
+      }
+
+      torrentLeechId = await insertTracker(
+        "TEST P41 TorrentLeech",
+        "torrentleech",
+        "tl",
+        "Power User"
+      )
+      dreadVaultId = await insertTracker("TEST P41 DreadVault", "dreadvault", "dv", "User")
+      aitherId = await insertTracker("TEST P41 Aither", "aither", "aither", "Phobos")
+
+      await sql`
+        update app_settings
+        set rank_goals = ${JSON.stringify({
+          [String(torrentLeechId)]: { targetRank: "Super User" },
+          [String(dreadVaultId)]: { targetRank: "Ancient One" },
+        })},
+        recruitment_state = ${JSON.stringify({
+          version: 2,
+          desiredTrackerSlug: "Aither",
+          hiddenPathKeys: [],
+          goalLinks: [],
+          pinnedRoutes: {},
+          rankChecks: {
+            [String(torrentLeechId)]: {
+              verdict: "matches",
+              note: "Same thresholds as the wiki",
+              checkedAt: "2026-10-30",
+            },
+            [String(dreadVaultId)]: {
+              verdict: "wrong",
+              note: "Site says 500 uploads",
+              checkedAt: "2026-10-29",
+            },
+          },
+        })}
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      for (const id of [torrentLeechId, dreadVaultId, aitherId]) {
+        if (id !== null) await sql`delete from trackers where id = ${id}`
+      }
+      await sql`
+        update app_settings
+        set rank_goals = ${previousRankGoals},
+            recruitment_state = ${previousRecruitmentState}
+      `
+    } finally {
+      await sql.end()
+    }
+  })
+
+  test("captures the rank overview with checks, sources and class filtering", async ({ page }) => {
+    test.setTimeout(120_000)
+    expect(torrentLeechId).not.toBeNull()
+    expect(dreadVaultId).not.toBeNull()
+    const tlId = torrentLeechId as number
+    const dvId = dreadVaultId as number
+
+    await page.setViewportSize({ width: 1440, height: 1400 })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Ranks" }).click()
+    const view = page.locator("#main-content [data-rank-overview]")
+    await expect(view).toBeVisible({ timeout: 15_000 })
+
+    const summary = view.locator("[data-rank-check-summary]")
+    await expect(summary).toContainText("Checked 2")
+    await expect(summary).toContainText("Wrong 1")
+    await expect(summary).toContainText("Not checked 1")
+
+    const tl = view.locator(`[data-rank-overview-tracker="${tlId}"]`)
+    await expect(tl).toContainText("Target: Super User")
+    await expect(tl.locator("[data-rank-condition]")).toHaveCount(3)
+    await expect(tl).toContainText("Published source")
+    await expect(tl.getByLabel("Note for TEST P41 TorrentLeech")).toHaveValue(
+      "Same thresholds as the wiki"
+    )
+    await expect(tl.getByRole("link", { name: "Open TEST P41 TorrentLeech site" })).toHaveAttribute(
+      "href",
+      "https://www.torrentleech.org"
+    )
+
+    await expect(tl.getByText("VIP")).toHaveCount(0)
+    await tl.getByRole("button", { name: "Show all classes" }).click()
+    await expect(tl.getByText("VIP")).toBeVisible()
+    await tl.getByRole("button", { name: "Show earned classes" }).click()
+
+    const dv = view.locator(`[data-rank-overview-tracker="${dvId}"]`)
+    await expect(dv.getByText("Not a supported metric").first()).toBeVisible()
+    await expect(dv.getByLabel("Note for TEST P41 DreadVault")).toHaveValue(
+      "Site says 500 uploads"
+    )
+
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((nextTheme) => {
+        document.documentElement.dataset.theme = nextTheme
+      }, theme)
+      await page.waitForTimeout(150)
+      await page.screenshot({ path: `test-results/p41-ranks-1440-${theme}.png` })
+    }
+
+    await page.setViewportSize({ width: 390, height: 1200 })
+    await page.waitForFunction(() => document.querySelector("[data-mobile=\"true\"]") !== null)
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
+      document.querySelector("[data-rank-overview]")?.scrollIntoView({ block: "start" })
+    })
+    const overflow = await page.evaluate(() => ({
+      html: document.documentElement.scrollWidth > window.innerWidth,
+      main: (() => {
+        const main = document.querySelector<HTMLElement>("#main-content")
+        return main ? main.scrollWidth > main.clientWidth : false
+      })(),
+    }))
+    expect(overflow.html, "page overflows horizontally at 390px").toBe(false)
+    expect(overflow.main, "main overflows horizontally at 390px").toBe(false)
+
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((nextTheme) => {
+        document.documentElement.dataset.theme = nextTheme
+      }, theme)
+      await page.waitForTimeout(150)
+      await page.screenshot({ path: `test-results/p41-ranks-390-${theme}.png` })
+    }
+  })
+})

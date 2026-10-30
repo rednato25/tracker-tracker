@@ -266,8 +266,6 @@ export function buildRankOverviews(
 ): RankOverview[] {
   return trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []
-    const entry = registryEntryFor(tracker)
-    if (!entry && !tracker.latestStats?.group) return []
     return [buildOne(tracker, savedGoals[String(tracker.id)]?.targetRank ?? null, now)]
   })
 }

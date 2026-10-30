@@ -90,7 +90,7 @@ function ConditionRow({ condition }: { condition: RankOverviewData["conditions"]
       </Field>
       <Field label="Status">
         <span
-          className={`font-cond text-2xs font-semibold uppercase tracking-[0.1em] ${statusTone(condition.status)}`}
+          className={`whitespace-nowrap font-cond text-2xs font-semibold uppercase tracking-[0.1em] ${statusTone(condition.status)}`}
         >
           {statusLabel(condition.status)}
         </span>

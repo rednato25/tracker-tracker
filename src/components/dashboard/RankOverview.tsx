@@ -9,8 +9,10 @@
 import { ExternalLinkSmallIcon } from "@icons"
 import { useEffect, useMemo, useState } from "react"
 import { Badge, Button } from "@/components/ui"
+import { type ClipboardOutcome, copyTextToClipboard } from "@/lib/clipboard"
 import { formatDate, localDateStr } from "@/lib/formatters"
 import type { RankGoalStatus } from "@/lib/rank-goals"
+import { buildRankOverviewMarkdown } from "@/lib/rank-markdown"
 import { buildRankOverviews, type RankOverview as RankOverviewData } from "@/lib/rank-overview"
 import type { RankCheck, RankCheckVerdict } from "@/lib/recruitment-state"
 import type { TrackerSummary } from "@/types/api"
@@ -379,6 +381,14 @@ export function RankOverview({
     (overview) => checks[String(overview.trackerId)]?.verdict === "wrong"
   ).length
   const notCheckedCount = overviews.length - checkedCount
+  const [copyState, setCopyState] = useState<ClipboardOutcome | null>(null)
+
+  async function copyOverview() {
+    const outcome = await copyTextToClipboard(
+      buildRankOverviewMarkdown(overviews, checks)
+    )
+    setCopyState(outcome)
+  }
 
   if (overviews.length === 0) {
     return (
@@ -390,14 +400,33 @@ export function RankOverview({
 
   return (
     <section className="flex flex-col gap-3" aria-label="Rank overview" data-rank-overview>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-cond text-lg font-semibold leading-6 tracking-[-0.01em] text-primary">
           Ranks
         </h2>
-        <p className="font-mono text-xs text-tertiary">
-          {overviews.length} {overviews.length === 1 ? "tracker" : "trackers"}{" "}
-          {"\u00b7"} every condition on the target or next automatic class
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-mono text-xs text-tertiary">
+            {overviews.length} {overviews.length === 1 ? "tracker" : "trackers"}{" "}
+            {"\u00b7"} every condition on the target or next automatic class
+          </p>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => void copyOverview()}
+            className="min-h-11 sm:min-h-9"
+            data-copy-rank-overview
+          >
+            {copyState === "copied"
+              ? "Copied"
+              : copyState === "unavailable"
+                ? "Copy unavailable"
+                : "Copy as Markdown"}
+          </Button>
+          <span className="sr-only" aria-live="polite">
+            {copyState === "copied" ? "Rank overview copied" : null}
+            {copyState === "unavailable" ? "Clipboard unavailable" : null}
+          </span>
+        </div>
       </div>
       <div
         className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border border-border bg-raised px-3 py-2 font-mono text-xs"

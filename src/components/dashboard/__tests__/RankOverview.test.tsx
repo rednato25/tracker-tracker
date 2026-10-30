@@ -187,6 +187,30 @@ describe("RankOverview", () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith(1, null))
   })
 
+  it("copies the whole overview as Markdown", async () => {
+    const writeText = vi.fn(async (_text: string) => {})
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    })
+    render(
+      overview({
+        checks: {
+          "1": { verdict: "wrong", note: "Site says 200 GiB", checkedAt: "2026-10-30" },
+        },
+      })
+    )
+
+    await user.click(screen.getByRole("button", { name: "Copy as Markdown" }))
+    expect(writeText).toHaveBeenCalledTimes(1)
+    const markdown = writeText.mock.calls[0][0] as string
+    expect(markdown).toContain("## TorrentLeech")
+    expect(markdown).toContain("| At least 12 weeks registered |")
+    expect(markdown).toContain("My check: Wrong \u2014 Site says 200 GiB")
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument()
+  })
+
   it("reports a failed save instead of pretending it worked", async () => {
     const save = vi.fn(async () => {
       throw new Error("nope")

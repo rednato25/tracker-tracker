@@ -107,7 +107,6 @@ function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
   const navItems = [
     { href: "/", label: "Dashboard", active: pathname === "/" },
     { href: "/pathways", label: "Tracker pathways", active: pathname.startsWith("/pathways") },
-    { href: "/search", label: "Search", active: pathname.startsWith("/search") },
     { href: "/settings", label: "Settings", active: pathname.startsWith("/settings") },
   ]
 

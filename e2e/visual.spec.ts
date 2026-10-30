@@ -55,7 +55,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     }
   })
 
-  test("captures the rank goal and download budget panels", async ({ page }) => {
+  // P37 hides the Download budget panel. Its visual evidence is parked with the code.
+  test.skip("captures the rank goal and download budget panels", async ({ page }) => {
     expect(trackerId).not.toBeNull()
     await page.goto(`/trackers/${trackerId}`)
     await expect(page.locator("[data-rank-goal-panel]").first()).toBeVisible()
@@ -194,7 +195,7 @@ test.describe.serial("rank and budget visual evidence", () => {
     await page.screenshot({ path: "test-results/visual-mobile-bottom.png" })
   })
 
-  test("captures the reported queue totals after the UX fix", async ({ page }) => {
+  test.skip("captures the reported queue totals after the UX fix", async ({ page }) => {
     const sql = e2eSql()
     try {
       await sql`
@@ -234,7 +235,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     await page.screenshot({ path: "test-results/visual-budget-queue-after-mobile.png" })
   })
 
-  test("previews and imports a selected Prowlarr indexer", async ({ page, request }) => {
+  // P37 hides the Settings import UI. The import code remains for now.
+  test.skip("previews and imports a selected Prowlarr indexer", async ({ page, request }) => {
     const server = createServer((req, res) => {
       if (req.url === "/api/v1/indexer") {
         res.writeHead(200, { "content-type": "application/json" })
@@ -323,7 +325,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     }
   })
 
-  test("previews and imports a selected Jackett indexer", async ({ page }) => {
+  // P37 hides the Settings import UI. The import code remains for now.
+  test.skip("previews and imports a selected Jackett indexer", async ({ page }) => {
     const server = createServer((req, res) => {
       if (req.url === "/UI/Dashboard" && req.method === "POST") {
         let body = ""
@@ -416,7 +419,8 @@ test.describe.serial("rank and budget visual evidence", () => {
     }
   })
 })
-test.describe.serial("integration token visual evidence", () => {
+// P37 hides the Integrations settings tab. The token code remains for now.
+test.describe.skip("integration token visual evidence (hidden in P37)", () => {
   test("captures desktop light/dark and mobile token management", async ({ page }) => {
     try {
       await page.goto("/settings")
@@ -597,7 +601,9 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await page.screenshot({ path: "test-results/visual-pathways-mobile-best-dark.png" })
   })
 })
-test.describe.serial("Prowlarr search visual evidence", () => {
+// P37 hides the Search UI. The Prowlarr search code remains, so this visual
+// evidence is parked until the feature is exposed again.
+test.describe.skip("Prowlarr search visual evidence (hidden in P37)", () => {
   let searchTrackerId: number | null = null
   let searchServer: ReturnType<typeof createServer> | null = null
 
@@ -1095,7 +1101,6 @@ test.describe.serial("P32a foundation visual evidence", () => {
       { slug: "dashboard", path: "/" },
       { slug: "tracker", path: `/trackers/${foundationTrackerId}` },
       { slug: "settings", path: "/settings" },
-      { slug: "search", path: "/search" },
     ]
 
     for (const route of routes) {
@@ -1147,6 +1152,32 @@ test.describe.serial("P32a foundation visual evidence", () => {
       await page.setViewportSize({ width: 1440, height: 1000 })
       await page.goto(route.path)
       await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
+      if (route.slug === "settings-detail") {
+        await expect(page.getByRole("tab", { name: "Integrations" })).toHaveCount(0)
+        await expect(page.getByText("Prowlarr")).toHaveCount(0)
+        await expect(page.getByText("Jackett")).toHaveCount(0)
+        await expect(page.getByRole("link", { name: "Search" })).toHaveCount(0)
+        const widths = await page.evaluate(() => {
+          const frame = document.querySelector("#main-content > div") as HTMLElement | null
+          const settings = document.querySelector("[data-settings-page]") as HTMLElement | null
+          if (!frame || !settings) return null
+          const style = getComputedStyle(frame)
+          return {
+            frame:
+              frame.clientWidth -
+              Number.parseFloat(style.paddingLeft) -
+              Number.parseFloat(style.paddingRight),
+            settings: settings.getBoundingClientRect().width,
+          }
+        })
+        expect(widths).not.toBeNull()
+        expect(widths?.settings ?? 0).toBeGreaterThan(1000)
+        expect(Math.abs((widths?.settings ?? 0) - (widths?.frame ?? 0))).toBeLessThanOrEqual(2)
+      }
+      if (route.slug === "tracker-detail") {
+        await expect(page.locator("[data-download-budget-panel]")).toHaveCount(0)
+        await expect(page.locator("[data-rank-goal-panel]").first()).toBeVisible()
+      }
       await page.evaluate(() => {
         document.querySelector<HTMLElement>("#main-content")?.scrollTo(0, 0)
         document.documentElement.dataset.theme = "light"
@@ -1211,14 +1242,28 @@ test.describe.serial("P32a foundation visual evidence", () => {
         await page.goto(route.path)
         await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
         if (width === 1440 && route.slug === "settings") {
-          const box = await page.locator("[data-settings-page]").first().boundingBox()
-          expect(box?.width ?? 0).toBeLessThanOrEqual(896)
+          const widths = await page.evaluate(() => {
+            const frame = document.querySelector("#main-content > div") as HTMLElement | null
+            const settings = document.querySelector("[data-settings-page]") as HTMLElement | null
+            if (!frame || !settings) return null
+            const style = getComputedStyle(frame)
+            return {
+              frame:
+                frame.clientWidth -
+                Number.parseFloat(style.paddingLeft) -
+                Number.parseFloat(style.paddingRight),
+              settings: settings.getBoundingClientRect().width,
+            }
+          })
+          expect(widths).not.toBeNull()
+          expect(widths?.settings ?? 0).toBeGreaterThan(1000)
+          expect(Math.abs((widths?.settings ?? 0) - (widths?.frame ?? 0))).toBeLessThanOrEqual(2)
         }
         if (width === 390 && route.slug === "settings") {
           const tabRows = await page.locator('[role="tab"]').evaluateAll((tabs) => {
             return new Set(tabs.map((tab) => Math.round(tab.getBoundingClientRect().top))).size
           })
-          expect(tabRows, "settings tabs wrap to two rows").toBe(2)
+          expect(tabRows, "settings tabs wrap").toBeGreaterThanOrEqual(2)
         }
         if (width === 390) {
           await page.waitForFunction(
@@ -1507,6 +1552,12 @@ test.describe.serial("P32a foundation visual evidence", () => {
         })
       }
     }
+  })
+
+  test("redirects the removed Search page to Dashboard", async ({ page }) => {
+    await page.goto("/search")
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.locator("#main-content h1").first()).toHaveText("Dashboard")
   })
 
   test("captures the detail metric hues at 1440 and 390", async ({ page }) => {

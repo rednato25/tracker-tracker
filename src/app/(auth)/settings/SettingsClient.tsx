@@ -17,10 +17,7 @@ import { DangerZoneSection } from "@/components/settings/DangerZoneSection"
 import { DataSection } from "@/components/settings/DataSection"
 import { DigestSection } from "@/components/settings/DigestSection"
 import { EventsSection } from "@/components/settings/EventsSection"
-import { IntegrationsSection } from "@/components/settings/IntegrationsSection"
-import { JackettImportSection } from "@/components/settings/JackettImportSection"
 import { PrivacySection } from "@/components/settings/PrivacySection"
-import { ProwlarrImportSection } from "@/components/settings/ProwlarrImportSection"
 import { ProxySection } from "@/components/settings/ProxySection"
 import { SecurityPoliciesSection } from "@/components/settings/SecurityPoliciesSection"
 import { TwoFactorSection } from "@/components/settings/TwoFactorSection"
@@ -28,13 +25,12 @@ import { TagGroups } from "@/components/TagGroups"
 import { TabBar } from "@/components/ui/TabBar"
 import type { QbitmanageTagConfig } from "@/types/api"
 
-type SettingsTab = "general" | "clients" | "notifications" | "integrations" | "backups" | "events" | "about"
+type SettingsTab = "general" | "clients" | "notifications" | "backups" | "events" | "about"
 
 const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
   { key: "general", label: "General" },
   { key: "clients", label: "Download Clients" },
   { key: "notifications", label: "Notifications" },
-  { key: "integrations", label: "Integrations" },
   { key: "backups", label: "Backups" },
   { key: "events", label: "Events" },
   { key: "about", label: "About" },
@@ -98,15 +94,17 @@ export function SettingsClient({
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
 
   return (
-    <div data-settings-page className="flex w-full max-w-4xl flex-col gap-10 pb-16">
+    <div data-settings-page className="flex w-full flex-col gap-10 pb-16">
       <div className="flex flex-col gap-6">
         <H1>Settings</H1>
         <TabBar tabs={SETTINGS_TABS} activeTab={activeTab} onChange={setActiveTab} wrap />
       </div>
 
       {activeTab === "general" && (
-        <>
-          <AccountSection initialUsername={initialSettings.username ?? ""} />
+        <div className="grid grid-cols-1 gap-10 xl:grid-cols-2 xl:items-start">
+          <div className="xl:col-span-2">
+            <AccountSection initialUsername={initialSettings.username ?? ""} />
+          </div>
 
           <TwoFactorSection />
 
@@ -120,39 +118,37 @@ export function SettingsClient({
 
           <DataSection initialPollInterval={initialSettings.trackerPollIntervalMinutes ?? 60} />
 
-          <ProwlarrImportSection
-            initialUrl={initialSettings.prowlarrUrl}
-            initialHasKey={initialSettings.hasProwlarrApiKey}
-            initialAllowPrivate={initialSettings.prowlarrAllowPrivate}
-          />
+          <div className="xl:col-span-2">
+            <SecurityPoliciesSection
+              initialLockout={{
+                enabled: initialSettings.lockoutEnabled,
+                threshold: initialSettings.lockoutThreshold,
+                durationMinutes: initialSettings.lockoutDurationMinutes,
+              }}
+              initialSnapshotRetentionDays={initialSettings.snapshotRetentionDays}
+              initialSessionTimeoutMinutes={initialSettings.sessionTimeoutMinutes}
+              databaseSize={databaseSize}
+            />
+          </div>
 
-          <JackettImportSection />
+          <div className="xl:col-span-2">
+            <ProxySection
+              initialProxy={{
+                enabled: initialSettings.proxyEnabled,
+                type: initialSettings.proxyType || "socks5",
+                host: initialSettings.proxyHost ?? "",
+                port: initialSettings.proxyPort ?? 1080,
+                username: initialSettings.proxyUsername ?? "",
+                hasPassword: initialSettings.hasProxyPassword,
+              }}
+              trackers={initialProxyTrackers}
+            />
+          </div>
 
-          <SecurityPoliciesSection
-            initialLockout={{
-              enabled: initialSettings.lockoutEnabled,
-              threshold: initialSettings.lockoutThreshold,
-              durationMinutes: initialSettings.lockoutDurationMinutes,
-            }}
-            initialSnapshotRetentionDays={initialSettings.snapshotRetentionDays}
-            initialSessionTimeoutMinutes={initialSettings.sessionTimeoutMinutes}
-            databaseSize={databaseSize}
-          />
-
-          <ProxySection
-            initialProxy={{
-              enabled: initialSettings.proxyEnabled,
-              type: initialSettings.proxyType || "socks5",
-              host: initialSettings.proxyHost ?? "",
-              port: initialSettings.proxyPort ?? 1080,
-              username: initialSettings.proxyUsername ?? "",
-              hasPassword: initialSettings.hasProxyPassword,
-            }}
-            trackers={initialProxyTrackers}
-          />
-
-          <DangerZoneSection />
-        </>
+          <div className="xl:col-span-2">
+            <DangerZoneSection />
+          </div>
+        </div>
       )}
 
       {activeTab === "clients" && (
@@ -184,10 +180,6 @@ export function SettingsClient({
             }}
           />
         </>
-      )}
-
-      {activeTab === "integrations" && (
-        <IntegrationsSection initialIdentityMode={initialSettings.integrationIdentityMode} />
       )}
 
       {activeTab === "backups" && (

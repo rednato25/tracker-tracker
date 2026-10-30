@@ -13,7 +13,6 @@ import { TrackerSettingsSheet } from "@/components/TrackerSettingsSheet"
 import { AnalyticsTab } from "@/components/tracker-detail/AnalyticsTab"
 import type { DebugData } from "@/components/tracker-detail/DebugResponseDialog"
 import { DebugResponseDialog } from "@/components/tracker-detail/DebugResponseDialog"
-import { DownloadBudgetPanel } from "@/components/tracker-detail/DownloadBudgetPanel"
 import { RankGoalPanel } from "@/components/tracker-detail/RankGoalPanel"
 import { resolveSlots } from "@/components/tracker-detail/resolve-slots"
 import { TrackerDetailHeader } from "@/components/tracker-detail/TrackerDetailHeader"
@@ -356,13 +355,6 @@ export function TrackerDetailClient({
         platformMeta={tracker.platformMeta}
         initialSavedGoals={savedRankGoals}
         onSavedGoalsChange={setSavedRankGoals}
-      />
-
-      <DownloadBudgetPanel
-        trackerId={tracker.id}
-        registrySlug={tracker.registrySlug}
-        stats={stats}
-        lastPolledAt={tracker.lastPolledAt}
       />
 
       {/* Shutdown notice. Ranks above the pause/error banners because a defunct

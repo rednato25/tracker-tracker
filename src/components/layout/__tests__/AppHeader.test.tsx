@@ -35,7 +35,7 @@ describe("AppHeader", () => {
     render(<AppHeader />)
     await user.click(screen.getByRole("button", { name: "Open menu" }))
     expect(screen.getAllByRole("button", { name: "Add tracker" }).length).toBeGreaterThan(1)
-    expect(screen.getAllByRole("link", { name: "Search" })[0]).toHaveAttribute("href", "/search")
+    expect(screen.queryByRole("link", { name: "Search" })).not.toBeInTheDocument()
     expect(screen.getAllByRole("link", { name: "Settings" }).length).toBeGreaterThan(0)
   })
 })

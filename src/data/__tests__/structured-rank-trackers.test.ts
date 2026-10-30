@@ -111,9 +111,9 @@ describe("P35 structured rank requirements", () => {
 
   it("Upload.cx: Member does not exist and the seed, upload-count and combined ladders evaluate", () => {
     const entry = getTrackerBySlug("uploadcx")
-    expect(
-      entry?.userClasses.some((userClass) => userClass.name.toLowerCase() === "member")
-    ).toBe(false)
+    expect(entry?.userClasses.some((userClass) => userClass.name.toLowerCase() === "member")).toBe(
+      false
+    )
 
     expect(evaluate("uploadcx", "User", { accountRatio: 0.6 }).status).toBe("met")
 
@@ -223,7 +223,7 @@ describe("P35 structured rank requirements", () => {
     expect(titan.status).toBe("met")
   })
 
-  it("CarPT: Power User evaluates seeding points with the other thresholds", () => {
+  it("CarPT: Power User needs more than 40,000 seeding points", () => {
     const power = evaluate("carpt", "Power User", {
       accountAgeDays: 28,
       downloadedBytes: 200 * GiB,
@@ -232,11 +232,19 @@ describe("P35 structured rank requirements", () => {
     expect(power.status).toBe("unknown")
     expect(power.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
 
-    const complete = evaluate("carpt", "Power User", {
+    const exact = evaluate("carpt", "Power User", {
       accountAgeDays: 28,
       downloadedBytes: 200 * GiB,
       accountRatio: 2.1,
       seedingPoints: 40_000,
+    })
+    expect(exact.status).toBe("unmet")
+
+    const complete = evaluate("carpt", "Power User", {
+      accountAgeDays: 28,
+      downloadedBytes: 200 * GiB,
+      accountRatio: 2.1,
+      seedingPoints: 40_001,
     })
     expect(complete.status).toBe("met")
   })
@@ -274,6 +282,17 @@ describe("P35 structured rank requirements", () => {
     expect(elite.status).toBe("unmet")
   })
 
+  it("M-Team: the login deadline is 40 days and unmodelable rules stay as notes", () => {
+    const entry = getTrackerBySlug("mteam")
+    expect(entry?.rules?.loginIntervalDays).toBe(40)
+
+    const unresolved = entry?.rankUnresolved ?? []
+    expect(unresolved.some((note) => note.startsWith("The first-30-days newbie assessment"))).toBe(
+      true
+    )
+    expect(unresolved.some((note) => note.startsWith("The minimum ratio is tiered"))).toBe(true)
+  })
+
   it("AvistaZ: Member meets the upload, ratio and age thresholds", () => {
     const member = evaluate("avistaz", "Member", {
       accountAgeDays: 7,
@@ -281,6 +300,18 @@ describe("P35 structured rank requirements", () => {
       accountRatio: 1.0,
     })
     expect(member.status).toBe("met")
+  })
+
+  it("AvistaZ: Member is the highest automatic class and Leech sits below the ladder", () => {
+    const entry = getTrackerBySlug("avistaz")
+    const automatic =
+      entry?.userClasses
+        .filter((userClass) => !userClass.outsideLadder)
+        .map((userClass) => userClass.name) ?? []
+    expect(automatic).toEqual(["Newbie", "Member"])
+    expect(entry?.userClasses.find((userClass) => userClass.name === "Leech")?.outsideLadder).toBe(
+      "below"
+    )
   })
 
   it("DigitalCore: Sentinel meets its numeric thresholds and Viceroy needs more age", () => {
@@ -297,6 +328,15 @@ describe("P35 structured rank requirements", () => {
       accountRatio: 1.05,
     })
     expect(viceroy.status).toBe("unmet")
+  })
+
+  it("DigitalCore: Sentry reads its upload as 1200 GiB, not 1.2 TiB", () => {
+    const sentry = evaluate("digitalcore", "Sentry", {
+      accountAgeDays: 210,
+      uploadedBytes: 1200 * GiB,
+      accountRatio: 1.1,
+    })
+    expect(sentry.status).toBe("met")
   })
 
   it("DreadVault: Wanderer meets numeric thresholds and Shadow Walker needs seed checks", () => {

@@ -77,6 +77,50 @@ const REQUIREMENT_CATALOG: RecruitmentCatalog = {
   ],
 }
 
+const DIRECT_CATALOG: RecruitmentCatalog = {
+  ...OPEN_CATALOG,
+  routes: [
+    {
+      ...CATALOG.routes[1],
+      id: "tp:AlphaRatio:ReadyDest",
+      destinationTrackerId: "ReadyDest",
+      destinationRegistrySlug: null,
+      minimumDays: 0,
+      requirementNotes: [],
+    },
+    {
+      ...CATALOG.routes[0],
+      id: "tp:TorrentLeech:SlowDest",
+      destinationTrackerId: "SlowDest",
+      destinationRegistrySlug: null,
+      minimumDays: 30,
+      requirementNotes: [],
+    },
+    {
+      ...CATALOG.routes[0],
+      id: "tp:TorrentLeech:ReadyDest",
+      destinationTrackerId: "ReadyDest",
+      destinationRegistrySlug: null,
+      minimumDays: 100,
+      requirementNotes: [],
+    },
+    {
+      ...CATALOG.routes[1],
+      id: "tp:AlphaRatio:TorrentLeech",
+      destinationTrackerId: "TorrentLeech",
+      destinationRegistrySlug: "torrentleech",
+    },
+    {
+      ...CATALOG.routes[0],
+      id: "tp:TorrentLeech:ClosedDest",
+      destinationTrackerId: "ClosedDest",
+      destinationRegistrySlug: null,
+      availability: "closed",
+      availabilityRaw: "No",
+    },
+  ],
+}
+
 function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
   return {
     id: 1,
@@ -154,13 +198,16 @@ describe("TrackerPathwaysClient", () => {
       />
     )
     expect(screen.getByRole("heading", { name: "Tracker pathways" })).toBeInTheDocument()
-    expect(screen.getByText("Your trackers (1)")).toBeInTheDocument()
-    expect(screen.getByText("Your trackers (1)").closest("details")).not.toHaveAttribute("open")
-    expect(screen.getByText("Get to a tracker")).toBeInTheDocument()
+    const directHeading = screen.getByRole("heading", {
+      name: "Where your trackers can take you",
+    })
+    expect(directHeading).toBeInTheDocument()
     const getTo = screen.getByText("Get to a tracker")
-    const owned = screen.getByText("Your trackers (1)").closest("details") as HTMLElement
-    expect(getTo.compareDocumentPosition(owned) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByText(/1 direct/)).toBeInTheDocument()
+    expect(
+      directHeading.compareDocumentPosition(getTo) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(screen.queryByText(/Your trackers \(/)).not.toBeInTheDocument()
+    expect(screen.getByText("BroadcasTheNet")).toBeInTheDocument()
   })
 
   it("marks an owned tracker missing from trackerpathways data and shows nothing else", () => {
@@ -176,8 +223,8 @@ describe("TrackerPathwaysClient", () => {
         catalog={CATALOG}
       />
     )
-    expect(screen.getByText("Mystery Tracker")).toBeInTheDocument()
-    expect(screen.getByText("Not in trackerpathways data")).toBeInTheDocument()
+    expect(screen.getByText(/Not in trackerpathways data: Mystery Tracker\./)).toBeInTheDocument()
+    expect(screen.getByText("No one-step destinations from your trackers yet.")).toBeInTheDocument()
     expect(screen.queryByText("Power User")).not.toBeInTheDocument()
     expect(screen.queryByText(/direct route/)).not.toBeInTheDocument()
   })
@@ -198,10 +245,40 @@ describe("TrackerPathwaysClient", () => {
       chip.textContent?.trim()
     )
     expect(chips).toEqual(["AlphaRatio", "BroadcasTheNet"])
-    expect(screen.getAllByText("Ready now")).toHaveLength(1)
+    expect(screen.getAllByText("Ready now")).toHaveLength(2)
     expect(screen.queryByText("AlphaRatio → BroadcasTheNet")).not.toBeInTheDocument()
     const other = screen.getByText("Other routes (1)")
     expect(other.closest("details")).not.toHaveAttribute("open")
+  })
+
+  it("lists one-step destinations once, ready first, then days left", () => {
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={[
+          tracker({
+            id: 1,
+            name: "TorrentLeech",
+            registrySlug: "torrentleech",
+            joinedAt: recentJoin,
+          }),
+          tracker({ id: 2, name: "AlphaRatio", registrySlug: "alpharatio" }),
+        ]}
+        initialState={stateFor(null)}
+        catalog={DIRECT_CATALOG}
+      />
+    )
+    const rows = [...container.querySelectorAll("[data-direct-route]")]
+    expect(rows.map((row) => row.getAttribute("data-direct-route"))).toEqual([
+      "ReadyDest",
+      "SlowDest",
+    ])
+    expect(rows[0]).toHaveTextContent("from AlphaRatio")
+    expect(rows[0]).toHaveTextContent("Ready now")
+    expect(rows[1]).toHaveTextContent("from TorrentLeech")
+    expect(rows[1]).toHaveTextContent(/days left/)
+    expect(container.querySelectorAll('[data-direct-route="ReadyDest"]')).toHaveLength(1)
+    expect(container.querySelector('[data-direct-route="TorrentLeech"]')).toBeNull()
+    expect(container.querySelector('[data-direct-route="ClosedDest"]')).toBeNull()
   })
 
   it("renders one line per step and keeps details to the two dates", async () => {

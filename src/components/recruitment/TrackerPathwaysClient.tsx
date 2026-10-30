@@ -6,20 +6,17 @@ import { H1, H2, Paragraph, Subtext } from "@typography"
 import { useId, useMemo, useRef, useState } from "react"
 import { Badge, Button, Card, Input, Notice } from "@/components/ui"
 import { ChevronDownSmallIcon } from "@/components/ui/Icons"
-import {
-  PATHWAYS_TRACKERS,
-  pathwaysTrackerIdForRegistrySlug,
-  pathwaysTrackerName,
-} from "@/data/pathways/catalog"
+import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import { useClickOutside } from "@/hooks/useClickOutside"
-import { formatAccountAge, formatDate } from "@/lib/formatters"
+import { formatDate } from "@/lib/formatters"
 import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
   normalizeRecruitmentState,
   type RecruitmentState,
 } from "@/lib/recruitment-state"
 import {
+  buildDirectDestinations,
   buildWishlistPaths,
   pathWaitLabel,
   stepHasUncheckedRequirements,
@@ -276,14 +273,6 @@ function TrackerPicker({
   )
 }
 
-interface OwnedRow {
-  tracker: TrackerSummary
-  pathwayId: string | null
-  userClass: string
-  age: string
-  directCount: number
-}
-
 export function TrackerPathwaysClient({
   trackers,
   initialState,
@@ -311,31 +300,9 @@ export function TrackerPathwaysClient({
   )
 
   const ownedIds = useMemo(() => new Set(result.ownedSlugs), [result.ownedSlugs])
-  const directDestinations = useMemo(() => {
-    const counts = new Map<string, Set<string>>()
-    for (const route of catalog.routes) {
-      const destinations = counts.get(route.sourceTrackerId) ?? new Set<string>()
-      destinations.add(route.destinationTrackerId)
-      counts.set(route.sourceTrackerId, destinations)
-    }
-    return counts
-  }, [catalog])
-
-  const ownedRows = useMemo<OwnedRow[]>(
-    () =>
-      trackers.map((tracker) => {
-        const pathwayId = tracker.registrySlug
-          ? pathwaysTrackerIdForRegistrySlug(tracker.registrySlug)
-          : null
-        return {
-          tracker,
-          pathwayId,
-          userClass: tracker.latestStats?.group?.trim() || "Unknown",
-          age: formatAccountAge(tracker.joinedAt) ?? "Unknown",
-          directCount: pathwayId ? (directDestinations.get(pathwayId)?.size ?? 0) : 0,
-        }
-      }),
-    [directDestinations, trackers]
+  const direct = useMemo(
+    () => buildDirectDestinations({ catalog, trackers, now }),
+    [catalog, now, trackers]
   )
 
   const pickerOptions = useMemo<PickerOption[]>(
@@ -397,6 +364,53 @@ export function TrackerPathwaysClient({
         </Paragraph>
       </div>
 
+      <section className="flex flex-col gap-3" aria-labelledby="where-your-trackers-heading">
+        <div className="flex flex-col gap-1">
+          <H2 id="where-your-trackers-heading">Where your trackers can take you</H2>
+          <Paragraph>One step from the accounts you already have. Ready routes come first.</Paragraph>
+        </div>
+        {direct.rows.length > 0 ? (
+          <ul className="flex flex-col">
+            {direct.rows.map((row) => (
+              <li
+                key={row.destinationTrackerId}
+                data-direct-route={row.destinationTrackerId}
+                className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-border py-2.5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.6fr)_minmax(0,0.9fr)] sm:items-baseline sm:gap-3"
+              >
+                <span className="min-w-0 break-words font-cond text-sm font-semibold uppercase tracking-[0.06em] text-primary">
+                  {row.destinationName}
+                </span>
+                <span
+                  className={`justify-self-end font-mono text-2xs sm:justify-self-start ${
+                    row.ready ? "text-success" : "text-secondary"
+                  }`}
+                >
+                  {row.waitLabel}
+                </span>
+                <span className="col-span-2 break-words text-xs text-secondary sm:col-span-1">
+                  from {row.sourceName}
+                </span>
+                <span className="col-span-2 break-words text-xs text-secondary sm:col-span-1">
+                  {row.requirementText ?? "No requirement text"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-secondary">
+            {trackers.length === 0
+              ? "Add a tracker to see where it can take you."
+              : "No one-step destinations from your trackers yet."}
+          </p>
+        )}
+        {direct.unsupportedOwnedTrackers.length > 0 && (
+          <p className="text-xs text-tertiary">
+            Not in trackerpathways data:{" "}
+            {direct.unsupportedOwnedTrackers.map((tracker) => tracker.name).join(", ")}.
+          </p>
+        )}
+      </section>
+
       <section className="flex flex-col gap-3" aria-labelledby="get-to-tracker-heading">
         <div className="flex flex-col gap-1">
           <H2 id="get-to-tracker-heading">Get to a tracker</H2>
@@ -456,44 +470,6 @@ export function TrackerPathwaysClient({
           <p className="text-sm text-secondary">No known route from your trackers.</p>
         )}
       </section>
-
-      <details className="border border-border bg-raised p-4">
-        <summary className="cursor-pointer font-cond text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
-          Your trackers ({ownedRows.length})
-        </summary>
-        <div className="mt-3 flex flex-col gap-3">
-          <Paragraph>Current class, account age and direct trackerpathways routes.</Paragraph>
-          {ownedRows.length === 0 ? (
-            <p className="text-sm text-secondary">No trackers yet.</p>
-          ) : (
-            <ul className="flex flex-col">
-              {ownedRows.map((row) => (
-                <li
-                  key={row.tracker.id}
-                  data-owned-tracker={row.tracker.id}
-                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-border py-2.5 first:border-t-0 first:pt-0 last:pb-0"
-                >
-                  <span className="min-w-0 break-words font-cond text-sm font-semibold uppercase tracking-[0.06em] text-primary">
-                    {row.tracker.name}
-                  </span>
-                  {row.pathwayId === null ? (
-                    <span className="text-xs text-tertiary">Not in trackerpathways data</span>
-                  ) : (
-                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-secondary">
-                      <span>{row.userClass}</span>
-                      <span>{row.age}</span>
-                      <span>
-                        {row.directCount} direct{" "}
-                        {row.directCount === 1 ? "route" : "routes"}
-                      </span>
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </details>
 
       <Subtext className="text-2xs">
         Source: {catalog.source.attribution}{" "}

@@ -2,6 +2,8 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+
 export const avistaz: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "avistaz",
@@ -29,6 +31,20 @@ export const avistaz: TrackerRegistryEntry = {
   statusPageUrl: "",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; rules page is login-gated",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
+  },
+  rankUnresolved: [
+    "Newbie's torrent-age restriction and per-class download limits are perks, not promotion thresholds.",
+    "GB text without a stated unit basis is read as the larger binary GiB value.",
+  ],
   userClasses: [
     { name: "Banned", requirements: "Violated site rules", outsideLadder: "below" },
     {
@@ -40,7 +56,18 @@ export const avistaz: TrackerRegistryEntry = {
       name: "Newbie",
       requirements: "New user. 5 downloads/day, 1 week old+ only. No uploads or RSS",
     },
-    { name: "Member", requirements: "5 GB upload, ratio >= 1.0, 7+ days. 50 downloads/day" },
+    {
+      name: "Member",
+      requirements: "5 GB upload, ratio >= 1.0, 7+ days. 50 downloads/day",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "avz-member-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 7, scope: "account", label: "At least 7 days registered" },
+          { kind: "numeric", id: "avz-member-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * GiB, scope: "account", unitReading: "conservative", label: "At least 5 GiB uploaded" },
+          { kind: "numeric", id: "avz-member-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.0, scope: "account", label: "Ratio at least 1.0" },
+        ],
+      },
+    },
     {
       name: "V.I.P.",
       requirements: "Donor/distinguished. 100 downloads/day",

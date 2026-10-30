@@ -78,7 +78,7 @@ describe("RankOverview", () => {
   it("shows the current class, target and every condition in its own row", () => {
     render(overview())
     expect(screen.getByRole("heading", { name: "Ranks" })).toBeInTheDocument()
-    expect(screen.getByText("Power User")).toBeInTheDocument()
+    expect(screen.getAllByText("Power User").length).toBeGreaterThan(0)
     expect(screen.getByText("Target: Super User")).toBeInTheDocument()
     expect(screen.getByText("At least 12 weeks registered")).toBeInTheDocument()
     expect(screen.getByText("302 days")).toBeInTheDocument()
@@ -185,6 +185,20 @@ describe("RankOverview", () => {
     expect(screen.getByLabelText("Note for TorrentLeech")).toHaveValue("Upload is 300 GiB")
     await user.click(screen.getByRole("button", { name: "Clear" }))
     await waitFor(() => expect(save).toHaveBeenCalledWith(1, null))
+  })
+
+  it("hides staff and off-ladder classes behind Show all classes", async () => {
+    const user = userEvent.setup()
+    render(overview())
+
+    expect(screen.getByText("Registered")).toBeInTheDocument()
+    expect(screen.queryByText("VIP")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show all classes" }))
+    const vip = screen.getByText("VIP")
+    expect(vip.closest("[data-rank-class]")).toHaveAttribute("data-outside-ladder", "above")
+    expect(screen.getByText("off-ladder")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show earned classes" }))
+    expect(screen.queryByText("VIP")).not.toBeInTheDocument()
   })
 
   it("copies the whole overview as Markdown", async () => {

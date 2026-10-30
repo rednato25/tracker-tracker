@@ -12,6 +12,7 @@ import { Badge, Button } from "@/components/ui"
 import { type ClipboardOutcome, copyTextToClipboard } from "@/lib/clipboard"
 import { formatDate, localDateStr } from "@/lib/formatters"
 import type { RankGoalStatus } from "@/lib/rank-goals"
+import { OUTSIDE_LADDER_NOTE } from "@/lib/rank-ladder"
 import { buildRankOverviewMarkdown } from "@/lib/rank-markdown"
 import { buildRankOverviews, type RankOverview as RankOverviewData } from "@/lib/rank-overview"
 import type { RankCheck, RankCheckVerdict } from "@/lib/recruitment-state"
@@ -263,6 +264,11 @@ function TrackerRankSection({
   check: RankCheck | null
   onSaveCheck: (check: RankCheck | null) => Promise<void>
 }) {
+  const [showAllClasses, setShowAllClasses] = useState(false)
+  const earnedClasses = overview.classes.filter((userClass) => !userClass.outsideLadder)
+  const hiddenClassCount = overview.classes.length - earnedClasses.length
+  const visibleClasses = showAllClasses ? overview.classes : earnedClasses
+
   return (
     <section
       className="flex min-w-0 flex-col gap-3 border border-border border-t-2 bg-raised p-4"
@@ -309,6 +315,65 @@ function TrackerRankSection({
       )}
       {savedGoal && !overview.targetReached && savedGoal !== overview.targetClass && (
         <p className="text-xs text-warn">Saved target is not in this ladder.</p>
+      )}
+
+      {overview.classes.length > 0 && (
+        <div className="flex flex-col gap-2" data-rank-ladder>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-tertiary">
+              Progression
+            </span>
+            {hiddenClassCount > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-pressed={showAllClasses}
+                onClick={() => setShowAllClasses((shown) => !shown)}
+                className="min-h-11 px-2 sm:min-h-8"
+                data-show-all-classes
+              >
+                {showAllClasses ? "Show earned classes" : "Show all classes"}
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {visibleClasses.map((userClass) => (
+              <span
+                key={userClass.name}
+                data-rank-class={userClass.name}
+                data-outside-ladder={userClass.outsideLadder ?? undefined}
+                data-current-class={userClass.isCurrent ? "true" : undefined}
+                data-target-class={userClass.isTarget ? "true" : undefined}
+                title={
+                  userClass.outsideLadder
+                    ? OUTSIDE_LADDER_NOTE[userClass.outsideLadder]
+                    : (userClass.requirements ?? undefined)
+                }
+                className={`inline-flex min-h-7 items-center gap-1 rounded-nm-sm border px-2 py-1 text-xs ${
+                  userClass.isCurrent
+                    ? "border-accent bg-accent-dim font-semibold text-primary"
+                    : userClass.isTarget
+                      ? "border-border-emphasis bg-elevated text-primary"
+                      : userClass.outsideLadder
+                        ? "border-dashed border-border bg-control-bg text-tertiary"
+                        : "border-border bg-control-bg text-secondary"
+                }`}
+              >
+                {userClass.name}
+                {userClass.isCurrent && (
+                  <span className="font-cond text-2xs uppercase tracking-[0.1em] text-accent">
+                    current
+                  </span>
+                )}
+                {userClass.outsideLadder && (
+                  <span className="font-cond text-2xs uppercase tracking-[0.1em] text-tertiary">
+                    off-ladder
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
 
       {overview.conditions.length > 0 ? (

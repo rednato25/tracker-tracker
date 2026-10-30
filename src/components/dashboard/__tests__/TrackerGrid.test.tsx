@@ -114,7 +114,7 @@ describe("TrackerGrid", () => {
     render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
     expect(screen.getByRole("heading", { name: "Trackers" })).toBeInTheDocument()
     expect(screen.getByText("TorrentLeech")).toBeInTheDocument()
-    expect(screen.getByText("Power User")).toBeInTheDocument()
+    expect(screen.getByText("Member since 1 Jan 2025")).toBeInTheDocument()
     expect(screen.getByText(/as of Oct 28, 2026/)).toBeInTheDocument()
     expect(screen.getByText("1 of 2 requirements")).toBeInTheDocument()
     expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
@@ -134,14 +134,33 @@ describe("TrackerGrid", () => {
     )
   })
 
-  it("writes the health state and the stale marker", () => {
-    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
-    expect(screen.getByText("Healthy")).toBeInTheDocument()
-    expect(screen.queryByText("Needs checking")).not.toBeInTheDocument()
-    expect(screen.queryByLabelText("stale snapshot")).not.toBeInTheDocument()
+  it("shows member since and the duration, with no health word when healthy", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ joinedAt: "2026-10-02" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Member since 2 Oct 2026")).toBeInTheDocument()
+    expect(screen.getByText("26 days")).toBeInTheDocument()
+    expect(screen.queryByText("Healthy")).not.toBeInTheDocument()
+    expect(document.querySelector("[data-card-status]")).toBeNull()
   })
 
-  it("marks a stale card with the register's star and a written warning", () => {
+  it("shows years and calendar months once the account is older than a year", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ joinedAt: "2021-08-01" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Member since 1 Aug 2021")).toBeInTheDocument()
+    expect(screen.getByText("5 years, 2 months")).toBeInTheDocument()
+  })
+
+  it("marks a stale card with the register's star and a written status", () => {
     render(
       <TrackerGrid
         trackers={[tracker({ lastPolledAt: "2026-10-28T08:00:00.000Z" })]}
@@ -149,8 +168,37 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("Needs checking")).toBeInTheDocument()
+    expect(screen.getByText("Stale")).toBeInTheDocument()
+    expect(screen.queryByText("Healthy")).not.toBeInTheDocument()
     expect(screen.getAllByLabelText("stale snapshot").length).toBeGreaterThan(0)
+  })
+
+  it("writes Paused and Login expired instead of the healthy word", () => {
+    const { rerender } = render(
+      <TrackerGrid
+        trackers={[tracker({ userPausedAt: "2026-10-28T10:00:00.000Z" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Paused")).toBeInTheDocument()
+    expect(screen.queryByText("Healthy")).not.toBeInTheDocument()
+
+    rerender(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            pausedAt: "2026-10-28T10:00:00.000Z",
+            lastError: "Login expired, update credentials",
+            lastErrorAt: "2026-10-28T10:00:00.000Z",
+          }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Login expired")).toBeInTheDocument()
+    expect(screen.queryByText("Paused")).not.toBeInTheDocument()
   })
 
   it("keeps a tracker with no stats explicitly unknown", () => {

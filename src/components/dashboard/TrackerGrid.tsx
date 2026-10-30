@@ -14,13 +14,18 @@ import {
   formatClockTime,
   formatCount,
   formatDate,
+  formatMemberSinceDate,
   formatRatioDisplay,
 } from "@/lib/formatters"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
 import { getTrackerChecks } from "@/lib/tracker-checks"
-import { nextFailureRetryAt, plainPollError } from "@/lib/tracker-recovery"
+import {
+  isLoginExpiredMessage,
+  nextFailureRetryAt,
+  plainPollError,
+} from "@/lib/tracker-recovery"
 import {
   getHealthLabel,
   getHealthPulseDot,
@@ -44,8 +49,29 @@ function hostOf(tracker: TrackerSummary): string {
   }
 }
 
-function accountAge(tracker: TrackerSummary): string {
-  return formatAccountAge(tracker.joinedAt) ?? "Unknown"
+function accountAge(tracker: TrackerSummary, now: Date): string {
+  return formatAccountAge(tracker.joinedAt, now) ?? "Unknown"
+}
+
+function memberSince(tracker: TrackerSummary): string {
+  return formatMemberSinceDate(tracker.joinedAt) ?? "Unknown"
+}
+
+function cardStatusLabel(
+  tracker: TrackerSummary,
+  health: ReturnType<typeof getTrackerHealth>,
+  snapshotState: "fresh" | "stale" | "unknown"
+): string | null {
+  if (isLoginExpiredMessage(tracker.lastError)) return "Login expired"
+  if (getPauseState(tracker).isPaused) return "Paused"
+  if (snapshotState === "stale") return "Stale"
+  return health === "healthy" ? null : getHealthLabel(health)
+}
+
+function statusTone(label: string | null): string {
+  if (label === "Login expired" || label === "Paused") return "text-danger"
+  if (label === "Stale" || label === "Above Min" || label === "No Seeds") return "text-warn"
+  return "text-secondary"
 }
 
 function bufferValue(tracker: TrackerSummary): string {
@@ -160,6 +186,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const targetRank = summary?.targetRank ?? summary?.automaticNextRank
   const checks = getTrackerChecks(tracker)
   const snapshot = getSnapshotReadout(tracker, now)
+  const statusLabel = cardStatusLabel(tracker, health, snapshot.state)
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -167,7 +194,6 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
         ? "?"
         : null
     : null
-  const needsChecking = Boolean(stats) && snapshot.state !== "fresh"
   const markerTitle =
     snapshot.state === "stale"
       ? `Snapshot polled ${snapshot.age ?? "some time"} ago and is stale (older than 2 hours).`
@@ -196,15 +222,15 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             </p>
             <p className="truncate text-xs text-tertiary">{hostOf(tracker)}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
-              <span data-health-label>{getHealthLabel(health)}</span>
+              <span>Member since {memberSince(tracker)}</span>
               <span className="text-tertiary">{"\u00b7"}</span>
-              <span>{stats?.group ?? "Unknown class"}</span>
-              <span className="text-tertiary">{"\u00b7"}</span>
-              <span>{accountAge(tracker)}</span>
-              {needsChecking && (
+              <span>{accountAge(tracker, now)}</span>
+              {statusLabel && (
                 <>
                   <span className="text-tertiary">{"\u00b7"}</span>
-                  <span className="text-warn">Needs checking</span>
+                  <span className={statusTone(statusLabel)} data-card-status>
+                    {statusLabel}
+                  </span>
                 </>
               )}
             </p>

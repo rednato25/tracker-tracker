@@ -81,21 +81,28 @@ export function formatRatio(ratio: number | null | undefined, suffix = ""): stri
  * Returns "2 years, 3 months", "5 months", "12 days", etc.
  * Returns null if joinedAt is null.
  */
-export function formatAccountAge(joinedAt: string | null): string | null {
+export function formatAccountAge(joinedAt: string | null, now: Date = new Date()): string | null {
   if (!joinedAt) return null
-  const joined = new Date(joinedAt)
-  const now = new Date()
-  const diffMs = now.getTime() - joined.getTime()
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const bare = joinedAt.match(DATE_ONLY)
+  const joined = bare ? new Date(`${joinedAt}T00:00:00`) : new Date(joinedAt)
+  if (Number.isNaN(joined.getTime())) return null
+  const days = Math.floor((now.getTime() - joined.getTime()) / (1000 * 60 * 60 * 24))
   if (days < 30) return `${days} day${days !== 1 ? "s" : ""}`
-  const months = Math.floor(days / 30)
-  if (months < 12) {
-    return `${months} month${months !== 1 ? "s" : ""}`
+
+  let years = now.getFullYear() - joined.getFullYear()
+  let months = now.getMonth() - joined.getMonth()
+  if (now.getDate() < joined.getDate()) months -= 1
+  if (months < 0) {
+    years -= 1
+    months += 12
   }
-  const years = Math.floor(months / 12)
-  const remainingMonths = months % 12
-  if (remainingMonths > 0) {
-    return `${years} year${years !== 1 ? "s" : ""}, ${remainingMonths} month${remainingMonths !== 1 ? "s" : ""}`
+
+  if (years < 1) {
+    const totalMonths = Math.max(1, months)
+    return `${totalMonths} month${totalMonths !== 1 ? "s" : ""}`
+  }
+  if (months > 0) {
+    return `${years} year${years !== 1 ? "s" : ""}, ${months} month${months !== 1 ? "s" : ""}`
   }
   return `${years} year${years !== 1 ? "s" : ""}`
 }
@@ -108,6 +115,20 @@ export function formatJoinedDate(joinedAt: string | null): string | null {
   if (!joinedAt) return null
   const date = new Date(`${joinedAt}T00:00:00`)
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+}
+
+/**
+ * Formats a joinedAt date as a short member-since date, i.e. "4 Oct 2026".
+ * A bare YYYY-MM-DD is read as local midnight so it cannot shift a day.
+ */
+export function formatMemberSinceDate(joinedAt: string | null): string | null {
+  if (!joinedAt) return null
+  const bare = joinedAt.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  const date = bare
+    ? new Date(Number(bare[1]), Number(bare[2]) - 1, Number(bare[3]))
+    : new Date(joinedAt)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 }
 
 export type StatMode = "ratio" | "seeding" | "uploaded" | "downloaded" | "buffer"

@@ -341,6 +341,8 @@ export async function getTrackerListForDashboard(limit?: number): Promise<Tracke
   // Bound the snapshot lookup to the trackers actually returned. The extra row
   // (limit + 1) lets the caller detect truncation without a count query.
   const trackerIds = allTrackers.map((tracker) => tracker.id)
+  // `id` breaks a same-polledAt tie so the dashboard card and a single-tracker
+  // read cannot pick different rows from the same poll.
   const latestSnapshots =
     trackerIds.length === 0
       ? []

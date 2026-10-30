@@ -537,7 +537,7 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await expect(
       pathwaysPage.getByRole("heading", { name: "Where your trackers can take you" })
     ).toBeVisible()
-    await expect(pathwaysPage.locator("[data-direct-route]").first()).toBeVisible()
+    await expect(pathwaysPage.locator("[data-owned-card]").first()).toBeVisible()
     await expect(pathwaysPage.getByText(/Your trackers \(/)).toHaveCount(0)
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
     await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("Aither")
@@ -545,6 +545,11 @@ test.describe.serial("tracker pathways visual evidence", () => {
     await expect(pathwaysPage.getByText("Best path")).toBeVisible({ timeout: 15_000 })
     await expect(pathwaysPage.getByText("Total time left")).toBeVisible()
     await expect(pathwaysPage.getByText(/From AlphaRatio to Aither ·/)).toBeVisible()
+    await expect(pathwaysPage.locator('[data-target-profile="Aither"]')).toBeVisible()
+    await expect(pathwaysPage.locator("[data-invited-from]")).toBeVisible()
+    await expect(pathwaysPage.locator("[data-can-invite-to]")).toBeVisible()
+    await expect(pathwaysPage.getByText("Invite class", { exact: true })).toBeVisible()
+    await expect(pathwaysPage.getByText(/Checked /)).toBeVisible()
     await expect(pathwaysPage.getByText("Structured requirements")).toHaveCount(0)
     await expect(pathwaysPage.getByText(/Availability:/)).toHaveCount(0)
     await expect(pathwaysPage.getByText("Saving…")).toHaveCount(0)
@@ -559,6 +564,15 @@ test.describe.serial("tracker pathways visual evidence", () => {
       document.documentElement.dataset.theme = "dark"
     })
     await page.screenshot({ path: "test-results/visual-pathways-dark.png" })
+
+    await pathwaysPage.locator('[data-target-profile="Aither"]').scrollIntoViewIfNeeded()
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-profile-dark.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-profile-light.png" })
 
     await page.evaluate(() => {
       document.documentElement.dataset.theme = "light"
@@ -599,6 +613,15 @@ test.describe.serial("tracker pathways visual evidence", () => {
     })
     await page.waitForTimeout(150)
     await page.screenshot({ path: "test-results/visual-pathways-mobile-best-dark.png" })
+
+    await pathwaysPage.locator('[data-target-profile="Aither"]').scrollIntoViewIfNeeded()
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-profile-mobile-dark.png" })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light"
+    })
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: "test-results/visual-pathways-profile-mobile.png" })
   })
 })
 // P37 hides the Search UI. The Prowlarr search code remains, so this visual

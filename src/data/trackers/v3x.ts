@@ -29,6 +29,19 @@ export const v3x: TrackerRegistryEntry = {
   statusPageUrl: "",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: null,
+    title: "Existing registry free text; level and XP are not supported rank metrics",
+    accessedAt: null,
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Class thresholds are level and XP. Neither is a supported rank metric, so the classes stay text-only rather than making a met/unmet claim.",
+  },
+  rankUnresolved: [
+    "Level and XP are not supported rank metrics; V3X classes remain text-only.",
+  ],
   userClasses: [
     { name: "Figurant", requirements: "Level 1, 0 XP" },
     { name: "Second rôle", requirements: "Level 10, 11 088 XP" },

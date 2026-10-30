@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { getTrackerBySlug } from "@/data/tracker-registry"
 import {
+  evaluateRankGoal,
   evaluateRequirementGroup,
   rankDefinitionForSlug,
   type RankGoalInput,
@@ -125,5 +126,13 @@ describe("P35 structured rank requirements", () => {
     const pool = evaluate("seedpool", "Pool", { accountAgeDays: 30 })
     expect(pool.status).toBe("unknown")
     expect(pool.progress).toEqual({ met: 1, unmet: 0, unknown: 1, total: 2 })
+  })
+
+  it("V3X: level and XP thresholds stay text-only", () => {
+    const input = inputFor("v3x", {})
+    const result = evaluateRankGoal({ ...input, currentRank: "Figurant" })
+    expect(result.nextRank).toBe("Second rôle")
+    expect(result.status).toBe("no-structured-goal")
+    expect(rankDefinitionForSlug("v3x")?.goals).toEqual({})
   })
 })

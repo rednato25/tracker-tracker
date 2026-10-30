@@ -161,4 +161,20 @@ describe("P35 structured rank requirements", () => {
     expect(power.status).toBe("unknown")
     expect(power.progress).toEqual({ met: 3, unmet: 0, unknown: 1, total: 4 })
   })
+
+  it("FileList: Power User meets the clear numeric thresholds", () => {
+    const power = evaluate("filelist", "Power User", {
+      accountAgeDays: 28,
+      uploadedBytes: 25 * GiB,
+      accountRatio: 1.06,
+    })
+    expect(power.status).toBe("met")
+
+    const addict = evaluate("filelist", "Addict", {
+      accountAgeDays: 28,
+      uploadedBytes: 25 * GiB,
+      accountRatio: 1.06,
+    })
+    expect(addict.status).toBe("unmet")
+  })
 })

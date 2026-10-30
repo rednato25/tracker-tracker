@@ -16,6 +16,7 @@ import { EcosystemStatsSection } from "@/components/dashboard/EcosystemStatsSect
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard"
 import { LoginTimers } from "@/components/dashboard/LoginTimers"
 import { PollAllButton } from "@/components/dashboard/PollAllButton"
+import { RankOverview } from "@/components/dashboard/RankOverview"
 import { TagGroupsSection } from "@/components/dashboard/TagGroupsSection"
 import { TodayAtAGlance } from "@/components/dashboard/TodayAtAGlance"
 import { TodayAtAGlanceSkeleton } from "@/components/dashboard/TodayAtAGlanceSkeleton"
@@ -182,7 +183,7 @@ export function DashboardClient({
         <div className="flex flex-wrap items-center gap-2">
           <fieldset className="m-0 flex min-w-0 items-center rounded-nm-sm border border-border bg-elevated p-0.5">
             <legend className="sr-only">Dashboard view</legend>
-            {(["grid", "table"] as const).map((view) => (
+            {(["grid", "table", "ranks"] as const).map((view) => (
               <button
                 key={view}
                 type="button"
@@ -194,7 +195,7 @@ export function DashboardClient({
                     : "text-tertiary hover:text-secondary"
                 }`}
               >
-                {view === "grid" ? "Grid" : "Table"}
+                {view === "grid" ? "Grid" : view === "table" ? "Table" : "Ranks"}
               </button>
             ))}
           </fieldset>
@@ -226,7 +227,7 @@ export function DashboardClient({
             summaries={rankSummaries}
             now={new Date(now)}
           />
-        ) : (
+        ) : dashboardView === "table" ? (
           <TrackerRegister
             trackers={data.trackers}
             aggregateStats={aggregateStats}
@@ -234,6 +235,12 @@ export function DashboardClient({
             now={new Date(now)}
             showTotals={false}
             summaries={rankSummaries}
+          />
+        ) : (
+          <RankOverview
+            trackers={data.trackers}
+            savedGoals={savedRankGoals}
+            now={new Date(now)}
           />
         )}
 

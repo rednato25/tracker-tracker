@@ -40,6 +40,15 @@ describe("useDashboardView", () => {
     expect(second.result.current[0]).toBe("table")
   })
 
+  it("remembers the ranks view in this browser", () => {
+    const first = renderHook(() => useDashboardView())
+    act(() => first.result.current[1]("ranks"))
+    expect(localStorage.getItem(STORAGE_KEYS.DASHBOARD_VIEW)).toBe('"ranks"')
+
+    const second = renderHook(() => useDashboardView())
+    expect(second.result.current[0]).toBe("ranks")
+  })
+
   it("falls back to grid for an unknown stored value", () => {
     localStorage.setItem(STORAGE_KEYS.DASHBOARD_VIEW, '"list"')
     const { result } = renderHook(() => useDashboardView())

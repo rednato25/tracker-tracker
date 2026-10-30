@@ -38,7 +38,7 @@ The four shaped surfaces are documented in `docs/YATA_REFERENCE_NOTES.md`:
 - **Dashboard** — totals row plus Grid | Table, answering "what needs attention
   and how far is the next rank".
 - **Tracker card** — header, six-metric stat grid, current/required rank bars.
-- **Pathways** — one-step destinations, searchable target, best-path card,
+- **Pathways** — owned-tracker cards, searchable target profile, best-path card,
   route chips, one-line steps, collapsed other routes.
 - **Page shell** — one sticky top bar, one page width, shared navigation.
 
@@ -227,25 +227,39 @@ the only violet used for controls.
 
 ### Pathways page
 
-- "Where your trackers can take you" comes first: one row per tracker reachable
-  in one step from an owned account, showing destination, source tracker,
-  requirement text and wait status. Ready rows come first, then known days left,
-  then unknown waits.
-- The target picker and best path follow for a specific target. There is no
-  separate "Your trackers" list; trackers missing from trackerpathways appear as
-  a short note in the one-step section.
-- Searchable target picker, saved-target chips, and one best-path card.
+- The page uses the dashboard frame: the same H1 rule row, 24px major gaps, flat
+  raised cards, and Geist Mono for numbers, days and dates.
+- "Where your trackers can take you" comes first: one card per owned tracker that
+  has routes, not one row per route. The card header names the tracker and shows
+  when its invites open: `Invites open now` or `Invites open in N days`. Use the
+  source `unlockInviteClass` gate for this timing, including MAM's gate.
+- Sort the owned-tracker cards by soonest invite: open now first, then the
+  smallest remaining days, then unknown.
+- Inside each card, destinations are compact rows of name plus requirement.
+  Show the first six, then a `+N more` control that reveals the rest.
+- Closed routes stay visible but greyed with a written `Closed` label. They are
+  never part of a best path.
+- The target picker opens a tracker profile, in this order:
+  1. the best path on top when the user has one;
+  2. the no-route block when there is none;
+  3. the profile card.
+- The profile card shows the target, the class needed on that tracker to send
+  invites, its recruiting status and checked date, `Invited from` and
+  `Can invite to`. Both lists mark closed routes.
+- When no owned route reaches the target, list the open `Invited from` trackers
+  and for each one show `Can reach` with the best path and time, or `Can't
+  reach`. If no open invite route exists, say:
+  `Nobody in the data invites to <tracker>. It may recruit through open signups
+  or interviews.`
 - The best-path card starts with a **Best path** badge, route chips from the
   owned source to the target, and total time left.
-- Each best-path step is one line: `From A to B · needs … · N days left`. A step
+- Each best-path step is one line: `From A to B Â· needs â€¦ Â· N days left`. A step
   is "Ready now" only when its wait is met and it has no other requirement text.
   Otherwise the wait and requirement stay together, for example
   `Wait done, needs 3TB upload`.
 - Total time left uses the same rule and says when any step still needs checking.
 - Route chips use surface-2 with a 1px border and the accent only for the active
   target. They are selectors, not decorative pills.
-- The route is printed once, as chips. Steps do not repeat the full route or the
-  total "Ready now" badge.
 - Details stays collapsed and shows only the source updated date and last
   verification. No raw ISO timestamps.
 - Other routes stay collapsed, maximum five. No requirement bars in the step
@@ -288,7 +302,6 @@ answer a real operator question.
 
 - Totals sparklines: "which direction is this fleet metric moving?"
 - Rank target bars: "how far is this account from this requirement?"
-- Pathways requirement bars: "what is met, missing or unknown on this route?"
 - No decorative charts, no dual-axis charts, no invented health scores.
 
 ## Motion

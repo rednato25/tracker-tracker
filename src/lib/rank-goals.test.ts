@@ -173,6 +173,29 @@ describe("evaluateRankGoal", () => {
     expect(future.structuredRequirement?.conditions[0]).toMatchObject({ observedValue: 0 })
   })
 
+  it("treats an infinite ratio as meeting a minimum-ratio condition", () => {
+    for (const comparison of ["gte", "gt"] as const) {
+      const goal: RankRequirementGroup = {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", metric: "accountRatio", comparison, requiredValue: 2 },
+        ],
+      }
+      const result = evaluateRequirementGroup(
+        goal,
+        input({
+          observations: obs({ accountRatio: Number.POSITIVE_INFINITY }),
+          structuredGoals: {},
+        })
+      )
+      expect(result.status, comparison).toBe("met")
+      expect(result.conditions[0]).toMatchObject({
+        observedValue: Number.POSITIVE_INFINITY,
+        status: "met",
+      })
+    }
+  })
+
   it("treats stale observations as unknown and keeps the observed value visible", () => {
     const goal: RankRequirementGroup = {
       mode: "all",

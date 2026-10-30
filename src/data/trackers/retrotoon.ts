@@ -44,23 +44,24 @@ export const retrotoon: TrackerRegistryEntry = {
     title: "RetroToon World FAQ - User Classes",
     accessedAt: "2026-10-30",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "The FAQ is the source named in the registry comments. The thresholds are taken from the existing registry text and are not independently re-read here.",
+      "Confirmed by the owner on 2026-10-30 from the site's user-class documentation. GB text without a stated unit basis is read as the larger binary GiB value.",
   },
   rankUnresolved: [
     "Awarded ranks (Silver Star, The Creator) sit outside the earned ladder and are not targets.",
     "GB text without a stated unit basis is read as the larger binary GiB value.",
+    "The stated demotion ratios are demotion states, not promotion conditions.",
   ],
   userClasses: [
     { name: "Toon", requirements: "Starting class" },
     {
       name: "Toon Hero",
-      requirements: "60 days registered, 50 GB uploaded, ratio 1.05 or higher",
+      requirements: "14 days registered, 50 GB uploaded, ratio 1.05 or higher. Demoted below 0.95",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "rtw-hero-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 60 days registered" },
+          { kind: "numeric", id: "rtw-hero-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 14, scope: "account", label: "At least 14 days registered" },
           { kind: "numeric", id: "rtw-hero-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 50 * GiB, scope: "account", unitReading: "conservative", label: "At least 50 GiB uploaded" },
           { kind: "numeric", id: "rtw-hero-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.05, scope: "account", label: "Ratio at least 1.05" },
         ],
@@ -68,25 +69,25 @@ export const retrotoon: TrackerRegistryEntry = {
     },
     {
       name: "Toon Legend",
-      requirements: "180 days registered, 250 GB uploaded, ratio 2.05 or higher",
+      requirements: "30 days registered, 150 GB uploaded, ratio 1.50 or higher. Demoted below 1.45",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "rtw-legend-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 180 days registered" },
-          { kind: "numeric", id: "rtw-legend-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 250 * GiB, scope: "account", unitReading: "conservative", label: "At least 250 GiB uploaded" },
-          { kind: "numeric", id: "rtw-legend-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.05, scope: "account", label: "Ratio at least 2.05" },
+          { kind: "numeric", id: "rtw-legend-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 30 days registered" },
+          { kind: "numeric", id: "rtw-legend-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 150 * GiB, scope: "account", unitReading: "conservative", label: "At least 150 GiB uploaded" },
+          { kind: "numeric", id: "rtw-legend-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.5, scope: "account", label: "Ratio at least 1.50" },
         ],
       },
     },
     {
       name: "Toon Superstar",
-      requirements: "360 days registered, 1500 GB uploaded, ratio 2.05 or higher",
+      requirements: "60 days registered, 500 GB uploaded, ratio 2.00 or higher. Demoted below 1.95",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "rtw-superstar-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 360, scope: "account", label: "At least 360 days registered" },
-          { kind: "numeric", id: "rtw-superstar-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1500 * GiB, scope: "account", unitReading: "conservative", label: "At least 1500 GiB uploaded" },
-          { kind: "numeric", id: "rtw-superstar-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.05, scope: "account", label: "Ratio at least 2.05" },
+          { kind: "numeric", id: "rtw-superstar-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 60 days registered" },
+          { kind: "numeric", id: "rtw-superstar-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 500 * GiB, scope: "account", unitReading: "conservative", label: "At least 500 GiB uploaded" },
+          { kind: "numeric", id: "rtw-superstar-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.0, scope: "account", label: "Ratio at least 2.00" },
         ],
       },
     },

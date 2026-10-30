@@ -299,6 +299,8 @@ export function evaluateRecruitmentRoute(
   const effectiveRequirements =
     override && "requirements" in override ? (override.requirements ?? null) : route.requirements
   const requirementNotes = override?.requirementNotes ?? route.requirementNotes
+  // trackerpathways' unlockInviteClass is keyed by the tracker being left. The
+  // gate and its wait describe the source, not the destination.
   const sourceGate =
     catalog.sourceGates.find((candidate) => candidate.trackerId === route.sourceTrackerId) ?? null
   const unresolved = unresolvedPrerequisites(requirementNotes, sourceGate)

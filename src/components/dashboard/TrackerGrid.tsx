@@ -14,6 +14,7 @@ import {
   formatRatioDisplay,
 } from "@/lib/formatters"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
+import { getSnapshotReadout } from "@/lib/snapshot-freshness"
 import { getHealthLabel, getHealthPulseDot, getTrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
 
@@ -69,30 +70,43 @@ function Metric({
   value,
   color,
   unknown = false,
+  marker = null,
+  markerTitle,
 }: {
   label: string
   value: string
   color: string
   unknown?: boolean
+  marker?: "*" | "?" | null
+  markerTitle?: string
 }) {
+  const effectiveMarker = unknown ? "?" : marker
+  const markerLabel =
+    effectiveMarker === "*" ? "stale snapshot" : effectiveMarker === "?" ? "value unknown" : undefined
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <span className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-tertiary">
         {label}
       </span>
-      <span className="truncate font-mono text-sm font-medium tabular-nums" style={{ color }}>
+      <span
+        className="truncate font-mono text-sm font-medium tabular-nums"
+        style={{ color: unknown ? "var(--color-tertiary)" : color }}
+      >
         {value}
-        {unknown && (
-          <span className="ml-1 text-xs text-tertiary" aria-hidden="true">
-            ?
+        {effectiveMarker && (
+          <span
+            role="img"
+            className="ml-1 text-xs text-warn"
+            aria-label={markerLabel}
+            title={markerTitle}
+          >
+            {effectiveMarker}
           </span>
         )}
       </span>
     </div>
   )
-}
-
-function RankBar({ bar }: { bar: RankSummaryBar }) {
+}function RankBar({ bar }: { bar: RankSummaryBar }) {
   const percent = Math.round(barFraction(bar) * 100)
   const stateLabel = bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"
   const stateTone =
@@ -121,15 +135,32 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
 function TrackerCard({
   tracker,
   summary,
+  now,
 }: {
   tracker: TrackerSummary
   summary: RankGoalSummary | undefined
+  now: Date
 }) {
   const health = getTrackerHealth(tracker)
   const stats = tracker.latestStats
   const bars = summary?.bars ?? []
   const visibleBars = bars.slice(0, 3)
   const targetRank = summary?.targetRank ?? summary?.automaticNextRank
+  const snapshot = getSnapshotReadout(tracker, now)
+  const snapshotMarker = stats
+    ? snapshot.state === "stale"
+      ? "*"
+      : snapshot.state === "unknown"
+        ? "?"
+        : null
+    : null
+  const needsChecking = Boolean(stats) && snapshot.state !== "fresh"
+  const markerTitle =
+    snapshot.state === "stale"
+      ? `Snapshot polled ${snapshot.age ?? "some time"} ago and is stale (older than 2 hours).`
+      : snapshot.state === "unknown"
+        ? "Snapshot poll time is unknown, so freshness cannot be confirmed."
+        : undefined
 
   return (
     <Link
@@ -152,9 +183,17 @@ function TrackerCard({
             </p>
             <p className="truncate text-xs text-tertiary">{hostOf(tracker)}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
+              <span data-health-label>{getHealthLabel(health)}</span>
+              <span className="text-tertiary">{"\u00b7"}</span>
               <span>{stats?.group ?? "Unknown class"}</span>
-              <span className="text-tertiary">·</span>
+              <span className="text-tertiary">{"\u00b7"}</span>
               <span>{accountAge(tracker)}</span>
+              {needsChecking && (
+                <>
+                  <span className="text-tertiary">{"\u00b7"}</span>
+                  <span className="text-warn">Needs checking</span>
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -171,18 +210,24 @@ function TrackerCard({
           value={stats ? formatBytesFromString(stats.uploadedBytes) : "—"}
           color={CHART_THEME.upload}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Downloaded"
           value={stats ? formatBytesFromString(stats.downloadedBytes) : "—"}
           color={CHART_THEME.download}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Buffer"
           value={bufferValue(tracker)}
           color={CHART_THEME.buffer}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Ratio"
@@ -195,18 +240,24 @@ function TrackerCard({
           }
           color={CHART_THEME.ratio}
           unknown={!stats}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Seeding"
           value={stats ? formatCount(stats.seedingCount) : "—"}
           color={CHART_THEME.seeding}
           unknown={!stats || stats.seedingCount === null}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
         <Metric
           label="Bonus"
           value={stats ? formatCount(stats.seedbonus) : "—"}
           color={CHART_THEME.bonus}
           unknown={!stats || stats.seedbonus === null}
+          marker={snapshotMarker}
+          markerTitle={markerTitle}
         />
       </div>
 
@@ -270,7 +321,7 @@ export function TrackerGrid({ trackers, summaries, now = new Date() }: TrackerGr
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {trackers.map((tracker) => (
-          <TrackerCard key={tracker.id} tracker={tracker} summary={byId.get(tracker.id)} />
+          <TrackerCard key={tracker.id} tracker={tracker} summary={byId.get(tracker.id)} now={now} />
         ))}
       </div>
     </section>

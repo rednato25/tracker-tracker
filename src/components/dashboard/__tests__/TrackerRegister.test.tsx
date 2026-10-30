@@ -91,7 +91,9 @@ describe("TrackerRegister transfer metrics", () => {
     expect(screen.getByText("Upload")).toBeInTheDocument()
     expect(screen.getByText("Download")).toBeInTheDocument()
     expect(screen.getByText("Bonus")).toBeInTheDocument()
-    expect(screen.getByText("Checks")).toBeInTheDocument()
+    expect(screen.getAllByText("Checks").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Healthy").length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText("Checks: 3 of 4").length).toBeGreaterThan(0)
     expect(screen.queryByLabelText("stale snapshot")).not.toBeInTheDocument()
   })
 

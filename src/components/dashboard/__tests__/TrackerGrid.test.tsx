@@ -128,6 +128,25 @@ describe("TrackerGrid", () => {
     )
   })
 
+  it("writes the health state and the stale marker", () => {
+    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    expect(screen.getByText("Healthy")).toBeInTheDocument()
+    expect(screen.queryByText("Needs checking")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("stale snapshot")).not.toBeInTheDocument()
+  })
+
+  it("marks a stale card with the register's star and a written warning", () => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ lastPolledAt: "2026-10-28T08:00:00.000Z" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Needs checking")).toBeInTheDocument()
+    expect(screen.getAllByLabelText("stale snapshot").length).toBeGreaterThan(0)
+  })
+
   it("keeps a tracker with no stats explicitly unknown", () => {
     render(
       <TrackerGrid

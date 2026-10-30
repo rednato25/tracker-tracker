@@ -20,19 +20,22 @@ import {
   formatTimeAgo,
 } from "@/lib/formatters"
 import { findClassIndex } from "@/lib/rank-ladder"
-import { resolveAccountRatio } from "@/lib/tracker-rules"
+import type { RankGoalSummary } from "@/lib/rank-summary"
+import { getSnapshotReadout, type SnapshotReadout } from "@/lib/snapshot-freshness"
+import {
+  getTrackerChecks,
+  type LoginWindow,
+  readBuffer,
+  readLoginWindow,
+  type TrackerChecks,
+  type TrackerCheckTone,
+} from "@/lib/tracker-checks"
 import { getHealthLabel, getTrackerHealth, type TrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
+import { TrackerChecksStrip } from "./TrackerChecksStrip"
 import { type RegisterSort, type RegisterSortKey, useRegisterSort } from "./useRegisterSort"
 
-type Tone = "ok" | "warn" | "crit" | "muted"
-
-interface LoginWindow {
-  days: number | null
-  label: string
-  tone: Tone
-  reason: string
-}
+type Tone = TrackerCheckTone
 
 interface RegisterRow {
   tracker: TrackerSummary
@@ -50,11 +53,13 @@ interface RegisterRow {
   loginDays: number | null
   rank: string
   rankOrder: number | null
+  targetRank: string | null
+  distanceText: string | null
+  remainingText: string | null
   shortAge: string | null
   abbreviation: string
   statusLabel: string
-  segments: Tone[]
-  passed: number
+  checks: TrackerChecks
 }
 
 interface MetricReadout {
@@ -62,15 +67,6 @@ interface MetricReadout {
   title: string
   marker: "*" | "?" | null
 }
-
-interface SnapshotReadout {
-  hasStats: boolean
-  state: "fresh" | "stale" | "unknown"
-  polledAt: string | null
-  age: string | null
-}
-
-const SNAPSHOT_STALE_MS = 2 * 60 * 60 * 1000
 
 const REGISTER_HEADERS: { label: string; key?: RegisterSortKey }[] = [
   { label: "Account" },
@@ -95,117 +91,6 @@ function healthTone(health: TrackerHealth): Tone {
   if (health === "warning" || health === "no-seeds" || health === "paused-user") return "warn"
   if (health === "critical" || health === "error" || health === "paused") return "crit"
   return "muted"
-}
-
-function readLoginWindow(tracker: TrackerSummary): LoginWindow {
-  const interval = registryEntryFor(tracker)?.rules?.loginIntervalDays
-  if (interval === undefined) {
-    return {
-      days: null,
-      label: "—",
-      tone: "muted",
-      reason: "No login interval is defined for this tracker.",
-    }
-  }
-  if (interval === 0) {
-    return {
-      days: null,
-      label: "—",
-      tone: "muted",
-      reason: "This tracker has no mandatory login interval.",
-    }
-  }
-  if (!tracker.lastAccessAt) {
-    return {
-      days: null,
-      label: "—",
-      tone: "muted",
-      reason: "The adapter has not captured a last-access date for this tracker.",
-    }
-  }
-  const last = new Date(tracker.lastAccessAt).getTime()
-  if (Number.isNaN(last)) {
-    return {
-      days: null,
-      label: "—",
-      tone: "muted",
-      reason: "The captured last-access date could not be parsed.",
-    }
-  }
-  const remaining = interval * 86_400_000 - (Date.now() - last)
-  const days = Math.max(0, Math.floor(remaining / 86_400_000))
-  const tone: Tone = days <= 2 ? "crit" : days <= 7 ? "warn" : "ok"
-  if (remaining <= 0) {
-    return { days: 0, label: "due", tone: "crit", reason: "The login window is overdue." }
-  }
-  if (days < 1) {
-    return {
-      days,
-      label: `${Math.max(1, Math.floor(remaining / 3_600_000))}h`,
-      tone,
-      reason: `Next login is due in ${Math.max(1, Math.floor(remaining / 3_600_000))} hours.`,
-    }
-  }
-  return { days, label: `${days}d`, tone, reason: `Next login is due in ${days} days.` }
-}
-
-function readBuffer(tracker: TrackerSummary): { display: string; tone: Tone } {
-  const raw = tracker.latestStats?.bufferBytes
-  if (!raw) return { display: "—", tone: "muted" }
-  try {
-    const value = BigInt(raw)
-    const display = formatBytesFromString(raw)
-    return {
-      display: value > 0n && !display.startsWith("+") ? `+${display}` : display,
-      tone: value > 0n ? "ok" : value < 0n ? "crit" : "warn",
-    }
-  } catch {
-    return { display: formatBytesFromString(raw), tone: "muted" }
-  }
-}
-
-function readSegments(tracker: TrackerSummary, login: LoginWindow): Tone[] {
-  const stats = tracker.latestStats
-  if (!stats) return ["muted", "muted", "muted", "muted"]
-
-  const requirement =
-    resolveAccountRatio(stats.requiredRatio, registryEntryFor(tracker)?.rules) ?? 1
-  const ratioTone: Tone = stats.ratioIsInfinite
-    ? "ok"
-    : stats.ratio === null
-      ? "muted"
-      : stats.ratio >= 2 * requirement
-        ? "ok"
-        : stats.ratio >= requirement
-          ? "warn"
-          : "crit"
-
-  const bufferTone = readBuffer(tracker).tone
-
-  const seedTone: Tone =
-    stats.seedingCount === null ? "muted" : stats.seedingCount > 0 ? "ok" : "crit"
-
-  return [ratioTone, bufferTone, seedTone, login.tone]
-}
-
-function readSnapshot(tracker: TrackerSummary, now: Date): SnapshotReadout {
-  if (!tracker.latestStats) {
-    return { hasStats: false, state: "unknown", polledAt: null, age: null }
-  }
-  if (!tracker.lastPolledAt) {
-    return { hasStats: true, state: "unknown", polledAt: null, age: null }
-  }
-  const polled = new Date(tracker.lastPolledAt)
-  if (Number.isNaN(polled.getTime())) {
-    return { hasStats: true, state: "unknown", polledAt: tracker.lastPolledAt, age: null }
-  }
-  const ageMs = Math.max(0, now.getTime() - polled.getTime())
-  return {
-    hasStats: true,
-    state: ageMs > SNAPSHOT_STALE_MS ? "stale" : "fresh",
-    polledAt: tracker.lastPolledAt,
-    age: formatTimeAgo(tracker.lastPolledAt),
-  }
 }
 
 function readMetric(
@@ -242,14 +127,22 @@ function readMetric(
   return { text, title: baseTitle, marker: null }
 }
 
-function MetricValue({ readout }: { readout: MetricReadout }) {
+function MetricValue({
+  readout,
+  color,
+  metric,
+}: {
+  readout: MetricReadout
+  color: string
+  metric: string
+}) {
+  const resolvedColor = readout.marker === "?" ? "var(--color-tertiary)" : color
   return (
     <span
-      className={clsx(
-        "inline-flex items-center gap-0.5 whitespace-nowrap font-mono tabular-nums",
-        readout.marker ? "text-secondary" : "text-primary"
-      )}
+      className="inline-flex items-center gap-0.5 whitespace-nowrap font-mono tabular-nums"
+      style={{ color: resolvedColor }}
       title={readout.title}
+      data-metric={metric}
     >
       {readout.text}
       {readout.marker && (
@@ -265,6 +158,14 @@ function MetricValue({ readout }: { readout: MetricReadout }) {
     </span>
   )
 }
+function distanceWithoutTarget(
+  distanceText: string | null,
+  targetRank: string | null
+): string | null {
+  if (!distanceText) return null
+  const prefix = targetRank ? `${targetRank}: ` : null
+  return prefix && distanceText.startsWith(prefix) ? distanceText.slice(prefix.length) : distanceText
+}
 
 function compactAge(value: string | null): string | null {
   if (!value) return null
@@ -277,27 +178,30 @@ function compactAge(value: string | null): string | null {
     .trim()
 }
 
-function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
+function buildRows(
+  trackers: TrackerSummary[],
+  now: Date,
+  summaries: RankGoalSummary[] = []
+): RegisterRow[] {
+  const summaryById = new Map(summaries.map((summary) => [summary.trackerId, summary]))
   return trackers.map((tracker) => {
     const health = getTrackerHealth(tracker)
     const login = readLoginWindow(tracker)
-    const segments: Tone[] =
-      health === "paused" || health === "error" || health === "offline"
-        ? ["muted", "muted", "muted", "muted"]
-        : readSegments(tracker, login)
+    const checks = getTrackerChecks(tracker, login)
     const buffer = readBuffer(tracker)
     const entry = registryEntryFor(tracker)
     const abbreviation = entry?.abbreviation ?? platformTypeLabel(tracker.platformType)
     const ratio = formatRatioDisplay(tracker.latestStats?.ratio ?? null)
-    const snapshot = readSnapshot(tracker, now)
+    const snapshot = getSnapshotReadout(tracker, now)
     const stats = tracker.latestStats
+    const summary = summaryById.get(tracker.id)
 
     return {
       tracker,
       health,
       statusTone: healthTone(health),
       statusLabel: getHealthLabel(health),
-      ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}×` : ratio,
+      ratio: ratio.endsWith("x") ? `${ratio.slice(0, -1)}\u00d7` : ratio,
       buffer: buffer.display,
       ratioValue: stats?.ratioIsInfinite ? Number.POSITIVE_INFINITY : (stats?.ratio ?? null),
       bufferValue: (() => {
@@ -323,14 +227,18 @@ function buildRows(trackers: TrackerSummary[], now: Date): RegisterRow[] {
       login,
       rank: tracker.latestStats?.group ?? "Unknown",
       rankOrder: findClassIndex(entry?.userClasses ?? [], stats?.group ?? "Unknown"),
+      targetRank: summary?.targetRank ?? summary?.automaticNextRank ?? null,
+      distanceText: summary?.distanceText ?? null,
+      remainingText: distanceWithoutTarget(
+        summary?.distanceText ?? null,
+        summary?.targetRank ?? summary?.automaticNextRank ?? null
+      ),
       shortAge: compactAge(formatAccountAge(tracker.joinedAt)),
       abbreviation,
-      segments,
-      passed: segments.filter((segment) => segment === "ok").length,
+      checks,
     }
   })
 }
-
 function sortRows(rows: RegisterRow[], sort: RegisterSort | null): RegisterRow[] {
   if (!sort) return rows
   const sign = sort.direction === "asc" ? 1 : -1
@@ -365,20 +273,6 @@ function sortRows(rows: RegisterRow[], sort: RegisterSort | null): RegisterRow[]
   })
 }
 
-function ChecksStrip({ segments, passed }: { segments: Tone[]; passed: number }) {
-  const known = segments.some((segment) => segment !== "muted")
-  return (
-    <span className="flex items-center gap-2" aria-label={known ? `Checks: ${passed} of 4` : "Checks unknown"} role="img">
-      <span className="flex h-[7px] w-[92px] shrink-0 gap-[2px]" aria-hidden="true">
-        {segments.map((tone, index) => (
-          <span key={index} className={clsx("block h-full flex-1", TONE_MARK[tone])} />
-        ))}
-      </span>
-      <span className="font-mono text-xs text-secondary">{known ? `${passed}/4` : "—"}</span>
-    </span>
-  )
-}
-
 function StatusMark({ tone, label }: { tone: Tone; label: string }) {
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
@@ -402,14 +296,16 @@ function AccountCell({ row }: { row: RegisterRow }) {
           {row.tracker.name}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-xs text-secondary">
-          {row.statusTone !== "ok" && (
-            <>
-              <span className="hidden shrink-0 font-cond font-semibold uppercase tracking-[0.08em] text-primary md:inline">
-                {row.statusLabel}
-              </span>
-              <span className="hidden shrink-0 md:inline">·</span>
-            </>
-          )}
+          <span
+            className={clsx(
+              "hidden shrink-0 font-cond font-semibold uppercase tracking-[0.08em] md:inline",
+              row.statusTone === "ok" ? "text-secondary" : "text-primary"
+            )}
+            data-health-label
+          >
+            {row.statusLabel}
+          </span>
+          <span className="hidden shrink-0 md:inline">{"\u00b7"}</span>
           <span className="truncate">
             {row.abbreviation}
             {row.shortAge ? ` · ${row.shortAge}` : ""}
@@ -541,20 +437,24 @@ function TrackerRegister({
   aggregateStats,
   attentionCount = 0,
   showTotals = true,
+  summaries = [],
 }: {
   trackers: TrackerSummary[]
   now?: Date
   aggregateStats?: AggregateStats
   attentionCount?: number
   showTotals?: boolean
+  summaries?: RankGoalSummary[]
 }) {
-  const rows = buildRows(trackers, now)
+  const rows = buildRows(trackers, now, summaries)
   const { sort, toggle: toggleSort } = useRegisterSort()
   const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort])
   const aggregate = aggregateStats ?? computeAggregateStats(trackers)
   const included = trackers.filter((tracker) => tracker.latestStats)
   const missing = trackers.length - included.length
-  const staleIncluded = included.some((tracker) => readSnapshot(tracker, now).state === "stale")
+  const staleIncluded = included.some(
+    (tracker) => getSnapshotReadout(tracker, now).state !== "fresh"
+  )
   const overallRatio = aggregate.avgRatio
   const uploadedDisplay = included.length === 0 ? "\u2014" : formatBytesFromString(aggregate.totalUploaded)
   const downloadedDisplay =
@@ -565,9 +465,9 @@ function TrackerRegister({
     <section id="register" className="flex scroll-mt-16 flex-col gap-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
-          <h1 className="font-cond text-4xl font-semibold leading-none tracking-[-0.01em] text-primary">
+          <h2 className="font-cond text-lg font-semibold leading-6 tracking-[-0.01em] text-primary">
             Account register
-          </h1>
+          </h2>
           <p className="mt-2 font-mono text-xs text-secondary">
             {rows.length} {rows.length === 1 ? "tracker" : "trackers"} · last poll{" "}
             {rows
@@ -697,10 +597,24 @@ function TrackerRegister({
                 <span className="px-3">
                   <AccountCell row={row} />
                 </span>
-                <span className="px-3 font-mono text-sm tabular-nums text-[var(--color-ratio)]">
+                <span
+                  className="px-3 font-mono text-sm tabular-nums"
+                  style={{
+                    color:
+                      row.ratio === "\u2014" ? "var(--color-tertiary)" : "var(--color-ratio)",
+                  }}
+                  data-metric="ratio"
+                >
                   {row.ratio}
                 </span>
-                <span className="whitespace-nowrap px-3 font-mono text-sm tabular-nums text-secondary">
+                <span
+                  className="whitespace-nowrap px-3 font-mono text-sm tabular-nums"
+                  style={{
+                    color:
+                      row.buffer === "\u2014" ? "var(--color-tertiary)" : "var(--color-buffer)",
+                  }}
+                  data-metric="buffer"
+                >
                   {row.buffer}
                 </span>
                 <span
@@ -709,18 +623,33 @@ function TrackerRegister({
                 >
                   <span className="flex items-center justify-between gap-1.5">
                     <span className="text-xs text-tertiary">Upload</span>
-                    <MetricValue readout={row.uploaded} />
+                    <MetricValue
+                      readout={row.uploaded}
+                      color="var(--color-upload)"
+                      metric="uploaded"
+                    />
                   </span>
                   <span className="flex items-center justify-between gap-1.5">
                     <span className="text-xs text-tertiary">Download</span>
-                    <MetricValue readout={row.downloaded} />
+                    <MetricValue
+                      readout={row.downloaded}
+                      color="var(--color-download)"
+                      metric="downloaded"
+                    />
                   </span>
                   <span className="flex items-center justify-between gap-1.5">
                     <span className="text-xs text-tertiary">Bonus</span>
-                    <MetricValue readout={row.bonus} />
+                    <MetricValue readout={row.bonus} color="var(--color-bonus)" metric="bonus" />
                   </span>
                 </span>
-                <span className="px-3 font-mono text-sm tabular-nums text-secondary">
+                <span
+                  className="px-3 font-mono text-sm tabular-nums"
+                  style={{
+                    color:
+                      row.seeding === "\u2014" ? "var(--color-tertiary)" : "var(--color-seeding)",
+                  }}
+                  data-metric="seeding"
+                >
                   {row.seeding}
                 </span>
                 <span className="flex cursor-help items-center gap-2 px-3" title={row.login.reason}>
@@ -737,16 +666,22 @@ function TrackerRegister({
                   </span>
                   <span className="font-mono text-sm text-primary">{row.login.label}</span>
                 </span>
-                <span
-                  className="min-w-0 truncate px-3 font-mono text-sm text-secondary"
-                  title={row.rank}
-                >
-                  {row.rank}
+                <span className="flex min-w-0 flex-col gap-0.5 px-3">
+                  <span className="truncate font-mono text-sm text-secondary" title={row.rank}>
+                    {row.rank}
+                  </span>
+                  <span className="break-words font-cond text-2xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+                    {row.targetRank ? `Target: ${row.targetRank}` : "No target"}
+                  </span>
+                  {row.remainingText && (
+                    <span className="break-words text-xs leading-snug text-secondary">
+                      {row.remainingText}
+                    </span>
+                  )}
                 </span>
                 <span className="px-3">
-                  <ChecksStrip segments={row.segments} passed={row.passed} />
-                </span>
-              </Link>
+                  <TrackerChecksStrip checks={row.checks} />
+                </span>              </Link>
             </li>
           ))}
         </ul>
@@ -771,28 +706,28 @@ function TrackerRegister({
                 <span className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border-soft pt-2">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Ratio</span>
-                    <span className="font-mono text-sm text-[var(--color-ratio)]">{row.ratio}</span>
+                    <span className="font-mono text-sm" style={{ color: row.ratio === "\u2014" ? "var(--color-tertiary)" : "var(--color-ratio)" }} data-metric="ratio">{row.ratio}</span>
                   </span>
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Buffer</span>
-                    <span className="font-mono text-sm text-secondary">{row.buffer}</span>
+                    <span className="font-mono text-sm" style={{ color: row.buffer === "\u2014" ? "var(--color-tertiary)" : "var(--color-buffer)" }} data-metric="buffer">{row.buffer}</span>
                   </span>
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="slot-label">Seeding</span>
-                    <span className="font-mono text-sm text-secondary">{row.seeding}</span>
+                    <span className="font-mono text-sm" style={{ color: row.seeding === "\u2014" ? "var(--color-tertiary)" : "var(--color-seeding)" }} data-metric="seeding">{row.seeding}</span>
                   </span>
                   <span className="col-span-2 grid grid-cols-2 gap-2 border-t border-border-soft pt-2 sm:grid-cols-3">
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="slot-label">Uploaded</span>
-                      <MetricValue readout={row.uploaded} />
+                      <MetricValue readout={row.uploaded} color="var(--color-upload)" metric="uploaded" />
                     </span>
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="slot-label">Downloaded</span>
-                      <MetricValue readout={row.downloaded} />
+                      <MetricValue readout={row.downloaded} color="var(--color-download)" metric="downloaded" />
                     </span>
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="slot-label">Bonus (pts)</span>
-                      <MetricValue readout={row.bonus} />
+                      <MetricValue readout={row.bonus} color="var(--color-bonus)" metric="bonus" />
                     </span>
                   </span>
                   <span
@@ -804,9 +739,24 @@ function TrackerRegister({
                       {row.login.label}
                     </span>
                   </span>
-                  <span className="col-span-2 flex items-center justify-between gap-2 pt-1">
-                    <span className="slot-label">{row.rank}</span>
-                    <ChecksStrip segments={row.segments} passed={row.passed} />
+                  <span className="col-span-2 flex flex-col gap-1 border-t border-border-soft pt-2">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="slot-label">Rank</span>
+                      <span className="font-mono text-xs text-primary">{row.rank}</span>
+                    </span>
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="slot-label">Target</span>
+                      <span className="font-cond text-2xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+                        {row.targetRank ?? "No target"}
+                      </span>
+                    </span>
+                    {row.remainingText && (
+                      <span className="text-xs leading-snug text-secondary">{row.remainingText}</span>
+                    )}
+                    <span className="flex items-center justify-between gap-2 pt-1">
+                      <span className="slot-label">Checks</span>
+                      <TrackerChecksStrip checks={row.checks} />
+                    </span>
                   </span>
                 </span>
               </Link>

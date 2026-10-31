@@ -21,6 +21,12 @@ export interface ProfileReadValues {
   level?: number
   /** Total XP (V3X). */
   xp?: number
+  /**
+   * Calendar date of the profile's own "Last login" row, as YYYY-MM-DD. A
+   * UNIT3D profile is the only reader that supplies it; "Last action" is
+   * deliberately ignored because it is not the activity the login rule means.
+   */
+  lastLoginAt?: string
 }
 
 export interface ProfileReadRecord {
@@ -50,6 +56,11 @@ function nonNegativeNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined
 }
 
+function calendarDate(value: unknown): string | undefined {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
+  return Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ? undefined : value
+}
+
 function normalizeValues(raw: unknown): ProfileReadValues {
   if (!isPlainObject(raw)) return {}
   const values: ProfileReadValues = {}
@@ -65,13 +76,32 @@ function normalizeValues(raw: unknown): ProfileReadValues {
   if (level !== undefined) values.level = level
   const xp = nonNegativeNumber(raw.xp)
   if (xp !== undefined) values.xp = xp
+  const lastLoginAt = calendarDate(raw.lastLoginAt)
+  if (lastLoginAt !== undefined) values.lastLoginAt = lastLoginAt
   return values
+}
+
+/**
+ * The stored platformMeta column is JSON text on the server and an already
+ * parsed object in the client, so both shapes reach this reader.
+ */
+function platformMetaObject(platformMeta: unknown): Record<string, unknown> | null {
+  if (typeof platformMeta === "string") {
+    try {
+      const parsed: unknown = JSON.parse(platformMeta)
+      return isPlainObject(parsed) ? parsed : null
+    } catch {
+      return null
+    }
+  }
+  return isPlainObject(platformMeta) ? platformMeta : null
 }
 
 /** Reads a stored record, tolerating a missing or malformed platformMeta. */
 export function readProfileReadRecord(platformMeta: unknown): ProfileReadRecord | null {
-  if (!isPlainObject(platformMeta)) return null
-  const raw = platformMeta.profileRead
+  const meta = platformMetaObject(platformMeta)
+  if (!meta) return null
+  const raw = meta.profileRead
   if (!isPlainObject(raw)) return null
   const status =
     typeof raw.status === "string" && STATUS_VALUES.has(raw.status)

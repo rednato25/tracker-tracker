@@ -63,6 +63,7 @@ const STATS = {
   remoteUserId: null,
   joinedDate: null,
   lastAccessDate: "2026-10-20T15:00:00.000Z",
+  lastAccessField: "last_login",
   platformMeta: null,
   avatarUrl: null,
 }
@@ -79,7 +80,9 @@ const TRACKER = {
   useProxy: false,
   remoteUserId: null,
   joinedAt: null,
-  platformMeta: null,
+  platformMeta: null as string | null,
+  profileReadingEnabled: false,
+  lastAccessAt: "2026-10-24" as string | null,
   lastPolledAt: null,
   lastError: null,
   lastErrorAt: null,
@@ -90,14 +93,16 @@ const TRACKER = {
 
 const KEY = Buffer.alloc(32)
 const setCalls: Record<string, unknown>[] = []
+let trackerRow = TRACKER
 
 beforeEach(() => {
   vi.clearAllMocks()
   setCalls.length = 0
+  trackerRow = TRACKER
   fetchStats.mockResolvedValue(STATS)
   vi.mocked(db.select).mockImplementation(((cols: Record<string, unknown>) => {
     const keys = Object.keys(cols ?? {})
-    return chain(keys.includes("encryptedApiToken") ? [TRACKER] : [])
+    return chain(keys.includes("encryptedApiToken") ? [trackerRow] : [])
   }) as never)
   vi.mocked(db.insert).mockImplementation((() => chain([])) as never)
   vi.mocked(db.update).mockImplementation((() => ({
@@ -117,6 +122,67 @@ describe("pollTracker last-access provenance", () => {
     expect(metadata).toMatchObject({
       lastAccessAt: "2026-10-20",
       lastAccessSource: "detected",
+      lastAccessField: "last_login",
     })
+    expect(metadata?.lastAccessUpdatedAt).toBeInstanceOf(Date)
+  })
+
+  it("falls back to manual and keeps the last known date when the API stops reporting one", async () => {
+    fetchStats.mockResolvedValueOnce({ ...STATS, lastAccessDate: undefined })
+
+    await pollTracker(42, KEY, false)
+
+    const metadata = setCalls.find((values) => "lastAccessSource" in values)
+    expect(metadata).toMatchObject({ lastAccessSource: "manual" })
+    expect(metadata).not.toHaveProperty("lastAccessAt")
+  })
+
+  it("uses an enabled UNIT3D profile read's Last login when the API has none", async () => {
+    trackerRow = {
+      ...TRACKER,
+      profileReadingEnabled: true,
+      platformMeta: JSON.stringify({
+        profileRead: {
+          fetchedAt: "2026-10-31T11:00:00.000Z",
+          attemptedAt: "2026-10-31T11:00:00.000Z",
+          status: null,
+          values: { lastLoginAt: "2026-10-31" },
+        },
+      }),
+    }
+    fetchStats.mockResolvedValueOnce({ ...STATS, lastAccessDate: undefined })
+
+    await pollTracker(42, KEY, false)
+
+    const metadata = setCalls.find((values) => "lastAccessAt" in values)
+    expect(metadata).toMatchObject({
+      lastAccessAt: "2026-10-31",
+      lastAccessSource: "detected",
+      lastAccessField: "Last login (profile page)",
+    })
+    expect(metadata?.lastAccessUpdatedAt).toEqual(new Date("2026-10-31T11:00:00.000Z"))
+  })
+
+  it("keeps a newer manual date over an older profile Last login", async () => {
+    trackerRow = {
+      ...TRACKER,
+      profileReadingEnabled: true,
+      lastAccessAt: "2026-10-31",
+      platformMeta: JSON.stringify({
+        profileRead: {
+          fetchedAt: "2026-10-30T11:00:00.000Z",
+          attemptedAt: "2026-10-30T11:00:00.000Z",
+          status: null,
+          values: { lastLoginAt: "2026-10-30" },
+        },
+      }),
+    }
+    fetchStats.mockResolvedValueOnce({ ...STATS, lastAccessDate: undefined })
+
+    await pollTracker(42, KEY, false)
+
+    const metadata = setCalls.find((values) => "lastAccessSource" in values)
+    expect(metadata).toMatchObject({ lastAccessSource: "manual" })
+    expect(metadata).not.toHaveProperty("lastAccessAt")
   })
 })

@@ -195,6 +195,13 @@ export const trackers = pgTable("trackers", {
   // Where lastAccessAt came from: an adapter-reported value ("detected") or an
   // operator's marker ("manual"). NULL means a legacy row or no value yet.
   lastAccessSource: varchar("last_access_source", { length: 16 }),
+  // Which field supplied the stored date ("last_login", "Last seen", the
+  // profile's "Last login (profile page)", "manual"), so the ring can say where
+  // the observation came from.
+  lastAccessField: varchar("last_access_field", { length: 64 }),
+  // When that observation was written. A failed poll or a manual fallback does
+  // not move it; only fresh evidence does.
+  lastAccessUpdatedAt: timestamp("last_access_updated_at"),
   profileUrl: text("profile_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

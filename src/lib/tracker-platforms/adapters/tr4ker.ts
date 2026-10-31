@@ -112,6 +112,7 @@ export class Tr4kerAdapter implements TrackerAdapter {
       remoteUserId: data.id,
       joinedDate: data.joined_at,
       lastAccessDate: data.last_seen_at,
+      lastAccessField: data.last_seen_at ? "last_seen_at" : undefined,
       avatarUrl: data.avatar_url ?? undefined,
     }
   }

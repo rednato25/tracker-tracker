@@ -35,19 +35,20 @@ const previous: ProfileReadRecord = {
   values: { seedSizeBytes: 1024 },
 }
 
-const NOW = new Date("2026-10-31T00:00:00.000Z")
+const NOW = new Date("2026-10-31T12:00:00.000Z")
 
 describe("UNIT3D profile layouts", () => {
   it("reads Upload.cx key-value rows without treating uploaded bytes as a count", () => {
-    expect(parseUnit3dProfilePage(fixture("uploadcx-profile.html"))).toMatchObject({
+    expect(parseUnit3dProfilePage(fixture("uploadcx-profile.html"), NOW)).toMatchObject({
       seedSizeBytes: 5.25 * TiB,
       averageSeedTimeSeconds: 63 * DAY,
       uploads: 184,
+      lastLoginAt: "2026-10-31",
     })
   })
 
   it("reads OnlyEncodes table rows", () => {
-    expect(parseUnit3dProfilePage(fixture("onlyencodes-profile.html"))).toMatchObject({
+    expect(parseUnit3dProfilePage(fixture("onlyencodes-profile.html"), NOW)).toMatchObject({
       seedSizeBytes: 1.75 * TiB,
       averageSeedTimeSeconds: 21 * DAY,
       uploads: 42,
@@ -55,27 +56,37 @@ describe("UNIT3D profile layouts", () => {
   })
 
   it("reads seedpool definition-list rows", () => {
-    expect(parseUnit3dProfilePage(fixture("seedpool-profile.html"))).toMatchObject({
+    expect(parseUnit3dProfilePage(fixture("seedpool-profile.html"), NOW)).toMatchObject({
       seedSizeBytes: 900 * GiB,
       averageSeedTimeSeconds: 18 * DAY,
       uploads: 7,
     })
   })
 
-  it("reads Yu-Scene's weighted average seedtime and upload count", () => {
-    expect(parseUnit3dProfilePage(fixture("yuscene-profile.html"))).toMatchObject({
+  it("reads Yu-Scene's weighted average seedtime, upload count and Last login", () => {
+    expect(parseUnit3dProfilePage(fixture("yuscene-profile.html"), NOW)).toMatchObject({
       seedSizeBytes: 2.5 * TiB,
       averageSeedTimeSeconds: 32 * DAY,
       uploads: 1204,
+      lastLoginAt: "2026-10-31",
     })
   })
 
   it("reads Portugas' Portuguese labels", () => {
-    expect(parseUnit3dProfilePage(fixture("portugas-profile.html"))).toMatchObject({
+    expect(parseUnit3dProfilePage(fixture("portugas-profile.html"), NOW)).toMatchObject({
       seedSizeBytes: 750 * GiB,
       averageSeedTimeSeconds: 23 * DAY,
       uploads: 31,
     })
+  })
+
+  it("takes Last login over Last action and ignores Last action on its own", () => {
+    const both = `<div class="key-value__group"><dt>Last login</dt><dd>9 minutes ago</dd></div>
+      <div class="key-value__group"><dt>Last action</dt><dd>2020-01-01 00:00:00</dd></div>`
+    expect(parseUnit3dProfilePage(both, NOW).lastLoginAt).toBe("2026-10-31")
+
+    const actionOnly = `<div class="key-value__group"><dt>Last action</dt><dd>9 minutes ago</dd></div>`
+    expect(parseUnit3dProfilePage(actionOnly, NOW).lastLoginAt).toBeUndefined()
   })
 
   it("treats a unitless Uploaded value as a count and bytes as not-a-count", () => {
@@ -140,6 +151,16 @@ describe("one page, one decision", () => {
       status: null,
     })
     expect(result.record.values.uploads).toBe(412)
+  })
+
+  it("stores the profile's Last login as a calendar date", () => {
+    const result = readProfilePageOnce({
+      registrySlug: "yuscene",
+      html: fixture("yuscene-profile.html"),
+      previous,
+      now: NOW,
+    })
+    expect(result.record.values.lastLoginAt).toBe("2026-10-31")
   })
 
   it("stops on a login page and keeps the last values", () => {

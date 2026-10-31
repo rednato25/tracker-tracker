@@ -370,6 +370,7 @@ export class DigitalCoreAdapter implements TrackerAdapter {
 
       stats.joinedDate = profile.added || undefined
       stats.lastAccessDate = profile.last_access || undefined
+      stats.lastAccessField = profile.last_access ? "last_access" : undefined
       // Raise the null above to a real figure, never to a fabricated zero: an
       // absent count still means unknown, and a run of zeroes is
       // indistinguishable from an account that stopped leeching. gazelle.ts

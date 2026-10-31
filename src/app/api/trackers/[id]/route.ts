@@ -206,11 +206,15 @@ export async function PATCH(request: Request, props: RouteContext) {
     if (body.lastAccessAt === null) {
       updates.lastAccessAt = null
       updates.lastAccessSource = null
+      updates.lastAccessField = null
+      updates.lastAccessUpdatedAt = null
     } else if (typeof body.lastAccessAt === "string") {
       const lastAccessAtErr = validateLastAccessAt(body.lastAccessAt)
       if (lastAccessAtErr) return lastAccessAtErr
       updates.lastAccessAt = body.lastAccessAt
       updates.lastAccessSource = "manual"
+      updates.lastAccessField = "manual"
+      updates.lastAccessUpdatedAt = new Date()
     } else {
       return NextResponse.json(
         { error: "lastAccessAt must be YYYY-MM-DD or null" },

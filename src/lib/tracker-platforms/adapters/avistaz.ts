@@ -348,6 +348,7 @@ export function parseAvistazProfile(
     remoteUserId,
     joinedDate,
     lastAccessDate,
+    lastAccessField: lastAccessDate ? "Last Access / Last Seen" : undefined,
     avatarUrl,
     platformMeta,
   }

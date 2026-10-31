@@ -3,7 +3,7 @@
 // Functions: isUnlimitedBuffer, toBytes, toNumber, toSignedBytes, isPlainObject,
 //            missingByteFields, quoteList, describeKeys, readApiKeyExpiry,
 //            unwrapUnit3dResponse, readUnit3dUser, readAuthStyle, rememberAuthStyle,
-//            dateOnly, buildRequest, unit3dFetch, Unit3dAdapter
+//            dateOnly, readLastAccess, buildRequest, unit3dFetch, Unit3dAdapter
 
 import {
   computeBufferBytes,
@@ -82,6 +82,23 @@ interface Unit3dApiResponse {
 function dateOnly(value: string | null | undefined): string | undefined {
   if (typeof value !== "string") return undefined
   return value.trim().match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
+}
+
+/** Which of the three UNIT3D date fields supplied the value this poll. */
+function readLastAccess(data: Unit3dApiResponse): {
+  date?: string
+  field?: string
+} {
+  const candidates = [
+    ["last_access", data.last_access],
+    ["last_login", data.last_login],
+    ["last_seen", data.last_seen],
+  ] as const
+  for (const [field, raw] of candidates) {
+    const date = dateOnly(raw)
+    if (date) return { date, field }
+  }
+  return {}
 }
 
 // ---------------------------------------------------------------------------
@@ -297,6 +314,7 @@ export class Unit3dAdapter implements TrackerAdapter {
       await unit3dFetch<unknown>(baseUrl, apiPath, trimmedToken, hostname, options),
       hostname
     )
+    const lastAccess = readLastAccess(data)
 
     return {
       username: data.username,
@@ -314,7 +332,8 @@ export class Unit3dAdapter implements TrackerAdapter {
       requiredRatio: null,
       warned: null,
       freeleechTokens: null,
-      lastAccessDate: dateOnly(data.last_access ?? data.last_login ?? data.last_seen),
+      lastAccessDate: lastAccess.date,
+      lastAccessField: lastAccess.field,
       // Always an object, even without an expiry, so a poll that stops reporting
       // one overwrites the stale date instead of leaving the card counting down
       // to it. JSON.stringify drops the undefined member.

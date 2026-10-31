@@ -209,7 +209,10 @@ export function parseFilelistProfile(html: string, hostname: string): TrackerSta
     freeleechTokens,
   }
   if (joinedDate) stats.joinedDate = joinedDate
-  if (lastAccessDate) stats.lastAccessDate = lastAccessDate
+  if (lastAccessDate) {
+    stats.lastAccessDate = lastAccessDate
+    stats.lastAccessField = "Last seen"
+  }
   // Returned even when empty. The scheduler writes meta only when the key is
   // present, so withholding it here leaves the previous poll's JSON in the row
   // and a figure the site stopped reporting would never clear.

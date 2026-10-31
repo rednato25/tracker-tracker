@@ -19,6 +19,7 @@ import {
   formatClockTime,
   formatCount,
   formatDate,
+  formatDateTime,
   formatMemberSinceDate,
   formatRatioDisplay,
   localDateStr,
@@ -96,6 +97,10 @@ function useLoginMarking(
 ) {
   const [lastAccessAt, setLastAccessAt] = useState(tracker.lastAccessAt)
   const [lastAccessSource, setLastAccessSource] = useState(tracker.lastAccessSource ?? null)
+  const [lastAccessField, setLastAccessField] = useState(tracker.lastAccessField ?? null)
+  const [lastAccessUpdatedAt, setLastAccessUpdatedAt] = useState(
+    tracker.lastAccessUpdatedAt ?? null
+  )
   const [undo, setUndo] = useState<LoginMarkUndo | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(false)
@@ -103,7 +108,14 @@ function useLoginMarking(
   useEffect(() => {
     setLastAccessAt(tracker.lastAccessAt)
     setLastAccessSource(tracker.lastAccessSource ?? null)
-  }, [tracker.lastAccessAt, tracker.lastAccessSource])
+    setLastAccessField(tracker.lastAccessField ?? null)
+    setLastAccessUpdatedAt(tracker.lastAccessUpdatedAt ?? null)
+  }, [
+    tracker.lastAccessAt,
+    tracker.lastAccessSource,
+    tracker.lastAccessField,
+    tracker.lastAccessUpdatedAt,
+  ])
 
   useEffect(() => {
     if (!undo) return
@@ -130,6 +142,8 @@ function useLoginMarking(
       const updated = await patchLastAccess(localDateStr(now))
       setLastAccessAt(updated.lastAccessAt)
       setLastAccessSource(updated.lastAccessSource ?? null)
+      setLastAccessField(updated.lastAccessField ?? null)
+      setLastAccessUpdatedAt(updated.lastAccessUpdatedAt ?? null)
       setUndo({ previous })
       onUpdated?.(updated)
     } catch {
@@ -148,6 +162,8 @@ function useLoginMarking(
       const updated = await patchLastAccess(previous)
       setLastAccessAt(updated.lastAccessAt)
       setLastAccessSource(updated.lastAccessSource ?? null)
+      setLastAccessField(updated.lastAccessField ?? null)
+      setLastAccessUpdatedAt(updated.lastAccessUpdatedAt ?? null)
       setUndo(null)
       onUpdated?.(updated)
     } catch {
@@ -157,7 +173,17 @@ function useLoginMarking(
     }
   }
 
-  return { lastAccessAt, lastAccessSource, undo, saving, error, markLogin, undoMark }
+  return {
+    lastAccessAt,
+    lastAccessSource,
+    lastAccessField,
+    lastAccessUpdatedAt,
+    undo,
+    saving,
+    error,
+    markLogin,
+    undoMark,
+  }
 }
 
 function bufferValue(tracker: TrackerSummary): string {
@@ -255,7 +281,37 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   )
 }
 
-function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
+function LoginProvenance({
+  source,
+  field,
+  updatedAt,
+}: {
+  source: "detected" | "manual"
+  field: string | null
+  updatedAt: string | null
+}) {
+  return (
+    <span className="flex flex-col gap-0.5" data-login-provenance>
+      <span className="font-medium text-primary">
+        {source === "detected" ? "Detected from the tracker" : "Marked by you"}
+      </span>
+      <span>Field: {field ?? "unknown"}</span>
+      <span>Last updated: {updatedAt ? formatDateTime(updatedAt) : "unknown"}</span>
+    </span>
+  )
+}
+
+function LoginDeadlineReadout({
+  deadline,
+  source,
+  field,
+  updatedAt,
+}: {
+  deadline: LoginDeadline
+  source: "detected" | "manual"
+  field: string | null
+  updatedAt: string | null
+}) {
   if (!deadline.hasRule) {
     return (
       <span className="text-xs text-tertiary" data-login-no-rule>
@@ -292,31 +348,35 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
 
   return (
     <div className="flex min-w-0 items-center gap-1.5" data-login-ring data-login-tone={deadline.tone}>
-      <DeadlineRing
-        progress={progress}
-        color={color}
-        ariaLabel={ariaLabel}
-        size={40}
-        strokeWidth={4}
-      >
-        {overdueDays !== null ? (
-          <span
-            className="font-mono text-[14px] font-semibold leading-none"
-            style={{ color }}
-            data-ring-value
+      <Tooltip content={<LoginProvenance source={source} field={field} updatedAt={updatedAt} />}>
+        <span className="inline-flex shrink-0">
+          <DeadlineRing
+            progress={progress}
+            color={color}
+            ariaLabel={ariaLabel}
+            size={40}
+            strokeWidth={4}
           >
-            !
-          </span>
-        ) : (
-          <span
-            className="font-mono text-[13px] font-semibold leading-none tabular-nums"
-            style={{ color }}
-            data-ring-value
-          >
-            {daysLeft}
-          </span>
-        )}
-      </DeadlineRing>
+            {overdueDays !== null ? (
+              <span
+                className="font-mono text-[14px] font-semibold leading-none"
+                style={{ color }}
+                data-ring-value
+              >
+                !
+              </span>
+            ) : (
+              <span
+                className="font-mono text-[13px] font-semibold leading-none tabular-nums"
+                style={{ color }}
+                data-ring-value
+              >
+                {daysLeft}
+              </span>
+            )}
+          </DeadlineRing>
+        </span>
+      </Tooltip>
       <span
         className={clsx(
           "min-w-0 font-mono text-xs",
@@ -401,7 +461,6 @@ function TrackerCard({
   const loginSource = loginSourceFor({
     lastAccessAt: loginMarking.lastAccessAt,
     lastAccessSource: loginMarking.lastAccessSource,
-    platformType: tracker.platformType,
   })
   const manualLogin = loginSource !== "detected"
   const snapshotMarker = stats
@@ -613,7 +672,12 @@ function TrackerCard({
         data-card-footer
       >
         <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 xl:flex-1 xl:flex-nowrap">
-          <LoginDeadlineReadout deadline={loginDeadline} />
+          <LoginDeadlineReadout
+            deadline={loginDeadline}
+            source={loginSource === "detected" ? "detected" : "manual"}
+            field={loginMarking.lastAccessField}
+            updatedAt={loginMarking.lastAccessUpdatedAt}
+          />
           {loginSource === "none" || !loginDeadline.hasRule ? null : (
             <LoginSourceIcon source={loginSource} />
           )}

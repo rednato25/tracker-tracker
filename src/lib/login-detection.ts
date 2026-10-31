@@ -1,8 +1,10 @@
 // src/lib/login-detection.ts
 //
-// Which platform adapters can tell us when the account last logged in. The
-// adapters not listed here never set `lastAccessDate`, so the app has no
-// evidence and the dashboard must ask the operator to mark a login by hand.
+// Which platform adapters can tell us when the account last logged in. That
+// list still answers "can this platform ever report a login?", but the card
+// asks a stricter question: did this tracker's latest successful poll actually
+// return a value? Only the stored source can answer that, so a platform that
+// sometimes reports a date no longer turns every old row into a detected one.
 
 import type { PlatformType } from "@/data/platform-types"
 import { platformTypeLabel } from "@/data/platform-types"
@@ -28,26 +30,24 @@ const LOGIN_DETECTING_PLATFORM_SET: ReadonlySet<PlatformType> = new Set(
 
 export type LoginSource = "detected" | "manual" | "none"
 
-/** True when the tracker's adapter reports a last-access date. */
+/** True when the tracker's adapter is able to report a last-access date. */
 export function canDetectLogin(platformType: string): boolean {
   return LOGIN_DETECTING_PLATFORM_SET.has(platformType as PlatformType)
 }
 
 /**
- * Where the recorded last login came from. A stored source wins. Rows written
- * before the source column existed fall back to the adapter capability, which
- * is right for the poll-written dates those rows normally carry.
+ * Where the recorded last login came from. The stored source is the only
+ * evidence: a date persists after the API stops returning it, and the poll that
+ * saw the gap writes "manual" so the card offers the button again. Rows written
+ * before the source column existed are treated as manual too, because nothing
+ * proves their latest poll returned the value.
  */
 export function loginSourceFor(tracker: {
   lastAccessAt: string | null
   lastAccessSource?: "detected" | "manual" | null
-  platformType: string
 }): LoginSource {
   if (!tracker.lastAccessAt) return "none"
-  if (tracker.lastAccessSource === "detected" || tracker.lastAccessSource === "manual") {
-    return tracker.lastAccessSource
-  }
-  return canDetectLogin(tracker.platformType) ? "detected" : "manual"
+  return tracker.lastAccessSource === "detected" ? "detected" : "manual"
 }
 
 /** Human names for the adapters that report a last-access value. */

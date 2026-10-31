@@ -29,6 +29,7 @@ import { log } from "@/lib/logger"
 import { readLoginDeadline } from "@/lib/login-deadline"
 import { dispatchNotifications } from "@/lib/notifications/dispatch"
 import { maskUsername } from "@/lib/privacy"
+import { PROFILE_LOGIN_FIELD, profileLoginFromMeta } from "@/lib/profile-login"
 import { runProfileReads } from "@/lib/profile-reading/fetch"
 import { withPreservedProfileRead } from "@/lib/profile-reading/meta"
 import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
@@ -50,6 +51,7 @@ import type {
   DigitalCorePlatformMeta,
   HawkePlatformMeta,
   MamPlatformMeta,
+  TrackerStats,
 } from "@/types/tracker-stats"
 
 // Platforms whose only platform alert is download-revoked, read from
@@ -105,6 +107,7 @@ const POLL_TRACKER_COLUMNS = {
   remoteUserId: trackers.remoteUserId,
   platformMeta: trackers.platformMeta,
   joinedAt: trackers.joinedAt,
+  profileReadingEnabled: trackers.profileReadingEnabled,
   lastAccessAt: trackers.lastAccessAt,
   lastPolledAt: trackers.lastPolledAt,
   lastError: trackers.lastError,
@@ -138,6 +141,54 @@ async function pollUrlFor(tracker: {
 }
 
 export { POLL_FAILURE_THRESHOLD } from "@/lib/tracker-recovery"
+
+interface LastAccessTracker {
+  platformType: string
+  profileReadingEnabled: boolean
+  platformMeta: string | null
+  lastAccessAt: string | null
+}
+
+type LastAccessMetaUpdates = {
+  lastAccessAt?: string
+  lastAccessSource: "detected" | "manual"
+  lastAccessField?: string
+  lastAccessUpdatedAt?: Date
+}
+
+/**
+ * The source follows the latest evidence, not the platform. An API value this
+ * poll returned wins. When it did not, an enabled UNIT3D profile read supplies
+ * "Last login" if that observation is at least as new as the stored date. With
+ * neither, the date is kept but marked manual so the card offers its button.
+ */
+function lastAccessMetaUpdates(
+  tracker: LastAccessTracker,
+  stats: Pick<TrackerStats, "lastAccessDate" | "lastAccessField">,
+  now: Date
+): LastAccessMetaUpdates {
+  const lastAccess = stats.lastAccessDate ? trackerDateStr(stats.lastAccessDate) : undefined
+  if (lastAccess) {
+    return {
+      lastAccessAt: lastAccess,
+      lastAccessSource: "detected",
+      lastAccessField: stats.lastAccessField ?? "adapter",
+      lastAccessUpdatedAt: now,
+    }
+  }
+
+  const profileLogin = profileLoginFromMeta(tracker)
+  if (profileLogin && (!tracker.lastAccessAt || profileLogin.date >= tracker.lastAccessAt)) {
+    return {
+      lastAccessAt: profileLogin.date,
+      lastAccessSource: "detected",
+      lastAccessField: PROFILE_LOGIN_FIELD,
+      lastAccessUpdatedAt: profileLogin.fetchedAt ? new Date(profileLogin.fetchedAt) : now,
+    }
+  }
+
+  return { lastAccessSource: "manual" }
+}
 
 /**
  * Tolerance window for the overdue check. Trackers that would become overdue
@@ -200,13 +251,7 @@ export async function fetchTrackerStats(
     const joined = trackerDateStr(stats.joinedDate)
     if (joined) metaUpdates.joinedAt = joined
   }
-  if (stats.lastAccessDate) {
-    const lastAccess = trackerDateStr(stats.lastAccessDate)
-    if (lastAccess) {
-      metaUpdates.lastAccessAt = lastAccess
-      metaUpdates.lastAccessSource = "detected"
-    }
-  }
+  Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats, new Date()))
   if (stats.platformMeta) metaUpdates.platformMeta = JSON.stringify(withPreservedProfileRead(stats.platformMeta, tracker.platformMeta))
   if (stats.avatarUrl) metaUpdates.avatarRemoteUrl = stats.avatarUrl
   if (Object.keys(metaUpdates).length > 0) {
@@ -283,13 +328,7 @@ export async function pollTracker(
       const joined = trackerDateStr(stats.joinedDate)
       if (joined) metaUpdates.joinedAt = joined
     }
-    if (stats.lastAccessDate) {
-      const lastAccess = trackerDateStr(stats.lastAccessDate)
-      if (lastAccess) {
-        metaUpdates.lastAccessAt = lastAccess
-        metaUpdates.lastAccessSource = "detected"
-      }
-    }
+    Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats, timestamp))
     if (stats.platformMeta) {
       metaUpdates.platformMeta = JSON.stringify(
         withPreservedProfileRead(stats.platformMeta, tracker.platformMeta)

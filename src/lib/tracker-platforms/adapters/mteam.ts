@@ -185,6 +185,11 @@ function readProfile(body: MteamEnvelope<MteamProfile>, hostname: string): Track
     remoteUserId: remoteId(data.id),
     joinedDate: dateOnly(data.createdDate),
     lastAccessDate: dateOnly(data.memberStatus?.lastBrowse) ?? dateOnly(data.lastModifiedDate),
+    lastAccessField: data.memberStatus?.lastBrowse
+      ? "memberStatus.lastBrowse"
+      : data.lastModifiedDate
+        ? "lastModifiedDate"
+        : undefined,
     platformMeta: Object.keys(meta).length > 0 ? meta : undefined,
   }
 }

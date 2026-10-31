@@ -39,32 +39,17 @@ describe("canDetectLogin", () => {
 
 describe("loginSourceFor", () => {
   it("uses the stored source instead of guessing from the platform", () => {
-    expect(
-      loginSourceFor({
-        lastAccessAt: "2026-10-20",
-        lastAccessSource: "manual",
-        platformType: "unit3d",
-      })
-    ).toBe("manual")
-    expect(
-      loginSourceFor({
-        lastAccessAt: "2026-10-20",
-        lastAccessSource: "detected",
-        platformType: "mam",
-      })
-    ).toBe("detected")
-    expect(
-      loginSourceFor({ lastAccessAt: null, lastAccessSource: "manual", platformType: "mam" })
-    ).toBe("none")
+    expect(loginSourceFor({ lastAccessAt: "2026-10-20", lastAccessSource: "manual" })).toBe(
+      "manual"
+    )
+    expect(loginSourceFor({ lastAccessAt: "2026-10-20", lastAccessSource: "detected" })).toBe(
+      "detected"
+    )
+    expect(loginSourceFor({ lastAccessAt: null, lastAccessSource: "manual" })).toBe("none")
   })
 
-  it("falls back to adapter capability for rows written before the source column", () => {
-    expect(
-      loginSourceFor({ lastAccessAt: "2026-10-20", platformType: "unit3d" })
-    ).toBe("detected")
-    expect(
-      loginSourceFor({ lastAccessAt: "2026-10-20", platformType: "mam" })
-    ).toBe("manual")
+  it("treats a legacy row with no stored source as manual", () => {
+    expect(loginSourceFor({ lastAccessAt: "2026-10-20" })).toBe("manual")
   })
 })
 

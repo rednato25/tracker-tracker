@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest"
 import {
   buildProofAccounts,
   buildProofProfileUrl,
+  evaluateProofAccounts,
+  findProofRequirement,
+  nextProofQualification,
+  parseProofRequirement,
   proofAccountAgeDays,
-  proofRatioLabel,
 } from "@/lib/proof-accounts"
 import type { TrackerSummary } from "@/types/api"
 
@@ -182,15 +185,107 @@ describe("proof accounts", () => {
     expect(accounts[1]).toMatchObject({
       className: "Zeus",
       profileUrl: "https://aither.example/users/alice",
-      ratioIsInfinite: true,
     })
-    const aither = accounts[1]
-    if (!aither) throw new Error("missing Aither account")
-    expect(proofRatioLabel(aither)).toBe("∞x")
+    expect(accounts[1]?.ratioIsInfinite).toBe(true)
     expect(accounts[2]).toMatchObject({
       className: null,
       accountAgeDays: null,
       profileUrl: null,
+    })
+  })
+})
+
+describe("parseProofRequirement", () => {
+  it("reads the count-and-age shorthand", () => {
+    expect(parseProofRequirement("3x 6 months old profile links")).toMatchObject({
+      count: 3,
+      ageMonths: 6,
+    })
+  })
+
+  it("reads proof links written as prose", () => {
+    expect(
+      parseProofRequirement("2 extra tracker proofs that are 6 months old")
+    ).toMatchObject({ count: 2, ageMonths: 6 })
+    expect(parseProofRequirement("Legend, 1 year, 3 profile links")).toMatchObject({
+      count: 3,
+      ageMonths: 12,
+    })
+  })
+
+  it("leaves prose without both a count and an age unparsed", () => {
+    expect(parseProofRequirement("6 months, 4TB upload")).toBeNull()
+    expect(parseProofRequirement("3 profile links")).toBeNull()
+    expect(parseProofRequirement("ratio>=1.0")).toBeNull()
+    expect(parseProofRequirement(null)).toBeNull()
+  })
+
+  it("takes the first parseable route text", () => {
+    expect(
+      findProofRequirement([null, "6 months, 4TB upload", "2 profile links 6 months old"])
+    ).toMatchObject({ count: 2, ageMonths: 6 })
+  })
+})
+
+describe("evaluateProofAccounts", () => {
+  const accounts = buildProofAccounts(
+    [
+      tracker({ id: 1, name: "Old", joinedAt: "2026-01-31T12:00:00.000Z" }),
+      tracker({
+        id: 2,
+        name: "Young",
+        joinedAt: "2026-07-31T12:00:00.000Z",
+        latestStats: stats({ ratio: 2.5 }),
+      }),
+      tracker({
+        id: 3,
+        name: "LowRatio",
+        joinedAt: "2024-01-31T12:00:00.000Z",
+        latestStats: stats({ ratio: 0.5 }),
+      }),
+      tracker({ id: 4, name: "NoAge", joinedAt: null }),
+    ],
+    NOW
+  )
+
+  it("qualifies an account that meets age and ratio", () => {
+    const rows = evaluateProofAccounts(accounts, { minAgeMonths: 6, minRatio: 1 }, NOW)
+    expect(rows.find((row) => row.account.trackerName === "Old")).toMatchObject({
+      qualifies: true,
+      blockedBy: null,
+    })
+    expect(rows.find((row) => row.account.trackerName === "LowRatio")).toMatchObject({
+      qualifies: false,
+      blockedBy: "ratio",
+    })
+  })
+
+  it("dates the day a young account becomes old enough", () => {
+    const rows = evaluateProofAccounts(accounts, { minAgeMonths: 6, minRatio: 0 }, NOW)
+    const young = rows.find((row) => row.account.trackerName === "Young")
+    expect(young?.qualifies).toBe(false)
+    expect(young?.blockedBy).toBe("age")
+    expect(young?.daysUntilQualifies).toBe(91)
+    expect(young?.qualifiesOn).not.toBeNull()
+    expect(rows.find((row) => row.account.trackerName === "NoAge")).toMatchObject({
+      qualifies: false,
+      blockedBy: "age",
+      daysUntilQualifies: null,
+    })
+  })
+
+  it("treats a zero minimum as no filter, including unknown ratio", () => {
+    const rows = evaluateProofAccounts(accounts, { minAgeMonths: 0, minRatio: 0 }, NOW)
+    expect(rows.filter((row) => row.qualifies)).toHaveLength(4)
+  })
+
+  it("sorts qualifying accounts first, then the nearest future date", () => {
+    const rows = evaluateProofAccounts(accounts, { minAgeMonths: 6, minRatio: 1 }, NOW)
+    expect(rows[0]?.account.trackerName).toBe("Old")
+    expect(rows[1]?.account.trackerName).toBe("Young")
+    expect(nextProofQualification(rows)).toMatchObject({
+      accountName: "Young",
+      days: 91,
     })
   })
 })

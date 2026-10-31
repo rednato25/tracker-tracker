@@ -2,11 +2,15 @@
 
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { Badge, Input } from "@/components/ui"
 import { formatAccountAge, formatDate } from "@/lib/formatters"
 import {
   buildProofAccounts,
-  type ProofAccountView,
+  evaluateProofAccounts,
+  findProofRequirement,
+  nextProofQualification,
+  type ProofAccountRow,
   proofRatioLabel,
 } from "@/lib/proof-accounts"
 import type { TrackerSummary } from "@/types/api"
@@ -14,34 +18,62 @@ import type { TrackerSummary } from "@/types/api"
 interface ProofAccountsPanelProps {
   trackers: TrackerSummary[]
   now: Date
+  /** Requirement prose from the invite routes into this target. */
+  requirementTexts: (string | null)[]
 }
 
-function ProofAccountRowView({ account, now }: { account: ProofAccountView; now: Date }) {
+function numberFromInput(value: string): number {
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+function qualificationLabel(row: ProofAccountRow, minRatio: number): string {
+  if (row.qualifies) return "Qualifies"
+  if (row.blockedBy === "ratio") {
+    return proofRatioLabel(row.account) === "—" ? "Ratio unknown" : `Ratio below ${minRatio}x`
+  }
+  if (row.daysUntilQualifies === null) return "Account age unknown"
+  return `Qualifies in ${row.daysUntilQualifies} ${
+    row.daysUntilQualifies === 1 ? "day" : "days"
+  }`
+}
+
+function ProofAccountRowView({ row, now, minRatio }: { row: ProofAccountRow; now: Date; minRatio: number }) {
+  const { account } = row
   const age = formatAccountAge(account.joinedAt, now)
   const memberSince = account.joinedAt ? formatDate(account.joinedAt) : "unknown"
+  const label = qualificationLabel(row, minRatio)
 
   return (
     <li
       data-proof-account={account.trackerId}
+      data-qualifies={row.qualifies ? "true" : "false"}
+      data-days-until={row.daysUntilQualifies ?? undefined}
       className="flex min-w-0 flex-col gap-1 border-t border-border py-2 first:border-t-0 first:pt-0"
     >
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        {account.profileUrl ? (
-          <a
-            href={account.profileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-proof-profile-link
-            className="min-w-0 break-words text-sm text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
-          >
-            {account.trackerName}
-          </a>
-        ) : (
-          <span className="min-w-0 break-words text-sm text-primary">{account.trackerName}</span>
-        )}
-        <span className="font-mono text-2xs text-tertiary">
-          {account.className ?? "Unknown class"}
-        </span>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          {account.profileUrl ? (
+            <a
+              href={account.profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-proof-profile-link
+              className="min-w-0 break-words text-sm text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+            >
+              {account.trackerName}
+            </a>
+          ) : (
+            <span className="min-w-0 break-words text-sm text-primary">{account.trackerName}</span>
+          )}
+          <span className="font-mono text-2xs text-tertiary">
+            {account.className ?? "Unknown class"}
+          </span>
+        </div>
+        <Badge variant={row.qualifies ? "success" : "warn"}>
+          {label}
+          {!row.qualifies && row.qualifiesOn ? ` · ${formatDate(row.qualifiesOn)}` : ""}
+        </Badge>
       </div>
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
         <span>{age ? `${age} old` : "Account age unknown"}</span>
@@ -54,8 +86,18 @@ function ProofAccountRowView({ account, now }: { account: ProofAccountView; now:
   )
 }
 
-export function ProofAccountsPanel({ trackers, now }: ProofAccountsPanelProps) {
+export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAccountsPanelProps) {
+  const requirement = useMemo(() => findProofRequirement(requirementTexts), [requirementTexts])
+  const [minAgeMonths, setMinAgeMonths] = useState(() => requirement?.ageMonths ?? 0)
+  const [minRatio, setMinRatio] = useState(0)
+
   const accounts = useMemo(() => buildProofAccounts(trackers, now), [now, trackers])
+  const rows = useMemo(
+    () => evaluateProofAccounts(accounts, { minAgeMonths, minRatio }, now),
+    [accounts, minAgeMonths, minRatio, now]
+  )
+  const qualifyingCount = rows.filter((row) => row.qualifies).length
+  const next = nextProofQualification(rows)
 
   return (
     <section
@@ -75,14 +117,62 @@ export function ProofAccountsPanel({ trackers, now }: ProofAccountsPanelProps) {
         </p>
       </div>
 
-      {accounts.length === 0 ? (
+      <div className="flex max-w-lg flex-col gap-2 sm:flex-row">
+        <Input
+          label="Minimum account age (months)"
+          type="number"
+          min={0}
+          step={1}
+          inputMode="numeric"
+          className="w-full sm:w-44"
+          value={minAgeMonths}
+          onChange={(event) => {
+            setMinAgeMonths(numberFromInput(event.target.value))
+          }}
+        />
+        <Input
+          label="Minimum ratio"
+          type="number"
+          min={0}
+          step={0.05}
+          inputMode="decimal"
+          className="w-full sm:w-36"
+          value={minRatio}
+          onChange={(event) => {
+            setMinRatio(numberFromInput(event.target.value))
+          }}
+        />
+      </div>
+
+      {requirement && (
+        <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-secondary" data-proof-requirement>
+          <span className="font-mono text-primary">{requirement.count} needed</span>
+          <span aria-hidden="true">·</span>
+          <span>
+            <span className="font-mono text-primary">{qualifyingCount}</span>{" "}
+            {qualifyingCount === 1 ? "qualifies" : "qualify"} now
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>
+            {next ? (
+              <>
+                next on <span className="font-mono text-primary">{formatDate(next.date)}</span>
+              </>
+            ) : (
+              "no more qualify in this list"
+            )}
+          </span>
+        </p>
+      )}
+
+      {rows.length === 0 ? (
         <p className="text-xs text-secondary">
           No tracker accounts yet. Add one to use it as proof in an application.
         </p>
       ) : (
         <ul className="flex min-w-0 flex-col" data-proof-account-list>
-          {accounts.map((account) => (
-            <ProofAccountRowView key={account.trackerId} account={account} now={now} />
+          {rows.map((row) => (
+            <ProofAccountRowView key={row.account.trackerId} row={row} now={now} minRatio={minRatio} />
           ))}
         </ul>
       )}

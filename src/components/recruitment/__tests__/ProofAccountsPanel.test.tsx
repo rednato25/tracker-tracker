@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { ProofAccountsPanel } from "@/components/recruitment/ProofAccountsPanel"
 import type { TrackerSummary } from "@/types/api"
@@ -56,25 +56,27 @@ function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
 
 const BASE_STATS = tracker().latestStats as NonNullable<TrackerSummary["latestStats"]>
 
+const aither = tracker({
+  id: 2,
+  name: "Aither",
+  baseUrl: "https://aither.example",
+  registrySlug: "aither",
+  joinedAt: "2026-08-15T12:00:00.000Z",
+  latestStats: {
+    ...BASE_STATS,
+    ratio: 1.2,
+    username: "alice",
+    group: "Zeus",
+  },
+})
+
 describe("ProofAccountsPanel", () => {
   it("lists every account with class, age, ratio and a profile link", () => {
     const { container } = render(
       <ProofAccountsPanel
         trackers={[
           tracker(),
-          tracker({
-            id: 2,
-            name: "Aither",
-            baseUrl: "https://aither.example",
-            registrySlug: "aither",
-            joinedAt: "2026-08-15T12:00:00.000Z",
-            latestStats: {
-              ...BASE_STATS,
-              ratio: 1.2,
-              username: "alice",
-              group: "Zeus",
-            },
-          }),
+          aither,
           tracker({
             id: 3,
             name: "Custom",
@@ -85,6 +87,7 @@ describe("ProofAccountsPanel", () => {
           }),
         ]}
         now={NOW}
+        requirementTexts={[]}
       />
     )
 
@@ -101,8 +104,8 @@ describe("ProofAccountsPanel", () => {
       "https://tl.example/profile/owner"
     )
 
-    const aither = container.querySelector('[data-proof-account="2"]') as HTMLElement
-    expect(aither.querySelector("[data-proof-profile-link]")).toHaveAttribute(
+    const aitherRow = container.querySelector('[data-proof-account="2"]') as HTMLElement
+    expect(aitherRow.querySelector("[data-proof-profile-link]")).toHaveAttribute(
       "href",
       "https://aither.example/users/alice"
     )
@@ -110,5 +113,53 @@ describe("ProofAccountsPanel", () => {
     const custom = container.querySelector('[data-proof-account="3"]') as HTMLElement
     expect(custom).toHaveTextContent("Unknown class")
     expect(custom.querySelector("[data-proof-profile-link]")).toBeNull()
+  })
+
+  it("prefills the age filter from the route and dates the next qualifying account", () => {
+    const { container } = render(
+      <ProofAccountsPanel
+        trackers={[tracker(), aither]}
+        now={NOW}
+        requirementTexts={["3x 6 months old profile links"]}
+      />
+    )
+
+    const ageFilter = screen.getByLabelText("Minimum account age (months)")
+    expect(ageFilter).toHaveValue(6)
+    expect(screen.getByLabelText("Minimum ratio")).toHaveValue(0)
+
+    const requirement = container.querySelector("[data-proof-requirement]") as HTMLElement
+    expect(requirement).toHaveTextContent("3 needed")
+    expect(requirement).toHaveTextContent("1 qualifies now")
+    expect(requirement).toHaveTextContent(/next on [A-Z][a-z]{2} \d{1,2}, \d{4}/)
+
+    const tl = container.querySelector('[data-proof-account="1"]') as HTMLElement
+    expect(tl).toHaveAttribute("data-qualifies", "true")
+    expect(tl).toHaveTextContent("Qualifies")
+
+    const young = container.querySelector('[data-proof-account="2"]') as HTMLElement
+    expect(young).toHaveAttribute("data-qualifies", "false")
+    expect(young).toHaveTextContent(/Qualifies in \d+ days/)
+
+    fireEvent.change(ageFilter, { target: { value: "0" } })
+    expect(requirement).toHaveTextContent("2 qualify now")
+    expect(container.querySelector('[data-proof-account="2"]')).toHaveAttribute(
+      "data-qualifies",
+      "true"
+    )
+  })
+
+  it("filters on ratio and marks accounts that fail it", () => {
+    const { container } = render(
+      <ProofAccountsPanel trackers={[tracker(), aither]} now={NOW} requirementTexts={[]} />
+    )
+
+    fireEvent.change(screen.getByLabelText("Minimum ratio"), { target: { value: "2" } })
+
+    const tl = container.querySelector('[data-proof-account="1"]') as HTMLElement
+    expect(tl).toHaveAttribute("data-qualifies", "true")
+    const young = container.querySelector('[data-proof-account="2"]') as HTMLElement
+    expect(young).toHaveAttribute("data-qualifies", "false")
+    expect(within(young).getByText(/Ratio below 2x/)).toBeInTheDocument()
   })
 })

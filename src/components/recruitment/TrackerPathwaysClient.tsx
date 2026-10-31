@@ -310,7 +310,12 @@ function TargetProfile({
         </div>
       </div>
 
-      <ProofAccountsPanel key={profile.targetTrackerId} trackers={trackers} now={now} />
+      <ProofAccountsPanel
+        key={profile.targetTrackerId}
+        trackers={trackers}
+        now={now}
+        requirementTexts={profile.invitedFrom.map((route) => route.requirementText)}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <section data-invited-from>

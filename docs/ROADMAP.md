@@ -16,15 +16,15 @@ Status source: `docs/IMPLEMENTATION_STATUS.md`. This file is a one-screen index,
 | P09   | done          | #9                                  |
 | P10   | superseded    | #10 (superseded by P29)             |
 | P11   | done          | #13                                 |
-| P12   | hidden        | #16                                 |
-| P13   | hidden        | #17 (UX fix #18)                    |
-| P14   | hidden        | #20                                 |
-| P15   | hidden        | #23                                 |
+| P12   | removed       | #16 (removed in P59)                |
+| P13   | removed       | #17 (UX fix #18; removed in P59)    |
+| P14   | removed       | #20 (removed in P59)                |
+| P15   | removed       | #23 (removed in P59)                |
 | P16   | hidden        | #24                                 |
 | P17   | done          | #26                                 |
 | P18   | done          | #27                                 |
-| P19   | hidden        | #28                                 |
-| P20   | hidden        | #29                                 |
+| P19   | removed       | #28 (removed in P59)                |
+| P20   | removed       | #29 (removed in P59)                |
 | P21   | frozen        | —                                   |
 | P22   | frozen        | —                                   |
 | P23   | frozen        | —                                   |
@@ -37,7 +37,9 @@ Status source: `docs/IMPLEMENTATION_STATUS.md`. This file is a one-screen index,
 | P30   | done          | #40                                 |
 | P31   | pending (next) | —                                   |
 
-Hidden means the UI entry point is removed, but the code, database tables, migrations, stored data and backups are unchanged: P12–P16 and P19–P20. Settings keeps Download clients, Notifications, Backups, Events and About.
+Hidden means the UI entry point is removed, but the code, database tables, migrations, stored data and backups are unchanged: P16.
+
+Removed means the feature code, routes, components, settings UI, tests and e2e specs were deleted in P59: P12–P15 and P19–P20. Applied migration `0004_prowlarr` is not edited and is not reversed, so the unused `app_settings` columns remain in existing databases; backups that still contain those settings restore with the fields ignored.
 
 Frozen means no further work is planned: P21–P24 and P27 (PR #37 parked).
 

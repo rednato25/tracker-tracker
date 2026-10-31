@@ -364,21 +364,6 @@ export async function POST(request: Request) {
     }
   }
 
-  if (settings.encryptedProwlarrApiKey) {
-    try {
-      settingsUpdates.encryptedProwlarrApiKey = reencrypt(
-        settings.encryptedProwlarrApiKey,
-        oldKey,
-        newKey
-      )
-    } catch {
-      settingsUpdates.encryptedProwlarrApiKey = null
-      warnings.push(
-        "Prowlarr API key could not be re-encrypted and was cleared. Re-enter it in settings."
-      )
-    }
-  }
-
   // All decrypts done. Write phase is all-or-nothing inside a transaction.
   // Only items that successfully decrypted are re-encrypted and committed.
   try {

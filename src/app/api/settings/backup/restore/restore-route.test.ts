@@ -1209,6 +1209,23 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     })
     expect(db.transaction).not.toHaveBeenCalled()
   })
+
+  it("ignores removed Prowlarr settings from an older backup", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    payload.settings.prowlarrUrl = "http://prowlarr.local:9696"
+    payload.settings.encryptedProwlarrApiKey = encrypt("legacy-prowlarr-key", backupKey)
+    payload.settings.prowlarrAllowPrivate = true
+    mockCurrentSettings({ encryptionSalt: SALT_A })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+
+    expect(res.status).toBe(200)
+    expect(recorder.settingsUpdate).not.toBeNull()
+    expect(recorder.settingsUpdate).not.toHaveProperty("prowlarrUrl")
+    expect(recorder.settingsUpdate).not.toHaveProperty("encryptedProwlarrApiKey")
+    expect(recorder.settingsUpdate).not.toHaveProperty("prowlarrAllowPrivate")
+  })
 })
 
 describe("POST /api/settings/backup/restore — auth gate", () => {

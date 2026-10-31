@@ -69,9 +69,9 @@ export const appSettings = pgTable("app_settings", {
   rankGoals: text("rank_goals"),
   /** P18 wishlist JSON: desired registry slug, hidden path keys, goal links. */
   recruitmentState: text("recruitment_state"),
-  prowlarrUrl: text("prowlarr_url"),
-  encryptedProwlarrApiKey: text("encrypted_prowlarr_api_key"),
-  prowlarrAllowPrivate: boolean("prowlarr_allow_private").default(false).notNull(),
+  // Migration 0004 added prowlarr_url, encrypted_prowlarr_api_key and
+  // prowlarr_allow_private. The feature is removed; those columns stay in
+  // existing databases but are intentionally not modeled or read here.
   digestEnabled: boolean("digest_enabled").default(false).notNull(),
   digestTime: varchar("digest_time", { length: 5 }).default("09:00").notNull(),
   digestTimezone: varchar("digest_timezone", { length: 64 }).default("UTC").notNull(),

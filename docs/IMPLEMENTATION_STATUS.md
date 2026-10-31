@@ -63,7 +63,9 @@ The roadmap is a proposal; these parts already exist in `e9586d53`:
 
 ## Task status
 
-Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_validation_blocked`, `done`, `deferred`.
+Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_validation_blocked`, `done`, `deferred`, `removed`.
+
+P59 removed the hidden Prowlarr import (P14), Jackett import (P15), Prowlarr search and result comparison (P19-P20) and the download budget calculator and UI (P12-P13). Their routes, API handlers, components, lib modules, settings UI, tests and e2e specs are deleted. Applied migration `0004_prowlarr` is unchanged; existing `app_settings` columns remain but are no longer modeled, read or written, and old backups containing those settings restore with the fields ignored.
 
 | ID | Status | Dependencies | Commit | Validation / evidence | Blocker or next step |
 |---|---|---|---|---|---|
@@ -87,15 +89,15 @@ Statuses follow the roadmap vocabulary: `pending`, `in_progress`, `implemented_v
 | P09 | done | P03 | `main @ e925ca18` (merged; not deployed) | `src/lib/rank-goals.ts`; deterministic numeric/manual conditions with ALL/ANY; met/unmet/unknown, observed/freshness and remaining; injected account-age clock; existing ladder/forest next-rank resolution; personal goals; 12 focused tests; 234 files / 6058 tests, TypeScript, Biome, audit 38/38, build | No UI, DB or promotion mutation. Free text is preserved, never parsed. P11 remains. |
 | P10 | superseded by P29 | P09 | `main @ a8fca65` (historical; superseded) | TorrentLeech: account-age and ratio conditions verified from the public wiki; four upload conditions kept explicitly unknown because GB/TB binary-vs-decimal is unresolved. MyAnonaMouse/REDacted have no structured goals. 6 pilot tests; 235 files / 6064 tests, TypeScript, Biome, audit 38/38, build | Follow-ups: #11 TorrentLeech units; #12 MAM/REDacted excerpts. No UI, DB or ETA. |
 | P11 | done | P09–P10 | `main @ d1c11333` (merged; not deployed) | Tracker-detail rank-goal panel; current/target rank; verified/unmet/unknown conditions; source details; custom target persisted in app_settings.rank_goals via migration 0003 with restore ID remapping; upload ETA only from adequate fresh history; account-age exact date; 2 ETA + 4 panel tests + restore remap assertion; 236 files / 6070 tests, TypeScript, Biome, audit 38/38, build | Light/dark/mobile artifacts generated in CI and reviewed; no application clipping found after capture fix. #14 closed. |
-| P12 | done | P03 | `main @ 02f0645d` (merged; not deployed) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
-| P13 | done | P12 | `main @ cbca164a` (merged; not deployed) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6085 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18; owner manual acceptance on digest `sha256:8b8cba401ffab275a3c46cb33db7ef0264702c71422de9fe33198dffe0a89690` | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. P14 is implemented in draft; polish #19 remains. |
-| P14 | done | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: FileList imported through Prowlarr | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Owner-reported: imported FileList remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Mobile long preview text polish: #21. No P15. |
-| P15 | done | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: AlphaRatio imported through Jackett | No Jackett connection persistence (admin password used per request only). Owner-reported: imported AlphaRatio remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
+| P12 | removed | P03 | `main @ 02f0645d` (merged; not deployed) | `src/lib/download-budget.ts`; pure projected ratio, additional allowance, required upload and charged reserve; explicit charged fraction; zero-charge scenario; unknown/invalid inputs unavailable; 8 focused tests; 237 files / 6078 tests, TypeScript, Biome, audit 38/38, build | Dynamic ratio/freeleech expiry follow-up: #15. No UI, downloads, qBittorrent actions or per-torrent mixing. |
+| P13 | removed | P12 | `main @ cbca164a` (merged; not deployed) | Tracker-detail budget form; explicit accounting, target-vs-minimum, projected ratio/budget/upload; local planning queue with add/edit/remove and cumulative result; no client/tracker mutation; 5 panel tests; 238 files / 6085 tests, TypeScript, Biome, audit 38/38, build; CI Visual Evidence artifacts captured; UX correction in PR #18; owner manual acceptance on digest `sha256:8b8cba401ffab275a3c46cb33db7ef0264702c71422de9fe33198dffe0a89690` | Mobile capture setup was corrected (page clip, 72px header offset, full-height 390px captures); metrics and interaction tests show no horizontal overflow, reachable controls and bottom scrolling. Issue #14 closed. P14 is implemented in draft; polish #19 remains. |
+| P14 | removed | P02–P03 | `main @ 22a5dd68` (merged; not deployed) | Read-only Prowlarr client; encrypted URL/key settings; preview statuses ready/already-added/ambiguous/unsupported; selected-only import creates active user-paused placeholders with no copied credentials; local fake-service, matching and import tests; 6089 full tests; no Jackett/search. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: FileList imported through Prowlarr | Prowlarr key is never returned; imported entries are active/user-paused and need manual tracker credentials. Owner-reported: imported FileList remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Mobile long preview text polish: #21. No P15. |
+| P15 | removed | P14 | PR #23 (`5e2990c8`; not deployed) | Jackett admin-login read-only indexer list; matching/duplicate/ambiguous/unsupported preview; selected-only active user-paused import; no credential copying; local fake-service tests; 6092 full tests; authenticated visual run captured light/dark/mobile settings preview/import and the PAUSED imported tracker. Owner-reported manual acceptance 2026-10-26 on image digest `sha256:2b265361883e03e39127cf05cacbbe90bbf2dd470d34d50759e88b91f9ae995e`: AlphaRatio imported through Jackett | No Jackett connection persistence (admin password used per request only). Owner-reported: imported AlphaRatio remained visible and PAUSED with no account metrics or automatic polling, an existing entry was identified as already added, and tracker credentials were not copied. Automated evidence is separate (local fake service and authenticated Playwright run). Visual evidence #22 closed; long mobile preview wrapping is the shared #21 polish. No P16. |
 | P16 | done | P02, P04; P11 for goals | PR #24 (merged; not deployed) | Versioned `/api/integrations/v1/{summary,actions,history}`; hashed one-time tokens with read scopes; session-only token management; explicit identity modes (`none` default); bounded summary/actions/history; migration 0005; password/lockdown/nuke/restore/recovery invalidation; focused auth/privacy/UI/lifecycle/recovery tests; 6145 full tests; desktop light/dark/mobile token UI inspected; contract in `docs/INTEGRATION_API.md` | Owner-supplied home-server acceptance on image digest `sha256:02271ad43c65dc5b8a81a0b878747c4b5fbf02ab0fcd94061bee04b8cf4969fb`: migration 0005 applied, health passed, existing login/trackers/mock integrations preserved, summary-only token 200 / actions 403 / post-revocation summary 401 without session cookies, hidden identity excluded names/usernames/secrets, token displayed once and only its hash stored, temporary tokens revoked, production and stopped updater unchanged. Optional expiry is #25. No write scopes, CORS, webhooks, search or downloads; no deployment. |
 | P17 | done | P09–P10 | PR #26 (`feat/p17-recruitment-routes`; merged) | Versioned offline recruitment-route format/evaluator; pinned MIT trackerpathways snapshot with 194 registry-mapped edges, 23 source gates and attribution; upstream `days` semantics unresolved; no structured community requirements; mandatory prose/days/gates are unknown leaves; every community route remains unknown; separate eligibility/availability/invitation; source-update vs access vs verification dates; bounded cycle-safe path search; dated local overrides | Merged; not deployed. 117 unresolved upstream names omitted; no prose-to-threshold parsing, runtime fetch, automated applications or recruiter messages. P18 UI consumes this format separately and P19 search is a separate surface; no deployment or home-server change. |
 | P18 | done | P17 and goals UI | PR #27 (`feat/p18-recruitment-wishlist`; merged; not deployed) | `/wishlist` list UI with saved desired registry slug, direct/bounded multi-step routes, owned vs scenario evaluation, explicit unresolved source text/days/invite gates, separate availability, hide/show paths, exact-match saved-goal links, distinct evidence dates and attribution; migration 0006 single JSON state column with slug references; 25 focused tests; 6190 full tests; light/dark/mobile screenshots inspected | Owner-supplied isolated-home-server acceptance on image digest `sha256:5a8084bddcc7bba0bd23e3b532cdece211239196d3e72c115443ee6ffb499d95`: migration 0006 applied, health/data preserved, destination and hidden paths survived reload, account/scenario/unresolved/availability labels remained distinct, desktop and 390px checks passed. Automated evidence remains separate. No multiple destinations, graph, applications or deployment. |
-| P19 | done | P14 | PR #28 (`feat/p19-prowlarr-search`; merged; not deployed) | Authenticated `/search` UI and read-only Prowlarr `/api/v1/search`; per-indexer requests for partial coverage; registry/ownership mapping with placeholder distinction; explicit submission, loading/empty/partial/all-failed states; Prowlarr limit/offset paging; bounded timeout/size/concurrency/results; cancellation and stale-response guard; safe response fields and factor only from explicit flags | Owner accepted the isolated manual guide on image digest `sha256:cd60b6a89358a29eb0c3debe65bac3153a972610ca0a2dc0145be89aae9d494f`. Automated evidence remains separate. No download/grab/magnet/client action or P21 send; P20 comparison consumes this surface. Prowlarr HTTP 200 is only API success, not proof underlying indexer success; no result cache. |
-| P20 | done | P19, P12-P13 | PR #29 (`feat/p20-result-comparison`; merged; not deployed) | Search-result Compare selection; independent alternatives; user target ratio separate from tracker minimum; account mapping/freshness; size, explicit factor, charged bytes, projected ratio, remaining allowance and additional upload via the P12 calculator; freeleech/neutralleech as zero-charge scenario; stale/missing/ambiguous unavailable; seeding obligations separate unknown; no ranking or best/safest label; 12 focused tests; 6237 full tests; comparison screenshots inspected | Owner-supplied isolated acceptance on image digest `sha256:4b2c3489a8d0fd4fe460abbe7b2692c95aa2b5ff7ecca833d9b9c4f016275856`. Normal-charge 1.0 is deterministic fixture/calculator evidence, separate from deployed Prowlarr UI evidence (0/0.5 or unknown only). Automated/visual evidence remains separate. No quality/language inference, release equivalence, future upload credit, download/grab/client action or P21 send. |
+| P19 | removed | P14 | PR #28 (`feat/p19-prowlarr-search`; merged; not deployed) | Authenticated `/search` UI and read-only Prowlarr `/api/v1/search`; per-indexer requests for partial coverage; registry/ownership mapping with placeholder distinction; explicit submission, loading/empty/partial/all-failed states; Prowlarr limit/offset paging; bounded timeout/size/concurrency/results; cancellation and stale-response guard; safe response fields and factor only from explicit flags | Owner accepted the isolated manual guide on image digest `sha256:cd60b6a89358a29eb0c3debe65bac3153a972610ca0a2dc0145be89aae9d494f`. Automated evidence remains separate. No download/grab/magnet/client action or P21 send; P20 comparison consumes this surface. Prowlarr HTTP 200 is only API success, not proof underlying indexer success; no result cache. |
+| P20 | removed | P19, P12-P13 | PR #29 (`feat/p20-result-comparison`; merged; not deployed) | Search-result Compare selection; independent alternatives; user target ratio separate from tracker minimum; account mapping/freshness; size, explicit factor, charged bytes, projected ratio, remaining allowance and additional upload via the P12 calculator; freeleech/neutralleech as zero-charge scenario; stale/missing/ambiguous unavailable; seeding obligations separate unknown; no ranking or best/safest label; 12 focused tests; 6237 full tests; comparison screenshots inspected | Owner-supplied isolated acceptance on image digest `sha256:4b2c3489a8d0fd4fe460abbe7b2692c95aa2b5ff7ecca833d9b9c4f016275856`. Normal-charge 1.0 is deterministic fixture/calculator evidence, separate from deployed Prowlarr UI evidence (0/0.5 or unknown only). Automated/visual evidence remains separate. No quality/language inference, release equivalence, future upload credit, download/grab/client action or P21 send. |
 | P21 | deferred | P19 | - | Read-only search/comparison exists; no torrent-add flow | Out of current scope. Do not implement torrent-add, grab, magnet, download or client mutation. |
 | P22 | deferred | P03 and existing qBittorrent | - | Fleet analytics and satisfaction exist; no storage/seeding report | Deferred: storage cleanup is not a current priority; no destructive actions. |
 | P23 | deferred | P22 | - | No space-release candidate classification | Deferred: storage cleanup is not a current priority; optional and destructive actions remain out of scope. |
@@ -1080,7 +1082,7 @@ unsupported/unresolved trackers and target persistence. Full suite 236 files /
 Light/dark/mobile screenshot inspection remains blocked because local
 PostgreSQL and Docker are unavailable; follow-up: https://github.com/rednato25/tracker-tracker/issues/14. Docker CI validates migrations, not rendered UI.
 
-### P12 download-budget calculator
+### P12 download-budget calculator (removed in P59)
 
 - `src/lib/download-budget.ts` implements the roadmap formulas over accounted
   upload/download, proposed size, explicit charged fraction, user target ratio,
@@ -1105,7 +1107,7 @@ negative/oversized reserves, unknown/invalid inputs, no-ratio status and
 target-vs-minimum separation. Full suite 237 files / 6078 tests; TypeScript,
 Biome, security audit 38/38 and production build pass.
 
-### P13 download-budget UI and scenario queue
+### P13 download-budget UI and scenario queue (removed in P59)
 
 - The tracker-detail budget panel reuses `calculateDownloadBudget`; no formula
   is duplicated in the UI.
@@ -1148,7 +1150,7 @@ stale/unavailable data, the exact reported queue and no network mutation. Full
 suite 238 files / 6085 tests; TypeScript, Biome, security audit 38/38,
 production build and Docker Build & Scan pass.
 
-### P13 manual acceptance
+### P13 manual acceptance (removed in P59)
 
 The owner accepted the corrected calculator on the isolated home-server
 instance using digest
@@ -1158,7 +1160,7 @@ the 235/835/65 charged-allowance result and the explicit unknown/freeleech
 states. Minor polish remains tracked separately: clearer draft/saved headings
 and moving the physical-size budget into advanced details.
 
-### P14 Prowlarr import
+### P14 Prowlarr import (removed in P59)
 
 - Read-only Prowlarr client calls `GET /api/v1/indexer` with `X-Api-Key`,
   bounded timeout, redirect refusal and response cap. The API key is encrypted
@@ -1187,7 +1189,7 @@ PAUSED in the register and remains visible. Long Prowlarr preview text still
 clips at the right edge on mobile; this non-blocking polish is tracked as #21.
 No real Prowlarr or tracker was contacted.
 
-### P15 Jackett import
+### P15 Jackett import (removed in P59)
 
 - Jackett discovery uses the documented read-only dashboard flow: POST
   `/UI/Dashboard` for a cookie, then GET `/api/v2.0/indexers?configured=true`.
@@ -1215,7 +1217,7 @@ credential notes still clip at the right edge; this is the shared preview
 wrapping polish tracked in #21, not a P15 blocker. No real Jackett or tracker was
 contacted.
 
-### P14/P15 owner manual acceptance (owner-reported, 2026-10-26)
+### P14/P15 owner manual acceptance (owner-reported, 2026-10-26; removed in P59)
 
 The owner confirmed both import flows on the isolated home-server instance using
 the already-published image digest
@@ -1412,7 +1414,7 @@ screenshots. The manual guide was corrected to the tested route identity: the
 tested catalogue has a direct `alpharatio -> broadcasthenet` route; Aither reaches
 it through intermediates. No route data was changed.
 
-### P19 read-only Prowlarr search
+### P19 read-only Prowlarr search (removed in P59)
 
 - Adds `/search` and a Sidebar entry. No search is issued on page view; the page
   only loads the Prowlarr indexer list. Submitting the form contacts the selected
@@ -1457,8 +1459,8 @@ it through intermediates. No route data was changed.
 - Visual evidence: local fake Prowlarr only, light/dark desktop and 390px mobile,
   with a partial-result response. The captured views were inspected: partial
   coverage, unknown size/seeders/date/factor, no download controls, and the mobile
-  title clears navigation. No real Prowlarr/tracker/client is contacted. Contract:
-  `docs/SEARCH.md`.
+  title clears navigation. No real Prowlarr/tracker/client is contacted. The
+  contract document was deleted with the feature in P59.
 - API limitation: Prowlarr's controller can return HTTP 200 with an empty list
   when an upstream indexer fails internally. **HTTP 200 is a successful Prowlarr
   API response, not proof that the underlying indexer search succeeded.** The UI
@@ -1472,11 +1474,11 @@ it through intermediates. No route data was changed.
 - Completion state: implementation, automated tests, CI and visual review are
   complete. The owner accepted the isolated manual guide on image digest
   `sha256:cd60b6a89358a29eb0c3debe65bac3153a972610ca0a2dc0145be89aae9d494f`;
-  this is owner-supplied evidence, separate from automated checks. Manual mock
-  requirements/walkthrough: `docs/P19_MANUAL_ACCEPTANCE.md`.
+  this is owner-supplied evidence, separate from automated checks. The manual
+  guide was deleted with the feature in P59.
 - No P21 grab/download/client mutation, deployment or home-server change.
 
-### P20 result comparison by account impact
+### P20 result comparison by account impact (removed in P59)
 
 - Adds independent Compare selection to `/search` (up to eight results), a
   comparison panel and a user-entered target ratio. Tracker minimum stays
@@ -1498,7 +1500,8 @@ it through intermediates. No route data was changed.
 - Tests: 12 P20-focused pure/UI tests plus the existing search suite cover
   arithmetic, target/minimum separation, factors, stale/missing/ambiguous inputs,
   duplicate titles, future-upload non-crediting and separate obligations. Full
-  suite on Node 24: 257 files / 6237 tests passed. Contract: `docs/COMPARISON.md`.
+  suite on Node 24: 257 files / 6237 tests passed. The contract document was
+  deleted with the feature in P59.
 - Visual evidence: local fake Prowlarr only; light/dark desktop and 390px mobile
   selected-result comparison with a freeleech row and missing metadata row. The
   captured views were inspected: concrete arithmetic, zero-charge qualification,
@@ -1512,7 +1515,7 @@ it through intermediates. No route data was changed.
   `sha256:4b2c3489a8d0fd4fe460abbe7b2692c95aa2b5ff7ecca833d9b9c4f016275856`.
   Normal-charge 1.0 is deterministic fixture/calculator evidence; deployed
   Prowlarr UI evidence is limited to explicit 0/0.5 or unknown. Keep those
-  evidence classes separate. Guide: `docs/P20_MANUAL_ACCEPTANCE.md`.
+  evidence classes separate. The manual guide was deleted with the feature in P59.
 
 ### Product direction revision (2026-10-27)
 
@@ -1526,8 +1529,8 @@ gaps and bounded next task are in `docs/PRODUCT_PRIORITIES.md`. Summary:
   current priority; no destructive actions.
 - **P24:** narrowed to bonus monitoring/planning only until verified per-tracker
   exchange rules exist. No automatic point spending.
-- Search/comparison (P19/P20) remains available, optional and read-only; do not
-  remove or redesign it now.
+- Search/comparison (P19/P20) and the download budget (P12/P13) were removed in
+  P59. Do not reintroduce them.
 - Recommended next bounded implementation: complete the existing monitoring
   register with accounted upload/download, current bonus points and compact
   missing/stale markers from `latestStats`/`lastPolledAt`; no new adapters,
@@ -1729,11 +1732,10 @@ P26 owner acceptance remains pending. Merge of the fix is not authorized.
 
 ## Dependencies and blockers
 
-- **P02 is the main structural blocker.** P03, P06, P14, P16 and any new persisted goal/notification state should not create schema without a controlled upgrade and backup/restore path.
+- **P02 is the main structural blocker.** P03, P06, P16 and any new persisted goal/notification state should not create schema without a controlled upgrade and backup/restore path.
 - **P04 blocks the first daily-use delivery.** P05, P06, P08 and the action portion of P16 depend on a stable action model and keys.
 - **P09/P10 now provide the progress foundation.** P11, P17, P18 and P24 must reuse the evaluator and pilot definitions rather than introduce parallel rank logic.
-- **P12 blocks the calculator and comparison tasks.** P13 and P20 depend on the pure function, not on the queue.
-- **P14 blocks P15 and P19.** P21 depends on search; do not build a direct download action first.
+- **P12-P15 and P19-P20 were removed in P59.** They no longer block P21; torrent-add, grab, download and client mutation remain out of scope.
 - **P22 blocks P23.** The space candidate task is explicitly optional and must not delete or move data.
 
 ## Roadmap and documentation corrections

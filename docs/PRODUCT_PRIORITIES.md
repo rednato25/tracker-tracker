@@ -1,8 +1,9 @@
 # Product Priorities and Revised Roadmap
 
 Tracker Tracker is an account-monitoring and progression dashboard. Prowlarr and
-qBittorrent remain responsible for searching and adding torrents. Search and
-comparison are optional surfaces, not the product centre.
+qBittorrent remain responsible for searching and adding torrents. Search,
+comparison and the download budget were removed in P59; they are not product
+surfaces.
 
 ## Priority map
 
@@ -13,7 +14,6 @@ comparison are optional surfaces, not the product centre.
 | Observed rank, next-rank requirements and remaining progress | P09 evaluator; P10 TorrentLeech pilot rules (others unknown); P11 tracker-detail goal panel; dashboard rank stacks/progress | Next-rank requirements/progress live mainly on tracker detail; P10 coverage is deliberately incomplete | A bounded dashboard next-rank summary reusing P09/P11, without new rules or inferred branches |
 | Tracker pathways and recruitment | P17/P18 delivered; P31 simplifies the page to owned rows and a fastest-route picker with explicit unknown state | 117 upstream names and most prose requirements remain unresolved; dataset is intentionally static | No change now; keep optional and preserve unknown semantics |
 | Useful Telegram alerts and digests | P06 Telegram delivery; P08 scheduled digest/quiet hours/durable state/Settings; local mock validation | Digest is primarily a P04 action summary; it does not yet include monitoring or rank-progress context | After P25, add a bounded monitoring section to the existing digest; reuse existing targets/dispatch |
-| Optional search and comparison | P19 search and P20 comparison delivered; both owner-accepted | Quality/language preferences, normal-charge source data and release-level obligations are not modeled | Keep as optional; do not remove or redesign |
 | P24 bonus planning | Seedbonus is stored and shown on tracker detail; bonus-cap warning exists for MAM | No verified exchange catalogue, cap/class/cooldown rules or planner | Keep bonus **visibility** in P25; defer the exchange planner until verified per-tracker sources exist |
 
 ## Roadmap disposition
@@ -24,8 +24,8 @@ comparison are optional surfaces, not the product centre.
   current priority; no destructive actions.
 - **P24:** narrowed to relevant bonus monitoring/planning only. Do not compare or
   spend points across trackers; no automatic purchases.
-- **Search/comparison (P19/P20):** remains available, optional and read-only. Do
-  not remove or redesign it in the monitoring work.
+- **Search/comparison (P19/P20) and download budget (P12/P13):** removed in P59.
+  Do not reintroduce them.
 - **Monitoring/progression:** per-tracker account health, rank progress, tracker pathways
   and useful Telegram digests are the current priorities.
 
@@ -40,10 +40,8 @@ values remain `—`/unknown, never zero. Add focused register tests for present,
 null and stale values. This directly improves the primary dashboard and supports
 P24 monitoring without starting the exchange planner.
 
-## P20 acceptance note
+## Removed features
 
-P20 owner acceptance on the isolated image is recorded in
-`docs/IMPLEMENTATION_STATUS.md`. Normal-charge 1.0 arithmetic is deterministic
-fixture/calculator evidence; the deployed Prowlarr UI can only produce explicit
-0/0.5 factors or unknown, never inferred normal charge. Keep those two evidence
-classes separate.
+P12-P15 and P19-P20 were removed in P59. Their historical acceptance evidence
+remains in `docs/IMPLEMENTATION_STATUS.md`; the features, routes, settings and
+user-visible surfaces no longer exist.

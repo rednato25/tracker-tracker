@@ -224,13 +224,21 @@ export function AttentionNeeded({
       rows.push(action)
       byTracker.set(action.trackerId, rows)
     }
+    const actionOrder = new Map(actions.map((action, index) => [action.key, index]))
     const trackerRows = trackers
       .filter((tracker) => tracker.isActive)
-      .map((tracker) => {
+      .map((tracker, index) => {
         const rows = byTracker.get(tracker.id) ?? []
         const primary = rows.find((row) => row.status === "action-required") ?? rows[0] ?? null
-        return { tracker, rows, primary }
+        return {
+          tracker,
+          rows,
+          primary,
+          order: primary ? (actionOrder.get(primary.key) ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER,
+          index,
+        }
       })
+      .sort((left, right) => left.order - right.order || left.index - right.index)
     return {
       actionRows: { trackerRows, clientRows },
       clearTrackers: trackerRows.filter((row) => row.rows.length === 0),

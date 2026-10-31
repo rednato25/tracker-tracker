@@ -596,12 +596,18 @@ function TrackerCard({
       </div>
       </Link>
 
-      <div className="flex flex-col gap-2 border-t border-border px-4 py-2.5">
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 border-t border-border px-4 py-2.5"
+        data-card-footer
+      >
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <LoginDeadlineReadout deadline={loginDeadline} />
-          <span aria-hidden="true" className="text-tertiary">
-            {"\u00b7"}
-          </span>
+          {loginSource === "none" ? null : <LoginSourceIcon source={loginSource} />}
+        </div>
+        <div
+          className="ml-auto flex flex-wrap items-center justify-end gap-2"
+          data-card-footer-actions
+        >
           <a
             href={tracker.baseUrl.startsWith("http") ? tracker.baseUrl : `https://${tracker.baseUrl}`}
             target="_blank"
@@ -616,13 +622,8 @@ function TrackerCard({
             Open site
             <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
           </a>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {loginSource === "none" ? null : (
-            <LoginSourceIcon source={loginSource} />
-          )}
           {manualLogin && (
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <>
               {loginMarking.undo ? (
                 <>
                   <span className="font-mono text-xs text-success" role="status">
@@ -657,7 +658,7 @@ function TrackerCard({
                   Could not record login
                 </span>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>

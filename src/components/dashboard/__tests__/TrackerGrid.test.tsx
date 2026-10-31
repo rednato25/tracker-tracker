@@ -544,6 +544,31 @@ describe("TrackerGrid", () => {
     expect(screen.getByRole("button", { name: "Marked by you" })).toBeInTheDocument()
   })
 
+  it("keeps the ring, source, site link and login button in one footer row", () => {
+    const { container } = render(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-10-25" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const footer = container.querySelector("[data-card-footer]")
+    if (!footer) throw new Error("footer not found")
+    const actions = footer.querySelector("[data-card-footer-actions]")
+    if (!actions) throw new Error("footer actions not found")
+
+    const ring = footer.querySelector<HTMLElement>("[data-login-ring]")
+    if (!ring) throw new Error("ring not found")
+
+    expect(actions.parentElement).toBe(footer)
+    expect(footer).toContainElement(ring)
+    expect(actions).toContainElement(screen.getByRole("link", { name: "Open MyAnonaMouse site" }))
+    expect(actions).toContainElement(screen.getByRole("button", { name: "Logged in today" }))
+    const source = screen.getByRole("button", { name: "Marked by you" })
+    expect(footer).toContainElement(source)
+    expect(actions).not.toContainElement(source)
+  })
+
   it("shows the login deadline ring in the state's tone", () => {
     const { rerender, container } = render(
       <TrackerGrid

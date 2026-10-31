@@ -11,12 +11,12 @@ import { classifyFetchError, classifyProxyFetchError } from "@/lib/error-utils"
 import { ADAPTER_FETCH_TIMEOUT_MS } from "@/lib/limits"
 import { log } from "@/lib/logger"
 import { isRedirect } from "@/lib/network"
-import { parseBytes } from "@/lib/parser"
 import { proxyFetch } from "@/lib/tunnel"
 import type { DebugApiCall, FetchOptions, TrackerAdapter, TrackerStats } from "../contract"
 import { parseCredentialJson } from "../helpers/cookie-credentials"
 import { SessionExpiredError } from "../helpers/errors"
 import { fetchTrackerHtml } from "../helpers/html-fetch"
+import { tryParseSiteBytes } from "../helpers/html-parse"
 
 // ---------------------------------------------------------------------------
 // Credential handling
@@ -330,8 +330,14 @@ export function parseTlProfile(html: string, username: string, hostname: string)
     throw new Error(`Unexpected response from ${hostname}: unreadable downloaded byte total`)
   }
 
-  const uploadedBytes = parseBytes(uploadedText)
-  const downloadedBytes = parseBytes(downloadedText)
+  const uploadedBytes = tryParseSiteBytes(uploadedText)
+  const downloadedBytes = tryParseSiteBytes(downloadedText)
+  if (uploadedBytes === undefined) {
+    throw new Error(`Unexpected response from ${hostname}: unreadable uploaded byte total`)
+  }
+  if (downloadedBytes === undefined) {
+    throw new Error(`Unexpected response from ${hostname}: unreadable downloaded byte total`)
+  }
 
   // Active seeding/leeching counts appear only in the top bar, alongside the
   // size totals they are parenthesised after.

@@ -53,8 +53,8 @@ describe("parseCarptHomepage", () => {
 
     expect(uid).toBe("12345")
     expect(stats.username).toBe("testuser")
-    expect(stats.uploadedBytes).toBe(parseBytes("1.097 TB"))
-    expect(stats.downloadedBytes).toBe(parseBytes("88.46 GB"))
+    expect(stats.uploadedBytes).toBe(parseBytes("1.097 TiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("88.46 GiB"))
     expect(stats.ratio).toBe(12.697)
     expect(stats.seedingCount).toBe(25)
     expect(stats.leechingCount).toBe(0)
@@ -109,7 +109,7 @@ describe("CarptAdapter", () => {
     const stats = await adapter.fetchStats(HOST, CREDENTIALS, "/userdetails.php")
     const meta = stats.platformMeta as CarptPlatformMeta
 
-    expect(stats.uploadedBytes).toBe(parseBytes("1.097 TB"))
+    expect(stats.uploadedBytes).toBe(parseBytes("1.097 TiB"))
     expect(stats.group).toBe("User")
     expect(stats.joinedDate).toBe("2026-09-26")
     expect(stats.remoteUserId).toBe(12345)
@@ -123,7 +123,7 @@ describe("CarptAdapter", () => {
 
     const stats = await adapter.fetchStats(HOST, CREDENTIALS, "/userdetails.php")
 
-    expect(stats.uploadedBytes).toBe(parseBytes("1.097 TB"))
+    expect(stats.uploadedBytes).toBe(parseBytes("1.097 TiB"))
     expect(stats.joinedDate).toBeUndefined()
   })
 

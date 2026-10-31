@@ -1,17 +1,16 @@
 // src/lib/tracker-platforms/adapters/iptorrents.ts
 //
-// Functions: parseIptCredentials, tryParseBytes, valueAfterLabel, parseUpStatCards,
-//            parseIptProfile, fetchHtml, IptorrentsAdapter
+// Functions: parseIptCredentials, valueAfterLabel, parseUpStatCards, parseIptProfile,
+//            fetchHtml, IptorrentsAdapter
 
 import { type HTMLElement as ParsedElement, parse as parseHtml } from "node-html-parser"
 import { computeBufferBytes, computeRatio } from "@/lib/data-transforms"
-import { parseBytes } from "@/lib/parser"
 import { validateCookieHeader } from "@/lib/tracker-credentials/cookie-header"
 import type { DebugApiCall, FetchOptions, TrackerAdapter, TrackerStats } from "../contract"
 import { parseCredentialJson } from "../helpers/cookie-credentials"
 import { SessionExpiredError } from "../helpers/errors"
 import { fetchTrackerHtml } from "../helpers/html-fetch"
-import { tryParseCount } from "../helpers/html-parse"
+import { tryParseCount, tryParseSiteBytes } from "../helpers/html-parse"
 
 // ---------------------------------------------------------------------------
 // Credential handling
@@ -41,19 +40,6 @@ export function parseIptCredentials(apiToken: string): IptCredentials {
 // HTML parsing helpers
 // ---------------------------------------------------------------------------
 
-/**
- * parseBytes for optional/best-effort fields: returns undefined rather than
- * throwing when a DOM variant yields something unparseable, so a single odd
- * value can't abort the whole profile parse.
- */
-function tryParseBytes(value: string): bigint | undefined {
-  try {
-    return parseBytes(value)
-  } catch {
-    return undefined
-  }
-}
-
 /** Extracts the value text of a tTipWrap item once its `.tTip` label text is stripped. */
 function valueAfterLabel(wrap: ParsedElement, label: string): string {
   const fullText = wrap.textContent ?? ""
@@ -82,9 +68,9 @@ function parseUpStatCards(doc: ParsedElement): {
     if (!label || !value) continue
 
     if (/uploaded/i.test(label)) {
-      result.uploadedBytes = tryParseBytes(value) ?? result.uploadedBytes
+      result.uploadedBytes = tryParseSiteBytes(value) ?? result.uploadedBytes
     } else if (/downloaded/i.test(label)) {
-      result.downloadedBytes = tryParseBytes(value) ?? result.downloadedBytes
+      result.downloadedBytes = tryParseSiteBytes(value) ?? result.downloadedBytes
     } else if (/balance/i.test(label)) {
       result.seedbonus = tryParseCount(value) ?? result.seedbonus
     }
@@ -142,9 +128,9 @@ export function parseIptProfile(html: string, hostname: string): TrackerStats {
     const value = valueAfterLabel(wrap, label)
 
     if (label === "Uploaded") {
-      uploadedBytes = tryParseBytes(value) ?? uploadedBytes
+      uploadedBytes = tryParseSiteBytes(value) ?? uploadedBytes
     } else if (label === "Downloaded") {
-      downloadedBytes = tryParseBytes(value) ?? downloadedBytes
+      downloadedBytes = tryParseSiteBytes(value) ?? downloadedBytes
     } else if (label === "Active Torrents") {
       const nums = value.match(/\d+/g)
       if (nums && nums.length >= 2) {

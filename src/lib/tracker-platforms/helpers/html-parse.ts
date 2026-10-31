@@ -1,7 +1,6 @@
 // src/lib/tracker-platforms/helpers/html-parse.ts
 //
-// Functions: normalizeWhitespace, datePrefix, tryParseCount, tryParseSiteBytes,
-//            tryParseTbdevBytes
+// Functions: normalizeWhitespace, datePrefix, tryParseCount, tryParseSiteBytes
 
 import { parseBytes } from "@/lib/parser"
 
@@ -43,16 +42,22 @@ export function tryParseCount(value: string | null | undefined): number | undefi
  * parseBytes' unit table is case-sensitive and mixes cases across families
  * ("KB" but "KiB"), so a site printing "kB" or "gib" misses it. Uppercasing the
  * whole unit fixes the decimal family and breaks the binary one, since "GiB"
- * becomes "GIB" and matches nothing. Canonicalising per unit is what handles
- * both, and getting it wrong is invisible: the value silently reads as unknown.
+ * becomes "GIB" and matches nothing.
+ *
+ * Tracker pages divide by 1024 at every step but label the result kB, MB, GB
+ * and TB. Those are IEC units wearing decimal labels: TBDev mksize() and
+ * NexusPHP both do this, and AvistaZ proves it with a paired column ("97.30 GB
+ * (99,637 MB)"). Reading the labels as decimal understates a GB by about 7%
+ * and a TB by about 10%. No site in this app prints decimal units, so page
+ * labels map to the binary family. An explicit IEC label keeps its own unit.
  */
-const CANONICAL_UNITS: Record<string, string> = {
+const SITE_UNITS: Record<string, string> = {
   b: "B",
-  kb: "KB",
-  mb: "MB",
-  gb: "GB",
-  tb: "TB",
-  pb: "PB",
+  kb: "KiB",
+  mb: "MiB",
+  gb: "GiB",
+  tb: "TiB",
+  pb: "PiB",
   kib: "KiB",
   mib: "MiB",
   gib: "GiB",
@@ -63,39 +68,13 @@ const CANONICAL_UNITS: Record<string, string> = {
 /**
  * `parseBytes` for site-printed totals, returning undefined instead of throwing
  * so one odd cell cannot abort a whole profile parse. Grouping commas are
- * stripped and the unit is canonicalised, so both "1,024 kB" and "1 GiB" parse.
+ * stripped and the unit is mapped to its binary spelling, so both "1,024 kB"
+ * and "1 GiB" parse as 1 KiB and 1 GiB.
  */
 export function tryParseSiteBytes(value: string): bigint | undefined {
   const match = value.trim().match(/^([\d,.]+)\s*([A-Za-z]+)$/)
   if (!match) return undefined
-  const unit = CANONICAL_UNITS[match[2].toLowerCase()]
-  if (!unit) return undefined
-  try {
-    return parseBytes(`${match[1].replace(/,/g, "")} ${unit}`)
-  } catch {
-    return undefined
-  }
-}
-
-/**
- * TBDev's mksize() divides by 1024 at every step but labels the result kB, MB,
- * GB and TB. Reading those labels with the decimal table understates a TB by
- * about 10%, so a TBDev-derived site needs this binary reading instead.
- * Source: tbdevnet/tbdev include/bittorrent.php, mksize().
- */
-const TBDEV_UNITS: Record<string, string> = {
-  b: "B",
-  kb: "KiB",
-  mb: "MiB",
-  gb: "GiB",
-  tb: "TiB",
-  pb: "PiB",
-}
-
-export function tryParseTbdevBytes(value: string): bigint | undefined {
-  const match = value.trim().match(/^([\d,.]+)\s*([A-Za-z]+)$/)
-  if (!match) return undefined
-  const unit = TBDEV_UNITS[match[2].toLowerCase()]
+  const unit = SITE_UNITS[match[2].toLowerCase()]
   if (!unit) return undefined
   try {
     return parseBytes(`${match[1].replace(/,/g, "")} ${unit}`)

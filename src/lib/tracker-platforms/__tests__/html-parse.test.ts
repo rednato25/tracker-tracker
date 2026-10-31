@@ -3,6 +3,9 @@
 // tryParseSiteBytes returns undefined rather than throwing, so a unit it fails
 // to recognise reads as "the tracker does not report this" instead of raising.
 // That makes a gap in the unit table silent, which is what these cases pin.
+//
+// Tracker pages divide by 1024 while printing kB/MB/GB/TB, so every page label
+// reads as its IEC unit. The decimal family is not a page unit in this app.
 
 import { describe, expect, it } from "vitest"
 import { parseBytes } from "@/lib/parser"
@@ -14,13 +17,13 @@ import {
 } from "../helpers/html-parse"
 
 describe("tryParseSiteBytes", () => {
-  it("parses the decimal units, whatever case the site prints", () => {
-    expect(tryParseSiteBytes("1 GB")).toBe(parseBytes("1 GB"))
-    expect(tryParseSiteBytes("5 kB")).toBe(parseBytes("5 KB"))
-    expect(tryParseSiteBytes("2 tb")).toBe(parseBytes("2 TB"))
+  it("reads printed decimal-looking labels as binary, whatever case the site uses", () => {
+    expect(tryParseSiteBytes("1 GB")).toBe(parseBytes("1 GiB"))
+    expect(tryParseSiteBytes("5 kB")).toBe(parseBytes("5 KiB"))
+    expect(tryParseSiteBytes("2 tb")).toBe(parseBytes("2 TiB"))
   })
 
-  it("parses the IEC binary units, which a blanket uppercase silently dropped", () => {
+  it("keeps explicit IEC labels as the unit the site printed", () => {
     expect(tryParseSiteBytes("1 KiB")).toBe(parseBytes("1 KiB"))
     expect(tryParseSiteBytes("1 MiB")).toBe(parseBytes("1 MiB"))
     expect(tryParseSiteBytes("1 GiB")).toBe(parseBytes("1 GiB"))
@@ -28,18 +31,24 @@ describe("tryParseSiteBytes", () => {
     expect(tryParseSiteBytes("3 gib")).toBe(parseBytes("3 GiB"))
   })
 
-  it("parses petabyte totals in either system", () => {
+  it("parses petabyte totals in binary", () => {
     expect(tryParseSiteBytes("1.5 PiB")).toBe(BigInt(1_688_849_860_263_936))
-    expect(tryParseSiteBytes("2 pb")).toBe(BigInt(2_000_000_000_000_000))
+    expect(tryParseSiteBytes("2 pb")).toBe(BigInt(2) ** BigInt(51))
   })
 
-  it("keeps binary and decimal units distinct rather than collapsing them", () => {
-    expect(tryParseSiteBytes("1 GiB")).toBe(1073741824n)
-    expect(tryParseSiteBytes("1 GB")).toBe(1000000000n)
+  it("pins the GB size the AvistaZ MB column proves", () => {
+    // AvistaZ prints "97.30 GB (99,637 MB)". 99,637 MB / 1024 = 97.30 GiB.
+    expect(tryParseSiteBytes("97.30 GB")).toBe(104_475_079_475n)
+    expect(tryParseSiteBytes("99,637 MB")).toBe(104_476_966_912n)
+  })
+
+  it("does not read a printed GB as decimal", () => {
+    expect(tryParseSiteBytes("1 GB")).toBe(1073741824n)
+    expect(tryParseSiteBytes("1 GB")).not.toBe(1000000000n)
   })
 
   it("strips grouping commas, which parseBytes rejects outright", () => {
-    expect(tryParseSiteBytes("1,234.5 GB")).toBe(parseBytes("1234.5 GB"))
+    expect(tryParseSiteBytes("1,234.5 GB")).toBe(parseBytes("1234.5 GiB"))
     expect(() => parseBytes("1,234.5 GB")).toThrow()
   })
 
@@ -53,7 +62,7 @@ describe("tryParseSiteBytes", () => {
 
 describe("normalizeWhitespace", () => {
   it("collapses the non-breaking space that labels arrive with", () => {
-    expect(normalizeWhitespace("Join date")).toBe("Join date")
+    expect(normalizeWhitespace("Join\u00a0date")).toBe("Join date")
     expect(normalizeWhitespace("  a \n\t b  ")).toBe("a b")
   })
 })

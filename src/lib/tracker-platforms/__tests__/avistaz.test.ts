@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { sanitizeNetworkError } from "@/lib/error-utils"
+import { parseBytes } from "@/lib/parser"
 import { AvistazAdapter, parseAvistazCredentials, parseAvistazProfile } from "../adapters/avistaz"
 import type { AvistazPlatformMeta } from "../contract"
 
@@ -17,7 +18,7 @@ const RATIO_BAR_HTML = `
         <span class="badge-user group-member">Member</span>
       </li>
       <li data-toggle="tooltip" title="Upload">
-        <i class="fa fa-arrow-up text-success"></i> 32.64 GB</li>
+        <i class="fa fa-arrow-up text-success"></i> 97.30 GB</li>
       <li data-toggle="tooltip" title="Download">
         <i class="fa fa-arrow-down text-orange"></i> 1.00 KB</li>
       <li data-toggle="tooltip" title="Ratio">
@@ -62,9 +63,9 @@ const PROFILE_TABLE_HTML = `
     <tr><td>Rank</td><td><span class="badge-user group-member">Member</span></td></tr>
     <tr><td>Joined</td><td>27 Feb 2026 07:21 pm (1 month ago)</td></tr>
     <tr><td>Downloaded</td><td>1.00 KB <span class="badge-extra small">0 MB</span></td></tr>
-    <tr><td>Uploaded</td><td>32.64 GB <span class="badge-extra small">33,421 MB</span></td></tr>
+    <tr><td>Uploaded</td><td>97.30 GB <span class="badge-extra small">99,637 MB</span></td></tr>
     <tr><td>Ratio</td><td>999999.99</td></tr>
-    <tr><td>Buffer</td><td>32.64 GB <span class="badge-extra small">33,421 MB</span></td></tr>
+    <tr><td>Buffer</td><td>97.30 GB <span class="badge-extra small">99,637 MB</span></td></tr>
   </tbody>
 </table>
 <div class="well well-sm">
@@ -103,10 +104,11 @@ describe("parseAvistazProfile", () => {
     const stats = parseAvistazProfile(FULL_PAGE, "testuser", "avistaz.to")
     expect(stats.username).toBe("testuser")
     expect(stats.group).toBe("Member")
-    expect(stats.uploadedBytes).toBe(BigInt(32_640_000_000)) // 32.64 GB decimal
-    expect(stats.downloadedBytes).toBe(BigInt(1_000)) // 1.00 KB decimal
+    expect(stats.uploadedBytes).toBe(parseBytes("97.30 GiB")) // AvistaZ's 97.30 GB
+    expect(stats.downloadedBytes).toBe(parseBytes("1.00 KiB")) // AvistaZ's 1.00 KB
+    expect(stats.uploadedBytes).toBe(104_475_079_475n)
     // Derived from the byte totals, not the ratio bar's capped "999999.99"
-    expect(stats.ratio).toBe(32_640_000)
+    expect(stats.ratio).toBeCloseTo(Number(parseBytes("97.30 GiB")) / 1024)
     expect(stats.seedingCount).toBe(2)
     expect(stats.leechingCount).toBe(0)
     expect(stats.seedbonus).toBe(285.8)
@@ -155,7 +157,7 @@ describe("parseAvistazProfile", () => {
 
   it("computes bufferBytes as upload minus download", () => {
     const stats = parseAvistazProfile(FULL_PAGE, "testuser", "avistaz.to")
-    expect(stats.bufferBytes).toBe(BigInt(32_640_000_000) - BigInt(1_000))
+    expect(stats.bufferBytes).toBe(parseBytes("97.30 GiB") - parseBytes("1.00 KiB"))
   })
 
   it("detects login redirect and throws", () => {
@@ -297,7 +299,7 @@ describe("parseAvistazProfile", () => {
       </ul></div></div>
     </body></html>`
     const stats = parseAvistazProfile(noDownloadsPage, "freshuser", "avistaz.to")
-    expect(stats.uploadedBytes).toBe(10_000_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("10.00 GiB"))
     expect(stats.downloadedBytes).toBe(0n)
     expect(stats.ratio).toBe(Infinity)
   })
@@ -318,8 +320,8 @@ describe("parseAvistazProfile", () => {
     const stats = parseAvistazProfile(bs5Page, "bs5user", "avistaz.to")
     expect(stats.username).toBe("bs5user")
     expect(stats.group).toBe("Power User")
-    expect(stats.uploadedBytes).toBe(27050000000n)
-    expect(stats.downloadedBytes).toBe(6440000000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("27.05 GiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("6.44 GiB"))
     expect(stats.ratio).toBeCloseTo(4.2)
   })
 
@@ -377,8 +379,8 @@ describe("parseAvistazProfile", () => {
     const stats = parseAvistazProfile(animezPage, "animezuser", "avistaz.to")
     expect(stats.username).toBe("animezuser")
     expect(stats.group).toBe("Member")
-    expect(stats.uploadedBytes).toBe(10000000000n)
-    expect(stats.downloadedBytes).toBe(5000000000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("10.00 GiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("5.00 GiB"))
     expect(stats.ratio).toBeCloseTo(2.0)
     expect(stats.seedingCount).toBe(7)
     expect(stats.leechingCount).toBe(1)

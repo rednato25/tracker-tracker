@@ -3,6 +3,7 @@
 import { parse as parseHtml } from "node-html-parser"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { sanitizeNetworkError } from "@/lib/error-utils"
+import { parseBytes } from "@/lib/parser"
 import {
   extractOwnUserId,
   parseRetrotoonBonus,
@@ -345,13 +346,26 @@ describe("parseRetrotoonProfile", () => {
 
     expect(stats.username).toBe("ToonCollector")
     expect(stats.group).toBe("Toon")
-    expect(stats.uploadedBytes).toBe(2_100_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("2.10 GiB"))
     expect(stats.downloadedBytes).toBe(0n)
-    expect(stats.bufferBytes).toBe(2_100_000_000n)
+    expect(stats.bufferBytes).toBe(parseBytes("2.10 GiB"))
     expect(stats.joinedDate).toBe("2026-08-02")
     expect(stats.lastAccessDate).toBe("2026-08-31")
     expect(stats.seedbonus).toBe(0)
     expect(stats.freeleechTokens).toBe(0)
+  })
+
+  it("reads the reported TB and MB profile totals as binary", () => {
+    const page = PROFILE_PAGE.replace(">2.10 GB<", ">1.452 TB<").replace(
+      ">0.00 kB<",
+      ">40.25 MB<"
+    )
+    const stats = parseRetrotoonProfile(page, HOST)
+    // TBDev mksize(): 1.452 TB is 1.452 TiB, 40.25 MB is 40.25 MiB.
+    expect(stats.uploadedBytes).toBe(1_596_490_883_531n)
+    expect(stats.downloadedBytes).toBe(42_205_184n)
+    expect(stats.uploadedBytes).toBe(parseBytes("1.452 TiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("40.25 MiB"))
   })
 
   it("reports no class when the Class row is missing or empty", () => {
@@ -386,7 +400,7 @@ describe("parseRetrotoonProfile", () => {
 
     // "Uploaded" is 2.10 GB; "Uploaded (0)" is a torrent count. Reading the
     // latter as a byte total would silently zero the account's upload.
-    expect(stats.uploadedBytes).toBe(2_100_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("2.10 GiB"))
     expect(meta.uploadedTorrents).toBe(0)
     expect(meta.snatched).toBe(0)
   })
@@ -406,10 +420,10 @@ describe("parseRetrotoonProfile", () => {
     const meta = stats.platformMeta as RetrotoonPlatformMeta
 
     expect(stats.group).toBe("Toon Hero")
-    expect(stats.uploadedBytes).toBe(12_345_670_000_000n)
-    expect(stats.downloadedBytes).toBe(9_876_540_000_000n)
+    expect(stats.uploadedBytes).toBe(13_256_062_224_302n)
+    expect(stats.downloadedBytes).toBe(10_604_854_074_409n)
     expect(stats.ratio).toBeCloseTo(1.2499, 3)
-    expect(stats.bufferBytes).toBe(2_469_130_000_000n)
+    expect(stats.bufferBytes).toBe(13_256_062_224_302n - 10_604_854_074_409n)
     expect(stats.seedbonus).toBe(1250.5)
     expect(meta.snatched).toBe(1204)
     expect(meta.uploadedTorrents).toBe(37)
@@ -418,10 +432,10 @@ describe("parseRetrotoonProfile", () => {
   })
 
   it("parses the site's lower-case kB unit", () => {
-    // parseBytes' decimal table is case-sensitive (KB), the site prints kB.
+    // The site prints lower-case kB; the parser maps it to KiB.
     expect(parseRetrotoonProfile(PROFILE_PAGE, HOST).downloadedBytes).toBe(0n)
     const page = PROFILE_PAGE.replace(">0.00 kB<", ">512.00 kB<")
-    expect(parseRetrotoonProfile(page, HOST).downloadedBytes).toBe(512_000n)
+    expect(parseRetrotoonProfile(page, HOST).downloadedBytes).toBe(parseBytes("512 KiB"))
   })
 
   it("throws session-expired on a page with no logout link", () => {
@@ -588,7 +602,7 @@ describe("RetrotoonAdapter.fetchStats", () => {
 
     const stats = await adapter.fetchStats("https://retrotoon.world", VALID_TOKEN, "")
 
-    expect(stats.uploadedBytes).toBe(2_100_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("2.10 GiB"))
     expect(stats.seedingCount).toBe(1337)
     // Unknown rather than a fabricated zero.
     expect(stats.hitAndRuns).toBeNull()

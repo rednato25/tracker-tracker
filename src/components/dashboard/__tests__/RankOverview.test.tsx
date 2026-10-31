@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event"
 import type { ComponentProps } from "react"
 import { describe, expect, it, vi } from "vitest"
 import { RankOverview } from "@/components/dashboard/RankOverview"
-import { UNKNOWN_COLLECTED } from "@/lib/rank-overview"
 import type { TrackerLatestStats, TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-30T12:00:00.000Z")
@@ -102,15 +101,60 @@ describe("RankOverview", () => {
     expect(screen.getAllByText(/12 weeks registered/).length).toBeGreaterThan(0)
   })
 
-  it("writes why an unknown condition has no current value", () => {
+  it("names the tracker API and saves an entered manual value", async () => {
+    const user = userEvent.setup()
+    const onSaveManualValue = vi.fn().mockResolvedValue(undefined)
     render(
       overview({
         trackers: [tracker({ latestStats: { ...BASE_STATS, uploadedBytes: null } })],
         savedGoals: { "1": { targetRank: "Power User" } },
+        manualValues: {},
+        onSaveManualValue,
+        onClearManualValue: vi.fn().mockResolvedValue(undefined),
       })
     )
-    expect(screen.getAllByText(UNKNOWN_COLLECTED).length).toBeGreaterThan(0)
-    expect(screen.getAllByText("Unknown").length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText("TorrentLeech's API doesn't report uploaded bytes.").length
+    ).toBeGreaterThan(0)
+    await user.click(screen.getAllByRole("button", { name: "Enter value" })[0])
+    await user.type(
+      screen.getByLabelText("Value for More than 1 TiB uploaded on TorrentLeech"),
+      "2"
+    )
+    await user.selectOptions(
+      screen.getByLabelText("Unit for More than 1 TiB uploaded on TorrentLeech"),
+      "TiB"
+    )
+    await user.click(screen.getByRole("button", { name: "Save value" }))
+    expect(onSaveManualValue).toHaveBeenCalledWith(
+      1,
+      "uploadedBytes",
+      expect.objectContaining({ value: 2 * TIB, unit: "TiB" })
+    )
+  })
+
+  it("shows a manual value, labels the result and clears it", async () => {
+    const user = userEvent.setup()
+    const onClearManualValue = vi.fn().mockResolvedValue(undefined)
+    const enteredAt = "2026-10-28"
+    render(
+      overview({
+        trackers: [tracker({ latestStats: { ...BASE_STATS, uploadedBytes: null } })],
+        savedGoals: { "1": { targetRank: "Power User" } },
+        manualValues: {
+          "1": {
+            uploadedBytes: { value: 2 * TIB, unit: "TiB", enteredAt },
+          },
+        },
+        onSaveManualValue: vi.fn().mockResolvedValue(undefined),
+        onClearManualValue,
+      })
+    )
+    expect(screen.getByText("2.00 TiB")).toBeInTheDocument()
+    expect(screen.getByText("Manual value")).toBeInTheDocument()
+    expect(screen.getByText(/Entered by you · 2 days ago/)).toBeInTheDocument()
+    await user.click(screen.getAllByRole("button", { name: "Clear" })[0])
+    expect(onClearManualValue).toHaveBeenCalledWith(1, "uploadedBytes")
   })
 
   it("shows registry text when no structured conditions are published", () => {

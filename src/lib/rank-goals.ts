@@ -16,6 +16,11 @@ import {
   type TrackerRegistryEntry,
 } from "@/data/tracker-registry"
 import { buildRankForest, buildRankLadder } from "@/lib/rank-ladder"
+import {
+  isManualValueStale,
+  manualMetricLabel,
+  type RankManualValues,
+} from "@/lib/rank-manual-values"
 
 export const RANK_METRICS = [
   "accountRatio",
@@ -100,6 +105,11 @@ export interface RankConditionResult {
   freshness: RuleFreshness | "unknown"
   source: RuleSource | "unknown"
   unitReading?: "conservative"
+  /** True when the current value came from a user-entered manual value. */
+  manual?: boolean
+  manualEnteredAt?: string | null
+  /** A manual value older than 14 days is still used, but marked. */
+  manualStale?: boolean
   /** Meaningful for gte/lte only; null for equality/ordering ambiguity. */
   remaining: number | null
   reason: string
@@ -131,6 +141,8 @@ export interface RankGoalInput {
   rankPaths?: TrackerRankPath[]
   currentRank: string | null
   observations: RankObservationMap
+  /** Used only when a metric has no observed value. */
+  manualValues?: RankManualValues
   now: Date
   joinedAt?: string | null
   structuredGoals?: Record<string, RankRequirementGroup>
@@ -177,24 +189,46 @@ function knownNumber(value: unknown): value is number {
   return typeof value === "number" && !Number.isNaN(value)
 }
 
+function manualObservationFor(
+  metric: RankMetric,
+  input: RankGoalInput
+): RankObservation | null {
+  const manual = input.manualValues?.[metric]
+  if (!manual) return null
+  const stale = isManualValueStale(manual.enteredAt, input.now)
+  return {
+    value: manual.value,
+    freshness: stale ? "stale" : "fresh",
+    source: "manual",
+    observedAt: manual.enteredAt,
+    note: `Entered by you on ${manual.enteredAt}; the API does not report ${manualMetricLabel(metric)}.`,
+  }
+}
+
 function observationFor(
   metric: RankMetric,
   input: RankGoalInput
 ): RankObservation | null {
   const provided = input.observations[metric]
-  if (provided) return provided
-  if (metric !== "accountAgeDays") return null
-  if (!input.joinedAt) return null
-  const joined = new Date(input.joinedAt)
-  if (Number.isNaN(joined.getTime())) return null
-  const age = Math.max(0, Math.floor((input.now.getTime() - joined.getTime()) / 86_400_000))
-  return {
-    value: age,
-    freshness: "fresh",
-    source: "snapshot",
-    observedAt: input.joinedAt,
-    note: "Derived from the stored join date and the injected clock.",
+  // A manual value is a fallback, never an override. An observed number wins,
+  // including a stale one, because the policy is "observed values always win".
+  if (provided && knownNumber(provided.value)) return provided
+
+  if (metric === "accountAgeDays" && input.joinedAt) {
+    const joined = new Date(input.joinedAt)
+    if (!Number.isNaN(joined.getTime())) {
+      const age = Math.max(0, Math.floor((input.now.getTime() - joined.getTime()) / 86_400_000))
+      return {
+        value: age,
+        freshness: "fresh",
+        source: "snapshot",
+        observedAt: input.joinedAt,
+        note: "Derived from the stored join date and the injected clock.",
+      }
+    }
   }
+
+  return manualObservationFor(metric, input) ?? provided ?? null
 }
 
 function compare(value: number, comparison: RankComparison, required: number): boolean {
@@ -304,11 +338,12 @@ function evaluateCondition(
       freshness: observation?.freshness ?? "unknown",
       source: observation?.source ?? "unknown",
       remaining: null,
-      reason: "No observed value; missing data is not zero.",
+      reason: "No observed value is available.",
     }
   }
 
-  if (observation.freshness === "stale") {
+  const manual = observation.source === "manual"
+  if (observation.freshness === "stale" && !manual) {
     return {
       id,
       kind: "numeric",
@@ -333,7 +368,7 @@ function evaluateCondition(
     id,
     kind: "numeric",
     metric: condition.metric,
-      comparison: condition.comparison,
+    comparison: condition.comparison,
     unitReading: condition.unitReading,
     label,
     requiredValue: condition.requiredValue,
@@ -341,10 +376,17 @@ function evaluateCondition(
     status: met ? "met" : "unmet",
     freshness: observation.freshness,
     source: observation.source,
+    manual,
+    manualEnteredAt: manual ? (observation.observedAt ?? null) : undefined,
+    manualStale: manual ? observation.freshness === "stale" : undefined,
     remaining: remainingFor(observation.value, condition.comparison, condition.requiredValue),
-    reason: met
-      ? "Observed value meets the structured requirement."
-      : "Observed value does not meet the structured requirement.",
+    reason: manual
+      ? observation.freshness === "stale"
+        ? "Manual value is older than 14 days and needs checking; no observed value is available."
+        : "Manual value entered by you is used because no observed value is available."
+      : met
+        ? "Observed value meets the structured requirement."
+        : "Observed value does not meet the structured requirement.",
   }
 }
 

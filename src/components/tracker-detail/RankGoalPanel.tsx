@@ -2,12 +2,13 @@
 
 import { H2 } from "@typography"
 import { useEffect, useMemo, useState } from "react"
+import { ManualValueEditor } from "@/components/dashboard/ManualValueEditor"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
-import { formatBytesNum, formatDate, formatRatio } from "@/lib/formatters"
+import { formatBytesNum, formatDate, formatRatio, formatSeedSize, formatSeedTime } from "@/lib/formatters"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
   evaluateRankGoal,
@@ -15,18 +16,25 @@ import {
   type RankConditionResult,
   type RankGoalInput,
   type RankGroupResult,
+  type RankMetric,
   type RankNumericCondition,
   type RankObservationMap,
   type RankRequirementGroup,
   rankDefinitionForSlug,
 } from "@/lib/rank-goals"
 import { buildRankLadder } from "@/lib/rank-ladder"
+import {
+  apiDoesNotReportMessage,
+  type RankManualValue,
+  type RankManualValues,
+} from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
 
 interface RankGoalPanelProps {
   trackerId: number
+  trackerName: string
   registrySlug: string | null
   userClasses: TrackerUserClass[]
   rankPaths?: TrackerRankPath[]
@@ -40,6 +48,9 @@ interface RankGoalPanelProps {
   platformMeta: PlatformMeta | null
   initialSavedGoals?: Record<string, { targetRank: string }>
   onSavedGoalsChange?: (goals: Record<string, { targetRank: string }>) => void
+  manualValues?: RankManualValues
+  onSaveManualValue?: (metric: RankMetric, value: RankManualValue) => Promise<void>
+  onClearManualValue?: (metric: RankMetric) => Promise<void>
 }
 
 
@@ -81,6 +92,8 @@ function formatValue(
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
     return formatBytesNum(value)
   }
+  if (metric === "seedSizeBytes") return formatSeedSize(value)
+  if (metric === "averageSeedTimeSeconds") return formatSeedTime(value)
   if (metric === "accountAgeDays") return `${value} day${value === 1 ? "" : "s"}`
   if (metric === "accountRatio") return formatRatio(value)
   return String(value)
@@ -90,7 +103,21 @@ function statusLabel(status: "met" | "unmet" | "unknown"): string {
   return status === "met" ? "Met" : status === "unmet" ? "Unmet" : "Unknown"
 }
 
-function ConditionRow({ condition }: { condition: RankConditionResult }) {
+function ConditionRow({
+  trackerName,
+  condition,
+  now,
+  manual,
+  onSaveManual,
+  onClearManual,
+}: {
+  trackerName: string
+  condition: RankConditionResult
+  now: Date
+  manual: RankManualValue | null
+  onSaveManual?: (value: RankManualValue) => Promise<void>
+  onClearManual?: () => Promise<void>
+}) {
   const statusClass =
     condition.status === "met"
       ? "text-success"
@@ -121,12 +148,31 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
           formatValue(condition.metric ?? "accountRatio", condition.requiredValue)
         )
       : null
+  const observed =
+    condition.observedValue !== null && condition.source !== "manual" && condition.manual !== true
+  const canEnter =
+    condition.status === "unknown" &&
+    !observed &&
+    !manual &&
+    condition.metric !== undefined &&
+    condition.scope !== "per-torrent" &&
+    condition.verification !== "unresolved"
+  const showManual =
+    Boolean(onSaveManual && onClearManual && condition.metric) && (manual !== null || canEnter)
+
   return (
     <li className="border-t border-border py-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="text-xs text-primary">{condition.label}</span>
-        <span className={`font-mono text-3xs uppercase tracking-[0.1em] ${statusClass}`}>
-          {statusLabel(condition.status)}
+        <span className="flex items-center gap-2">
+          {condition.manual && (
+            <span className="font-mono text-3xs uppercase tracking-[0.1em] text-accent">
+              Manual
+            </span>
+          )}
+          <span className={`font-mono text-3xs uppercase tracking-[0.1em] ${statusClass}`}>
+            {statusLabel(condition.status)}
+          </span>
         </span>
       </div>
       <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono text-4xs text-secondary">
@@ -160,8 +206,29 @@ function ConditionRow({ condition }: { condition: RankConditionResult }) {
       {condition.unitReading === "conservative" && (
         <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>
       )}
-      {condition.status === "unknown" && condition.reason && (
-        <p className="mt-1 font-mono text-4xs text-warn">{condition.reason}</p>
+      {condition.status === "unknown" && (
+        <p className="mt-1 font-mono text-4xs text-warn">
+          {observed
+            ? (condition.reason ?? "The observation needs checking.")
+            : condition.metric
+              ? apiDoesNotReportMessage(trackerName, condition.metric)
+              : (condition.reason ?? "This condition cannot be read from the tracker's API.")}
+        </p>
+      )}
+      {showManual && condition.metric && (
+        <ManualValueEditor
+          trackerName={trackerName}
+          metric={condition.metric}
+          label={condition.label}
+          manual={manual}
+          manualUsed={condition.manual === true}
+          manualStale={condition.manualStale === true}
+          observed={observed}
+          canEnter={canEnter}
+          now={now}
+          onSave={onSaveManual as (value: RankManualValue) => Promise<void>}
+          onClear={onClearManual as () => Promise<void>}
+        />
       )}
       <details className="mt-1">
         <summary className="cursor-pointer font-mono text-4xs text-muted">Evidence</summary>
@@ -184,6 +251,7 @@ function groupConditions(
 
 export function RankGoalPanel({
   trackerId,
+  trackerName,
   registrySlug,
   userClasses,
   rankPaths,
@@ -197,6 +265,9 @@ export function RankGoalPanel({
   platformMeta,
   initialSavedGoals,
   onSavedGoalsChange,
+  manualValues = {},
+  onSaveManualValue,
+  onClearManualValue,
 }: RankGoalPanelProps) {
   const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
@@ -258,11 +329,12 @@ export function RankGoalPanel({
       rankPaths,
       currentRank,
       observations: observationMap,
+      manualValues,
       now: now ?? new Date(0),
       joinedAt,
       structuredGoals: pilot?.goals,
     }),
-    [userClasses, rankPaths, currentRank, observationMap, now, joinedAt, pilot]
+    [userClasses, rankPaths, currentRank, observationMap, manualValues, now, joinedAt, pilot]
   )
   const goal = target ? pilot?.goals[target] : undefined
   const result = goal && now ? evaluateRequirementGroup(goal, goalInput) : null
@@ -467,7 +539,25 @@ export function RankGoalPanel({
           )}
           <ul className="mt-2">
             {conditions.map((condition) => (
-              <ConditionRow key={condition.id} condition={condition} />
+              <ConditionRow
+                key={condition.id}
+                trackerName={trackerName}
+                condition={condition}
+                now={now ?? new Date(0)}
+                manual={
+                  condition.metric ? (manualValues[condition.metric] ?? null) : null
+                }
+                onSaveManual={
+                  onSaveManualValue && condition.metric
+                    ? (value) => onSaveManualValue(condition.metric as RankMetric, value)
+                    : undefined
+                }
+                onClearManual={
+                  onClearManualValue && condition.metric
+                    ? () => onClearManualValue(condition.metric as RankMetric)
+                    : undefined
+                }
+              />
             ))}
           </ul>
           <div className="mt-3 grid gap-2 border-t border-border pt-2 font-mono text-4xs text-secondary sm:grid-cols-2">

@@ -19,6 +19,8 @@ import {
   formatPercent,
   formatRatio,
   formatRatioDisplay,
+  formatSeedSize,
+  formatSeedTime,
 } from "@/lib/formatters"
 import type { Snapshot } from "@/types/api"
 
@@ -383,5 +385,28 @@ describe("formatMemberSinceDate", () => {
 
   it("returns null for a missing date", () => {
     expect(formatMemberSinceDate(null)).toBeNull()
+  })
+})
+
+describe("formatSeedSize", () => {
+  it("uses GiB and TiB, never raw bytes or smaller units", () => {
+    expect(formatSeedSize(0)).toBe("0 GiB")
+    expect(formatSeedSize(512 * 1024 ** 3)).toBe("512 GiB")
+    expect(formatSeedSize(1.5 * 1024 ** 4)).toBe("1.50 TiB")
+    expect(formatSeedSize(10 * 1024 ** 4)).toBe("10.0 TiB")
+    expect(formatSeedSize(1024)).toBe("0.00 GiB")
+  })
+})
+
+describe("formatSeedTime", () => {
+  it("uses days, weeks or months, never raw seconds", () => {
+    expect(formatSeedTime(0)).toBe("0 days")
+    expect(formatSeedTime(3 * 86_400)).toBe("3 days")
+    expect(formatSeedTime(10 * 86_400)).toBe("10 days")
+    expect(formatSeedTime(14 * 86_400)).toBe("2 weeks")
+    expect(formatSeedTime(21 * 86_400)).toBe("3 weeks")
+    expect(formatSeedTime(30 * 86_400)).toBe("1 month")
+    expect(formatSeedTime(45 * 86_400)).toBe("1.5 months")
+    expect(formatSeedTime(180 * 86_400)).toBe("6 months")
   })
 })

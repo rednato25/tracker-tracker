@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db"
 import { appSettings } from "@/lib/db/schema"
+import { parseRankManualValuesFromSettings } from "@/lib/rank-manual-values"
 import { normalizeRecruitmentState } from "@/lib/recruitment-state"
 import {
   fetchSettings,
@@ -35,6 +36,9 @@ export default async function DashboardPage() {
       initialTrackers={trackers}
       snapshotRetentionDays={settings?.snapshotRetentionDays ?? null}
       rankGoals={settings?.rankGoals ?? null}
+      initialRankManualValues={parseRankManualValuesFromSettings(
+        settings?.dashboardSettings ?? null
+      )}
       initialRankChecks={rankChecks}
       hasTagGroups={tagGroups.length > 0}
       now={new Date().toISOString()}

@@ -4,6 +4,7 @@ import {
   evaluatePersonalGoals,
   evaluateRankGoal,
   evaluateRequirementGroup,
+  type RankConditionResult,
   type RankGoalInput,
   type RankObservationMap,
   type RankRequirementGroup,
@@ -336,5 +337,100 @@ describe("evaluateRankGoal", () => {
     expect(results).toHaveLength(1)
     expect(results[0].id).toBe("Keep ratio")
     expect(results[0].result.status).toBe("met")
+  })
+})
+
+describe("manual rank values", () => {
+  const TiB = 1024 ** 4
+  const goal: RankRequirementGroup = {
+    mode: "all",
+    conditions: [
+      {
+        kind: "numeric",
+        metric: "seedSizeBytes",
+        comparison: "gte",
+        requiredValue: 5 * TiB,
+      },
+    ],
+  }
+
+  it("uses a manual value when no observed value exists and labels it manual", () => {
+    const result = evaluateRequirementGroup(goal, {
+      userClasses: classes,
+      currentRank: "User",
+      observations: {},
+      manualValues: {
+        seedSizeBytes: { value: 6 * TiB, unit: "TiB", enteredAt: "2026-10-20" },
+      },
+      now: NOW,
+    })
+    const condition = result.conditions[0] as RankConditionResult
+    expect(condition).toMatchObject({
+      status: "met",
+      manual: true,
+      source: "manual",
+      observedValue: 6 * TiB,
+      manualStale: false,
+    })
+  })
+
+  it("lets an observed value win over a manual value", () => {
+    const result = evaluateRequirementGroup(goal, {
+      userClasses: classes,
+      currentRank: "User",
+      observations: obs({ seedSizeBytes: 1 * TiB }),
+      manualValues: {
+        seedSizeBytes: { value: 6 * TiB, unit: "TiB", enteredAt: "2026-10-20" },
+      },
+      now: NOW,
+    })
+    const condition = result.conditions[0] as RankConditionResult
+    expect(condition.status).toBe("unmet")
+    expect(condition.manual).toBe(false)
+    expect(condition.source).toBe("api")
+    expect(condition.observedValue).toBe(1 * TiB)
+  })
+
+  it("still uses a manual value after 14 days but marks it stale", () => {
+    const result = evaluateRequirementGroup(goal, {
+      userClasses: classes,
+      currentRank: "User",
+      observations: {},
+      manualValues: {
+        seedSizeBytes: { value: 6 * TiB, unit: "TiB", enteredAt: "2026-09-01" },
+      },
+      now: NOW,
+    })
+    const condition = result.conditions[0] as RankConditionResult
+    expect(condition.status).toBe("met")
+    expect(condition.manual).toBe(true)
+    expect(condition.manualStale).toBe(true)
+    expect(condition.freshness).toBe("stale")
+  })
+
+  it("fills a null observed value but not a numeric one", () => {
+    const result = evaluateRequirementGroup(
+      {
+        mode: "all",
+        conditions: [
+          {
+            kind: "numeric",
+            metric: "uploadedBytes",
+            comparison: "gte",
+            requiredValue: 1_000,
+          },
+        ],
+      },
+      {
+        userClasses: classes,
+        currentRank: "User",
+        observations: obs({ uploadedBytes: null }),
+        manualValues: {
+          uploadedBytes: { value: 2_000, unit: "GiB", enteredAt: "2026-10-20" },
+        },
+        now: NOW,
+      }
+    )
+    expect(result.conditions[0]).toMatchObject({ status: "met", manual: true })
   })
 })

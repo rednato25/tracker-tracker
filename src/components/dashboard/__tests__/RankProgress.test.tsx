@@ -1,34 +1,101 @@
 // src/components/dashboard/__tests__/RankProgress.test.tsx
 //
-// The detail page's rank pills show the whole registry list, so classes that
-// are not rungs of the earned ladder have to read differently from the ones
-// that are, and the shared matcher has to keep finding the current class.
-// The timeline arrows follow ladder position rather than list order, and a move
-// into or out of an above class gets neither arrow.
+// P47 progression rows. The detail page shows one row per earned ladder or
+// path, the shared start once, per-class met counts and target selection with
+// Undo. Staff and off-ladder classes stay hidden until asked for.
 
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { describe, expect, it, vi } from "vitest"
 import { RankProgress } from "@/components/dashboard/RankProgress"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
+import type { RankObservationMap } from "@/lib/rank-goals"
+import { checkAnniversaryMilestone } from "@/lib/tracker-events"
 import type { Snapshot } from "@/types/api"
 
 const classes: TrackerUserClass[] = [
   { name: "Leech", requirements: "Ratio below 0.4", outsideLadder: "below" },
-  { name: "User", requirements: "Ratio at or above 0.4" },
-  { name: "Power User", requirements: "1 TiB uploaded" },
+  {
+    name: "User",
+    requirements: "Ratio at or above 0.4",
+    structured: {
+      mode: "all",
+      conditions: [
+        {
+          kind: "numeric",
+          id: "user-ratio",
+          metric: "accountRatio",
+          comparison: "gte",
+          requiredValue: 0.4,
+          label: "Ratio at or above 0.4",
+        },
+      ],
+    },
+  },
+  {
+    name: "Power User",
+    requirements: "1 TiB uploaded",
+    structured: {
+      mode: "all",
+      conditions: [
+        {
+          kind: "numeric",
+          id: "power-upload",
+          metric: "uploadedBytes",
+          comparison: "gte",
+          requiredValue: 1024 ** 4,
+          label: "At least 1 TiB uploaded",
+        },
+      ],
+    },
+  },
   { name: "Uploader", requirements: "Staff", outsideLadder: "above" },
 ]
 
-// Shaped like Upload.cx, which lists its Parked below state after the top rung,
-// so list order alone would read Archivist to Parked as a climb.
+const observations: RankObservationMap = {
+  accountRatio: { value: 1.2, freshness: "fresh", source: "api" },
+  uploadedBytes: { value: 2 * 1024 ** 4, freshness: "fresh", source: "api" },
+}
+
 const uploadcx: TrackerUserClass[] = [
   { name: "Leech", requirements: "Ratio below 0.6", outsideLadder: "below" },
   { name: "User", requirements: "Ratio at or above 0.6" },
-  { name: "Member", requirements: "1 TiB up" },
-  { name: "Archivist", requirements: "10 TiB seeded" },
+  {
+    name: "Seeder",
+    path: "seed",
+    structured: {
+      mode: "all",
+      conditions: [
+        {
+          kind: "numeric",
+          id: "seeder-upload",
+          metric: "uploadedBytes",
+          comparison: "gte",
+          requiredValue: 10 * 1024 ** 4,
+          label: "At least 10 TiB uploaded",
+        },
+        {
+          kind: "numeric",
+          id: "seeder-size",
+          metric: "seedSizeBytes",
+          comparison: "gte",
+          requiredValue: 5 * 1024 ** 4,
+          label: "Seed size at least 5 TiB",
+        },
+      ],
+    },
+  },
+  { name: "Sharer", path: "upload-count" },
+  { name: "Adept", path: "combined" },
   { name: "Parked", requirements: "Staff-assigned", outsideLadder: "below" },
   { name: "Uploader", requirements: "Staff", outsideLadder: "above" },
   { name: "Moderator", requirements: "Staff", outsideLadder: "above" },
+]
+
+const uploadcxPaths: TrackerRankPath[] = [
+  { id: "seed", label: "Seed ladder", description: "Upload, ratio and seed size" },
+  { id: "upload-count", label: "Upload-count ladder", description: "Uploaded torrents" },
+  { id: "combined", label: "Combined ladder", description: "Every seed condition plus uploads" },
 ]
 
 const baseSnapshot: Snapshot = {
@@ -57,73 +124,129 @@ function renderPills(currentRank: string) {
       userClasses={classes}
       currentRank={currentRank}
       snapshots={[]}
-      accentColor="#00d4ff"
+      observations={observations}
     />
   )
 }
 
-describe("RankProgress pills", () => {
-  it("distinguishes classes outside the ladder and says why on hover", () => {
-    renderPills("User")
-    expect(screen.getByText("Leech")).toHaveClass("text-tertiary")
-    expect(screen.getByText("Leech")).toHaveAttribute(
-      "title",
-      "Demotion or administrative state, not a rung of the ladder"
-    )
-    expect(screen.getByText("Uploader")).toHaveClass("text-tertiary")
-    expect(screen.getByText("Uploader")).toHaveAttribute(
-      "title",
-      "Granted by staff, donation or invitation, not a rung of the ladder"
-    )
-    expect(screen.getByText("User")).not.toHaveClass("text-tertiary")
-    expect(screen.getByText("Power User")).not.toHaveAttribute("title")
-  })
-
-  it("wraps the rungs instead of clipping them in a scroller", () => {
+describe("RankProgress rows", () => {
+  it("renders one left-aligned row for a single ladder", () => {
     const { container } = renderPills("User")
-    const ladder = container.querySelector("[data-rank-ladder]")
-    expect(ladder).toHaveClass("flex-wrap")
-    expect(ladder).not.toHaveClass("overflow-x-auto")
+    expect(container.querySelectorAll("[data-rank-ladder-row]")).toHaveLength(1)
+    expect(screen.getByText("Class ladder")).toBeInTheDocument()
+    expect(container.querySelector("[data-rank-progression]")).toBeInTheDocument()
   })
 
-  it("names the ladder and prints n of N", () => {
-    renderPills("Power User")
-    expect(screen.getByRole("img", { name: "Power User, rank 2 of 2" })).toBeInTheDocument()
-    expect(screen.getByText(/2 of 2 ranks/)).toBeInTheDocument()
-  })
-
-  it("still highlights the current class through the case-insensitive matcher", () => {
-    renderPills("power user")
-    expect(screen.getByText("Power User")).toHaveClass("font-semibold")
-    expect(screen.getByText("User")).not.toHaveClass("font-semibold")  })
-
-  it("highlights a current class even when it sits outside the ladder", () => {
-    renderPills("Uploader")
-    expect(screen.getByText("Uploader")).toHaveClass("font-semibold")
-  })
-
-  it("styles no rung as past for a member in a below state", () => {
+  it("shows x/y met and counts unknown conditions separately", () => {
     render(
       <RankProgress
         userClasses={uploadcx}
-        currentRank="Parked"
+        rankPaths={uploadcxPaths}
+        currentRank="User"
         snapshots={[]}
-        accentColor="#00d4ff"
+          observations={{
+          uploadedBytes: { value: 12 * 1024 ** 4, freshness: "fresh", source: "api" },
+        }}
       />
     )
-    for (const rung of ["User", "Member", "Archivist"]) {
-      expect(screen.getByText(rung)).not.toHaveStyle({
-        backgroundColor: "rgba(0, 212, 255, 0.06)",
-      })
-    }
+    expect(screen.getByText("1/2 met")).toBeInTheDocument()
+    expect(screen.getByText(/1 unknown/)).toBeInTheDocument()
   })
 
-  it("styles a class outside the ladder as neither past nor future", () => {
-    renderPills("Power User")
-    const leech = screen.getByText("Leech")
-    expect(leech).not.toHaveStyle({ backgroundColor: "rgba(0, 212, 255, 0.06)" })
-    expect(leech).not.toHaveStyle({ borderStyle: "dashed" })
-    expect(leech).toHaveClass("text-tertiary")
+  it("shows the shared start once instead of repeating it on every path", () => {
+    const { container } = render(
+      <RankProgress
+        userClasses={uploadcx}
+        rankPaths={uploadcxPaths}
+        currentRank="User"
+        snapshots={[]}
+        />
+    )
+    expect(container.querySelector("[data-rank-shared-start]")).toBeInTheDocument()
+    expect(screen.getAllByText("User")).toHaveLength(1)
+    expect(container.querySelectorAll("[data-rank-ladder-row]")).toHaveLength(3)
+  })
+
+  it("highlights the current class and outlines the saved target", () => {
+    const { container } = render(
+      <RankProgress
+        userClasses={classes}
+        currentRank="User"
+        savedTargetRank="Power User"
+        snapshots={[]}
+          observations={observations}
+      />
+    )
+    const current = container.querySelector('[data-rank-class="User"]')
+    const target = container.querySelector('[data-rank-class="Power User"]')
+    expect(current).toHaveAttribute("data-current-class", "true")
+    expect(target).toHaveAttribute("data-target-class", "true")
+    expect(target?.className).toContain("outline")
+  })
+
+  it("saves a clicked class as the target and offers Undo", async () => {
+    const user = userEvent.setup()
+    const onSetTarget = vi.fn().mockResolvedValue(undefined)
+    render(
+      <RankProgress
+        userClasses={classes}
+        currentRank="User"
+        snapshots={[]}
+          observations={observations}
+        onSetTarget={onSetTarget}
+      />
+    )
+    await user.click(screen.getByRole("button", { name: /^Power User:/ }))
+    expect(onSetTarget).toHaveBeenCalledWith("Power User")
+    expect(screen.getByText(/Target set to/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Undo" }))
+    expect(onSetTarget).toHaveBeenLastCalledWith(null)
+  })
+
+  it("hides staff and off-ladder classes behind Show all classes", async () => {
+    const user = userEvent.setup()
+    render(
+      <RankProgress
+        userClasses={uploadcx}
+        rankPaths={uploadcxPaths}
+        currentRank="User"
+        snapshots={[]}
+        />
+    )
+    expect(screen.queryByText("Uploader")).not.toBeInTheDocument()
+    expect(screen.queryByText("Parked")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show all classes" }))
+    expect(screen.getByText("Uploader")).toBeInTheDocument()
+    expect(screen.getByText("Parked")).toBeInTheDocument()
+  })
+
+  it("keeps the anniversary marker out of the progression section", () => {
+    const joined = new Date()
+    joined.setMonth(joined.getMonth() - 1)
+    const joinedAt = `${joined.getFullYear()}-${String(joined.getMonth() + 1).padStart(2, "0")}-${String(joined.getDate()).padStart(2, "0")}`
+    expect(checkAnniversaryMilestone(joinedAt)).not.toBeNull()
+    render(
+      <RankProgress
+        userClasses={classes}
+        currentRank="User"
+        snapshots={[]}
+          joinedAt={joinedAt}
+      />
+    )
+    expect(screen.queryByText("1 month anniversary")).not.toBeInTheDocument()
+  })
+
+  it("does not overflow horizontally at 390px", () => {
+    const { container } = render(
+      <RankProgress
+        userClasses={uploadcx}
+        rankPaths={uploadcxPaths}
+        currentRank="User"
+        snapshots={[]}
+        />
+    )
+    const rows = container.querySelector("[data-rank-progression]")
+    expect(rows?.className).not.toContain("overflow-x-auto")
   })
 })
 
@@ -136,7 +259,6 @@ function renderChange(from: string, to: string) {
         { ...baseSnapshot, group: from },
         { ...baseSnapshot, polledAt: "2026-08-14T12:00:00.000Z", group: to },
       ]}
-      accentColor="#00d4ff"
     />
   )
 }
@@ -165,14 +287,13 @@ function renderPathChange(from: string, to: string) {
         { ...baseSnapshot, group: from },
         { ...baseSnapshot, polledAt: "2026-08-14T12:00:00.000Z", group: to },
       ]}
-      accentColor="#00d4ff"
     />
   )
 }
 
 describe("RankProgress timeline direction", () => {
   it("reads a drop from the top rung into a below state as a demotion", () => {
-    const { container } = renderChange("Archivist", "Parked")
+    const { container } = renderChange("Adept", "Parked")
     expect(container.querySelector('[data-direction="demotion"]')).toBeInTheDocument()
     expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
   })
@@ -185,21 +306,12 @@ describe("RankProgress timeline direction", () => {
 
   it("reads a move between two above classes as neither promotion nor demotion", () => {
     const { container } = renderChange("Uploader", "Moderator")
-    expect(screen.getByText("Moderator")).toBeInTheDocument()
     expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
     expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
   })
 
   it("reads a move from a rung into an above class as neither promotion nor demotion", () => {
-    const { container } = renderChange("Member", "Uploader")
-    expect(screen.getByText("Uploader")).toBeInTheDocument()
-    expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
-    expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
-  })
-
-  it("reads a move from an above class down to a rung as neither promotion nor demotion", () => {
-    const { container } = renderChange("Uploader", "Member")
-    expect(screen.getByText("Member")).toBeInTheDocument()
+    const { container } = renderChange("User", "Uploader")
     expect(container.querySelector('[data-direction="promotion"]')).not.toBeInTheDocument()
     expect(container.querySelector('[data-direction="demotion"]')).not.toBeInTheDocument()
   })

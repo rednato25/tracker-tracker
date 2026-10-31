@@ -4,7 +4,13 @@
 // P10 definitions and P11 saved target; it does not create a second rank model.
 
 import { registryEntryFor } from "@/data/tracker-registry"
-import { formatBytesNum, formatCount, formatDuration, formatRatio } from "@/lib/formatters"
+import {
+  formatBytesNum,
+  formatCount,
+  formatRatio,
+  formatSeedSize,
+  formatSeedTime,
+} from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
 import { 
   evaluateRankGoal,
@@ -19,6 +25,7 @@ import {
   type TrackerRankDefinition,
 } from "@/lib/rank-goals"
 import { hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
+import type { RankManualValues, RankManualValuesByTracker } from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
 import type { TrackerSummary } from "@/types/api"
 
@@ -72,8 +79,8 @@ function formatValue(metric: RankMetric | undefined, value: number | null): stri
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
     return formatBytesNum(value)
   }
-  if (metric === "seedSizeBytes") return formatBytesNum(value)
-  if (metric === "averageSeedTimeSeconds") return formatDuration(value)
+  if (metric === "seedSizeBytes") return formatSeedSize(value)
+  if (metric === "averageSeedTimeSeconds") return formatSeedTime(value)
   if (metric === "accountRatio") return formatRatio(value)
   if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
   return formatCount(value)
@@ -216,7 +223,8 @@ function buildSummary(
   tracker: TrackerSummary,
   pilot: TrackerRankDefinition,
   savedTarget: string | null,
-  now: Date
+  now: Date,
+  manualValues: RankManualValues = {}
 ): RankGoalSummary {
   const entry = registryEntryFor(tracker)
   const rawRank = tracker.latestStats?.group ?? null
@@ -230,6 +238,7 @@ function buildSummary(
     rankPaths: entry?.rankPaths,
     currentRank,
     observations: observation,
+    manualValues,
     now,
     joinedAt: tracker.joinedAt,
     structuredGoals: pilot.goals,
@@ -347,7 +356,8 @@ export function parseSavedRankGoals(
 export function buildRankGoalSummaries(
   trackers: TrackerSummary[],
   savedGoals: Record<string, { targetRank: string }>,
-  now: Date
+  now: Date,
+  manualValuesByTracker: RankManualValuesByTracker = {}
 ): RankGoalSummary[] {
   return trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []
@@ -387,6 +397,14 @@ export function buildRankGoalSummaries(
         },
       ]
     }
-    return [buildSummary(tracker, pilot, savedTarget, now)]
+    return [
+      buildSummary(
+        tracker,
+        pilot,
+        savedTarget,
+        now,
+        manualValuesByTracker[String(tracker.id)] ?? {}
+      ),
+    ]
   })
 }

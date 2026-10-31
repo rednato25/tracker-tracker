@@ -9,6 +9,7 @@ import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 import { hexToRgba } from "@/lib/color-utils"
 import { formatAccountAge, formatJoinedDate } from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
+import { checkAnniversaryMilestone } from "@/lib/tracker-events"
 import type { TrackerLatestStats, TrackerSummary } from "@/types/api"
 
 interface UserProfileCardProps {
@@ -28,6 +29,7 @@ export function UserProfileCard({
 
   const accountAge = formatAccountAge(tracker.joinedAt)
   const joinedDate = formatJoinedDate(tracker.joinedAt)
+  const milestone = checkAnniversaryMilestone(tracker.joinedAt)
 
   return (
     <div className="w-full border border-border bg-raised p-4 sm:w-fit sm:min-w-[24rem]">
@@ -71,6 +73,11 @@ export function UserProfileCard({
               )}
               {accountAge && (
                 <span className="whitespace-nowrap text-xs font-mono text-secondary">{accountAge}</span>
+              )}
+              {milestone && (
+                <Badge variant="accent" data-anniversary-marker>
+                  {milestone.label}
+                </Badge>
               )}
             </div>
           )}

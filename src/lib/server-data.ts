@@ -86,6 +86,7 @@ export const settingsColumns = {
   credentialVaultEnabled: appSettings.credentialVaultEnabled,
   integrationIdentityMode: appSettings.integrationIdentityMode,
   rankGoals: appSettings.rankGoals,
+  dashboardSettings: appSettings.dashboardSettings,
   prowlarrUrl: appSettings.prowlarrUrl,
   prowlarrAllowPrivate: appSettings.prowlarrAllowPrivate,
   hasProwlarrApiKey: sql<boolean>`${appSettings.encryptedProwlarrApiKey} is not null`.as("has_prowlarr_api_key"),

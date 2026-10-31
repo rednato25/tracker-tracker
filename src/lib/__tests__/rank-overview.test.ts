@@ -94,6 +94,68 @@ describe("buildRankOverviews", () => {
     })
   })
 
+  it("formats seed size and seed time in rank units, never raw bytes or seconds", () => {
+    const [overview] = buildRankOverviews(
+      [
+        tracker({
+          registrySlug: "zenith",
+          name: "Zenith",
+          latestStats: { ...BASE_STATS, group: "Explorer" },
+        }),
+      ],
+      { "1": { targetRank: "Bulker" } },
+      NOW
+    )
+    const seedSize = overview.conditions.find((condition) => condition.metric === "seedSizeBytes")
+    const seedTime = overview.conditions.find(
+      (condition) => condition.metric === "averageSeedTimeSeconds"
+    )
+    expect(seedSize?.required).toBe("512 GiB")
+    expect(seedTime?.required).toBe("2 weeks")
+    expect(seedSize?.current).toBe("\u2014")
+    expect(seedTime?.current).toBe("\u2014")
+  })
+
+  it("uses a manual value when the API has no observation and marks it manual", () => {
+    const [overview] = buildRankOverviews(
+      [tracker({ latestStats: { ...BASE_STATS, uploadedBytes: null } })],
+      { "1": { targetRank: "Power User" } },
+      NOW,
+      {
+        "1": {
+          uploadedBytes: { value: 2 * TIB, unit: "TiB", enteredAt: "2026-10-28" },
+        },
+      }
+    )
+    const upload = overview.conditions.find((condition) => condition.metric === "uploadedBytes")
+    expect(upload).toMatchObject({
+      status: "met",
+      current: "2.00 TiB",
+      manualUsed: true,
+      observed: false,
+      canEnterManual: false,
+    })
+    expect(upload?.manual).toMatchObject({ value: 2 * TIB, unit: "TiB", enteredAt: "2026-10-28" })
+  })
+
+  it("keeps an observed value ahead of a manual value", () => {
+    const [overview] = buildRankOverviews(
+      [tracker()],
+      { "1": { targetRank: "Power User" } },
+      NOW,
+      {
+        "1": {
+          uploadedBytes: { value: 99 * TIB, unit: "TiB", enteredAt: "2026-10-28" },
+        },
+      }
+    )
+    const upload = overview.conditions.find((condition) => condition.metric === "uploadedBytes")
+    expect(upload?.current).toBe("2.00 TiB")
+    expect(upload?.manualUsed).toBe(false)
+    expect(upload?.observed).toBe(true)
+    expect(upload?.canEnterManual).toBe(false)
+  })
+
   it("labels a missing supported observation as not collected for this tracker", () => {
     const [overview] = buildRankOverviews(
       [

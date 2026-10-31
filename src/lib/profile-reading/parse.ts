@@ -193,13 +193,20 @@ function isUploadCountLabel(label: string): boolean {
 function valuesFromLabels(pairs: LabelValue[], uploadsFallback: boolean): ProfileReadValues {
   const values: ProfileReadValues = {}
   for (const { label, value } of pairs) {
+    const lowerLabel = label.toLowerCase()
     if (values.seedSizeBytes === undefined && isSeedSizeLabel(label)) {
       values.seedSizeBytes = parseSafeBytes(value)
     }
     if (values.averageSeedTimeSeconds === undefined && isAverageSeedTimeLabel(label)) {
       values.averageSeedTimeSeconds = parseDurationSeconds(value)
     }
-    if (values.uploads === undefined && (isUploadCountLabel(label) || (uploadsFallback && label.toLowerCase() === "uploaded"))) {
+    // "Uploaded" is bytes on a profile page, but some groups layouts use it as
+    // the count. Only the unitless form is a count, so bytes can never slip in.
+    const uploadIsCount =
+      isUploadCountLabel(label) ||
+      (uploadsFallback && lowerLabel === "uploaded") ||
+      (lowerLabel === "uploaded" && parseSafeBytes(value) === undefined)
+    if (values.uploads === undefined && uploadIsCount) {
       addCount(values, "uploads", value)
     }
   }

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { RankGoalPanel } from "@/components/tracker-detail/RankGoalPanel"
 import { torrentleech } from "@/data/trackers/torrentleech"
-import type { Snapshot, TrackerLatestStats } from "@/types/api"
+import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
 
 const GiB = 1024 ** 3
 const HOUR_MS = 60 * 60 * 1000
@@ -74,7 +74,8 @@ const snapshots = [
 function renderPanel(
   registrySlug = "torrentleech",
   polledAt = RECENT_POLL,
-  statsOverride: TrackerLatestStats = stats
+  statsOverride: TrackerLatestStats = stats,
+  platformMeta: PlatformMeta | null = null
 ) {
   return render(
     <RankGoalPanel
@@ -89,7 +90,7 @@ function renderPanel(
       lastPolledAt={polledAt}
       accentColor="#2ecc71"
       platformType="unit3d"
-      platformMeta={null}
+      platformMeta={platformMeta}
     />
   )
 }
@@ -113,6 +114,36 @@ beforeEach(() => {
 })
 
 describe("RankGoalPanel", () => {
+  it("marks a stopped profile read and keeps the stale values visible", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
+    render(
+      <RankGoalPanel
+        trackerId={1}
+        trackerName="Upload.cx"
+        registrySlug="uploadcx"
+        userClasses={torrentleech.userClasses}
+        currentRank="Registered"
+        stats={stats}
+        snapshots={snapshots}
+        joinedAt={JOINED_AT}
+        lastPolledAt={RECENT_POLL}
+        accentColor="#2ecc71"
+        platformType="unit3d"
+        platformMeta={{
+          profileRead: {
+            fetchedAt: new Date(Date.now() - 3 * HOUR_MS).toISOString(),
+            attemptedAt: new Date(Date.now() - HOUR_MS).toISOString(),
+            status: "session_expired",
+            values: { seedSizeBytes: 6 * GiB },
+          },
+        }}
+      />
+    )
+
+    await waitFor(() => expect(screen.getByText("Session expired.")).toBeInTheDocument())
+    expect(screen.getByText(/last values are stale/)).toBeInTheDocument()
+  })
+
   it("shows verified values and evaluates the conservative upload unit", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel()

@@ -77,6 +77,19 @@ describe("UNIT3D profile layouts", () => {
       uploads: 31,
     })
   })
+
+  it("treats a unitless Uploaded value as a count and bytes as not-a-count", () => {
+    expect(
+      parseUnit3dProfilePage(
+        '<div class="key-value__group"><dt>Uploaded</dt><dd>88</dd></div>'
+      ).uploads
+    ).toBe(88)
+    expect(
+      parseUnit3dProfilePage(
+        '<div class="key-value__group"><dt>Uploaded</dt><dd>12.5 TiB</dd></div>'
+      ).uploads
+    ).toBeUndefined()
+  })
 })
 
 describe("Zenith groups layout", () => {

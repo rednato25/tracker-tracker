@@ -49,15 +49,17 @@ function hasTransfer(bytes: string): boolean {
 function TorrentRankList({ label, entries }: { label: string; entries: TorrentRankListEntry[] }) {
   const withTransfer = entries.filter((entry) => hasTransfer(entry.bytes))
   return (
-    <div className="nm-inset-sm rounded-nm-md p-4 overflow-hidden">
+    <div className="nm-inset-sm rounded-nm-md p-4 overflow-hidden" data-mover-list>
       <H2 className="uppercase tracking-wider mb-3">{label}</H2>
       {withTransfer.length === 0 ? (
-        <p className="text-xs text-muted">No activity</p>
+        <p className="text-xs text-muted">No transfer today</p>
       ) : (
         <ul>
           {withTransfer.map((entry, index) => (
             <Tooltip key={entry.hash} content={buildTooltip(entry)}>
               <li
+                data-mover-row
+                data-transfer-client={entry.clientName ?? "unknown"}
                 className={clsx(
                   "grid grid-cols-[1fr_auto] items-center gap-3 py-1.5",
                   index < withTransfer.length - 1 && "border-b border-border"
@@ -73,10 +75,7 @@ function TorrentRankList({ label, entries }: { label: string; entries: TorrentRa
                     <MarqueeText className="text-xs font-mono text-primary">
                       {entry.name}
                     </MarqueeText>
-                    <span
-                      className="truncate text-2xs text-tertiary"
-                      data-transfer-client={entry.clientName ?? "unknown"}
-                    >
+                    <span className="truncate text-2xs text-tertiary">
                       Client: {entry.clientName ?? "Unknown"}
                     </span>
                   </div>
@@ -101,17 +100,21 @@ export function MoversAndShakers({ movers }: MoversAndShakersProps) {
   if (clientCount === 0) return null
 
   if (topUploaders.length === 0 && topDownloaders.length === 0) {
-    const message =
-      unmatchedTorrents > 0
-        ? `${unmatchedTorrents} torrent${unmatchedTorrents === 1 ? "" : "s"} found, but none ` +
-          "belong to a tracked tracker. Check the tracker's URL, or set a qBittorrent tag on it."
-        : "No torrent activity today"
-
-    return <p className="text-xs font-mono text-muted p-4 text-center">{message}</p>
+    return (
+      <div className="flex flex-col gap-1 p-4 text-center" data-movers-empty>
+        <p className="text-xs font-mono text-muted">No transfer today</p>
+        {unmatchedTorrents > 0 && (
+          <p className="text-xs font-mono text-muted">
+            {`${unmatchedTorrents} torrent${unmatchedTorrents === 1 ? "" : "s"} found, but none ` +
+              "belong to a tracked tracker. Check the tracker's URL, or set a qBittorrent tag on it."}
+          </p>
+        )}
+      </div>
+    )
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-movers>
       <TorrentRankList
         label="Top Uploaders"
         entries={topUploaders.map((e) => ({ ...e, bytes: e.uploadedToday }))}

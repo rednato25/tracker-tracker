@@ -901,7 +901,7 @@ describe("deepPollClient cold-start cache parity", () => {
     expect(cached.map((t) => t.hash)).toEqual(["tagged", "host-matched"])
   })
 
-  it("keeps the announce-matched torrent out of tag stats, fleet totals, and checkpoints", async () => {
+  it("checkpoints the announce-matched torrent but keeps it out of tag stats and fleet totals", async () => {
     const { insertPayloads } = setupCacheParityMocks()
 
     await deepPollClient(1, makeEncryptionKey(), ["aither"], KNOWN_HOSTS)
@@ -916,8 +916,10 @@ describe("deepPollClient cold-start cache parity", () => {
       "tagged",
     ])
 
+    // Movers joins the cached list, which includes announce matches, so the
+    // start values have to cover it too.
     const checkpoints = insertPayloads.filter(Array.isArray).flat() as { hash: string }[]
-    expect(checkpoints.map((c) => c.hash)).toEqual(["tagged"])
+    expect(checkpoints.map((c) => c.hash)).toEqual(["tagged", "host-matched"])
   })
 
   it("caches only the tagged torrent when no announce hosts are supplied", async () => {

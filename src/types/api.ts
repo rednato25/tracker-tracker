@@ -157,7 +157,6 @@ export interface TodayAtAGlance {
     downloadDelta: string
     bufferDelta: string
     ratioChange: number | null
-    seedbonusChange: number | null
     uploadDeltaYesterday: string | null
     downloadDeltaYesterday: string | null
     bufferDeltaYesterday: string | null
@@ -169,6 +168,8 @@ export interface TodayAtAGlance {
     uploadDelta: string
     downloadDelta: string
     bufferDelta: string
+    /** Per-tracker bonus change; null when fewer than two readings exist today. */
+    seedbonusChange: number | null
   }>
   activity: {
     addedToday: number

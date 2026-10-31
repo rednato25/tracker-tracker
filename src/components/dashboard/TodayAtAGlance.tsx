@@ -4,6 +4,7 @@
 
 import { H2 } from "@typography"
 import { FleetActivity } from "@/components/dashboard/FleetActivity"
+import { FleetBonusChanges } from "@/components/dashboard/FleetBonusChanges"
 import { FleetHeadline } from "@/components/dashboard/FleetHeadline"
 import { MoversAndShakers } from "@/components/dashboard/MoversAndShakers"
 import { TrackerBreakdownBars } from "@/components/dashboard/TrackerBreakdownBars"
@@ -28,16 +29,23 @@ function UpdatedAt({ iso }: { iso: string | null }) {
 }
 
 export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) {
+  // No client means no torrent-level odometer, so both lists stay hidden
+  // rather than telling the user they had no activity.
   const hasActivity =
-    data.activity.addedToday > 0 ||
-    data.activity.completedToday > 0 ||
-    data.movers.topUploaders.length > 0 ||
-    data.movers.topDownloaders.length > 0
+    data.movers.clientCount > 0 &&
+    (data.activity.addedToday > 0 ||
+      data.activity.completedToday > 0 ||
+      data.movers.topUploaders.length > 0 ||
+      data.movers.topDownloaders.length > 0)
 
   return (
-    <Card className="w-full">
+    <Card className="w-full" data-today-at-a-glance>
       <div className="flex w-full min-w-0 flex-col gap-5">
+        <p className="text-xs text-tertiary" data-fleet-period>
+          Today, since 00:00
+        </p>
         <FleetHeadline fleet={data.fleet} />
+        <FleetBonusChanges trackers={data.trackers} />
 
         <Divider compact />
 
@@ -69,8 +77,12 @@ export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) 
         {hasActivity && (
           <>
             <Divider compact />
-            <div className="flex items-center justify-between">
-              <FleetActivity activity={data.activity} />
+            <div className="flex items-center justify-between gap-3">
+              {data.activity.addedToday > 0 || data.activity.completedToday > 0 ? (
+                <FleetActivity activity={data.activity} />
+              ) : (
+                <span className="text-sm font-mono text-tertiary">Torrent transfer today</span>
+              )}
               <UpdatedAt iso={data.clientLastUpdated} />
             </div>
             <MoversAndShakers movers={data.movers} />

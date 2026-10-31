@@ -406,7 +406,35 @@ describe("computeTodayAtAGlance on the day a tracker starts reporting its bonus"
 
   it("counts only what was gained after the first reading with a bonus", async () => {
     const result = await computeTodayAtAGlance()
-    expect(result.fleet.seedbonusChange).toBe(200)
+    expect(result.trackers[0].seedbonusChange).toBe(200)
+  })
+
+  it("keeps bonus changes per tracker instead of summing one fleet figure", async () => {
+    const now = Date.now()
+    const first = makeTracker(1)
+    const second = makeTracker(2)
+    const firstSnaps = [500, 700].map((bonus, i) =>
+      makeSnapshot(1, new Date(now - (1 - i) * 3600000), "1000000000", "500000000", null, null, bonus)
+    )
+    const secondSnaps = [50, 90].map((bonus, i) =>
+      makeSnapshot(2, new Date(now - (1 - i) * 3600000), "2000000000", "500000000", null, null, bonus)
+    )
+    seedStore([first, second], [...firstSnaps, ...secondSnaps])
+
+    const result = await computeTodayAtAGlance()
+    expect(result.trackers.map((tracker) => tracker.seedbonusChange)).toEqual([200, 40])
+    expect(result.fleet).not.toHaveProperty("seedbonusChange")
+  })
+
+  it("leaves a tracker with fewer than two bonus readings null", async () => {
+    const tracker = makeTracker(1)
+    const snaps = [500].map((bonus) =>
+      makeSnapshot(1, new Date(), "1000000000", "500000000", null, null, bonus)
+    )
+    seedStore([tracker], snaps)
+
+    const result = await computeTodayAtAGlance()
+    expect(result.trackers[0].seedbonusChange).toBeNull()
   })
 })
 
@@ -800,7 +828,7 @@ describe("computeTodayAtAGlance — output shape", () => {
     expect(result.fleet).toHaveProperty("downloadDelta")
     expect(result.fleet).toHaveProperty("bufferDelta")
     expect(result.fleet).toHaveProperty("ratioChange")
-    expect(result.fleet).toHaveProperty("seedbonusChange")
+    expect(result.fleet).not.toHaveProperty("seedbonusChange")
     expect(result.fleet).toHaveProperty("uploadDeltaYesterday")
     expect(result.fleet).toHaveProperty("downloadDeltaYesterday")
     expect(result.fleet).toHaveProperty("bufferDeltaYesterday")
@@ -833,5 +861,6 @@ describe("computeTodayAtAGlance — output shape", () => {
     expect(t).toHaveProperty("uploadDelta")
     expect(t).toHaveProperty("downloadDelta")
     expect(t).toHaveProperty("bufferDelta")
+    expect(t).toHaveProperty("seedbonusChange")
   })
 })

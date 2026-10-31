@@ -1,17 +1,15 @@
 ﻿// src/components/dashboard/FleetHeadline.tsx
 "use client"
 
-import { CHART_THEME } from "@/components/charts/lib/theme"
 import {
   DownloadArrowIcon,
   RatioIcon,
   ShieldIcon,
-  StarIcon,
   UploadArrowIcon,
 } from "@/components/ui/Icons"
 import { StatCard } from "@/components/ui/StatCard"
 import { computePctChange } from "@/lib/data-transforms"
-import { formatBytesFromString, formatCount, splitValueUnit } from "@/lib/formatters"
+import { formatBytesFromString, splitValueUnit } from "@/lib/formatters"
 import type { TodayAtAGlance } from "@/types/api"
 
 interface FleetHeadlineProps {
@@ -36,13 +34,6 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
         : fleet.ratioChange.toFixed(4)
       : "+0.0000"
 
-  const seedbonusDisplay = (() => {
-    if (fleet.seedbonusChange === null) return "+0"
-    const floored = Math.floor(Math.abs(fleet.seedbonusChange))
-    const sign = fleet.seedbonusChange >= 0 ? "+" : "-"
-    return sign + formatCount(floored)
-  })()
-
   const uploadPct = computePctChange(fleet.uploadDelta, fleet.uploadDeltaYesterday)
   const downloadPct = computePctChange(fleet.downloadDelta, fleet.downloadDeltaYesterday)
   const bufferPct = computePctChange(fleet.bufferDelta, fleet.bufferDeltaYesterday)
@@ -55,7 +46,7 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
         : ("down" as const)
 
   return (
-    <div className="grid w-full min-w-0 grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid w-full min-w-0 grid-cols-2 gap-3 md:grid-cols-4">
       <StatCard className="min-w-0"
         label="Upload gained"
         value={uploadParts.num}
@@ -93,14 +84,6 @@ export function FleetHeadline({ fleet }: FleetHeadlineProps) {
             : "var(--color-success)"
         }
         icon={<RatioIcon width="16" height="16" />}
-      />
-
-      <StatCard className="min-w-0"
-        label="Bonus gained"
-        value={seedbonusDisplay}
-        unit="pts"
-        accentColor="var(--color-scale-6)"
-        icon={<StarIcon width="16" height="16" />}
       />
     </div>
   )

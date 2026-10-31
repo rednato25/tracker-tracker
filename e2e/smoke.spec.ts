@@ -29,7 +29,8 @@ test.describe("signing in", () => {
     await page.getByRole("button", { name: "Unlock" }).click()
 
     await page.waitForURL("/")
-    await expect(page.getByRole("navigation", { name: "Trackers" })).toBeVisible()
+    await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Account register" })).toBeVisible()
   })
 })
 
@@ -89,12 +90,13 @@ test.describe.serial("a tracker added from the registry", () => {
     })
     expect(paused.ok()).toBe(true)
 
-    await expect(page.getByRole("navigation", { name: "Trackers" })).toContainText(entry.name)
+    await expect(page.locator("#main-content").getByText(entry.name).first()).toBeVisible()
   })
 
   test("the settings sheet offers no URL field", async ({ page }) => {
     await page.goto(`/trackers/${trackerId}`)
-    await page.getByRole("button", { name: "Tracker settings" }).click()
+    await page.getByText("More actions").first().click()
+    await page.getByRole("button", { name: "Settings" }).click()
 
     const sheet = page.getByRole("dialog", { name: "Tracker Settings" })
     await expect(sheet.getByLabel("Nickname")).toBeVisible()

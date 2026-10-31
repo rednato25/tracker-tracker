@@ -142,7 +142,11 @@ test.describe("P57 proof accounts", () => {
     await expect(requirement).toContainText("1 qualifies now")
     await expect(requirement).toContainText(/next on [A-Z][a-z]{2} \d{1,2}, \d{4}/)
 
-    await expect(panel.locator("[data-proof-account]")).toHaveCount(3)
+    // Other specs may leave an unrelated tracker behind. Assert that each of
+    // this spec's three fixtures is listed, not that the panel contains only them.
+    for (const fixture of fixtures) {
+      await expect(panel.locator(`[data-proof-account="${fixture.id}"]`)).toHaveCount(1)
+    }
     const old = panel.locator(`[data-proof-account="${torrentLeech.id}"]`)
     await expect(old).toHaveAttribute("data-qualifies", "true")
     await expect(old).toContainText("Power User")

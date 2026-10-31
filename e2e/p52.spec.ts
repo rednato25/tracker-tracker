@@ -19,6 +19,7 @@ function dateOnly(daysAgo: number): string {
 }
 
 let trackerId: number | null = null
+let notificationTargetId: number | null = null
 const extraTrackerIds: number[] = []
 
 test.describe.configure({ mode: "serial" })
@@ -140,6 +141,25 @@ test.describe("P52 rank goal and what's next", () => {
         if (extra.target) goals[String(extraTrackerIds[index])] = { targetRank: extra.target }
       }
       await sql`update app_settings set rank_goals = ${JSON.stringify(goals)}`
+
+      const [target] = await sql<{ id: number }[]>`
+        insert into notification_targets (
+          name, type, enabled, encrypted_config, notify_rank_change,
+          notify_ratio_danger, notify_login_due, include_tracker_name,
+          created_at, updated_at
+        ) values (
+          'P52 Alerts', 'discord', true,
+          ${encrypt(
+            JSON.stringify({
+              webhookUrl:
+                "https://discord.com/api/webhooks/123456789012345678/p52-notification-test",
+            }),
+            key
+          )},
+          true, true, true, true, now(), now()
+        ) returning id
+      `
+      notificationTargetId = target.id
     } finally {
       await sql.end()
     }
@@ -151,6 +171,9 @@ test.describe("P52 rank goal and what's next", () => {
     try {
       if (trackerId !== null) await sql`delete from trackers where id = ${trackerId}`
       for (const id of extraTrackerIds) await sql`delete from trackers where id = ${id}`
+      if (notificationTargetId !== null) {
+        await sql`delete from notification_targets where id = ${notificationTargetId}`
+      }
       await sql`update app_settings set rank_goals = null`
     } finally {
       await sql.end()
@@ -309,6 +332,45 @@ test.describe("P52 rank goal and what's next", () => {
         expect(overflow, `what's next overflows at ${width}px`).toBeLessThanOrEqual(1)
         await panel.screenshot({
           path: `docs/screenshots/p52/whats-next-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
+  test("exposes the new notification events on the existing channels", async ({ page }) => {
+    test.setTimeout(120_000)
+    for (const width of [1440, 390] as const) {
+      await page.setViewportSize({ width, height: 1200 })
+      await page.goto("/settings")
+      await page.getByRole("tab", { name: "Notifications" }).click()
+
+      const card = page.getByRole("button", { name: /P52 Alerts/ })
+      await expect(card).toBeVisible({ timeout: 20_000 })
+      if ((await card.getAttribute("aria-expanded")) !== "true") await card.click()
+
+      const toggles = page.locator("[data-notification-toggles]:visible").first()
+      await expect(toggles).toBeVisible({ timeout: 20_000 })
+      await expect(toggles).toContainText("Target reached or rank/class changed")
+      await expect(toggles).toContainText("Ratio near or below tracker minimum")
+      await expect(toggles).toContainText("Login due within 7 days")
+
+      const box = await toggles.boundingBox()
+      if (box) {
+        await page.setViewportSize({ width, height: Math.min(6000, Math.ceil(box.height + 400)) })
+        await page.waitForTimeout(200)
+      }
+
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((next) => {
+          document.documentElement.dataset.theme = next
+        }, theme)
+        await page.waitForTimeout(150)
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+        expect(overflow, `notification settings overflows at ${width}px`).toBeLessThanOrEqual(1)
+        await toggles.screenshot({
+          path: `docs/screenshots/p52/notifications-${width}-${theme}.png`,
         })
       }
     }

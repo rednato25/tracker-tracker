@@ -13,6 +13,9 @@ export const VALID_EVENT_TYPES = [
   "ratio_danger",
   "zero_seeding",
   "rank_change",
+  "target_reached",
+  "ratio_near_danger",
+  "login_due",
   "anniversary",
   "bonus_cap",
   "vip_expiring",
@@ -84,6 +87,14 @@ export interface SnapshotContext {
   trackerIsActive: boolean
   trackerPausedAt: string | null
   trackerJoinedAt: string | null
+  /** Registry slug, used to resolve the saved target's ladder position. */
+  trackerRegistrySlug?: string | null
+  /** Calendar days until the login deadline; 0 means overdue or due today. */
+  loginDueInDays?: number | null
+  /** Current and previous polls against the saved target, when one exists. */
+  targetReached?: boolean | null
+  previousTargetReached?: boolean | null
+  targetRank?: string | null
   // The effective requirement: live requiredRatio when the adapter reports
   // one, registry minimumRatio otherwise (resolveRequiredRatio).
   minimumRatio: number | undefined
@@ -166,6 +177,7 @@ export const NOTIFY_TOGGLE_KEYS = [
   "notifyRatioDanger",
   "notifyZeroSeeding",
   "notifyRankChange",
+  "notifyLoginDue",
   "notifyAnniversary",
   "notifyBonusCap",
   "notifyVipExpiring",

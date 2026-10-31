@@ -13,6 +13,7 @@ import {
   checkRatioBelowMinimum,
   checkRatioBelowMinimumTransition,
   checkRatioDelta,
+  checkRatioNearMinimum,
   checkTrackerError,
   checkUnsatisfiedLimitApproaching,
   checkVipExpiringSoon,
@@ -220,6 +221,25 @@ describe("checkRatioBelowMinimum edge cases", () => {
   })
   it("returns false when minimumRatio is Infinity", () => {
     expect(checkRatioBelowMinimum(0.5, Infinity)).toBe(false)
+  })
+})
+
+describe("checkRatioNearMinimum", () => {
+  it("is true inside the 10% band above the minimum", () => {
+    expect(checkRatioNearMinimum(1.05, 1)).toBe(true)
+    expect(checkRatioNearMinimum(1.1, 1)).toBe(true)
+  })
+
+  it("is false at or below the minimum and outside the band", () => {
+    expect(checkRatioNearMinimum(1, 1)).toBe(false)
+    expect(checkRatioNearMinimum(0.9, 1)).toBe(false)
+    expect(checkRatioNearMinimum(1.11, 1)).toBe(false)
+  })
+
+  it("is false without a usable threshold or ratio", () => {
+    expect(checkRatioNearMinimum(null, 1)).toBe(false)
+    expect(checkRatioNearMinimum(1.05, undefined)).toBe(false)
+    expect(checkRatioNearMinimum(1.05, 0)).toBe(false)
   })
 })
 

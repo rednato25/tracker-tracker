@@ -247,6 +247,7 @@ export const notificationTargetColumns = {
   notifyRatioDanger: notificationTargets.notifyRatioDanger,
   notifyZeroSeeding: notificationTargets.notifyZeroSeeding,
   notifyRankChange: notificationTargets.notifyRankChange,
+  notifyLoginDue: notificationTargets.notifyLoginDue,
   notifyAnniversary: notificationTargets.notifyAnniversary,
   notifyBonusCap: notificationTargets.notifyBonusCap,
   notifyVipExpiring: notificationTargets.notifyVipExpiring,

@@ -399,6 +399,7 @@ export const notificationTargets = pgTable("notification_targets", {
   notifyRatioDanger: boolean("notify_ratio_danger").default(false).notNull(),
   notifyZeroSeeding: boolean("notify_zero_seeding").default(false).notNull(),
   notifyRankChange: boolean("notify_rank_change").default(false).notNull(),
+  notifyLoginDue: boolean("notify_login_due").default(false).notNull(),
   notifyAnniversary: boolean("notify_anniversary").default(false).notNull(),
   notifyBonusCap: boolean("notify_bonus_cap").default(false).notNull(),
   notifyVipExpiring: boolean("notify_vip_expiring").default(false).notNull(),

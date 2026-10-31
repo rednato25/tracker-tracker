@@ -34,6 +34,7 @@ function makeTarget(overrides: Partial<NotificationTargetRow> = {}): Notificatio
     notifyRatioDanger: false,
     notifyZeroSeeding: false,
     notifyRankChange: false,
+    notifyLoginDue: false,
     notifyAnniversary: false,
     notifyBonusCap: false,
     notifyVipExpiring: false,
@@ -322,6 +323,57 @@ describe("detectEvents new event types", () => {
     expect(detectEvents(ctx, target)).not.toContain("rank_change")
   })
 
+  it("fires 'ratio_near_danger' inside the 10% band above the minimum", async () => {
+    const { detectEvents } = await import("@/lib/notifications/dispatch")
+    const ctx = makeContext({ previousRatio: 1.2, currentRatio: 1.05, minimumRatio: 1 })
+    const target = makeTarget({ notifyRatioDanger: true })
+    const events = detectEvents(ctx, target)
+    expect(events).toContain("ratio_near_danger")
+    expect(events).not.toContain("ratio_danger")
+  })
+
+  it("does not fire 'ratio_near_danger' below the minimum", async () => {
+    const { detectEvents } = await import("@/lib/notifications/dispatch")
+    const ctx = makeContext({ previousRatio: 1.2, currentRatio: 0.95, minimumRatio: 1 })
+    const target = makeTarget({ notifyRatioDanger: true })
+    expect(detectEvents(ctx, target)).not.toContain("ratio_near_danger")
+  })
+
+  it("fires 'target_reached' on the transition and prioritises it over rank_change", async () => {
+    const { detectEvents } = await import("@/lib/notifications/dispatch")
+    const ctx = makeContext({
+      previousGroup: "Power User",
+      currentGroup: "Super User",
+      targetReached: true,
+      previousTargetReached: false,
+      targetRank: "Super User",
+    })
+    const target = makeTarget({ notifyRankChange: true })
+    const events = detectEvents(ctx, target)
+    expect(events).toContain("target_reached")
+    expect(events).not.toContain("rank_change")
+  })
+
+  it("does not fire 'target_reached' when the target was already reached", async () => {
+    const { detectEvents } = await import("@/lib/notifications/dispatch")
+    const ctx = makeContext({
+      targetReached: true,
+      previousTargetReached: true,
+      targetRank: "Power User",
+    })
+    const target = makeTarget({ notifyRankChange: true })
+    expect(detectEvents(ctx, target)).not.toContain("target_reached")
+  })
+
+  it("fires 'login_due' inside 7 days only when its toggle is on", async () => {
+    const { detectEvents } = await import("@/lib/notifications/dispatch")
+    const due = makeContext({ loginDueInDays: 6 })
+    expect(detectEvents(due, makeTarget({ notifyLoginDue: true }))).toContain("login_due")
+    expect(detectEvents(due, makeTarget({ notifyLoginDue: false }))).not.toContain("login_due")
+    const later = makeContext({ loginDueInDays: 8 })
+    expect(detectEvents(later, makeTarget({ notifyLoginDue: true }))).not.toContain("login_due")
+  })
+
   it("does not fire 'rank_change' when group is redacted", async () => {
     const { detectEvents } = await import("@/lib/notifications/dispatch")
     // Redacted masks start with ▓, checkRankChange returns null for these
@@ -438,6 +490,47 @@ describe("buildDiscordEmbed new event types", () => {
     expect(embed.description).toContain("MyTracker")
   })
 
+  it("produces correct embed for target_reached event", async () => {
+    const { buildDiscordEmbed } = await import("@/lib/notifications/payload")
+    const embed = buildDiscordEmbed({
+      eventType: "target_reached",
+      trackerName: "MyTracker",
+      includeTrackerName: true,
+      storeUsernames: true,
+      data: { targetRank: "Power User", newGroup: "Power User" },
+    })
+    expect(embed.title).toBe("Target Reached")
+    expect(embed.description).toContain("Power User")
+  })
+
+  it("produces correct embed for ratio_near_danger event", async () => {
+    const { buildDiscordEmbed } = await import("@/lib/notifications/payload")
+    const embed = buildDiscordEmbed({
+      eventType: "ratio_near_danger",
+      trackerName: "MyTracker",
+      includeTrackerName: true,
+      storeUsernames: true,
+      data: { currentRatio: 1.05, minimumRatio: 1 },
+    })
+    expect(embed.title).toBe("Ratio Near Minimum")
+    expect(embed.description).toContain("1.05")
+    expect(embed.description).toContain("1.00")
+    expect(embed.description).toContain("10%")
+  })
+
+  it("produces correct embed for login_due event", async () => {
+    const { buildDiscordEmbed } = await import("@/lib/notifications/payload")
+    const embed = buildDiscordEmbed({
+      eventType: "login_due",
+      trackerName: "MyTracker",
+      includeTrackerName: true,
+      storeUsernames: true,
+      data: { daysUntilLogin: 3 },
+    })
+    expect(embed.title).toBe("Login Due Soon")
+    expect(embed.description).toContain("3 days")
+  })
+
   it("produces correct embed for zero_seeding event", async () => {
     const { buildDiscordEmbed } = await import("@/lib/notifications/payload")
     const embed = buildDiscordEmbed({
@@ -529,6 +622,30 @@ describe("buildEventData", () => {
     const data = buildEventData("buffer_milestone", ctx)
     expect(data.bufferBytes).toBe(10737418240)
     expect(typeof data.bufferBytes).toBe("number")
+  })
+
+  it("target_reached passes the saved target and current group", async () => {
+    const { buildEventData } = await import("@/lib/notifications/dispatch")
+    const ctx = makeContext({ targetRank: "Super User", currentGroup: "Super User" })
+    expect(buildEventData("target_reached", ctx)).toEqual({
+      newGroup: "Super User",
+      targetRank: "Super User",
+    })
+  })
+
+  it("ratio_near_danger passes the current ratio and threshold", async () => {
+    const { buildEventData } = await import("@/lib/notifications/dispatch")
+    const ctx = makeContext({ currentRatio: 1.05, minimumRatio: 1 })
+    expect(buildEventData("ratio_near_danger", ctx)).toEqual({
+      currentRatio: 1.05,
+      minimumRatio: 1,
+    })
+  })
+
+  it("login_due passes the remaining days", async () => {
+    const { buildEventData } = await import("@/lib/notifications/dispatch")
+    const ctx = makeContext({ loginDueInDays: 4 })
+    expect(buildEventData("login_due", ctx)).toEqual({ daysUntilLogin: 4 })
   })
 
   it("buffer_milestone with null currentBufferBytes returns 0", async () => {

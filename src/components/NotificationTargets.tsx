@@ -358,7 +358,7 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
       <div className="border-t border-border" />
 
       {/* Notify when section */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4" data-notification-toggles>
         <H2 className="uppercase tracking-wider flex items-center gap-2">
           Notify when
           <InfoTip
@@ -415,9 +415,10 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
         />
 
         <Toggle
-          label="Ratio below tracker minimum"
+          label="Ratio near or below tracker minimum"
           checked={draft.notifyRatioDanger}
           onChange={(v) => updateDraft({ notifyRatioDanger: v })}
+          description="Alerts below the minimum and when the ratio is within 10% above it"
         />
 
         <Toggle
@@ -427,9 +428,15 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
         />
 
         <Toggle
-          label="Rank/class changed"
+          label="Target reached or rank/class changed"
           checked={draft.notifyRankChange}
           onChange={(v) => updateDraft({ notifyRankChange: v })}
+        />
+
+        <Toggle
+          label="Login due within 7 days"
+          checked={draft.notifyLoginDue}
+          onChange={(v) => updateDraft({ notifyLoginDue: v })}
         />
 
         <Toggle

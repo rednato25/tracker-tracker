@@ -41,6 +41,7 @@ function target(overrides: Partial<NotificationTargetRow> = {}): NotificationTar
     notifyRatioDanger: false,
     notifyZeroSeeding: false,
     notifyRankChange: false,
+    notifyLoginDue: false,
     notifyAnniversary: false,
     notifyBonusCap: false,
     notifyVipExpiring: false,

@@ -33,6 +33,9 @@ const EVENT_COLORS: Record<NotificationEventType, number> = {
   ratio_danger: hexToInt(CHART_THEME.danger),
   zero_seeding: hexToInt(CHART_THEME.warn),
   rank_change: hexToInt(CHART_THEME.accent),
+  target_reached: hexToInt(CHART_THEME.success),
+  ratio_near_danger: hexToInt(CHART_THEME.warn),
+  login_due: hexToInt(CHART_THEME.warn),
   anniversary: hexToInt(CHART_THEME.accent),
   bonus_cap: hexToInt(CHART_THEME.warn),
   vip_expiring: hexToInt(CHART_THEME.warn),
@@ -50,6 +53,9 @@ const EVENT_TITLES: Record<NotificationEventType, string> = {
   ratio_danger: "Ratio Below Minimum",
   zero_seeding: "Zero Active Seeds",
   rank_change: "Rank Change",
+  target_reached: "Target Reached",
+  ratio_near_danger: "Ratio Near Minimum",
+  login_due: "Login Due Soon",
   anniversary: "Membership Anniversary",
   bonus_cap: "Bonus Cap Reached",
   vip_expiring: "VIP Expiring Soon",
@@ -150,6 +156,23 @@ function buildDescription(
         return `${source} rank changed from **${prevGroup}** to **${newGroup}**`
       if (newGroup) return `${source} rank is now **${newGroup}**`
       return `${source} rank has changed`
+    }
+    case "target_reached": {
+      const target = (data.targetRank ?? data.newGroup) as string | undefined
+      return target
+        ? `${source} reached your saved target rank **${target}**`
+        : `${source} reached your saved target rank`
+    }
+    case "ratio_near_danger": {
+      const curr = formatRatio(Number(data.currentRatio ?? 0))
+      const min = formatRatio(Number(data.minimumRatio ?? 0))
+      return `${source} ratio **${curr}** is within 10% above the minimum of **${min}**`
+    }
+    case "login_due": {
+      const days = Number(data.daysUntilLogin ?? 0)
+      return days === 0
+        ? `${source} login is due today`
+        : `${source} login is due in **${days} day${days === 1 ? "" : "s"}**`
     }
     case "anniversary": {
       const label = data.label as string | undefined

@@ -8,7 +8,10 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Button, PulseDot } from "@/components/ui"
+import { DeadlineRing } from "@/components/ui/DeadlineRing"
+import { EyeIcon, UserIcon } from "@/components/ui/Icons"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
+import { Tooltip } from "@/components/ui/Tooltip"
 import { registryEntryFor } from "@/data/tracker-registry"
 import {
   formatAccountAge,
@@ -20,7 +23,7 @@ import {
   formatRatioDisplay,
   localDateStr,
 } from "@/lib/formatters"
-import { readLoginDeadline } from "@/lib/login-deadline"
+import { type LoginDeadline, readLoginDeadline } from "@/lib/login-deadline"
 import { loginSourceFor } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
@@ -250,7 +253,99 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       )}
     </div>
   )
-}function TrackerCard({
+}
+
+function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
+  if (!deadline.hasRule) {
+    return (
+      <span className="text-xs text-tertiary" data-login-no-rule>
+        No login rule
+      </span>
+    )
+  }
+
+  if (deadline.dueAt === null || deadline.lastLoginDays === null) {
+    return (
+      <span className="text-xs text-tertiary" data-login-unknown>
+        No login recorded
+      </span>
+    )
+  }
+
+  const overdueDays = deadline.overdueDays
+  const intervalDays = deadline.intervalDays ?? 0
+  const progress = intervalDays > 0 ? deadline.lastLoginDays / intervalDays : 0
+  const daysLeft = deadline.dueInDays ?? 0
+  const dueDate = formatDate(deadline.dueAt)
+  const daysLabel = daysLeft === 1 ? "day" : "days"
+  const color =
+    overdueDays !== null
+      ? "var(--color-danger)"
+      : deadline.tone === "warn"
+        ? "var(--color-warn)"
+        : "var(--color-success)"
+  const ariaLabel =
+    overdueDays !== null
+      ? `Login overdue by ${overdueDays} ${overdueDays === 1 ? "day" : "days"}, due by ${dueDate}`
+      : `Login due in ${daysLeft} ${daysLabel}, by ${dueDate}`
+
+  return (
+    <div className="flex min-w-0 items-center gap-1.5" data-login-ring data-login-tone={deadline.tone}>
+      <DeadlineRing
+        progress={progress}
+        color={color}
+        ariaLabel={ariaLabel}
+        size={40}
+        strokeWidth={4}
+      >
+        {overdueDays !== null ? (
+          <span
+            className="font-cond text-[12px] font-semibold leading-[12px] tracking-[-0.02em]"
+            style={{ color }}
+          >
+            over
+            <br />
+            due
+          </span>
+        ) : (
+          <>
+            <span
+              className="font-mono text-sm font-semibold leading-none tabular-nums"
+              style={{ color }}
+            >
+              {daysLeft}
+            </span>
+            <span className="mt-0.5 font-cond text-[12px] leading-[12px] text-tertiary">
+              {daysLabel}
+            </span>
+          </>
+        )}
+      </DeadlineRing>
+      <span className="whitespace-nowrap font-mono text-xs text-secondary" data-login-by>
+        by {dueDate}
+      </span>
+    </div>
+  )
+}
+
+function LoginSourceIcon({ source }: { source: "detected" | "manual" }) {
+  const label = source === "detected" ? "Detected from the tracker" : "Marked by you"
+  const Icon = source === "detected" ? EyeIcon : UserIcon
+  return (
+    <Tooltip content={label}>
+      <button
+        type="button"
+        aria-label={label}
+        data-login-source={source}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-nm-sm text-tertiary transition-colors duration-150 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base sm:h-6 sm:w-6"
+      >
+        <Icon width="12" height="12" aria-hidden="true" />
+      </button>
+    </Tooltip>
+  )
+}
+
+function TrackerCard({
   tracker,
   summary,
   now,
@@ -298,14 +393,6 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
     platformType: tracker.platformType,
   })
   const manualLogin = loginSource !== "detected"
-  const loginDeadlineTone =
-    loginDeadline.overdueDays !== null
-      ? "text-danger"
-      : loginDeadline.tone === "warn"
-        ? "text-warn"
-        : loginDeadline.tone === "muted"
-          ? "text-tertiary"
-          : "text-secondary"
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -510,8 +597,20 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       </div>
       </Link>
 
-      <div className="flex flex-col gap-2 border-t border-border px-4 py-2.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 border-t border-border px-4 py-2.5"
+        data-card-footer
+      >
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 xl:flex-1 xl:flex-nowrap">
+          <LoginDeadlineReadout deadline={loginDeadline} />
+          {loginSource === "none" || !loginDeadline.hasRule ? null : (
+            <LoginSourceIcon source={loginSource} />
+          )}
+        </div>
+        <div
+          className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto sm:justify-end"
+          data-card-footer-actions
+        >
           <a
             href={tracker.baseUrl.startsWith("http") ? tracker.baseUrl : `https://${tracker.baseUrl}`}
             target="_blank"
@@ -526,27 +625,8 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             Open site
             <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
           </a>
-          <span className="text-tertiary">{"\u00b7"}</span>
-          <span className="font-mono text-xs text-secondary" data-last-login>
-            {loginDeadline.lastLoginText}
-          </span>
-          <span aria-hidden="true" className="text-tertiary">
-            {"\u00b7"}
-          </span>
-          <span className={clsx("font-mono text-xs", loginDeadlineTone)} data-login-deadline>
-            {loginDeadline.dueText}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs text-tertiary" data-login-source>
-            {loginSource === "none"
-              ? ""
-              : loginSource === "detected"
-                ? "detected"
-                : "marked by you"}
-          </span>
           {manualLogin && (
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <>
               {loginMarking.undo ? (
                 <>
                   <span className="font-mono text-xs text-success" role="status">
@@ -581,7 +661,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
                   Could not record login
                 </span>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>

@@ -385,17 +385,25 @@ function summarizePath(steps: WishlistStepView[]): {
 function totalDaysRemainingFor(steps: WishlistStepView[]): number | null {
   let total = 0
   for (const [index, step] of steps.entries()) {
-    const gate = step.evaluation.timeGate
-    const days =
-      index === 0
-        ? gate.status === "unknown"
-          ? null
-          : (gate.daysRemaining ?? 0)
-        : gate.effectiveDays
+    const days = hopWaitDays(step, index)
     if (days === null) return null
     total += days
   }
   return total
+}
+
+/**
+ * Days this hop adds to a path's total wait. The first hop counts only what is
+ * left on the account you already own; later hops count the full wait in the
+ * scenario. Shared with the P54 pinned-route tree so a node's wait matches the
+ * route list's total.
+ */
+export function hopWaitDays(step: WishlistStepView, index: number): number | null {
+  const gate = step.evaluation.timeGate
+  if (index === 0) {
+    return gate.status === "unknown" ? null : (gate.daysRemaining ?? 0)
+  }
+  return gate.effectiveDays
 }
 
 function compareWishlistPaths(a: WishlistPathView, b: WishlistPathView): number {

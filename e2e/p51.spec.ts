@@ -421,11 +421,11 @@ test.describe("P51 data accuracy", () => {
     for (const target of ["BitPorn", "BrokenStones"]) {
       const row = page.locator(`[data-pinned-route="${target}"]`)
       await expect(row).toBeVisible()
-      await expect(row.locator("[data-pinned-route-summary]")).toContainText(/\d+ hops?/)
       await expect(row.locator("[data-pinned-route-summary]")).toContainText(
-        /Ready now|days? left/
+        /Ready now|Wait unknown|days? left/
       )
     }
+    await expect(page.locator("[data-pinned-tree]").first()).toBeVisible()
 
     // Reload proves both pins came back from the saved state, not React memory.
     await page.reload()

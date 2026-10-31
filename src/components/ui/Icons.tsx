@@ -896,6 +896,24 @@ function PowerIcon(props: IconProps) {
   )
 }
 
+function PinIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M9 4h6l-.8 4.6 3.3 3.3V14H6.5v-2.1l3.3-3.3L9 4Z" />
+      <path d="M12 14v6" />
+    </svg>
+  )
+}
+
 function ChevronLeftIcon(props: IconProps) {
   return (
     <svg
@@ -977,6 +995,7 @@ export {
   LockIcon,
   MoonIcon,
   PauseIcon,
+  PinIcon,
   PlayIcon,
   PlusIcon,
   PowerIcon,

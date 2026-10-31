@@ -508,6 +508,164 @@ describe("TrackerPathwaysClient", () => {
     expect(notYet.container).toHaveTextContent("Not yet: Power User+")
   })
 
+  it("shows waits, pin markers, and unlock counts on tree nodes", () => {
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        route("AlphaRatio", "Mid", { minimumDays: 1 }),
+        route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+        route("Mid", "Aither", { minimumDays: 4 }),
+      ],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet",
+            Aither: "tp:AlphaRatio:Mid>tp:Mid:Aither",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    expect(container.querySelectorAll("[data-pinned-tree]")).toHaveLength(1)
+
+    const mid = container.querySelector('[data-tree-node="Mid"]') as HTMLElement
+    expect(mid.querySelector("[data-node-wait]")).toHaveTextContent("Ready now")
+    expect(mid).toHaveTextContent("unlocks 2 of your targets")
+
+    const broad = container.querySelector(
+      '[data-pinned-route="BroadcasTheNet"]'
+    ) as HTMLElement
+    expect(broad.querySelector("[data-pin-marker]")).not.toBeNull()
+    expect(broad.querySelector("[data-node-wait]")).toHaveTextContent("2 days left")
+    expect(broad).not.toHaveTextContent("unlocks")
+
+    const aither = container.querySelector('[data-pinned-route="Aither"]') as HTMLElement
+    expect(aither.querySelector("[data-pin-marker]")).not.toBeNull()
+    expect(aither.querySelector("[data-node-wait]")).toHaveTextContent("4 days left")
+  })
+
+  it("shows the soonest next step above the trees", () => {
+    const youngAlpha = tracker({
+      id: 2,
+      name: "AlphaRatio",
+      registrySlug: "alpharatio",
+      joinedAt: recentJoin,
+    })
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        route("AlphaRatio", "Mid", { minimumDays: 10 }),
+        route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+        route("Mid", "Aither", { minimumDays: 4 }),
+      ],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={[tracker(), youngAlpha]}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet",
+            Aither: "tp:AlphaRatio:Mid>tp:Mid:Aither",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    expect(container.querySelector("[data-next-step]")).toHaveTextContent(
+      "Next step: Mid from AlphaRatio in 5 days"
+    )
+  })
+
+  it("unpins from the tree with a hover-revealed icon button", async () => {
+    const user = userEvent.setup()
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [route("AlphaRatio", "BroadcasTheNet", { minimumDays: 2 })],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:BroadcasTheNet",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    const row = container.querySelector(
+      '[data-pinned-route="BroadcasTheNet"]'
+    ) as HTMLElement
+    const button = within(row).getByRole("button", {
+      name: "Unpin route to BroadcasTheNet",
+    })
+    // Always visible on phones, revealed on hover or keyboard focus on desktop.
+    expect(button.parentElement?.className).toContain("opacity-100")
+    expect(button.parentElement?.className).toContain("sm:opacity-0")
+    expect(button.parentElement?.className).toContain("sm:group-hover:opacity-100")
+
+    await user.hover(button)
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Unpin route to BroadcasTheNet"
+    )
+
+    await user.click(button)
+    await waitFor(() => {
+      const put = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT").at(-1)
+      expect(JSON.parse(String(put?.[1]?.body)).state.pinnedRoutes).toEqual({})
+    })
+    await waitFor(() => {
+      expect(container.querySelector('[data-pinned-route="BroadcasTheNet"]')).toBeNull()
+    })
+  })
+
+  it("indents branches less on phones and keeps them wrappable", () => {
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        route("AlphaRatio", "Mid", { minimumDays: 1 }),
+        route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+      ],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    const mid = container.querySelector('[data-tree-node="Mid"]') as HTMLElement
+    const branch = mid.querySelector("ul") as HTMLElement
+    expect(branch.className).toContain("ml-1.5")
+    expect(branch.className).toContain("pl-2")
+    expect(branch.className).toContain("sm:ml-3")
+    expect(branch.className).toContain("sm:pl-4")
+    expect(branch.className).toContain("min-w-0")
+  })
+
   it("keeps pins per target when switching targets and lists them at the top", async () => {
     const user = userEvent.setup()
     const pinCatalog: RecruitmentCatalog = {
@@ -563,11 +721,11 @@ describe("TrackerPathwaysClient", () => {
     for (const target of ["Aither", "BroadcasTheNet"]) {
       const row = container.querySelector(`[data-pinned-route="${target}"]`) as HTMLElement
       expect(row).not.toBeNull()
-      expect(row.querySelector("[data-pinned-route-summary]")).toHaveTextContent(/hop/)
       expect(row.querySelector("[data-pinned-route-summary]")).toHaveTextContent(
-        /(Ready now|days? left)/
+        /(Ready now|Wait unknown|days? left)/
       )
     }
+    expect(container.querySelectorAll("[data-pinned-tree]").length).toBeGreaterThanOrEqual(1)
   })
 
   it("lists owned trackers whose account age is missing", () => {

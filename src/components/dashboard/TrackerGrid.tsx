@@ -278,6 +278,7 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
   const daysLeft = deadline.dueInDays ?? 0
   const dueDate = formatDate(deadline.dueAt)
   const daysLabel = daysLeft === 1 ? "day" : "days"
+  const overdueLabel = overdueDays === 1 ? "day" : "days"
   const color =
     overdueDays !== null
       ? "var(--color-danger)"
@@ -300,29 +301,38 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
       >
         {overdueDays !== null ? (
           <span
-            className="font-cond text-[12px] font-semibold leading-[12px] tracking-[-0.02em]"
+            className="font-mono text-[14px] font-semibold leading-none"
             style={{ color }}
+            data-ring-value
           >
-            over
-            <br />
-            due
+            !
           </span>
         ) : (
-          <>
-            <span
-              className="font-mono text-sm font-semibold leading-none tabular-nums"
-              style={{ color }}
-            >
-              {daysLeft}
-            </span>
-            <span className="mt-0.5 font-cond text-[12px] leading-[12px] text-tertiary">
-              {daysLabel}
-            </span>
-          </>
+          <span
+            className="font-mono text-[13px] font-semibold leading-none tabular-nums"
+            style={{ color }}
+            data-ring-value
+          >
+            {daysLeft}
+          </span>
         )}
       </DeadlineRing>
-      <span className="whitespace-nowrap font-mono text-xs text-secondary" data-login-by>
-        by {dueDate}
+      <span className="min-w-0 font-mono text-xs text-secondary" data-login-by>
+        {overdueDays !== null ? (
+          <>
+            overdue by{" "}
+            <span className="whitespace-nowrap">
+              {overdueDays} {overdueLabel}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="whitespace-nowrap">
+              {daysLeft} {daysLabel}
+            </span>{" "}
+            left · <span className="whitespace-nowrap">by&nbsp;{dueDate}</span>
+          </>
+        )}
       </span>
     </div>
   )
@@ -337,7 +347,7 @@ function LoginSourceIcon({ source }: { source: "detected" | "manual" }) {
         type="button"
         aria-label={label}
         data-login-source={source}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-nm-sm text-tertiary transition-colors duration-150 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base sm:h-6 sm:w-6"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-nm-sm text-tertiary transition-colors duration-150 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base sm:h-5 sm:w-5"
       >
         <Icon width="12" height="12" aria-hidden="true" />
       </button>
@@ -598,17 +608,17 @@ function TrackerCard({
       </Link>
 
       <div
-        className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 border-t border-border px-4 py-2.5"
+        className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2 border-t border-border px-4 py-2.5"
         data-card-footer
       >
-        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 xl:flex-1 xl:flex-nowrap">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 xl:flex-1 xl:flex-nowrap">
           <LoginDeadlineReadout deadline={loginDeadline} />
           {loginSource === "none" || !loginDeadline.hasRule ? null : (
             <LoginSourceIcon source={loginSource} />
           )}
         </div>
         <div
-          className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto sm:justify-end"
+          className="flex w-full flex-wrap items-center gap-1 sm:ml-auto sm:w-auto sm:justify-end"
           data-card-footer-actions
         >
           <a

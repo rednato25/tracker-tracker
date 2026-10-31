@@ -146,6 +146,26 @@ test.describe.serial("P50 login ring", () => {
       await expect(page.locator('[data-login-source="detected"]')).toHaveCount(1)
       await expect(page.locator('[data-login-source="manual"]')).toHaveCount(3)
 
+      const normalCard = page.locator(`[data-tracker-card="${ids[0]}"]`)
+      const normalRing = normalCard.locator("[data-login-ring]")
+      await expect(normalRing.locator("[data-ring-value]")).toHaveText("100")
+      await expect(normalRing.locator("[data-ring-value]")).toHaveCSS("font-size", "13px")
+      await expect(normalRing.locator("[data-ring-value]")).toHaveCSS(
+        "font-variant-numeric",
+        "tabular-nums"
+      )
+      await expect(normalCard.locator("[data-login-by]")).toContainText(/100 days left · by/)
+
+      const ringBox = await normalRing.locator('[role="img"]').boundingBox()
+      const valueBox = await normalRing.locator("[data-ring-value]").boundingBox()
+      if (!ringBox || !valueBox) throw new Error("ring or value box missing")
+      expect(valueBox.x - ringBox.x).toBeGreaterThan(4)
+      expect(ringBox.x + ringBox.width - (valueBox.x + valueBox.width)).toBeGreaterThan(4)
+
+      const overdueCard = page.locator(`[data-tracker-card="${ids[2]}"]`)
+      await expect(overdueCard.locator("[data-ring-value]")).toHaveText("!")
+      await expect(overdueCard.locator("[data-login-by]")).toHaveText(/overdue by 10 days/)
+
       const grid = page.locator("#main-content [data-tracker-grid]")
       await grid.scrollIntoViewIfNeeded()
 

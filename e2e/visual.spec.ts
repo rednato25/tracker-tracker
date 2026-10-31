@@ -2306,7 +2306,8 @@ test.describe.serial("P48 login deadline visual evidence", () => {
 
     const overdue = grid.getByLabel(/Login overdue by 5 days/)
     await expect(overdue).toBeVisible()
-    await expect(overdue).toContainText("overdue")
+    await expect(overdue).toContainText("!")
+    await expect(grid.getByText("overdue by 5 days")).toBeVisible()
     await expect(grid.locator('[data-login-ring][data-login-tone="crit"]')).toHaveCount(1)
 
     await expect(grid.getByLabel(/Login due in 5 days/)).toBeVisible()

@@ -442,7 +442,9 @@ describe("TrackerGrid", () => {
       screen.getByLabelText("Login due in 117 days, by Feb 22, 2027")
     ).toBeInTheDocument()
     expect(screen.getByText("117")).toBeInTheDocument()
-    expect(screen.getByText("by Feb 22, 2027")).toBeInTheDocument()
+    expect(document.querySelector("[data-login-by]")).toHaveTextContent(
+      /117 days left · by\s+Feb 22, 2027/
+    )
     expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
 
     rerender(
@@ -603,7 +605,28 @@ describe("TrackerGrid", () => {
     expect(actions).toHaveClass("flex-wrap")
     expect(actions).toHaveClass("w-full")
     expect(actions).toHaveClass("sm:w-auto")
-    expect(container.querySelector("[data-login-by]")).toHaveClass("whitespace-nowrap")
+    expect(container.querySelector("[data-login-by]")).toHaveClass("min-w-0")
+  })
+
+  it("keeps only the day number in the ring and moves the unit beside it", () => {
+    render(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-10-25" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const ring = screen.getByLabelText("Login due in 117 days, by Feb 22, 2027")
+    const value = ring.querySelector("[data-ring-value]")
+    if (!value) throw new Error("ring value not found")
+
+    expect(value).toHaveTextContent(/^117$/)
+    expect(value).toHaveClass("text-[13px]", "tabular-nums", "font-mono")
+    expect(ring).not.toHaveTextContent("days")
+    expect(ring).toHaveStyle({ width: "40px", height: "40px" })
+    expect(document.querySelector("[data-login-by]")).toHaveTextContent(
+      /117 days left · by\s+Feb 22, 2027/
+    )
   })
 
   it("shows the login deadline ring in the state's tone", () => {
@@ -616,7 +639,10 @@ describe("TrackerGrid", () => {
     )
     const overdueRing = screen.getByLabelText("Login overdue by 29 days, due by Sep 29, 2026")
     expect(overdueRing.closest("[data-login-ring]")).toHaveAttribute("data-login-tone", "crit")
-    expect(overdueRing).toHaveTextContent("overdue")
+    expect(overdueRing).toHaveTextContent(/^!$/)
+    const overdueValue = overdueRing.querySelector("[data-ring-value]")
+    expect(overdueValue).toHaveClass("text-[14px]")
+    expect(document.querySelector("[data-login-by]")).toHaveTextContent("overdue by 29 days")
     expect(container.querySelectorAll("circle")[1]?.getAttribute("stroke")).toBe(
       "var(--color-danger)"
     )
@@ -647,6 +673,7 @@ describe("TrackerGrid", () => {
     // 119 days elapsed of a 120-day rule: still inside the warning window.
     const warningRing = screen.getByLabelText(/Login due in 1 day/)
     expect(warningRing.closest("[data-login-ring]")).toHaveAttribute("data-login-tone", "warn")
+    expect(document.querySelector("[data-login-by]")).toHaveTextContent(/1 day left · by\s+Oct 29, 2026/)
     expect(container.querySelectorAll("circle")[1]?.getAttribute("stroke")).toBe(
       "var(--color-warn)"
     )

@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { RankGoalPanel } from "@/components/tracker-detail/RankGoalPanel"
+import { dreadvault } from "@/data/trackers/dreadvault"
 import { torrentleech } from "@/data/trackers/torrentleech"
 import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
 
@@ -75,7 +76,8 @@ function renderPanel(
   registrySlug = "torrentleech",
   polledAt = RECENT_POLL,
   statsOverride: TrackerLatestStats = stats,
-  platformMeta: PlatformMeta | null = null
+  platformMeta: PlatformMeta | null = null,
+  joinedAt = JOINED_AT
 ) {
   return render(
     <RankGoalPanel
@@ -86,7 +88,7 @@ function renderPanel(
       currentRank="Registered"
       stats={statsOverride}
       snapshots={snapshots}
-      joinedAt={JOINED_AT}
+      joinedAt={joinedAt}
       lastPolledAt={polledAt}
       accentColor="#2ecc71"
       platformType="unit3d"
@@ -224,13 +226,13 @@ describe("RankGoalPanel", () => {
   it("keeps a stale ratio unknown without blaming the unresolved upload unit", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel("torrentleech", new Date(Date.now() - 25 * HOUR_MS).toISOString())
-    const ratioLabel = await screen.findByText("Ratio above 1.1")
+    const ratioLabel = (await screen.findAllByText("Ratio above 1.1"))[0]
     const row = ratioLabel.closest("li")
     expect(row).not.toBeNull()
     if (!row) return
     expect(within(row).getByText("Unknown")).toBeInTheDocument()
-    expect(within(row).getAllByText(/stale/i).length).toBeGreaterThan(0)
-    expect(within(row).queryByText(/upload/i)).not.toBeInTheDocument()
+    expect(within(row).queryByText(/stale/i)).not.toBeInTheDocument()
+    expect(document.querySelector("[data-rank-details]")).toHaveTextContent(/freshness=stale/i)
   })
 
   it("formats threshold and source dates instead of printing ISO strings", async () => {
@@ -243,12 +245,105 @@ describe("RankGoalPanel", () => {
   it("writes the strict requirement and draws a shortfall marker at equality", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel("torrentleech", RECENT_POLL, { ...stats, ratio: 1.1 })
-    const ratioLabel = await screen.findByText("Ratio above 1.1")
+    const ratioLabel = (await screen.findAllByText("Ratio above 1.1"))[0]
     const row = ratioLabel.closest("li")
     expect(row).not.toBeNull()
     if (!row) return
     expect(within(row).getByText("Needs above 1.10, now 1.10")).toBeInTheDocument()
     expect(row.querySelector("[data-shortfall-marker]")).not.toBeNull()
     expect(row.querySelector("[data-bar-fill]")?.getAttribute("style")).toContain("width: 0%")
+  })
+
+  it("renders one compact row per condition with one Details toggle", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
+    const { container } = renderPanel()
+    await waitFor(() => expect(container.querySelectorAll("[data-rank-condition]")).toHaveLength(3))
+    expect(screen.getAllByText("Details")).toHaveLength(1)
+    expect(screen.queryByText("Evidence")).not.toBeInTheDocument()
+    expect(container.querySelector("[data-rank-details]")).toHaveTextContent(/source=/)
+    for (const row of container.querySelectorAll("[data-rank-condition]")) {
+      expect(row.querySelector("[data-rank-condition-bar]")).not.toBeNull()
+      expect(row.textContent).toMatch(/ \/ /)
+    }
+  })
+
+  it("shows an unmet account-age wait in neutral text instead of red", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Super User" } })
+    const joined = new Date(Date.now() - 70 * DAY_MS).toISOString()
+    const { container } = renderPanel(
+      "torrentleech",
+      RECENT_POLL,
+      {
+        ...stats,
+        uploadedBytes: String(2 * 1024 * GiB),
+        ratio: 3,
+      },
+      null,
+      joined
+    )
+    const ageLabel = (await screen.findAllByText("At least 12 weeks registered"))[0]
+    const row = ageLabel.closest("li")
+    expect(row).not.toBeNull()
+    if (!row) return
+    const status = within(row).getByText(/in 1[234] days/)
+    expect(status.className).toContain("text-secondary")
+    expect(status.className).not.toContain("text-danger")
+    expect(row.querySelector("[data-bar-fill]")?.className).toContain("bg-secondary")
+    expect(row.querySelector("[data-bar-fill]")?.className).not.toContain("bg-danger")
+    expect(container.querySelector("[data-rank-goal-panel]")).toBeInTheDocument()
+  })
+
+  it("keeps red for an actionable unmet condition", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Super User" } })
+    const joined = new Date(Date.now() - 90 * DAY_MS).toISOString()
+    renderPanel(
+      "torrentleech",
+      RECENT_POLL,
+      { ...stats, uploadedBytes: String(250 * GiB), ratio: 3 },
+      null,
+      joined
+    )
+    const uploadLabel = (await screen.findAllByText("More than 1 TiB uploaded"))[0]
+    const row = uploadLabel.closest("li")
+    expect(row).not.toBeNull()
+    if (!row) return
+    const status = within(row).getByText("Unmet")
+    expect(status.className).toContain("text-danger")
+    expect(row.querySelector("[data-bar-fill]")?.className).toContain("bg-danger")
+  })
+
+  it("puts Enter value inline next to Unknown", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Shadow Walker" } })
+    const user = userEvent.setup()
+    const { container } = render(
+      <RankGoalPanel
+        trackerId={1}
+        trackerName="DreadVault"
+        registrySlug="dreadvault"
+        userClasses={dreadvault.userClasses}
+        currentRank="User"
+        stats={{ ...stats, group: "User" }}
+        snapshots={snapshots}
+        joinedAt={JOINED_AT}
+        lastPolledAt={RECENT_POLL}
+        accentColor="#2ecc71"
+        platformType="unit3d"
+        platformMeta={null}
+        onSaveManualValue={vi.fn().mockResolvedValue(undefined)}
+        onClearManualValue={vi.fn().mockResolvedValue(undefined)}
+      />
+    )
+    const seedSize = (await screen.findAllByText("Seed size ≥ 5 TiB"))[0]
+    const row = seedSize.closest("li")
+    expect(row).not.toBeNull()
+    if (!row) return
+    expect(within(row).getByText("Unknown")).toBeInTheDocument()
+    const enter = within(row).getByText("Enter value")
+    expect(enter.tagName).toBe("BUTTON")
+    await user.click(enter)
+    expect(
+      within(row).getByLabelText("Value for Seed size ≥ 5 TiB on DreadVault")
+    ).toBeInTheDocument()
+    expect(container.querySelector("[data-rank-details]")).not.toBeNull()
   })
 })

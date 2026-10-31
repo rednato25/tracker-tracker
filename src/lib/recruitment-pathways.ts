@@ -15,7 +15,6 @@ import type { RecruitmentState } from "@/lib/recruitment-state"
 import {
   buildWishlistPaths,
   pathHasUncheckedRequirements,
-  pathWaitLabel,
   pathWaitValue,
   type WishlistPathView,
 } from "@/lib/recruitment-wishlist"
@@ -459,12 +458,6 @@ export function buildTrackerProfile(input: {
     otherPaths: result.paths.slice(1),
     noRoute,
   }
-}
-
-export function reachableSourceLabel(source: ReachableSourceView): string {
-  if (source.owned) return "You are on this tracker."
-  if (source.path) return pathWaitLabel(source.path)
-  return "Not reachable from your trackers."
 }
 
 export type PathwayRouteSort = "fastest" | "fewest-hops"

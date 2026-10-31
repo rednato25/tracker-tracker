@@ -107,10 +107,6 @@ export function pathwaysTrackerIdForRegistrySlug(slug: string | null | undefined
   return slug ? (pathwaysByRegistry.get(slug) ?? null) : null
 }
 
-export function registrySlugForPathwaysTracker(id: string): string | null {
-  return registrySlugFor(id)
-}
-
 export function normalizePathwaysTarget(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null
   if (allNames.has(value)) return value

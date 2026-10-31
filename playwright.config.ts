@@ -22,6 +22,10 @@ const baseURL = `http://localhost:${PORT}`
 
 export default defineConfig({
   testDir: "e2e",
+  // e2e/p02b contains node:test migration-runner suites run with `node --test`,
+  // not Playwright specs. Collecting them here executes their side effects and
+  // fails on the missing P02B_DATABASE_URL.
+  testIgnore: ["**/p02b/**"],
   // One database, one worker: the serial tracker flow shares a row.
   fullyParallel: false,
   workers: 1,
@@ -31,6 +35,9 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "retain-on-failure",
+    // CI runs in UTC. Pin the browser clock zone so date-boundary assertions do
+    // not pass or fail based on the developer machine's timezone.
+    timezoneId: "UTC",
   },
   projects: [
     { name: "setup", testMatch: /global\.setup\.ts/ },
@@ -45,6 +52,8 @@ export default defineConfig({
     url: `${baseURL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { PORT, POSTGRES_DB: E2E_DATABASE },
+    // .env.local sets TZ for interactive development. Pin the server to UTC so
+    // login-deadline day counts match CI and the browser clock above.
+    env: { PORT, POSTGRES_DB: E2E_DATABASE, TZ: "UTC" },
   },
 })

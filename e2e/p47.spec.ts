@@ -138,8 +138,8 @@ test.describe.serial("P47 rank progression and manual values", () => {
       await page.setViewportSize({ width: 1440, height: 1400 })
       await page.goto(`/trackers/${fixture.id}`)
       await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 15_000 })
-      await expect(page.locator("[data-rank-progression]")).toBeVisible()
-      await expect(page.locator("[data-rank-goal-panel]")).toBeVisible()
+      await expect(page.locator("[data-rank-progression]").first()).toBeVisible()
+      await expect(page.locator("[data-rank-goal-panel]").first()).toBeVisible()
 
       await page.evaluate(() => {
         document.documentElement.dataset.theme = "light"

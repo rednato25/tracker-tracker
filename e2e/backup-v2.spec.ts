@@ -232,6 +232,16 @@ test.describe.serial("backup format v2 over authenticated HTTP", () => {
   test.afterAll(async ({ request }) => {
     await request.patch("/api/settings", { data: { backupStoragePath: null } })
     if (seed?.dir) await rm(seed.dir, { recursive: true, force: true })
+    // The injected-failure case leaves the seeded tracker renamed. Remove every
+    // synthetic row this file creates so later specs see an empty tracker set.
+    const sql = e2eSql()
+    try {
+      await sql`delete from notification_targets where name = 'E2E discord'`
+      await sql`delete from trackers where name in ('E2E Backup Tracker', 'before-injected-failure')`
+      await sql`delete from download_clients where name = 'E2E qbt'`
+    } finally {
+      await sql.end()
+    }
   })
 
   test("export writes v2 with durable history, restore round-trips it, and the ledger is untouched", async ({

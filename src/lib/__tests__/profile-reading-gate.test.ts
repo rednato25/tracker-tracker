@@ -4,6 +4,7 @@
 // tracker stays stopped until the opt-in is saved again.
 
 import { describe, expect, it } from "vitest"
+import { formatProfileReadAge } from "@/lib/profile-reading/labels"
 import { withPreservedProfileRead, withProfileReadRecord } from "@/lib/profile-reading/meta"
 import { profilePageUrl } from "@/lib/profile-reading/urls"
 import {
@@ -102,8 +103,21 @@ describe("profile platformMeta merge", () => {
   })
 })
 
-describe("profile page URLs", () => {
-  it("uses the groups page for Zenith and the user page for UNIT3D", () => {
+describe("profile read label", () => {
+  it("prints the source and whole hours", () => {
+    expect(formatProfileReadAge("2026-10-31T09:00:00.000Z", NOW)).toBe(
+      "from profile page · 3 hours ago"
+    )
+    expect(formatProfileReadAge("2026-10-31T10:30:00.000Z", NOW)).toBe(
+      "from profile page · 1 hour ago"
+    )
+    expect(formatProfileReadAge("2026-10-31T11:30:00.000Z", NOW)).toBe(
+      "from profile page · less than an hour ago"
+    )
+  })
+})
+
+describe("profile page URLs", () => {  it("uses the groups page for Zenith and the user page for UNIT3D", () => {
     expect(profilePageUrl("zenith", "https://znth.cx/", "name")).toBe("https://znth.cx/groups")
     expect(profilePageUrl("uploadcx", "https://upload.cx", "some user")).toBe(
       "https://upload.cx/users/some%20user"

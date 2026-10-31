@@ -12,6 +12,7 @@ import { ManualValueEditor } from "@/components/dashboard/ManualValueEditor"
 import { Badge, Button } from "@/components/ui"
 import { type ClipboardOutcome, copyTextToClipboard } from "@/lib/clipboard"
 import { formatDate, localDateStr } from "@/lib/formatters"
+import { formatProfileReadAge } from "@/lib/profile-reading/labels"
 import type { RankGoalStatus, RankMetric } from "@/lib/rank-goals"
 import { OUTSIDE_LADDER_NOTE } from "@/lib/rank-ladder"
 import {
@@ -119,6 +120,11 @@ function ConditionRow({
         {condition.manualUsed && (
           <span className="ml-1 font-cond text-2xs uppercase tracking-[0.1em] text-accent">
             manual
+          </span>
+        )}
+        {condition.source === "profile" && condition.observedAt && (
+          <span className="mt-0.5 block font-mono text-4xs text-tertiary">
+            {formatProfileReadAge(condition.observedAt, now)}
           </span>
         )}
       </Field>

@@ -104,6 +104,8 @@ export interface RankConditionResult {
   status: RankGoalStatus
   freshness: RuleFreshness | "unknown"
   source: RuleSource | "unknown"
+  /** When the observed value itself was read; null when not applicable. */
+  observedAt?: string | null
   unitReading?: "conservative"
   /** True when the current value came from a user-entered manual value. */
   manual?: boolean
@@ -294,6 +296,7 @@ function evaluateCondition(
       status: "unknown",
       freshness: observationFor(condition.metric, input)?.freshness ?? "unknown",
       source: observationFor(condition.metric, input)?.source ?? "unknown",
+      observedAt: observationFor(condition.metric, input)?.observedAt ?? null,
       remaining: null,
       reason:
         condition.note ??
@@ -337,6 +340,7 @@ function evaluateCondition(
       status: "unknown",
       freshness: observation?.freshness ?? "unknown",
       source: observation?.source ?? "unknown",
+      observedAt: observation?.observedAt ?? null,
       remaining: null,
       reason: "No observed value is available.",
     }
@@ -358,6 +362,7 @@ function evaluateCondition(
       status: "unknown",
       freshness: "stale",
       source: observation.source,
+      observedAt: observation.observedAt ?? null,
       remaining: remainingFor(observation.value, condition.comparison, condition.requiredValue),
       reason: "Observation is stale; re-check before treating this condition as met.",
     }
@@ -376,6 +381,7 @@ function evaluateCondition(
     status: met ? "met" : "unmet",
     freshness: observation.freshness,
     source: observation.source,
+    observedAt: observation.observedAt ?? null,
     manual,
     manualEnteredAt: manual ? (observation.observedAt ?? null) : undefined,
     manualStale: manual ? observation.freshness === "stale" : undefined,

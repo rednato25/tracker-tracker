@@ -9,6 +9,7 @@ import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatDate, formatRatio, formatSeedSize, formatSeedTime } from "@/lib/formatters"
+import { formatProfileReadAge } from "@/lib/profile-reading/labels"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
   evaluateRankGoal,
@@ -186,6 +187,11 @@ function ConditionRow({
           <span>
             remaining{" "}
             {formatValue(condition.metric ?? "accountRatio", condition.remaining)}
+          </span>
+        )}
+        {condition.source === "profile" && condition.observedAt && (
+          <span className="text-tertiary">
+            {formatProfileReadAge(condition.observedAt, now)}
           </span>
         )}
       </div>

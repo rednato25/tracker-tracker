@@ -138,8 +138,50 @@ describe("buildRankOverviews", () => {
     expect(upload?.manual).toMatchObject({ value: 2 * TIB, unit: "TiB", enteredAt: "2026-10-28" })
   })
 
-  it("keeps an observed value ahead of a manual value", () => {
+  it("uses a profile page observation ahead of a manual value and exposes its source", () => {
     const [overview] = buildRankOverviews(
+      [
+        tracker({
+          name: "Upload.cx",
+          registrySlug: "uploadcx",
+          platformMeta: {
+            profileRead: {
+              fetchedAt: "2026-10-30T06:00:00.000Z",
+              attemptedAt: "2026-10-30T06:00:00.000Z",
+              status: null,
+              values: {
+                seedSizeBytes: 6 * TIB,
+                averageSeedTimeSeconds: 45 * 86_400,
+                uploads: 60,
+              },
+            },
+          },
+          latestStats: { ...BASE_STATS, group: "User" },
+        }),
+      ],
+      { "1": { targetRank: "Seeder" } },
+      NOW,
+      {
+        "1": {
+          seedSizeBytes: { value: 2 * TIB, unit: "TiB", enteredAt: "2026-10-28" },
+        },
+      }
+    )
+
+    const seedSize = overview.conditions.find(
+      (condition) => condition.metric === "seedSizeBytes"
+    )
+    expect(seedSize).toMatchObject({
+      current: "6.00 TiB",
+      observed: true,
+      manualUsed: false,
+      source: "profile",
+      observedAt: "2026-10-30T06:00:00.000Z",
+    })
+    expect(seedSize?.status).toBe("met")
+  })
+
+  it("keeps an observed value ahead of a manual value", () => {    const [overview] = buildRankOverviews(
       [tracker()],
       { "1": { targetRank: "Power User" } },
       NOW,

@@ -50,6 +50,18 @@ const DURATION_UNITS: Record<string, number> = {
   y: 365 * 86_400,
   year: 365 * 86_400,
   years: 365 * 86_400,
+  semana: 7 * 86_400,
+  semanas: 7 * 86_400,
+  dia: 86_400,
+  dias: 86_400,
+  hora: 3600,
+  horas: 3600,
+  minuto: 60,
+  minutos: 60,
+  mes: 30 * 86_400,
+  meses: 30 * 86_400,
+  ano: 365 * 86_400,
+  anos: 365 * 86_400,
 }
 
 /** "3 weeks, 2 days" and "1 month" become seconds. Unknown text is undefined. */
@@ -82,7 +94,7 @@ function parseSafeBytes(raw: string): number | undefined {
 }
 
 function addCount(target: ProfileReadValues, key: "uploads" | "level" | "xp", raw: string): void {
-  const value = tryParseCount(raw)
+  const value = tryParseCount(raw.replace(/\s/g, ""))
   if (value === undefined || !Number.isInteger(value) || value < 0) return
   target[key] = value
 }
@@ -138,27 +150,43 @@ function collectLabelValues(doc: HtmlDocument): LabelValue[] {
   })
 }
 
+function foldLabel(label: string): string {
+  return label
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+}
+
 function isSeedSizeLabel(label: string): boolean {
-  const lower = label.toLowerCase()
-  return (lower.includes("seed size") || lower.includes("seedsize")) && !lower.includes("average")
+  const lower = foldLabel(label)
+  return (
+    (lower.includes("seed size") ||
+      lower.includes("seedsize") ||
+      lower.includes("tamanho das sementes") ||
+      lower.includes("tamanho do seed")) &&
+    !lower.includes("average")
+  )
 }
 
 function isAverageSeedTimeLabel(label: string): boolean {
-  const lower = label.toLowerCase().replace(/[.]/g, "")
+  const lower = foldLabel(label).replace(/[.]/g, "")
   return (
-    (lower.includes("seed time") || lower.includes("seedtime")) &&
-    (lower.includes("average") || lower.includes("avg") || lower.includes("weighted"))
+    ((lower.includes("seed time") || lower.includes("seedtime")) &&
+      (lower.includes("average") || lower.includes("avg") || lower.includes("weighted"))) ||
+    (lower.includes("tempo") && lower.includes("seed") && lower.includes("medio"))
   )
 }
 
 function isUploadCountLabel(label: string): boolean {
-  const lower = label.toLowerCase()
+  const lower = foldLabel(label)
   if (lower.includes("uploaded") && !lower.includes("torrent")) return false
   return (
     lower === "uploads" ||
     lower === "upload count" ||
     lower.includes("uploaded torrents") ||
-    lower.includes("upload count")
+    lower.includes("upload count") ||
+    lower.includes("envios") ||
+    lower.includes("torrentes enviados")
   )
 }
 
@@ -254,11 +282,11 @@ export function parseV3xProfilePage(html: string): ProfileReadValues {
   // definition list. Only these two known labels are read this way.
   const text = normalizeWhitespace(doc.textContent)
   if (values.level === undefined) {
-    const match = text.match(/\b(?:level|niveau)\b[^\d]{0,8}(\d+)/i)
+    const match = text.match(/(?:level|niveau|lvl)\s*:?\s*(\d+)/i)
     if (match) addCount(values, "level", match[1])
   }
   if (values.xp === undefined) {
-    const match = text.match(/\bXP\b[^\d]{0,8}([\d\s,.]+)/i)
+    const match = text.match(/\bXP\s*:?\s*(\d[\d\s.,]*)/i)
     if (match) addCount(values, "xp", match[1])
   }
 

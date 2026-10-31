@@ -12,15 +12,13 @@ import { appSettings, trackerSnapshots, trackers } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
 import { log } from "@/lib/logger"
 import { withProfileReadRecord } from "@/lib/profile-reading/meta"
-import { parseProfilePage } from "@/lib/profile-reading/parse"
-import { looksLikeLoginPage, profilePageUrl } from "@/lib/profile-reading/urls"
+import { profileReadFailed, profileReadStopped, readProfilePageOnce } from "@/lib/profile-reading/read"
+import { profilePageUrl } from "@/lib/profile-reading/urls"
 import { supportsProfileReading } from "@/lib/profile-reading/support"
 import {
   isProfileReadDue,
   readProfileReadRecord,
   type ProfileReadRecord,
-  type ProfileReadStatus,
-  type ProfileReadValues,
 } from "@/lib/profile-reading/types"
 import { buildProxyAgentFromSettings } from "@/lib/tunnel"
 import { decrypt } from "@/lib/crypto"
@@ -28,92 +26,6 @@ import { SessionExpiredError } from "@/lib/tracker-platforms/helpers/errors"
 import { fetchTrackerHtml } from "@/lib/tracker-platforms/helpers/html-fetch"
 
 const LOGIN_PATTERN = /\/(login|signin|sign-in|auth\/login|connexion)(?:[/?#]|$)/i
-
-export { looksLikeLoginPage, profilePageUrl } from "@/lib/profile-reading/urls"
-
-export interface ProfileReadOutcome {
-  record: ProfileReadRecord
-  /** True when the fetch itself succeeded, even if no value was parsed. */
-  fetched: boolean
-}
-
-function stopped(
-  previous: ProfileReadRecord | null,
-  attemptedAt: string,
-  status: ProfileReadStatus,
-  message: string
-): ProfileReadOutcome {
-  return {
-    fetched: false,
-    record: {
-      fetchedAt: previous?.fetchedAt ?? null,
-      attemptedAt,
-      status,
-      values: previous?.values ?? {},
-      message,
-    },
-  }
-}
-
-function failed(
-  previous: ProfileReadRecord | null,
-  attemptedAt: string,
-  message: string
-): ProfileReadOutcome {
-  return {
-    fetched: false,
-    record: {
-      fetchedAt: previous?.fetchedAt ?? null,
-      attemptedAt,
-      status: null,
-      values: previous?.values ?? {},
-      message,
-    },
-  }
-}
-
-function succeeded(
-  attemptedAt: string,
-  values: ProfileReadValues
-): ProfileReadOutcome {
-  return {
-    fetched: true,
-    record: {
-      fetchedAt: attemptedAt,
-      attemptedAt,
-      status: null,
-      values,
-    },
-  }
-}
-
-/** Reads one tracker once. Exported for the unit tests' injected HTML. */
-export function readProfilePageOnce(input: {
-  registrySlug: string
-  html: string
-  previous: ProfileReadRecord | null
-  now: Date
-}): ProfileReadOutcome {
-  const attemptedAt = input.now.toISOString()
-  if (looksLikeLoginPage(input.html)) {
-    return stopped(
-      input.previous,
-      attemptedAt,
-      "session_expired",
-      "Session expired. Paste a new profile cookie."
-    )
-  }
-  const parsed = parseProfilePage(input.registrySlug, input.html)
-  if (!parsed) {
-    return stopped(
-      input.previous,
-      attemptedAt,
-      "page_changed",
-      "Page changed. The tracker layout no longer matches."
-    )
-  }
-  return succeeded(attemptedAt, parsed.values)
-}
 
 const g = globalThis as typeof globalThis & {
   __profileReadInFlight?: boolean
@@ -189,7 +101,7 @@ export async function runProfileReads(
           ? profilePageUrl(row.registrySlug, row.baseUrl, username)
           : null
       if (!url) {
-        const next = failed(
+        const next = profileReadFailed(
           previous,
           now.toISOString(),
           "No profile username is known for this tracker yet."
@@ -202,7 +114,7 @@ export async function runProfileReads(
       try {
         cookie = decrypt(row.encryptedProfileCookie as string, encryptionKey)
       } catch {
-        const next = stopped(
+        const next = profileReadStopped(
           previous,
           now.toISOString(),
           "session_expired",
@@ -239,13 +151,13 @@ export async function runProfileReads(
       } catch (err) {
         const next =
           err instanceof SessionExpiredError
-            ? stopped(
+            ? profileReadStopped(
                 previous,
                 now.toISOString(),
                 "session_expired",
                 "Session expired. Paste a new profile cookie."
               )
-            : failed(previous, now.toISOString(), errMsg(err))
+            : profileReadFailed(previous, now.toISOString(), errMsg(err))
         await persist(row.id, row.platformMeta, next.record)
         log.warn({ trackerId: row.id, error: errMsg(err) }, "profile page read failed")
       }

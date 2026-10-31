@@ -5,9 +5,8 @@
 import { H1, H2, H3, Paragraph, Subtext } from "@typography"
 import { useId, useMemo, useRef, useState } from "react"
 import { Badge, Button, Card, Input, Notice, Select } from "@/components/ui"
-import { PinIcon, XIcon } from "@/components/ui/Icons"
+import { ChevronDownSmallIcon, PinIcon, XIcon } from "@/components/ui/Icons"
 import { Tooltip } from "@/components/ui/Tooltip"
-import { ChevronDownSmallIcon } from "@/components/ui/Icons"
 import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import { useClickOutside } from "@/hooks/useClickOutside"
@@ -25,13 +24,13 @@ import {
   type ReachableSourceView,
   type TrackerProfileView,
 } from "@/lib/recruitment-pathways"
-import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
   buildPinnedRouteTrees,
   type PinnedRoutePathInput,
   type PinnedRouteTreeView,
   type PinnedTreeNodeView,
 } from "@/lib/recruitment-pinned-tree"
+import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
   normalizeRecruitmentState,
   type RecruitmentState,
@@ -1044,7 +1043,7 @@ export function TrackerPathwaysClient({
             )}
 
             {pinnedTreeView.trees.length > 0 && (
-              <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[repeat(auto-fit,minmax(28rem,1fr))]">
                 {pinnedTreeView.trees.map((tree) => (
                   <PinnedTree key={tree.sourceTrackerId} tree={tree} actions={pinnedActions} />
                 ))}

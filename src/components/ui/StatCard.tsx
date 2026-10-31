@@ -12,6 +12,7 @@ import { DeadlineRing } from "@/components/ui/DeadlineRing"
 import { TriangleWarningIcon } from "@/components/ui/Icons"
 import { InfoTip } from "@/components/ui/InfoTip"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { calendarDayNumber, dateFromCalendarDay } from "@/lib/login-deadline"
 
 // ---------------------------------------------------------------------------
 //  types
@@ -332,24 +333,47 @@ function getDeadlineColor(progress: number, accent: string): string {
 const DAY_MS = 24 * 60 * 60 * 1000
 
 interface RingWindow {
-  startMs: number
   deadlineMs: number
+  progress: number
+  /** Whole calendar days for the login ring; null on the absolute deadline ring. */
+  loginDaysLeft: number | null
+  loginDaysOverdue: number | null
 }
 
-/** Both ring shapes reduce to a start and a deadline; null when the date does not parse. */
+/**
+ * Both ring shapes reduce to a start, a deadline and a progress fraction.
+ *
+ * The login ring counts whole calendar days in the browser's timezone, so a
+ * login today shows the full interval instead of one day less. The absolute
+ * deadline ring keeps elapsed-time progress over its window.
+ */
 function ringWindow(props: StatCardRingProps | StatCardDeadlineProps): RingWindow | null {
   if (props.type === "ring") {
-    const startMs = new Date(props.lastAccessAt).getTime()
-    if (Number.isNaN(startMs)) return null
-    return { startMs, deadlineMs: startMs + props.loginIntervalDays * DAY_MS }
+    const startDay = calendarDayNumber(props.lastAccessAt)
+    const today = calendarDayNumber(new Date())
+    if (startDay === null || today === null) return null
+    const interval = Number.isFinite(props.loginIntervalDays)
+      ? Math.trunc(props.loginIntervalDays)
+      : 0
+    const dueDay = startDay + interval
+    const daysLeft = dueDay - today
+    const elapsed = today - startDay
+    return {
+      deadlineMs: dateFromCalendarDay(dueDay).getTime(),
+      progress: interval > 0 ? Math.min(Math.max(elapsed / interval, 0), 1) : 1,
+      loginDaysLeft: Math.max(0, daysLeft),
+      loginDaysOverdue: today > dueDay ? today - dueDay : null,
+    }
   }
   const deadlineMs = new Date(props.deadlineAt).getTime()
   if (Number.isNaN(deadlineMs)) return null
-  return { startMs: deadlineMs - props.windowDays * DAY_MS, deadlineMs }
-}
-
-function ringProgress({ startMs, deadlineMs }: RingWindow): number {
-  return Math.min(Math.max((Date.now() - startMs) / (deadlineMs - startMs), 0), 1)
+  const startMs = deadlineMs - props.windowDays * DAY_MS
+  return {
+    deadlineMs,
+    progress: Math.min(Math.max((Date.now() - startMs) / (deadlineMs - startMs), 0), 1),
+    loginDaysLeft: null,
+    loginDaysOverdue: null,
+  }
 }
 
 // A login deadline is a task the user is late for; an API key's expiry is a
@@ -366,8 +390,10 @@ const PAST_DEADLINE_COPY = {
 } as const
 
 function RingContent({
-  startMs,
   deadlineMs,
+  progress,
+  loginDaysLeft,
+  loginDaysOverdue,
   accentColor,
   variant,
 }: RingWindow & {
@@ -376,10 +402,14 @@ function RingContent({
 }) {
   const now = Date.now()
   const remainingMs = deadlineMs - now
-  const progress = ringProgress({ startMs, deadlineMs })
+  const isOverdue = variant === "ring" ? loginDaysOverdue !== null : remainingMs <= 0
+  const overdueDays =
+    variant === "ring"
+      ? (loginDaysOverdue ?? 0)
+      : isOverdue
+        ? Math.ceil(Math.abs(remainingMs) / DAY_MS)
+        : 0
   const color = getDeadlineColor(progress, accentColor)
-  const isOverdue = remainingMs <= 0
-  const overdueDays = isOverdue ? Math.ceil(Math.abs(remainingMs) / (1000 * 60 * 60 * 24)) : 0
 
   const size = 80
   const strokeWidth = 6
@@ -391,12 +421,15 @@ function RingContent({
     year: "numeric",
   })
 
-  const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24))
+  const days = variant === "ring" ? (loginDaysLeft ?? 0) : Math.floor(remainingMs / DAY_MS)
   const hours = Math.floor(remainingMs / (1000 * 60 * 60))
   const pastCopy = PAST_DEADLINE_COPY[variant]
-  const valueText =
-    remainingMs <= 0 ? pastCopy.label : days >= 1 ? `${days}` : `${Math.max(1, hours)}`
-  const unitText = remainingMs <= 0 ? "" : days >= 1 ? "days" : "hrs"
+  const valueText = isOverdue
+    ? pastCopy.label
+    : variant === "ring" || days >= 1
+      ? `${days}`
+      : `${Math.max(1, hours)}`
+  const unitText = isOverdue ? "" : variant === "ring" || days >= 1 ? "days" : "hrs"
   const ariaLabel = isOverdue
     ? `${pastCopy.label.toLowerCase()}: ${pastCopy.footer(overdueDays)}`
     : `${valueText} ${unitText} left, due by ${deadlineDateStr}`
@@ -452,10 +485,7 @@ function StatCard(props: StatCardProps) {
   if (props.type === "ring" || props.type === "deadline") {
     const window = ringWindow(props)
     if (!window) return null
-    const ringColor = getDeadlineColor(
-      ringProgress(window),
-      accentColor ?? "var(--color-accent)"
-    )
+    const ringColor = getDeadlineColor(window.progress, accentColor ?? "var(--color-accent)")
     return (
       <Shell
         accentColor={accentColor}

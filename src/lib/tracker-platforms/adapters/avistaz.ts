@@ -7,7 +7,6 @@
 import { type HTMLElement as ParsedElement, parse as parseHtml } from "node-html-parser"
 import { computeBufferBytes, computeRatio } from "@/lib/data-transforms"
 import { trackerDateStr } from "@/lib/formatters"
-import { parseBytes } from "@/lib/parser"
 import { validateCookieHeader } from "@/lib/tracker-credentials/cookie-header"
 import type {
   AvistazPlatformMeta,
@@ -19,7 +18,7 @@ import type {
 import { parseCredentialJson } from "../helpers/cookie-credentials"
 import { SessionExpiredError } from "../helpers/errors"
 import { fetchTrackerHtml } from "../helpers/html-fetch"
-import { tryParseCount } from "../helpers/html-parse"
+import { tryParseCount, tryParseSiteBytes } from "../helpers/html-parse"
 
 // ---------------------------------------------------------------------------
 // Credential handling
@@ -68,7 +67,11 @@ function yesNo(text: string): boolean | undefined {
 function strictParseBytes(text: string, field: string): bigint {
   const trimmed = text.trim()
   if (!trimmed) throw new Error(`Unexpected response from AvistaZ: empty ${field} byte string`)
-  return parseBytes(trimmed)
+  const bytes = tryParseSiteBytes(trimmed)
+  if (bytes === undefined) {
+    throw new Error(`Unexpected response from AvistaZ: unreadable ${field} byte string`)
+  }
+  return bytes
 }
 
 // ---------------------------------------------------------------------------

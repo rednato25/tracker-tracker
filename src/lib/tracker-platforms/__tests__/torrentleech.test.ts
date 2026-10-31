@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { isUnreachableMessage, sanitizeNetworkError } from "@/lib/error-utils"
+import { parseBytes } from "@/lib/parser"
 import { parseTlCredentials, parseTlProfile, TorrentleechAdapter } from "../adapters/torrentleech"
 import { SessionExpiredError } from "../helpers/errors"
 
@@ -95,10 +96,25 @@ describe("parseTlProfile", () => {
   it("extracts uploaded/downloaded/ratio from the profile page", () => {
     const stats = parseTlProfile(FULL_PROFILE_PAGE, "testuser", TL_HOSTNAME)
     expect(stats.username).toBe("testuser")
-    expect(stats.uploadedBytes).toBe(10_500_000_000n)
-    expect(stats.downloadedBytes).toBe(5_250_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("10.5 GiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("5.25 GiB"))
     expect(stats.ratio).toBeCloseTo(2.0)
-    expect(stats.bufferBytes).toBe(10_500_000_000n - 5_250_000_000n)
+    expect(stats.bufferBytes).toBe(parseBytes("10.5 GiB") - parseBytes("5.25 GiB"))
+  })
+
+  it("reads the reported profile totals as binary GB", () => {
+    const page = FULL_PROFILE_PAGE.replace(
+      'profile-uploaded-details">10.5 GB',
+      'profile-uploaded-details">966.16 GB'
+    ).replace(
+      '<span class="profile-info-details">5.25 GB</span>',
+      '<span class="profile-info-details">292.7 GB</span>'
+    )
+    const stats = parseTlProfile(page, "testuser", TL_HOSTNAME)
+    expect(stats.uploadedBytes).toBe(1_037_406_400_676n)
+    expect(stats.downloadedBytes).toBe(314_284_231_885n)
+    expect(stats.uploadedBytes).toBe(parseBytes("966.16 GiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("292.7 GiB"))
   })
 
   it("reads downloaded bytes from a span with no profile-downloaded-details class", () => {
@@ -114,7 +130,7 @@ describe("parseTlProfile", () => {
       '<span class="profile-info-details">5.25 GB</span>',
       '<span class="profile-info-details profile-downloaded-details">1.25 GB</span>'
     )
-    expect(parseTlProfile(symmetric, "testuser", TL_HOSTNAME).downloadedBytes).toBe(1_250_000_000n)
+    expect(parseTlProfile(symmetric, "testuser", TL_HOSTNAME).downloadedBytes).toBe(parseBytes("1.25 GiB"))
   })
 
   it("reads the user class from the badge, not the Classic TL nav link", () => {
@@ -196,7 +212,7 @@ describe("parseTlProfile", () => {
       <div class="profile-downloaded"><span class="profile-info-details">0 B</span></div>
     </body></html>`
     const stats = parseTlProfile(noRatioCell, "testuser", TL_HOSTNAME)
-    expect(stats.uploadedBytes).toBe(250_000_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("250 GiB"))
     expect(stats.downloadedBytes).toBe(0n)
     expect(stats.ratio).toBe(Infinity)
   })
@@ -260,7 +276,7 @@ describe("parseTlProfile", () => {
     )
     const stats = parseTlProfile(zeroUpload, "testuser", TL_HOSTNAME)
     expect(stats.uploadedBytes).toBe(0n)
-    expect(stats.downloadedBytes).toBe(5_250_000_000n)
+    expect(stats.downloadedBytes).toBe(parseBytes("5.25 GiB"))
     expect(stats.ratio).toBe(0)
   })
 
@@ -368,7 +384,7 @@ describe("TorrentleechAdapter.fetchStats", () => {
     const stats = await adapter.fetchStats("https://www.torrentleech.org", validToken, "")
 
     expect(stats.username).toBe("testuser")
-    expect(stats.uploadedBytes).toBe(10_500_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("10.5 GiB"))
     expect(fetchSpy).toHaveBeenCalledTimes(2)
 
     const loginCall = fetchSpy.mock.calls[0]

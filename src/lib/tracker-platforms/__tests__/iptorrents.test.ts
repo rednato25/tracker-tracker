@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { sanitizeNetworkError } from "@/lib/error-utils"
+import { parseBytes } from "@/lib/parser"
 import { IptorrentsAdapter, parseIptCredentials, parseIptProfile } from "../adapters/iptorrents"
 
 const STATS_HTML = `
@@ -23,8 +24,8 @@ describe("parseIptProfile", () => {
     const stats = parseIptProfile(FULL_PAGE, HOSTNAME)
     expect(stats.username).toBe("testuser")
     expect(stats.ratio).toBeCloseTo(0.74)
-    expect(stats.uploadedBytes).toBe(14_500_000_000n)
-    expect(stats.downloadedBytes).toBe(19_600_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("14.5 GiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("19.6 GiB"))
     expect(stats.seedingCount).toBe(10)
     expect(stats.leechingCount).toBe(2)
     expect(stats.seedbonus).toBeCloseTo(55.4)
@@ -91,7 +92,7 @@ describe("parseIptProfile", () => {
     const stats = parseIptProfile(FULL_PAGE, HOSTNAME)
     // This fixture is a deficit account (14.5 GB up, 19.6 GB down), the
     // shortfall is the point of the chart, so it is not clamped to 0n.
-    expect(stats.bufferBytes).toBe(-5_100_000_000n)
+    expect(stats.bufferBytes).toBe(-parseBytes("5.1 GiB"))
   })
 
   it("defaults group to 'User' with no VIP badge", () => {
@@ -124,8 +125,8 @@ describe("parseIptProfile", () => {
       </div>
     </body></html>`
     const stats = parseIptProfile(upStatPage, HOSTNAME)
-    expect(stats.uploadedBytes).toBe(2_000_000_000n)
-    expect(stats.downloadedBytes).toBe(1_000_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("2 GiB"))
+    expect(stats.downloadedBytes).toBe(parseBytes("1 GiB"))
     // The Ratio card deliberately contradicts the byte totals: 2 GB over 1 GB
     // is 2, so reading 0.5 here would mean the site's own field won.
     expect(stats.ratio).toBe(2)
@@ -165,7 +166,7 @@ describe("parseIptProfile", () => {
       </div>
     </body></html>`
     const stats = parseIptProfile(noDownloadsPage, HOSTNAME)
-    expect(stats.uploadedBytes).toBe(5_000_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("5 GiB"))
     expect(stats.downloadedBytes).toBe(0n)
     expect(stats.ratio).toBe(Infinity)
   })
@@ -358,7 +359,7 @@ describe("IptorrentsAdapter - redirect handling", () => {
     const adapter = new IptorrentsAdapter()
     const stats = await adapter.fetchStats("https://iptorrents.com", creds, "/")
     expect(stats.username).toBe("testuser")
-    expect(stats.uploadedBytes).toBe(10_000_000_000n)
+    expect(stats.uploadedBytes).toBe(parseBytes("10 GiB"))
   })
 
   it("throws session expired when 302 points to /auth/login", async () => {

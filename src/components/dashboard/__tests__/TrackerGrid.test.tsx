@@ -584,6 +584,26 @@ describe("TrackerGrid", () => {
     expect(actions).not.toContainElement(source)
   })
 
+  it("wraps the footer controls at narrow widths instead of overlapping", () => {
+    const { container } = render(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-10-25" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const footer = container.querySelector("[data-card-footer]")
+    const actions = container.querySelector("[data-card-footer-actions]")
+    if (!footer || !actions) throw new Error("footer not found")
+
+    expect(footer).toHaveClass("flex-wrap", "min-w-0")
+    expect(footer.firstElementChild).toHaveClass("min-w-0", "xl:flex-1", "xl:flex-nowrap")
+    expect(actions).toHaveClass("flex-wrap")
+    expect(actions).toHaveClass("w-full")
+    expect(actions).toHaveClass("sm:w-auto")
+    expect(container.querySelector("[data-login-by]")).toHaveClass("whitespace-nowrap")
+  })
+
   it("shows the login deadline ring in the state's tone", () => {
     const { rerender, container } = render(
       <TrackerGrid

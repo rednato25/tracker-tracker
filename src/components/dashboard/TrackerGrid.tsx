@@ -277,6 +277,7 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
   const progress = intervalDays > 0 ? deadline.lastLoginDays / intervalDays : 0
   const daysLeft = deadline.dueInDays ?? 0
   const dueDate = formatDate(deadline.dueAt)
+  const daysLabel = daysLeft === 1 ? "day" : "days"
   const color =
     overdueDays !== null
       ? "var(--color-danger)"
@@ -286,10 +287,10 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
   const ariaLabel =
     overdueDays !== null
       ? `Login overdue by ${overdueDays} ${overdueDays === 1 ? "day" : "days"}, due by ${dueDate}`
-      : `Login due in ${daysLeft} ${daysLeft === 1 ? "day" : "days"}, by ${dueDate}`
+      : `Login due in ${daysLeft} ${daysLabel}, by ${dueDate}`
 
   return (
-    <div className="flex min-w-0 items-center gap-2" data-login-ring data-login-tone={deadline.tone}>
+    <div className="flex min-w-0 items-center gap-1.5" data-login-ring data-login-tone={deadline.tone}>
       <DeadlineRing
         progress={progress}
         color={color}
@@ -315,12 +316,12 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
               {daysLeft}
             </span>
             <span className="mt-0.5 font-cond text-[12px] leading-[12px] text-tertiary">
-              days
+              {daysLabel}
             </span>
           </>
         )}
       </DeadlineRing>
-      <span className="font-mono text-xs text-secondary" data-login-by>
+      <span className="whitespace-nowrap font-mono text-xs text-secondary" data-login-by>
         by {dueDate}
       </span>
     </div>
@@ -336,7 +337,7 @@ function LoginSourceIcon({ source }: { source: "detected" | "manual" }) {
         type="button"
         aria-label={label}
         data-login-source={source}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-nm-sm text-tertiary transition-colors duration-150 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base sm:h-9 sm:w-9"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-nm-sm text-tertiary transition-colors duration-150 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base sm:h-6 sm:w-6"
       >
         <Icon width="12" height="12" aria-hidden="true" />
       </button>
@@ -600,12 +601,12 @@ function TrackerCard({
         className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 border-t border-border px-4 py-2.5"
         data-card-footer
       >
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 xl:flex-1 xl:flex-nowrap">
           <LoginDeadlineReadout deadline={loginDeadline} />
           {loginSource === "none" ? null : <LoginSourceIcon source={loginSource} />}
         </div>
         <div
-          className="ml-auto flex flex-wrap items-center justify-end gap-2"
+          className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto sm:justify-end"
           data-card-footer-actions
         >
           <a

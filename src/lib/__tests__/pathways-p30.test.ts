@@ -243,6 +243,33 @@ describe("P30 full pathways wishlist", () => {
     expect(result.paths.map((path) => path.totalDaysRemaining)).toEqual([0, 40])
   })
 
+  it("uses each path's own start tracker join date for the first hop", () => {
+    const result = buildWishlistPaths({
+      catalog: rankingCatalog(),
+      desiredTrackerSlug: TARGET as string,
+      trackers: [
+        ownedTracker(1, "Aither", "aither", new Date(NOW.getTime() - 10 * 86_400_000).toISOString()),
+        ownedTracker(2, "Zenith", "zenith", new Date(NOW.getTime() - 200 * 86_400_000).toISOString()),
+      ],
+      savedRankGoals: {},
+      state: state(TARGET as string),
+      now: NOW,
+    })
+    const bySource = new Map(result.paths.map((path) => [path.steps[0].sourceTrackerId, path]))
+    expect(bySource.get("Aither")?.steps[0].evaluation.timeGate).toMatchObject({
+      accountAgeDays: 10,
+      effectiveDays: 100,
+      daysRemaining: 90,
+    })
+    expect(bySource.get("Zenith")?.steps[0].evaluation.timeGate).toMatchObject({
+      accountAgeDays: 200,
+      effectiveDays: 7,
+      daysRemaining: 0,
+    })
+    expect(bySource.get("Zenith")?.totalDaysRemaining).toBe(0)
+    expect(bySource.get("Aither")?.totalDaysRemaining).toBe(90)
+  })
+
   it("shows days remaining from account age and keeps unknown age unknown", () => {
     const open = buildWishlistPaths({
       catalog: catalog([route({ minimumDays: 60 })]),

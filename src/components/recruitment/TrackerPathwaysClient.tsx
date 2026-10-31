@@ -10,6 +10,7 @@ import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import { useClickOutside } from "@/hooks/useClickOutside"
 import { formatAccountAge, formatDate } from "@/lib/formatters"
+import type { ClassGateComparison } from "@/lib/rank-class-gate"
 import {
   buildOwnedTrackerCards,
   buildRouteChoices,
@@ -95,6 +96,25 @@ function inviteTimingLabel(card: OwnedTrackerCardView) {
   )
 }
 
+function ClassGateBadge({ gate }: { gate: ClassGateComparison }) {
+  const label = `${gate.status === "met" ? "Met" : gate.status === "not-yet" ? "Not yet" : "Class unknown"}: ${gate.written.join(" or ")}`
+  return (
+    <span
+      data-class-gate={gate.status}
+      title={gate.detail}
+      className={
+        gate.status === "met"
+          ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-success"
+          : gate.status === "not-yet"
+            ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-warn"
+            : "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-tertiary"
+      }
+    >
+      {label}
+    </span>
+  )
+}
+
 function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
   const [expanded, setExpanded] = useState(false)
   const destinations = expanded ? card.destinations : card.destinations.slice(0, DESTINATION_LIMIT)
@@ -149,19 +169,22 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
                 >
                   {destination.destinationName}
                 </span>
-                <span
-                  className={`line-clamp-2 max-w-[58%] text-right text-xs ${
-                    destination.closed ? "text-tertiary" : "text-secondary"
-                  }`}
-                  title={destination.requirementText ?? undefined}
-                >
-                  {destination.closed && (
-                    <span className="mr-1 font-cond text-2xs font-semibold uppercase tracking-[0.1em]">
-                      Closed
-                    </span>
-                  )}
-                  {destination.requirementText ?? "No requirement text"}
-                </span>
+                <div className="flex max-w-[58%] flex-col items-end gap-0.5 text-right">
+                  <span
+                    className={`line-clamp-2 text-xs ${
+                      destination.closed ? "text-tertiary" : "text-secondary"
+                    }`}
+                    title={destination.requirementText ?? undefined}
+                  >
+                    {destination.closed && (
+                      <span className="mr-1 font-cond text-2xs font-semibold uppercase tracking-[0.1em]">
+                        Closed
+                      </span>
+                    )}
+                    {destination.requirementText ?? "No requirement text"}
+                  </span>
+                  {destination.classGate && <ClassGateBadge gate={destination.classGate} />}
+                </div>
               </li>
             ))}
           </ul>
@@ -477,6 +500,7 @@ function RouteChoiceRow({
           {choice.needsChecking ? "Needs checking" : "No checks pending"}
         </span>
       </div>
+      {choice.classGate && <ClassGateBadge gate={choice.classGate} />}
     </li>
   )
 }
@@ -794,6 +818,14 @@ export function TrackerPathwaysClient({
           </p>
         )}
 
+        {ownedCards.missingAccountAgeTrackers.length > 0 && (
+          <p className="text-xs text-warn" data-missing-account-age>
+            Account age missing:{" "}
+            {ownedCards.missingAccountAgeTrackers.map((tracker) => tracker.name).join(", ")}. The
+            first-hop wait on these trackers stays unknown until you add a join date.
+          </p>
+        )}
+
         {ownedCards.unsupportedOwnedTrackers.length > 0 && (
           <p className="text-xs text-tertiary">
             Not in trackerpathways data:{" "}
@@ -806,7 +838,8 @@ export function TrackerPathwaysClient({
         <div className="flex flex-col gap-1">
           <H2 id="get-to-tracker-heading">Get to a tracker</H2>
           <Paragraph>
-            Pick a target to see its invite class, who leads there, and where it can take you.
+            Pick a target to see its invite class, who leads there, and where it can take you. The
+            first hop uses your account age on the tracker you start from.
           </Paragraph>
         </div>
 

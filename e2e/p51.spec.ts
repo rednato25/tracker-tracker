@@ -267,4 +267,123 @@ test.describe("P51 data accuracy", () => {
       }
     }
   })
+
+  test("pathways uses joinedAt, lists missing ages and compares gate classes", async ({
+    page,
+  }) => {
+    test.setTimeout(180_000)
+    const sql = e2eSql()
+    const temporary: number[] = []
+
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+
+      const definitions = [
+        {
+          name: "P51 Redacted",
+          slug: "redacted",
+          joinedAt: "2026-01-15",
+          group: "User",
+          color: "#ef4444",
+        },
+        {
+          name: "P51 Blutopia",
+          slug: "blutopia",
+          joinedAt: "2025-12-01",
+          group: "BluSeeder",
+          color: "#8b5cf6",
+        },
+        {
+          name: "P51 No Join",
+          slug: "zenith",
+          joinedAt: null,
+          group: "User",
+          color: "#64748b",
+        },
+      ]
+
+      for (const definition of definitions) {
+        const [tracker] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active, joined_at,
+            last_polled_at, encrypted_api_token, color, created_at, updated_at
+          ) values (
+            ${definition.name}, ${`https://${definition.slug}.invalid`},
+            ${definition.slug}, 'unit3d', true, ${definition.joinedAt}::date,
+            now(), ${encrypt("synthetic-p51-token", key)}, ${definition.color},
+            now(), now()
+          ) returning id
+        `
+        temporary.push(tracker.id)
+        await sql`
+          insert into tracker_snapshots (
+            tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio,
+            buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+            required_ratio, warned, freeleech_tokens, group_name, is_manual
+          ) values (
+            ${tracker.id}, now(), ${10 * TIB}, ${4 * TIB}, 2.5, ${6 * TIB},
+            10, 0, 100, 0, 1, false, 0, ${definition.group}, false
+          )
+        `
+      }
+
+      await page.setViewportSize({ width: 1440, height: 1400 })
+      await page.goto("/pathways")
+      await expect(page.getByRole("heading", { name: "Where your trackers can take you" })).toBeVisible(
+        { timeout: 20_000 }
+      )
+
+      await expect(page.locator("[data-missing-account-age]")).toContainText("P51 No Join")
+      await expect(page.locator('[data-class-gate="not-yet"]').first()).toBeVisible()
+      await expect(page.locator('[data-class-gate="met"]').first()).toBeVisible()
+
+      await page.getByRole("button", { name: "Choose a tracker" }).click()
+      await page
+        .getByRole("combobox", { name: "Search trackerpathways" })
+        .fill("BitPorn")
+      await page.getByRole("option", { name: "BitPorn" }).click()
+
+      const seedpoolPath = page.locator('[data-route-choice*="seedpool"]').first()
+      await expect(seedpoolPath).toBeVisible()
+      await expect(seedpoolPath).toContainText(/days left/)
+
+      for (const width of [1440, 390] as const) {
+        await page.setViewportSize({ width, height: 1200 })
+        await page.waitForTimeout(250)
+        const contentHeight = await page
+          .locator("#main-content")
+          .evaluate((element) => element.scrollHeight)
+        await page.setViewportSize({ width, height: Math.min(12000, contentHeight + 80) })
+        await page.evaluate(() => {
+          const main = document.querySelector("#main-content")
+          if (main) main.scrollTop = 0
+          window.scrollTo(0, 0)
+        })
+        await page.waitForTimeout(250)
+
+        for (const theme of ["light", "dark"] as const) {
+          await page.evaluate((next) => {
+            document.documentElement.dataset.theme = next
+          }, theme)
+          await page.waitForTimeout(150)
+          const overflow = await page.evaluate(
+            () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+          )
+          expect(overflow, `pathways overflows at ${width}px`).toBeLessThanOrEqual(1)
+          await page.screenshot({
+            path: `docs/screenshots/p51/pathways-${width}-${theme}.png`,
+            animations: "disabled",
+          })
+        }
+      }
+    } finally {
+      for (const id of temporary) {
+        await sql`delete from trackers where id = ${id}`
+      }
+      await sql.end()
+    }
+  })
 })

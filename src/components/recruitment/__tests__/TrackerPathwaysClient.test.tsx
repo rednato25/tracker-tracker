@@ -468,4 +468,61 @@ describe("TrackerPathwaysClient", () => {
       })
     })
   })
+
+  it("compares a named gate class with the current class", () => {
+    const classGateCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        route("TorrentLeech", "BroadcasTheNet", {
+          minimumDays: 30,
+          requirementNotes: ["Power User+: 4 weeks"],
+        }),
+      ],
+      sourceGates: [{ trackerId: "TorrentLeech", days: 30, text: "Power User+: 4 weeks" }],
+    }
+
+    const met = render(
+      <TrackerPathwaysClient
+        trackers={[tracker()]}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={classGateCatalog}
+      />
+    )
+    expect(met.container.querySelector('[data-class-gate="met"]')).not.toBeNull()
+    expect(met.container).toHaveTextContent("Met: Power User+")
+    met.unmount()
+
+    const current = tracker().latestStats
+    const notYet = render(
+      <TrackerPathwaysClient
+        trackers={[
+          tracker({
+            latestStats: current ? { ...current, group: "Registered" } : null,
+          }),
+        ]}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={classGateCatalog}
+      />
+    )
+    expect(notYet.container.querySelector('[data-class-gate="not-yet"]')).not.toBeNull()
+    expect(notYet.container).toHaveTextContent("Not yet: Power User+")
+  })
+
+  it("lists owned trackers whose account age is missing", () => {
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={[
+          tracker({ id: 1, name: "TorrentLeech", joinedAt: "2026-01-01" }),
+          tracker({ id: 2, name: "Zenith", registrySlug: "zenith", joinedAt: null }),
+        ]}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={P38_CATALOG}
+      />
+    )
+
+    const note = container.querySelector("[data-missing-account-age]")
+    expect(note).not.toBeNull()
+    expect(note).toHaveTextContent("Zenith")
+    expect(note).not.toHaveTextContent("TorrentLeech")
+  })
 })

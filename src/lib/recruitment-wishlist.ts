@@ -5,6 +5,8 @@
 // accounts the user already owns. Every other step is an explicit scenario.
 
 import { pathwaysTrackerIdForRegistrySlug, pathwaysTrackerName } from "@/data/pathways/catalog"
+import { getTrackerBySlug } from "@/data/tracker-registry"
+import { type ClassGateComparison, compareClassGate } from "@/lib/rank-class-gate"
 import type {
   RankComparison,
   RankConditionNode,
@@ -53,6 +55,8 @@ export interface WishlistStepView {
   scenario: boolean
   observationNote: string
   evaluation: RecruitmentRouteEvaluation
+  /** Registry ladder comparison when this source is owned and its gate names a class. */
+  classGate: ClassGateComparison | null
   goalCandidates: GoalLinkCandidate[]
 }
 
@@ -440,6 +444,18 @@ function buildStepView(input: {
   })
   if (!evaluation) return null
 
+  const registryEntry = owner?.registrySlug ? getTrackerBySlug(owner.registrySlug) : undefined
+  const classGate = registryEntry
+    ? compareClassGate({
+        texts: [
+          ...evaluation.eligibility.requirementNotes,
+          evaluation.eligibility.sourceRequirements.inviteGate?.text,
+        ],
+        classes: registryEntry.userClasses,
+        currentClass: owner?.latestStats?.group ?? null,
+      })
+    : null
+
   return {
     routeId: route.id,
     sourceTrackerId: route.sourceTrackerId,
@@ -454,6 +470,7 @@ function buildStepView(input: {
         : "No stored stats for your account on this source; the requirement cannot be checked yet."
       : "Scenario only: you do not own an account on this source, so no personal observations are used.",
     evaluation,
+    classGate,
     goalCandidates: goalCandidatesForStep({
       catalog: input.catalog,
       route,

@@ -150,8 +150,11 @@ Knip reports no unused runtime dependency. Four devDependencies are flagged:
    image-hosting routes and upstream-kept components stay in place.
 
 After step 2, Knip reports 64 unused exports (down from 74) and 59 unused types. The
-remaining entries are the upstream items listed above. Unused files and devDependencies
-are unchanged until step 3 removes `@types/node-cron`.
+remaining entries are the upstream items listed above. Unused files are unchanged.
+
+Step 3 removes only `@types/node-cron`; `pnpm-lock.yaml` loses the importer entry, the
+package entry and the snapshot entry and no other version changes. Knip then reports 3
+unused devDependencies: the three false positives above.
 
 ## Verification gate
 

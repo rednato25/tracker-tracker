@@ -43,3 +43,17 @@ export function withProfileReadRecord(
   const existing = parseMeta(existingRaw)
   return JSON.stringify({ ...(existing ?? {}), profileRead: record })
 }
+
+/**
+ * Clears the stop state and the 24-hour attempt stamp so a newly saved cookie
+ * is tried on the next scheduler tick. The last successful values and their
+ * fetch time stay in place until the new read replaces them.
+ */
+export function resetProfileReadGate(existingRaw: string | null | undefined): string | null {
+  const existing = parseMeta(existingRaw)
+  const record = existing?.profileRead
+  if (!isPlainObject(record)) return null
+  const { status: _status, attemptedAt: _attemptedAt, message: _message, ...rest } = record
+  return JSON.stringify({ ...existing, profileRead: rest })
+}
+

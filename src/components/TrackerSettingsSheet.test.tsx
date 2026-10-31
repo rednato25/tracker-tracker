@@ -502,6 +502,43 @@ describe("TrackerSettingsSheet profile reading", () => {
       profileCookie: "session=abc123",
     })
   })
+
+  it("marks a stopped read as Session expired", () => {
+    renderSheet({
+      tracker: {
+        ...supported,
+        platformMeta: {
+          profileRead: {
+            fetchedAt: "2026-10-30T09:00:00.000Z",
+            attemptedAt: "2026-10-30T09:00:00.000Z",
+            status: "session_expired",
+            values: { seedSizeBytes: 1024 },
+          },
+        },
+      },
+    })
+
+    expect(screen.getByText("Session expired.")).toBeInTheDocument()
+    expect(screen.getByText(/Reading is stopped for this tracker/)).toBeInTheDocument()
+  })
+
+  it("marks a changed layout as Page changed", () => {
+    renderSheet({
+      tracker: {
+        ...supported,
+        platformMeta: {
+          profileRead: {
+            fetchedAt: null,
+            attemptedAt: "2026-10-30T09:00:00.000Z",
+            status: "page_changed",
+            values: {},
+          },
+        },
+      },
+    })
+
+    expect(screen.getByText("Page changed.")).toBeInTheDocument()
+  })
 })
 
 describe("TrackerSettingsSheet base URL", () => {

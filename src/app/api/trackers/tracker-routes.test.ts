@@ -886,6 +886,13 @@ describe("PATCH /api/trackers/[id]", () => {
     ;(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from: mockFrom })
   }
 
+  function mockStoredPlatformMeta(platformMeta: string | null) {
+    const mockLimit = vi.fn().mockResolvedValue([{ platformMeta }])
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit })
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere })
+    ;(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from: mockFrom })
+  }
+
   it("replaces the Mousehole API token when the body carries one", async () => {
     ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({
       mouseholeToken: "fake-mousehole-token-7f3a",
@@ -1074,6 +1081,7 @@ describe("PATCH /api/trackers/[id]", () => {
       profileReadingEnabled: true,
       profileCookie: " Cookie: session=abc123; csrftoken=xyz ",
     })
+    mockStoredPlatformMeta(null)
 
     const mockWhere = vi.fn().mockResolvedValue([])
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere })
@@ -1096,6 +1104,7 @@ describe("PATCH /api/trackers/[id]", () => {
 
   it("clears the profile-reading cookie on an empty string", async () => {
     ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({ profileCookie: "" })
+    mockStoredPlatformMeta(null)
 
     const mockWhere = vi.fn().mockResolvedValue([])
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere })
@@ -1107,6 +1116,43 @@ describe("PATCH /api/trackers/[id]", () => {
 
     expect(response.status).toBe(200)
     expect(mockSet.mock.calls[0]?.[0].encryptedProfileCookie).toBeNull()
+  })
+
+  it("clears a stopped profile read when a new cookie is saved", async () => {
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({
+      profileCookie: "session=new",
+    })
+    mockStoredPlatformMeta(
+      JSON.stringify({
+        profileRead: {
+          fetchedAt: "2026-10-01T00:00:00.000Z",
+          attemptedAt: "2026-10-02T00:00:00.000Z",
+          status: "session_expired",
+          values: { seedSizeBytes: 1234 },
+          message: "Session expired. Paste a new profile cookie.",
+        },
+      })
+    )
+
+    const mockWhere = vi.fn().mockResolvedValue([])
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: mockSet })
+
+    const request = makeRequest(
+      "http://localhost/api/trackers/1",
+      { profileCookie: "session=new" },
+      "PATCH"
+    )
+    const params = Promise.resolve({ id: "1" })
+    const response = await PATCH(request, { params })
+
+    expect(response.status).toBe(200)
+    const updates = mockSet.mock.calls[0]?.[0]
+    const meta = JSON.parse(updates.platformMeta)
+    expect(meta.profileRead.status).toBeUndefined()
+    expect(meta.profileRead.attemptedAt).toBeUndefined()
+    expect(meta.profileRead.fetchedAt).toBe("2026-10-01T00:00:00.000Z")
+    expect(meta.profileRead.values).toEqual({ seedSizeBytes: 1234 })
   })
 
   it("rejects a cookie name pasted alone without writing", async () => {

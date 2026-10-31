@@ -36,6 +36,7 @@ import {
   MOUSEHOLE_URL_TIP,
 } from "@/lib/mousehole"
 import { PROFILE_READING_WARNING, supportsProfileReading } from "@/lib/profile-reading/support"
+import { readProfileReadRecord } from "@/lib/profile-reading/types"
 import { trackerQueryOptions } from "@/lib/query-options"
 import type { TrackerSummary } from "@/types/api"
 
@@ -113,6 +114,13 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
   const registryEntry = registryEntryFor(tracker)
   const hasLoginPolicy = !!registryEntry?.rules?.loginIntervalDays
   const profileReadingSupported = supportsProfileReading(tracker)
+  const profileRead = readProfileReadRecord(tracker.platformMeta)
+  const profileStatusLabel =
+    profileRead?.status === "session_expired"
+      ? "Session expired"
+      : profileRead?.status === "page_changed"
+        ? "Page changed"
+        : null
 
   const [proxyAvailable, setProxyAvailable] = useState<boolean | null>(null)
 
@@ -564,6 +572,20 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
               <p className="text-xs font-sans leading-relaxed text-warn">
                 {PROFILE_READING_WARNING}
               </p>
+
+              {profileStatusLabel && (
+                <div className="flex flex-col gap-1" data-profile-reading-status>
+                  <p className="text-xs font-sans text-warn">
+                    <span className="font-semibold">{profileStatusLabel}.</span>{" "}
+                    Reading is stopped for this tracker. Save a new session cookie to try again.
+                  </p>
+                  {profileRead?.fetchedAt && (
+                    <p className="font-mono text-4xs text-tertiary">
+                      The last values stay marked stale until a new read succeeds.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {(form.profileReadingEnabled || tracker.hasProfileCookie) && (
                 <div className="flex flex-col gap-2">

@@ -28,6 +28,7 @@ import {
   TRACKER_TAG_MAX,
 } from "@/lib/limits"
 import { log } from "@/lib/logger"
+import { resetProfileReadGate } from "@/lib/profile-reading/meta"
 import { PROFILE_COOKIE_MAX } from "@/lib/profile-reading/support"
 import { getTrackerForClient } from "@/lib/server-data"
 import { validateCookieHeader } from "@/lib/tracker-credentials/cookie-header"
@@ -148,6 +149,22 @@ export async function PATCH(request: Request, props: RouteContext) {
     } else {
       updates.encryptedProfileCookie = null
     }
+  }
+
+  // Saving a cookie or changing the opt-in is the user's signal to retry. Clear
+  // a Session expired / Page changed stop and the 24-hour stamp, keeping the
+  // last values and their fetch time until the next read replaces them.
+  if (
+    body.profileCookie !== undefined ||
+    typeof body.profileReadingEnabled === "boolean"
+  ) {
+    const [row] = await db
+      .select({ platformMeta: trackers.platformMeta })
+      .from(trackers)
+      .where(eq(trackers.id, trackerId))
+      .limit(1)
+    const reset = resetProfileReadGate(row?.platformMeta)
+    if (reset) updates.platformMeta = reset
   }
 
   if (typeof body.useProxy === "boolean") updates.useProxy = body.useProxy

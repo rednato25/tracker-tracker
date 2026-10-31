@@ -3,9 +3,8 @@
 // P51: fleet deltas and torrent movers must not imply a single bonus currency,
 // must name the download client, and must disappear when no client exists.
 
-import { render, screen, within } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
-import { FleetBonusChanges } from "@/components/dashboard/FleetBonusChanges"
 import { FleetHeadline } from "@/components/dashboard/FleetHeadline"
 import { MoversAndShakers } from "@/components/dashboard/MoversAndShakers"
 import { TodayAtAGlance } from "@/components/dashboard/TodayAtAGlance"
@@ -94,7 +93,7 @@ function data(overrides: Partial<TodayData> = {}): TodayData {
   }
 }
 
-describe("fleet bonus changes", () => {
+describe("fleet headline", () => {
   it("does not render a summed bonus tile", () => {
     render(<FleetHeadline fleet={fleet()} />)
     expect(screen.queryByText("Bonus gained")).not.toBeInTheDocument()
@@ -102,26 +101,6 @@ describe("fleet bonus changes", () => {
     expect(screen.getByText("Download gained")).toBeInTheDocument()
     expect(screen.getByText("Buffer change")).toBeInTheDocument()
     expect(screen.getByText("Ratio change")).toBeInTheDocument()
-  })
-
-  it("lists each tracker's bonus change and never a total", () => {
-    const { container } = render(<FleetBonusChanges trackers={data().trackers} />)
-    const rows = [...container.querySelectorAll("[data-bonus-change]")]
-    expect(rows).toHaveLength(2)
-    expect(rows[0]).toHaveTextContent("seedpool")
-    expect(rows[0]).toHaveTextContent("+1,200")
-    expect(rows[1]).toHaveTextContent("TorrentLeech")
-    expect(rows[1]).toHaveTextContent("+40")
-    expect(container).not.toHaveTextContent("+1,240")
-  })
-
-  it("hides the bonus block when every tracker has no change", () => {
-    const { container } = render(
-      <FleetBonusChanges
-        trackers={data().trackers.map((tracker) => ({ ...tracker, seedbonusChange: null }))}
-      />
-    )
-    expect(container).toBeEmptyDOMElement()
   })
 })
 
@@ -136,6 +115,36 @@ describe("torrent movers", () => {
     render(<MoversAndShakers movers={data().movers} />)
     expect(screen.queryByText("Zero Upload")).not.toBeInTheDocument()
     expect(screen.getByText("Seeding Movie")).toBeInTheDocument()
+  })
+
+  it("says No transfer today instead of showing an empty list", () => {
+    render(
+      <MoversAndShakers
+        movers={{
+          ...data().movers,
+          topUploaders: [],
+          topDownloaders: [],
+        }}
+      />
+    )
+    expect(screen.getByText("No transfer today")).toBeInTheDocument()
+    expect(screen.queryByText("Top Uploaders")).not.toBeInTheDocument()
+    expect(screen.queryByText("Top Downloaders")).not.toBeInTheDocument()
+  })
+
+  it("keeps the unmatched hint beside No transfer today", () => {
+    render(
+      <MoversAndShakers
+        movers={{
+          ...data().movers,
+          unmatchedTorrents: 3,
+          topUploaders: [],
+          topDownloaders: [],
+        }}
+      />
+    )
+    expect(screen.getByText("No transfer today")).toBeInTheDocument()
+    expect(screen.getByText(/3 torrents found, but none/)).toBeInTheDocument()
   })
 
   it("hides both lists when no download client is connected", () => {
@@ -156,16 +165,33 @@ describe("torrent movers", () => {
 })
 
 describe("Today at a glance", () => {
-  it("labels the period and uses per-tracker bonus changes", () => {
+  it("labels the period and does not render a bonus change row", () => {
     const { container } = render(<TodayAtAGlance data={data()} />)
     expect(screen.getByText("Today, since 00:00")).toBeInTheDocument()
     expect(screen.queryByText("Bonus gained")).not.toBeInTheDocument()
-    const rows = [...container.querySelectorAll("[data-bonus-change]")]
-    expect(rows).toHaveLength(2)
-    expect(within(rows[0] as HTMLElement).getByText("+1,200")).toBeInTheDocument()
+    expect(screen.queryByText("Bonus change by tracker")).not.toBeInTheDocument()
+    expect(container.querySelectorAll("[data-fleet-bonus-changes]")).toHaveLength(0)
     // A torrent can transfer without being added or completed today.
     expect(screen.queryByText("No fleet activity today")).not.toBeInTheDocument()
     expect(screen.getByText("Torrent transfer today")).toBeInTheDocument()
+  })
+
+  it("shows No transfer today when a client is connected but nothing moved", () => {
+    render(
+      <TodayAtAGlance
+        data={data({
+          activity: { addedToday: 0, completedToday: 0 },
+          movers: {
+            clientCount: 1,
+            unmatchedTorrents: 0,
+            topUploaders: [],
+            topDownloaders: [],
+          },
+        })}
+      />
+    )
+    expect(screen.getByText("Torrent transfer today")).toBeInTheDocument()
+    expect(screen.getByText("No transfer today")).toBeInTheDocument()
   })
 
   it("does not render torrent lists without a download client", () => {
@@ -183,5 +209,6 @@ describe("Today at a glance", () => {
     )
     expect(screen.queryByText("Top Uploaders")).not.toBeInTheDocument()
     expect(screen.queryByText("Top Downloaders")).not.toBeInTheDocument()
+    expect(screen.queryByText("No transfer today")).not.toBeInTheDocument()
   })
 })

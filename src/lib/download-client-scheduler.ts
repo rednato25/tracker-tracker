@@ -385,8 +385,15 @@ export async function deepPollClient(
     else log.debug(syncMsg)
 
     // Write daily torrent checkpoints for "Movers & Shakers". First-seen-today wins.
+    //
+    // These must cover the same list we cache, not the tag-only stats list.
+    // computeTodayAtAGlance joins cached torrents to these start values, so a
+    // torrent that matched only by announce host would otherwise have no start
+    // value and be dropped from both top lists (issue: a 522 GiB seedpool
+    // torrent missing while untagged). Tag stats and fleet totals still read
+    // the narrow list above.
     const checkpointDate = localDateStr()
-    const checkpointable = torrents.filter(
+    const checkpointable = cacheable.filter(
       (t) => t.uploaded != null && t.downloaded != null && t.hash && t.name
     )
     if (checkpointable.length > 0) {

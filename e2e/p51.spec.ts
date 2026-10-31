@@ -214,9 +214,7 @@ test.describe("P51 data accuracy", () => {
     }
   })
 
-  test("fleet activity labels its period and keeps bonus changes per tracker", async ({
-    page,
-  }) => {
+  test("fleet activity labels its period and never sums a bonus currency", async ({ page }) => {
     test.setTimeout(120_000)
     expect(seeded).toHaveLength(2)
 
@@ -234,10 +232,8 @@ test.describe("P51 data accuracy", () => {
       await expect(card).toBeVisible({ timeout: 20_000 })
       await expect(card.locator("[data-fleet-period]")).toHaveText("Today, since 00:00")
       await expect(card.getByText("Bonus gained")).toHaveCount(0)
-      await expect(card.locator("[data-bonus-change]")).toHaveCount(2)
-      await expect(
-        card.locator(`[data-bonus-change="${seeded[0].id}"]`)
-      ).toContainText("+1,200")
+      await expect(card.getByText("Bonus change by tracker")).toHaveCount(0)
+      await expect(card.locator("[data-bonus-change]")).toHaveCount(0)
       // The downloading torrent also uploads, so it appears in both lists.
       await expect(card.locator('[data-transfer-client="qBittorrent"]')).toHaveCount(3)
       await expect(card.getByText("P51 Idle Torrent")).toHaveCount(0)

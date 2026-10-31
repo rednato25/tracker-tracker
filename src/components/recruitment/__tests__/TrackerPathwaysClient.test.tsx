@@ -563,11 +563,11 @@ describe("TrackerPathwaysClient", () => {
     for (const target of ["Aither", "BroadcasTheNet"]) {
       const row = container.querySelector(`[data-pinned-route="${target}"]`) as HTMLElement
       expect(row).not.toBeNull()
-      expect(row.querySelector("[data-pinned-route-summary]")).toHaveTextContent(/hop/)
       expect(row.querySelector("[data-pinned-route-summary]")).toHaveTextContent(
-        /(Ready now|days? left)/
+        /(Ready now|Wait unknown|days? left)/
       )
     }
+    expect(container.querySelectorAll("[data-pinned-tree]").length).toBeGreaterThanOrEqual(1)
   })
 
   it("lists owned trackers whose account age is missing", () => {

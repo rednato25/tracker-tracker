@@ -5,6 +5,8 @@
 import { H1, H2, H3, Paragraph, Subtext } from "@typography"
 import { useId, useMemo, useRef, useState } from "react"
 import { Badge, Button, Card, Input, Notice, Select } from "@/components/ui"
+import { PinIcon, XIcon } from "@/components/ui/Icons"
+import { Tooltip } from "@/components/ui/Tooltip"
 import { ChevronDownSmallIcon } from "@/components/ui/Icons"
 import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
@@ -25,11 +27,18 @@ import {
 } from "@/lib/recruitment-pathways"
 import type { RecruitmentCatalog } from "@/lib/recruitment-routes"
 import {
+  buildPinnedRouteTrees,
+  type PinnedRoutePathInput,
+  type PinnedRouteTreeView,
+  type PinnedTreeNodeView,
+} from "@/lib/recruitment-pinned-tree"
+import {
   normalizeRecruitmentState,
   type RecruitmentState,
 } from "@/lib/recruitment-state"
 import {
   buildWishlistPaths,
+  hopWaitDays,
   pathWaitLabel,
   pathWaitValue,
   type WishlistPathView,
@@ -613,6 +622,148 @@ function TrackerPicker({
   )
 }
 
+function pinnedWaitLabel(days: number | null): string {
+  if (days === null) return "Wait unknown"
+  if (days === 0) return "Ready now"
+  return `${days} day${days === 1 ? "" : "s"} left`
+}
+
+function nextStepWaitPhrase(days: number | null): string {
+  if (days === null) return "in an unknown time"
+  if (days === 0) return "ready now"
+  return `in ${days} day${days === 1 ? "" : "s"}`
+}
+
+interface PinnedTreeActions {
+  onUnpin: (targetId: string) => void
+  onOpen: (targetId: string) => void
+}
+
+function UnpinRouteButton({
+  targetId,
+  targetName,
+  onUnpin,
+}: {
+  targetId: string
+  targetName: string
+  onUnpin: (targetId: string) => void
+}) {
+  return (
+    <Tooltip content={`Unpin route to ${targetName}`}>
+      <span className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+        <Button
+          size="icon"
+          variant="ghost"
+          aria-label={`Unpin route to ${targetName}`}
+          onClick={() => onUnpin(targetId)}
+          leftIcon={<XIcon className="h-3.5 w-3.5" aria-hidden="true" />}
+        />
+      </span>
+    </Tooltip>
+  )
+}
+
+function PinnedMarker() {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center text-accent"
+      role="img"
+      aria-label="Pinned target"
+      data-pin-marker
+    >
+      <PinIcon className="h-3.5 w-3.5" />
+    </span>
+  )
+}
+
+function PinnedTreeBranch({
+  node,
+  actions,
+}: {
+  node: PinnedTreeNodeView
+  actions: PinnedTreeActions
+}) {
+  const targetName = node.pinnedTargetId ? pathwaysTrackerName(node.pinnedTargetId) : null
+
+  return (
+    <li
+      className="min-w-0"
+      data-tree-node={node.trackerId}
+      data-pinned-route={node.pinnedTargetId ?? undefined}
+    >
+      <div className="group flex min-w-0 items-start gap-2 py-1.5">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          {node.pinnedTargetId && targetName ? (
+            <button
+              type="button"
+              onClick={() => actions.onOpen(node.pinnedTargetId ?? "")}
+              aria-label={`Open ${targetName}`}
+              className="min-w-0 break-words text-left text-sm text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+            >
+              {targetName}
+            </button>
+          ) : (
+            <span className="min-w-0 break-words text-sm text-primary">
+              {pathwaysTrackerName(node.trackerId)}
+            </span>
+          )}
+          {targetName && <PinnedMarker />}
+          <span
+            className="shrink-0 font-mono text-xs text-secondary"
+            data-node-wait
+            data-pinned-route-summary={node.pinnedTargetId ? "" : undefined}
+          >
+            {pinnedWaitLabel(node.totalDays)}
+          </span>
+          {node.unlocks > 1 && (
+            <span className="text-2xs text-tertiary" data-unlock-count>
+              unlocks {node.unlocks} of your targets
+            </span>
+          )}
+        </div>
+        {node.pinnedTargetId && targetName && (
+          <UnpinRouteButton
+            targetId={node.pinnedTargetId}
+            targetName={targetName}
+            onUnpin={actions.onUnpin}
+          />
+        )}
+      </div>
+      {node.children.length > 0 && (
+        <ul className="ml-1.5 flex min-w-0 flex-col border-l border-border pl-2 sm:ml-3 sm:pl-4">
+          {node.children.map((child) => (
+            <PinnedTreeBranch key={child.trackerId} node={child} actions={actions} />
+          ))}
+        </ul>
+      )}
+    </li>
+  )
+}
+
+function PinnedTree({
+  tree,
+  actions,
+}: {
+  tree: PinnedRouteTreeView
+  actions: PinnedTreeActions
+}) {
+  return (
+    <div
+      className="min-w-0 border border-border bg-raised p-3 sm:p-4"
+      data-pinned-tree={tree.sourceTrackerId}
+    >
+      <H3>From {pathwaysTrackerName(tree.sourceTrackerId)}</H3>
+      {tree.root.children.length > 0 && (
+        <ul className="mt-2 flex min-w-0 flex-col">
+          {tree.root.children.map((child) => (
+            <PinnedTreeBranch key={child.trackerId} node={child} actions={actions} />
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function TrackerPathwaysClient({
   trackers,
   initialState,
@@ -759,6 +910,37 @@ export function TrackerPathwaysClient({
       .sort((a, b) => a.targetName.localeCompare(b.targetName))
   }, [catalog, now, state, trackers])
 
+  // One tree per source account. Shared prefixes merge inside the tree builder,
+  // so a tracker that several pins pass through is drawn once on that branch.
+  const pinnedTreeView = useMemo(() => {
+    const paths: PinnedRoutePathInput[] = []
+    const orphans: typeof myPinnedRoutes = []
+    for (const pinned of myPinnedRoutes) {
+      if (!pinned.path) {
+        orphans.push(pinned)
+        continue
+      }
+      paths.push({
+        targetTrackerId: pinned.targetId,
+        steps: pinned.path.steps.map((step, index) => ({
+          sourceTrackerId: step.sourceTrackerId,
+          destinationTrackerId: step.destinationTrackerId,
+          waitDays: hopWaitDays(step, index),
+        })),
+      })
+    }
+    return { ...buildPinnedRouteTrees(paths), orphans }
+  }, [myPinnedRoutes])
+
+  const pinnedActions: PinnedTreeActions = {
+    onUnpin: (targetId) => {
+      void unpinTarget(targetId)
+    },
+    onOpen: (targetId) => {
+      void chooseTarget(targetId)
+    },
+  }
+
   async function persistState(
     next: RecruitmentState,
     previous: RecruitmentState
@@ -836,63 +1018,66 @@ export function TrackerPathwaysClient({
         <div className="flex flex-col gap-1">
           <H2 id="my-pinned-routes-heading">My pinned routes</H2>
           <Paragraph>
-            Every route you pinned, for every target, with its hops and wait. Pins are saved per
-            target, so switching targets keeps them all.
+            One tree per tracker you are on. Routes that share steps share a branch; pinned
+            targets are marked, and every node shows its wait from the start.
           </Paragraph>
         </div>
 
-        {myPinnedRoutes.length === 0 ? (
+        {pinnedTreeView.trees.length === 0 && pinnedTreeView.orphans.length === 0 ? (
           <p className="text-sm text-secondary">No pinned routes yet. Pin one below to keep it here.</p>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {myPinnedRoutes.map((pinned) => (
-              <li
-                key={pinned.targetId}
-                data-pinned-route={pinned.targetId}
-                className="flex min-w-0 flex-col gap-2 border border-border bg-raised p-3"
-              >
-                <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={() => chooseTarget(pinned.targetId)}
-                      aria-label={`Open ${pinned.targetName}`}
-                      className="w-fit text-left font-cond text-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+          <div className="flex min-w-0 flex-col gap-3">
+            {pinnedTreeView.nextStep && (
+              <p className="text-sm text-secondary" data-next-step>
+                Next step:{" "}
+                <span className="font-semibold text-primary">
+                  {pathwaysTrackerName(pinnedTreeView.nextStep.trackerId)}
+                </span>{" "}
+                from{" "}
+                <span className="font-semibold text-primary">
+                  {pathwaysTrackerName(pinnedTreeView.nextStep.sourceTrackerId)}
+                </span>{" "}
+                <span className="font-mono">
+                  {nextStepWaitPhrase(pinnedTreeView.nextStep.totalDays)}
+                </span>
+              </p>
+            )}
+
+            {pinnedTreeView.trees.length > 0 && (
+              <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-2">
+                {pinnedTreeView.trees.map((tree) => (
+                  <PinnedTree key={tree.sourceTrackerId} tree={tree} actions={pinnedActions} />
+                ))}
+              </div>
+            )}
+
+            {pinnedTreeView.orphans.length > 0 && (
+              <div className="flex min-w-0 flex-col gap-2 border border-border bg-raised p-3">
+                <H3>Pins with no current route</H3>
+                <ul className="flex min-w-0 flex-col gap-1">
+                  {pinnedTreeView.orphans.map((pinned) => (
+                    <li
+                      key={pinned.targetId}
+                      className="group flex min-w-0 items-start justify-between gap-2"
+                      data-pinned-route={pinned.targetId}
                     >
-                      {pinned.targetName}
-                    </button>
-                    {pinned.path ? (
-                      <>
-                        <p
-                          className="flex flex-wrap items-baseline gap-x-2 text-xs text-secondary"
-                          data-pinned-route-summary
-                        >
-                          <span className="font-mono">
-                            {pinned.path.routeIds.length}{" "}
-                            {pinned.path.routeIds.length === 1 ? "hop" : "hops"}
-                          </span>
-                          <span className="text-tertiary">&middot;</span>
-                          <span>{pathWaitValue(pinned.path)}</span>
-                        </p>
-                        <p className="break-words text-2xs text-tertiary">
-                          {routeChain(pinned.path)}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-xs text-warn">Pinned route is not in the current data.</p>
-                    )}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    text="Unpin"
-                    aria-label={`Unpin route to ${pinned.targetName}`}
-                    onClick={() => unpinTarget(pinned.targetId)}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
+                      <div className="flex min-w-0 flex-col">
+                        <span className="break-words text-sm text-primary">{pinned.targetName}</span>
+                        <span className="text-xs text-warn">
+                          Pinned route is not in the current data.
+                        </span>
+                      </div>
+                      <UnpinRouteButton
+                        targetId={pinned.targetId}
+                        targetName={pinned.targetName}
+                        onUnpin={pinnedActions.onUnpin}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </section>
 

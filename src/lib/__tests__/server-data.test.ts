@@ -378,6 +378,8 @@ describe("serializeTrackerResponse excludes encryptedApiToken", () => {
       qbtTag: null,
       mouseholeUrl: null,
       hasMouseholeToken: false,
+      profileReadingEnabled: false,
+      hasProfileCookie: false,
       hideUnreadBadges: false,
       remoteUserId: null,
       platformMeta: null,
@@ -422,6 +424,12 @@ describe("trackerColumns security invariant", () => {
     expect(columnKeys).toContain("hasMouseholeToken")
   })
 
+  it("does NOT include encryptedProfileCookie, only its presence flag", () => {
+    expect(columnKeys).not.toContain("encryptedProfileCookie")
+    expect(columnKeys).toContain("hasProfileCookie")
+    expect(columnKeys).toContain("profileReadingEnabled")
+  })
+
   it("does NOT include avatarData (large binary, served via dedicated route)", () => {
     expect(columnKeys).not.toContain("avatarData")
     expect(columnKeys).not.toContain("avatarMimeType")
@@ -444,6 +452,8 @@ describe("trackerColumns security invariant", () => {
       "qbtTag",
       "mouseholeUrl",
       "hasMouseholeToken",
+      "profileReadingEnabled",
+      "hasProfileCookie",
       "useProxy",
       "countCrossSeedUnsatisfied",
       "isFavorite",

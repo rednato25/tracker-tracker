@@ -21,9 +21,16 @@ import { encrypt } from "@/lib/crypto"
 import { db } from "@/lib/db"
 import { trackers } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
-import { LONG_STRING_MAX, maxTokenLengthFor, TRACKER_NAME_MAX, TRACKER_TAG_MAX } from "@/lib/limits"
+import {
+  LONG_STRING_MAX,
+  maxTokenLengthFor,
+  TRACKER_NAME_MAX,
+  TRACKER_TAG_MAX,
+} from "@/lib/limits"
 import { log } from "@/lib/logger"
+import { PROFILE_COOKIE_MAX } from "@/lib/profile-reading/support"
 import { getTrackerForClient } from "@/lib/server-data"
+import { validateCookieHeader } from "@/lib/tracker-credentials/cookie-header"
 
 export async function GET(_request: Request, props: RouteContext) {
   const auth = await authenticate()
@@ -116,6 +123,31 @@ export async function PATCH(request: Request, props: RouteContext) {
     updates.encryptedMouseholeToken = trimmedMouseholeToken
       ? encrypt(trimmedMouseholeToken, decodeKey(auth))
       : null
+  }
+
+  // P49: opt-in daily profile reading. The cookie is a Cookie header value and
+  // is sealed exactly like the other tracker secrets. An empty string clears it.
+  if (typeof body.profileReadingEnabled === "boolean") {
+    updates.profileReadingEnabled = body.profileReadingEnabled
+  }
+  if (typeof body.profileCookie === "string") {
+    const rawCookie = (body.profileCookie as string).trim()
+    if (rawCookie) {
+      const cookieLengthErr = validateMaxLength(rawCookie, PROFILE_COOKIE_MAX, "Session cookie")
+      if (cookieLengthErr) return cookieLengthErr
+      let cookie: string
+      try {
+        cookie = validateCookieHeader(rawCookie, { example: "session=abc123" })
+      } catch (err) {
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : "Session cookie is invalid" },
+          { status: 400 }
+        )
+      }
+      updates.encryptedProfileCookie = encrypt(cookie, decodeKey(auth))
+    } else {
+      updates.encryptedProfileCookie = null
+    }
   }
 
   if (typeof body.useProxy === "boolean") updates.useProxy = body.useProxy

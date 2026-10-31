@@ -35,6 +35,7 @@ import {
   MOUSEHOLE_URL_PLACEHOLDER,
   MOUSEHOLE_URL_TIP,
 } from "@/lib/mousehole"
+import { PROFILE_READING_WARNING, supportsProfileReading } from "@/lib/profile-reading/support"
 import { trackerQueryOptions } from "@/lib/query-options"
 import type { TrackerSummary } from "@/types/api"
 
@@ -60,6 +61,7 @@ interface FormState {
   countCrossSeedUnsatisfied: boolean
   hideUnreadBadges: boolean
   mouseholeUrl: string
+  profileReadingEnabled: boolean
 }
 
 function formStateFromTracker(t: TrackerSummary): FormState {
@@ -73,6 +75,7 @@ function formStateFromTracker(t: TrackerSummary): FormState {
     countCrossSeedUnsatisfied: t.countCrossSeedUnsatisfied ?? false,
     hideUnreadBadges: t.hideUnreadBadges ?? false,
     mouseholeUrl: t.mouseholeUrl ?? "",
+    profileReadingEnabled: t.profileReadingEnabled ?? false,
   }
 }
 
@@ -109,6 +112,7 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
 
   const registryEntry = registryEntryFor(tracker)
   const hasLoginPolicy = !!registryEntry?.rules?.loginIntervalDays
+  const profileReadingSupported = supportsProfileReading(tracker)
 
   const [proxyAvailable, setProxyAvailable] = useState<boolean | null>(null)
 
@@ -124,6 +128,9 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
 
   const [changingKey, setChangingKey] = useState(false)
   const [changingMouseholeToken, setChangingMouseholeToken] = useState(false)
+  const [changingProfileCookie, setChangingProfileCookie] = useState(false)
+  const [profileCookie, setProfileCookie] = useState("")
+  const [clearProfileCookie, setClearProfileCookie] = useState(false)
   // Transient like `credentials`, not part of the form. The saved token never
   // reaches the browser, and a value typed then abandoned must not survive a
   // close, where MaskedSecret would hide it until the next save sent it.
@@ -142,6 +149,9 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
   const resetTransientState = useCallback(() => {
     setChangingKey(false)
     setChangingMouseholeToken(false)
+    setChangingProfileCookie(false)
+    setProfileCookie("")
+    setClearProfileCookie(false)
     setMouseholeToken("")
     setCredentials(EMPTY_CREDENTIAL_VALUES)
     setErrors({})
@@ -231,6 +241,14 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
       countCrossSeedUnsatisfied: form.countCrossSeedUnsatisfied,
       hideUnreadBadges: form.hideUnreadBadges,
       mouseholeUrl: form.mouseholeUrl.trim(),
+      profileReadingEnabled: form.profileReadingEnabled,
+    }
+
+    const trimmedProfileCookie = profileCookie.trim()
+    if (clearProfileCookie) {
+      payload.profileCookie = ""
+    } else if (trimmedProfileCookie) {
+      payload.profileCookie = trimmedProfileCookie
     }
 
     if (changingKey && trimmedToken) {
@@ -534,6 +552,81 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
             onChange={(v) => updateField("countCrossSeedUnsatisfied", v)}
             description="Include cross-seeded torrents when calculating unsatisfied download requirements."
           />
+
+          {profileReadingSupported && (
+            <div className="flex flex-col gap-2 border-t border-border pt-4" data-profile-reading>
+              <Toggle
+                label="Read profile page daily"
+                checked={form.profileReadingEnabled}
+                onChange={(v) => updateField("profileReadingEnabled", v)}
+                description="At most one request per tracker every 24 hours, separate from normal polling."
+              />
+              <p className="text-xs font-sans leading-relaxed text-warn">
+                {PROFILE_READING_WARNING}
+              </p>
+
+              {(form.profileReadingEnabled || tracker.hasProfileCookie) && (
+                <div className="flex flex-col gap-2">
+                  <span className="font-cond text-4xs font-semibold uppercase tracking-[0.14em] text-secondary">
+                    Profile session cookie
+                  </span>
+                  {tracker.hasProfileCookie &&
+                  !changingProfileCookie &&
+                  !clearProfileCookie ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <MaskedSecret onChangeClick={() => setChangingProfileCookie(true)} />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        text="Clear cookie"
+                        onClick={() => {
+                          setClearProfileCookie(true)
+                          setChangingProfileCookie(false)
+                          setProfileCookie("")
+                        }}
+                        disabled={saving}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        type="password"
+                        label="Session cookie"
+                        name="tracker-profile-cookie"
+                        autoComplete="off"
+                        data-1p-ignore
+                        value={profileCookie}
+                        onChange={(e) => {
+                          setProfileCookie(e.target.value)
+                          setClearProfileCookie(false)
+                        }}
+                        placeholder="session=abc123; remember_web_=..."
+                        hint="Paste the Cookie header from DevTools while signed in to this tracker."
+                      />
+                      {(changingProfileCookie || clearProfileCookie) && (
+                        <Button
+                          variant="minimal"
+                          size="sm"
+                          text="Cancel"
+                          className="self-start"
+                          onClick={() => {
+                            setChangingProfileCookie(false)
+                            setProfileCookie("")
+                            setClearProfileCookie(false)
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {clearProfileCookie && (
+                    <p className="text-xs font-sans text-warn">
+                      The saved cookie will be removed when you save changes.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {(tracker.platformType === "mam" || tracker.platformType === "gazelle") && (
             <Toggle

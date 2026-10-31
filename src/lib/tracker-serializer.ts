@@ -19,11 +19,12 @@ type TrackerRow = Omit<
   | "encryptedApiToken"
   | "encryptedCredentials"
   | "encryptedMouseholeToken"
+  | "encryptedProfileCookie"
   | "avatarData"
   | "avatarMimeType"
   | "avatarCachedAt"
   | "avatarRemoteUrl"
-> & { hasMouseholeToken: boolean }
+> & { hasMouseholeToken: boolean; hasProfileCookie: boolean }
 
 export function parsePlatformMeta(raw: string | null): PlatformMeta | null {
   if (!raw) return null
@@ -56,6 +57,8 @@ export function serializeTrackerResponse(
     qbtTag: tracker.qbtTag,
     mouseholeUrl: tracker.mouseholeUrl ?? null,
     hasMouseholeToken: tracker.hasMouseholeToken,
+    profileReadingEnabled: tracker.profileReadingEnabled,
+    hasProfileCookie: tracker.hasProfileCookie,
     useProxy: tracker.useProxy,
     countCrossSeedUnsatisfied: tracker.countCrossSeedUnsatisfied,
     hideUnreadBadges: tracker.hideUnreadBadges,

@@ -91,6 +91,7 @@ function backupCiphertexts(payload: BackupPayload): string[] {
     // existed. The typeof/length filter at the bottom drops both cases.
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedCredentials),
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedMouseholeToken),
+    ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedProfileCookie),
     ...payload.downloadClients.flatMap((c) => [
       (c as Record<string, unknown>).encryptedUsername,
       (c as Record<string, unknown>).encryptedPassword,
@@ -462,6 +463,22 @@ export async function POST(request: Request) {
           mouseholeToken = null
         }
 
+        // The profile-reading session cookie, same null-or-ciphertext rule.
+        let profileCookie: string | null
+        if (canPassThrough) {
+          profileCookie = (fields.encryptedProfileCookie as string) || null
+        } else if (canReencrypt) {
+          profileCookie =
+            reencryptField(
+              (fields.encryptedProfileCookie as string | null | undefined) ?? "",
+              backupKey,
+              currentKey,
+              `tracker '${fields.name}' profileCookie`
+            ) || null
+        } else {
+          profileCookie = null
+        }
+
         // The export selects the whole tracker row minus five runtime fields, so
         // a column missing from this list travels in the file and never comes
         // back. restore-route.test.ts derives the required set from the schema.
@@ -490,6 +507,8 @@ export async function POST(request: Request) {
             platformMeta: (fields.platformMeta as string | null) ?? null,
             mouseholeUrl: (fields.mouseholeUrl as string | null) ?? null,
             encryptedMouseholeToken: mouseholeToken,
+            profileReadingEnabled: Boolean(fields.profileReadingEnabled),
+            encryptedProfileCookie: profileCookie,
             avatarData: (fields.avatarData as string | null) ?? null,
             avatarMimeType: (fields.avatarMimeType as string | null) ?? null,
             avatarCachedAt: fields.avatarCachedAt

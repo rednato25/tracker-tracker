@@ -63,6 +63,7 @@ export async function POST(request: Request) {
         // "nothing to re-key" via isPlaintextSentinel().
         encryptedCredentials: null,
         encryptedMouseholeToken: null,
+        encryptedProfileCookie: null,
         isActive: false,
         lastError: "Emergency lockdown: API token revoked",
         updatedAt: now,

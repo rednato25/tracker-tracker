@@ -1068,6 +1068,63 @@ describe("PATCH /api/trackers/[id]", () => {
     expect(data.error).not.toContain("fake-token-7f3a")
     expect(db.update).not.toHaveBeenCalled()
   })
+
+  it("encrypts the profile-reading session cookie into the tracker row", async () => {
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({
+      profileReadingEnabled: true,
+      profileCookie: " Cookie: session=abc123; csrftoken=xyz ",
+    })
+
+    const mockWhere = vi.fn().mockResolvedValue([])
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: mockSet })
+
+    const request = makeRequest(
+      "http://localhost/api/trackers/1",
+      { profileReadingEnabled: true, profileCookie: "session=abc123; csrftoken=xyz" },
+      "PATCH"
+    )
+    const params = Promise.resolve({ id: "1" })
+    const response = await PATCH(request, { params })
+
+    expect(response.status).toBe(200)
+    expect(encrypt).toHaveBeenCalledWith("session=abc123; csrftoken=xyz", expect.any(Buffer))
+    const updates = mockSet.mock.calls[0]?.[0]
+    expect(updates.profileReadingEnabled).toBe(true)
+    expect(updates.encryptedProfileCookie).toBe("encrypted-token")
+  })
+
+  it("clears the profile-reading cookie on an empty string", async () => {
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({ profileCookie: "" })
+
+    const mockWhere = vi.fn().mockResolvedValue([])
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: mockSet })
+
+    const request = makeRequest("http://localhost/api/trackers/1", { profileCookie: "" }, "PATCH")
+    const params = Promise.resolve({ id: "1" })
+    const response = await PATCH(request, { params })
+
+    expect(response.status).toBe(200)
+    expect(mockSet.mock.calls[0]?.[0].encryptedProfileCookie).toBeNull()
+  })
+
+  it("rejects a cookie name pasted alone without writing", async () => {
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({ profileCookie: "XSRF-TOKEN" })
+
+    const request = makeRequest(
+      "http://localhost/api/trackers/1",
+      { profileCookie: "XSRF-TOKEN" },
+      "PATCH"
+    )
+    const params = Promise.resolve({ id: "1" })
+    const response = await PATCH(request, { params })
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.error).toMatch(/cookie name/i)
+    expect(db.update).not.toHaveBeenCalled()
+  })
 })
 
 describe("DELETE /api/trackers/[id]", () => {

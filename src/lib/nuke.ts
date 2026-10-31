@@ -47,6 +47,7 @@ export async function scrubAndDeleteAll(): Promise<void> {
       // anyway. The rows are deleted at the bottom of this same transaction.
       encryptedCredentials: null,
       encryptedMouseholeToken: null,
+      encryptedProfileCookie: null,
       name: randomHex(8),
       baseUrl: randomHex(16),
       lastError: null,

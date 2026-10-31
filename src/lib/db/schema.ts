@@ -167,6 +167,20 @@ export const trackers = pgTable("trackers", {
   // invariant and the same five lifecycle sites as encryptedCredentials above,
   // so NULL or ciphertext, never "" or a marker.
   encryptedMouseholeToken: text("encrypted_mousehole_token"),
+  /**
+   * P49 opt-in daily profile reading. Off by default: the user must enable it
+   * per tracker and paste a session cookie, because automated page reads may
+   * breach a tracker's rules.
+   */
+  profileReadingEnabled: boolean("profile_reading_enabled").default(false).notNull(),
+  /**
+   * The pasted profile-page session Cookie header, sealed under the master key.
+   *
+   * Same invariant and lifecycle sites as encryptedMouseholeToken above:
+   * NULL or ciphertext, never "" or a marker. It leaves the server only as a
+   * Cookie header to the tracker's own origin.
+   */
+  encryptedProfileCookie: text("encrypted_profile_cookie"),
   avatarData: text("avatar_data"),
   avatarMimeType: varchar("avatar_mime_type", { length: 50 }),
   avatarCachedAt: timestamp("avatar_cached_at"),

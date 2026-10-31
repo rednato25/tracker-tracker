@@ -66,6 +66,10 @@ export interface TrackerSummary {
   qbtTag: string | null
   mouseholeUrl: string | null
   hasMouseholeToken: boolean
+  /** P49 opt-in daily profile reading, off unless the user enables it. */
+  profileReadingEnabled?: boolean
+  /** Whether a session cookie is stored; the cookie itself never leaves the server. */
+  hasProfileCookie?: boolean
   useProxy: boolean
   countCrossSeedUnsatisfied: boolean
   hideUnreadBadges: boolean

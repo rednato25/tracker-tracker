@@ -205,6 +205,7 @@ export function parseCarptProfile(html: string): Partial<TrackerStats> {
     remoteUserId: typeof uid === "number" && uid > 0 ? uid : undefined,
     joinedDate,
     lastAccessDate,
+    lastAccessField: lastAccessDate ? "最近动向" : undefined,
     platformMeta: Object.keys(meta).length > 0 ? meta : undefined,
   }
 }

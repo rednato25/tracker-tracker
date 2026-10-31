@@ -51,6 +51,11 @@
       "version": "0009_notify_login_due",
       "file": "0009_notify_login_due.sql",
       "sha256": "38f75f830ec8fd633f111147859a2a297f1cb51f3c4008fd704569822bcc4af8"
+    },
+    {
+      "version": "0010_last_access_provenance",
+      "file": "0010_last_access_provenance.sql",
+      "sha256": "97421a6894aac9d0a50246d548505d8774e03f81b28059a787788b312d5be316"
     }
   ]
 }

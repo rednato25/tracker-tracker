@@ -224,7 +224,10 @@ export class GazelleAdapter implements TrackerAdapter {
             // Override core stats with richer data from user profile
             if (typeof enriched.warned === "boolean") stats.warned = enriched.warned
             if (enriched.joinedDate) stats.joinedDate = enriched.joinedDate
-            if (enriched.lastAccessDate) stats.lastAccessDate = enriched.lastAccessDate
+            if (enriched.lastAccessDate) {
+              stats.lastAccessDate = enriched.lastAccessDate
+              stats.lastAccessField = "stats.lastAccess"
+            }
             if (enriched.bufferBytes != null) stats.bufferBytes = enriched.bufferBytes
             if (typeof enriched.seedingCount === "number")
               stats.seedingCount = enriched.seedingCount

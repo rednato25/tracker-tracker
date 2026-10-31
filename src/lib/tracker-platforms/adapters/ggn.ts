@@ -198,6 +198,7 @@ export class GGnAdapter implements TrackerAdapter {
       freeleechTokens: null,
       joinedDate: resp.stats.joinedDate ?? undefined,
       lastAccessDate: resp.stats.lastAccess ?? undefined,
+      lastAccessField: resp.stats.lastAccess ? "stats.lastAccess" : undefined,
       shareScore: resp.stats.shareScore ?? undefined,
       platformMeta,
     }

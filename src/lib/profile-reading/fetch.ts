@@ -13,6 +13,7 @@ import { appSettings, trackerSnapshots, trackers } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
 import { trackerDateStr } from "@/lib/formatters"
 import { log } from "@/lib/logger"
+import { PROFILE_LOGIN_FIELD } from "@/lib/profile-login"
 import { withProfileReadRecord } from "@/lib/profile-reading/meta"
 import { profileReadFailed, profileReadStopped, readProfilePageOnce } from "@/lib/profile-reading/read"
 import { supportsProfileReading } from "@/lib/profile-reading/support"
@@ -197,12 +198,16 @@ async function persist(
     platformMeta: string
     lastAccessAt?: string
     lastAccessSource?: "detected"
+    lastAccessField?: string
+    lastAccessUpdatedAt?: Date
   } = {
     platformMeta: withProfileReadRecord(currentMeta, record),
   }
   if (detectedLoginAt) {
     values.lastAccessAt = detectedLoginAt
     values.lastAccessSource = "detected"
+    values.lastAccessField = PROFILE_LOGIN_FIELD
+    values.lastAccessUpdatedAt = record.fetchedAt ? new Date(record.fetchedAt) : new Date()
   }
   await db.update(trackers).set(values).where(eq(trackers.id, trackerId))
 }

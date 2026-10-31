@@ -30,6 +30,8 @@ export interface TrackerStats {
   remoteUserId?: number
   joinedDate?: string
   lastAccessDate?: string
+  /** The API field or page row that supplied lastAccessDate. */
+  lastAccessField?: string
   shareScore?: number
   avatarUrl?: string
   // Declared once, below, so a new meta type cannot be added to one list and

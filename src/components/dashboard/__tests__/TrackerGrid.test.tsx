@@ -569,6 +569,28 @@ describe("TrackerGrid", () => {
     expect(screen.queryByRole("button", { name: "Marked by you" })).not.toBeInTheDocument()
   })
 
+  it("names the field, source and update time on the login ring tooltip", () => {
+    render(
+      <TrackerGrid
+        trackers={[
+          manualTracker({
+            lastAccessAt: "2026-10-25",
+            lastAccessSource: "detected",
+            lastAccessField: "last_login",
+            lastAccessUpdatedAt: "2026-10-25T09:30:00.000Z",
+          }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    fireEvent.mouseEnter(screen.getByLabelText(/Login due in/))
+    const tooltip = screen.getByRole("tooltip")
+    expect(tooltip).toHaveTextContent("Detected from the tracker")
+    expect(tooltip).toHaveTextContent("Field: last_login")
+    expect(tooltip).toHaveTextContent(/Last updated:/)
+  })
+
   it("shows no ring for a tracker without a login rule, only muted text", () => {
     const { container } = render(
       <TrackerGrid

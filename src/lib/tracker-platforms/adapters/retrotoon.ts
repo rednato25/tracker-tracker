@@ -206,7 +206,10 @@ export function parseRetrotoonProfile(html: string, hostname: string): TrackerSt
     freeleechTokens,
   }
   if (joinedDate) stats.joinedDate = joinedDate
-  if (lastAccessDate) stats.lastAccessDate = lastAccessDate
+  if (lastAccessDate) {
+    stats.lastAccessDate = lastAccessDate
+    stats.lastAccessField = "Last seen"
+  }
   // Returned even when empty, so a figure the site stops reporting clears
   // instead of leaving the previous poll's JSON in the row for good.
   stats.platformMeta = meta

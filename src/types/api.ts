@@ -78,6 +78,10 @@ export interface TrackerSummary {
   joinedAt: string | null
   lastAccessAt: string | null
   lastAccessSource?: "detected" | "manual" | null
+  /** Field or page row that supplied lastAccessAt; "manual" for an operator mark. */
+  lastAccessField?: string | null
+  /** ISO instant of the observation that wrote lastAccessAt. */
+  lastAccessUpdatedAt?: string | null
   remoteUserId: number | null
   platformMeta: PlatformMeta | null
   createdAt: string

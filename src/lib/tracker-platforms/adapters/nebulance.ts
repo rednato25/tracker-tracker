@@ -170,6 +170,7 @@ export class NebulanceAdapter implements TrackerAdapter {
       freeleechTokens: null, // Not available from Nebulance API
       joinedDate: resp.JoinDate ?? undefined,
       lastAccessDate: resp.LastAccess ?? undefined,
+      lastAccessField: resp.LastAccess ? "LastAccess" : undefined,
       platformMeta,
     }
   }

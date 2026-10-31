@@ -177,7 +177,10 @@ export function parsePortugasProfile(html: string): Partial<TrackerStats> {
 
   const registration = doc.querySelector(".profile__registration")?.getAttribute("datetime")
   const joinedDate = registration ? datePrefix(normalizeWhitespace(registration)) : undefined
-  const lastAccessDate = findTime(doc, "Última Ação") ?? findTime(doc, "Último Login")
+  const actionTime = findTime(doc, "Última Ação")
+  const loginTime = findTime(doc, "Último Login")
+  const lastAccessDate = actionTime ?? loginTime
+  const lastAccessField = actionTime ? "Última Ação" : loginTime ? "Último Login" : undefined
 
   const userId = parseCount(findKey(values, "ID do Utilizador"))
   const hnrCount = parseCount(findKey(values, "Contagem de HnR"))
@@ -196,6 +199,7 @@ export function parsePortugasProfile(html: string): Partial<TrackerStats> {
     remoteUserId: typeof userId === "number" && userId > 0 ? userId : undefined,
     joinedDate,
     lastAccessDate,
+    lastAccessField,
     hitAndRuns: hnrCount ?? null,
     warned: warnings === undefined ? null : warnings > 0,
     platformMeta: Object.keys(meta).length > 0 ? meta : undefined,

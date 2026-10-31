@@ -526,6 +526,10 @@ export async function POST(request: Request) {
               fields.lastAccessSource === "detected" || fields.lastAccessSource === "manual"
                 ? fields.lastAccessSource
                 : null,
+            lastAccessField: (fields.lastAccessField as string | null) ?? null,
+            lastAccessUpdatedAt: fields.lastAccessUpdatedAt
+              ? new Date(fields.lastAccessUpdatedAt as string)
+              : null,
             profileUrl: (fields.profileUrl as string | null) ?? null,
             createdAt: new Date(fields.createdAt as string),
             updatedAt: new Date(fields.updatedAt as string),

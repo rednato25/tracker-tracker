@@ -63,6 +63,7 @@ const STATS = {
   remoteUserId: null,
   joinedDate: null,
   lastAccessDate: "2026-10-20T15:00:00.000Z",
+  lastAccessField: "last_login",
   platformMeta: null,
   avatarUrl: null,
 }
@@ -121,7 +122,9 @@ describe("pollTracker last-access provenance", () => {
     expect(metadata).toMatchObject({
       lastAccessAt: "2026-10-20",
       lastAccessSource: "detected",
+      lastAccessField: "last_login",
     })
+    expect(metadata?.lastAccessUpdatedAt).toBeInstanceOf(Date)
   })
 
   it("falls back to manual and keeps the last known date when the API stops reporting one", async () => {
@@ -155,7 +158,9 @@ describe("pollTracker last-access provenance", () => {
     expect(metadata).toMatchObject({
       lastAccessAt: "2026-10-31",
       lastAccessSource: "detected",
+      lastAccessField: "Last login (profile page)",
     })
+    expect(metadata?.lastAccessUpdatedAt).toEqual(new Date("2026-10-31T11:00:00.000Z"))
   })
 
   it("keeps a newer manual date over an older profile Last login", async () => {

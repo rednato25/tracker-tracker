@@ -324,6 +324,8 @@ export const trackerColumns = {
   joinedAt: trackers.joinedAt,
   lastAccessAt: trackers.lastAccessAt,
   lastAccessSource: trackers.lastAccessSource,
+  lastAccessField: trackers.lastAccessField,
+  lastAccessUpdatedAt: trackers.lastAccessUpdatedAt,
   profileUrl: trackers.profileUrl,
   createdAt: trackers.createdAt,
   updatedAt: trackers.updatedAt,

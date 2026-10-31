@@ -29,7 +29,7 @@ import { log } from "@/lib/logger"
 import { readLoginDeadline } from "@/lib/login-deadline"
 import { dispatchNotifications } from "@/lib/notifications/dispatch"
 import { maskUsername } from "@/lib/privacy"
-import { profileLoginFromMeta } from "@/lib/profile-login"
+import { PROFILE_LOGIN_FIELD, profileLoginFromMeta } from "@/lib/profile-login"
 import { runProfileReads } from "@/lib/profile-reading/fetch"
 import { withPreservedProfileRead } from "@/lib/profile-reading/meta"
 import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
@@ -51,6 +51,7 @@ import type {
   DigitalCorePlatformMeta,
   HawkePlatformMeta,
   MamPlatformMeta,
+  TrackerStats,
 } from "@/types/tracker-stats"
 
 // Platforms whose only platform alert is download-revoked, read from
@@ -151,6 +152,8 @@ interface LastAccessTracker {
 type LastAccessMetaUpdates = {
   lastAccessAt?: string
   lastAccessSource: "detected" | "manual"
+  lastAccessField?: string
+  lastAccessUpdatedAt?: Date
 }
 
 /**
@@ -161,16 +164,27 @@ type LastAccessMetaUpdates = {
  */
 function lastAccessMetaUpdates(
   tracker: LastAccessTracker,
-  lastAccessDate: string | undefined
+  stats: Pick<TrackerStats, "lastAccessDate" | "lastAccessField">,
+  now: Date
 ): LastAccessMetaUpdates {
-  const lastAccess = lastAccessDate ? trackerDateStr(lastAccessDate) : undefined
+  const lastAccess = stats.lastAccessDate ? trackerDateStr(stats.lastAccessDate) : undefined
   if (lastAccess) {
-    return { lastAccessAt: lastAccess, lastAccessSource: "detected" }
+    return {
+      lastAccessAt: lastAccess,
+      lastAccessSource: "detected",
+      lastAccessField: stats.lastAccessField ?? "adapter",
+      lastAccessUpdatedAt: now,
+    }
   }
 
   const profileLogin = profileLoginFromMeta(tracker)
   if (profileLogin && (!tracker.lastAccessAt || profileLogin.date >= tracker.lastAccessAt)) {
-    return { lastAccessAt: profileLogin.date, lastAccessSource: "detected" }
+    return {
+      lastAccessAt: profileLogin.date,
+      lastAccessSource: "detected",
+      lastAccessField: PROFILE_LOGIN_FIELD,
+      lastAccessUpdatedAt: profileLogin.fetchedAt ? new Date(profileLogin.fetchedAt) : now,
+    }
   }
 
   return { lastAccessSource: "manual" }
@@ -237,7 +251,7 @@ export async function fetchTrackerStats(
     const joined = trackerDateStr(stats.joinedDate)
     if (joined) metaUpdates.joinedAt = joined
   }
-  Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats.lastAccessDate))
+  Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats, new Date()))
   if (stats.platformMeta) metaUpdates.platformMeta = JSON.stringify(withPreservedProfileRead(stats.platformMeta, tracker.platformMeta))
   if (stats.avatarUrl) metaUpdates.avatarRemoteUrl = stats.avatarUrl
   if (Object.keys(metaUpdates).length > 0) {
@@ -314,7 +328,7 @@ export async function pollTracker(
       const joined = trackerDateStr(stats.joinedDate)
       if (joined) metaUpdates.joinedAt = joined
     }
-    Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats.lastAccessDate))
+    Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats, timestamp))
     if (stats.platformMeta) {
       metaUpdates.platformMeta = JSON.stringify(
         withPreservedProfileRead(stats.platformMeta, tracker.platformMeta)

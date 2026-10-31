@@ -740,6 +740,8 @@ describe("PATCH /api/trackers/[id]", () => {
     const updates = mockSet.mock.calls[0]?.[0]
     expect(updates.lastAccessAt).toBe("2026-01-15")
     expect(updates.lastAccessSource).toBe("manual")
+    expect(updates.lastAccessField).toBe("manual")
+    expect(updates.lastAccessUpdatedAt).toBeInstanceOf(Date)
   })
 
   it("clears lastAccessAt when set to null", async () => {
@@ -759,6 +761,8 @@ describe("PATCH /api/trackers/[id]", () => {
     const updates = mockSet.mock.calls[0]?.[0]
     expect(updates.lastAccessAt).toBeNull()
     expect(updates.lastAccessSource).toBeNull()
+    expect(updates.lastAccessField).toBeNull()
+    expect(updates.lastAccessUpdatedAt).toBeNull()
   })
 
   it("returns 400 for malformed lastAccessAt", async () => {

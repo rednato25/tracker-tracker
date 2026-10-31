@@ -601,6 +601,8 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
       joinedAt: "2020-01-01",
       lastAccessAt: "2026-03-01",
       lastAccessSource: "detected",
+      lastAccessField: "last_login",
+      lastAccessUpdatedAt: ISO,
       profileUrl: "https://drift.example.com/users/driftling",
       createdAt: ISO,
       updatedAt: ISO,

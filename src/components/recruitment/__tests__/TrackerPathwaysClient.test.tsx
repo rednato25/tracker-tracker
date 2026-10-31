@@ -587,6 +587,53 @@ describe("TrackerPathwaysClient", () => {
     )
   })
 
+  it("unpins from the tree with a hover-revealed icon button", async () => {
+    const user = userEvent.setup()
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [route("AlphaRatio", "BroadcasTheNet", { minimumDays: 2 })],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:BroadcasTheNet",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    const row = container.querySelector(
+      '[data-pinned-route="BroadcasTheNet"]'
+    ) as HTMLElement
+    const button = within(row).getByRole("button", {
+      name: "Unpin route to BroadcasTheNet",
+    })
+    // Always visible on phones, revealed on hover or keyboard focus on desktop.
+    expect(button.parentElement?.className).toContain("opacity-100")
+    expect(button.parentElement?.className).toContain("sm:opacity-0")
+    expect(button.parentElement?.className).toContain("sm:group-hover:opacity-100")
+
+    await user.hover(button)
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Unpin route to BroadcasTheNet"
+    )
+
+    await user.click(button)
+    await waitFor(() => {
+      const put = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT").at(-1)
+      expect(JSON.parse(String(put?.[1]?.body)).state.pinnedRoutes).toEqual({})
+    })
+    await waitFor(() => {
+      expect(container.querySelector('[data-pinned-route="BroadcasTheNet"]')).toBeNull()
+    })
+  })
+
   it("keeps pins per target when switching targets and lists them at the top", async () => {
     const user = userEvent.setup()
     const pinCatalog: RecruitmentCatalog = {

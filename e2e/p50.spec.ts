@@ -154,7 +154,10 @@ test.describe.serial("P50 login ring", () => {
         "font-variant-numeric",
         "tabular-nums"
       )
-      await expect(normalCard.locator("[data-login-by]")).toContainText(/100 days left · by/)
+      const normalBy = normalCard.locator("[data-login-by]")
+      await expect(normalBy).toHaveText(/^by\s/)
+      await expect(normalBy).not.toContainText("days left")
+      await expect(normalBy).toHaveClass(/text-tertiary/)
 
       const ringBox = await normalRing.locator('[role="img"]').boundingBox()
       const valueBox = await normalRing.locator("[data-ring-value]").boundingBox()
@@ -165,6 +168,7 @@ test.describe.serial("P50 login ring", () => {
       const overdueCard = page.locator(`[data-tracker-card="${ids[2]}"]`)
       await expect(overdueCard.locator("[data-ring-value]")).toHaveText("!")
       await expect(overdueCard.locator("[data-login-by]")).toHaveText(/overdue by 10 days/)
+      await expect(overdueCard.locator("[data-login-by]")).toHaveClass(/text-danger/)
 
       const grid = page.locator("#main-content [data-tracker-grid]")
       await grid.scrollIntoViewIfNeeded()

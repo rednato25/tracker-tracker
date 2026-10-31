@@ -117,6 +117,36 @@ describe("torrent movers", () => {
     expect(screen.getByText("Seeding Movie")).toBeInTheDocument()
   })
 
+  it("says No transfer today instead of showing an empty list", () => {
+    render(
+      <MoversAndShakers
+        movers={{
+          ...data().movers,
+          topUploaders: [],
+          topDownloaders: [],
+        }}
+      />
+    )
+    expect(screen.getByText("No transfer today")).toBeInTheDocument()
+    expect(screen.queryByText("Top Uploaders")).not.toBeInTheDocument()
+    expect(screen.queryByText("Top Downloaders")).not.toBeInTheDocument()
+  })
+
+  it("keeps the unmatched hint beside No transfer today", () => {
+    render(
+      <MoversAndShakers
+        movers={{
+          ...data().movers,
+          unmatchedTorrents: 3,
+          topUploaders: [],
+          topDownloaders: [],
+        }}
+      />
+    )
+    expect(screen.getByText("No transfer today")).toBeInTheDocument()
+    expect(screen.getByText(/3 torrents found, but none/)).toBeInTheDocument()
+  })
+
   it("hides both lists when no download client is connected", () => {
     const { container } = render(
       <MoversAndShakers
@@ -146,6 +176,24 @@ describe("Today at a glance", () => {
     expect(screen.getByText("Torrent transfer today")).toBeInTheDocument()
   })
 
+  it("shows No transfer today when a client is connected but nothing moved", () => {
+    render(
+      <TodayAtAGlance
+        data={data({
+          activity: { addedToday: 0, completedToday: 0 },
+          movers: {
+            clientCount: 1,
+            unmatchedTorrents: 0,
+            topUploaders: [],
+            topDownloaders: [],
+          },
+        })}
+      />
+    )
+    expect(screen.getByText("Torrent transfer today")).toBeInTheDocument()
+    expect(screen.getByText("No transfer today")).toBeInTheDocument()
+  })
+
   it("does not render torrent lists without a download client", () => {
     render(
       <TodayAtAGlance
@@ -161,5 +209,6 @@ describe("Today at a glance", () => {
     )
     expect(screen.queryByText("Top Uploaders")).not.toBeInTheDocument()
     expect(screen.queryByText("Top Downloaders")).not.toBeInTheDocument()
+    expect(screen.queryByText("No transfer today")).not.toBeInTheDocument()
   })
 })

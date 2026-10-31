@@ -2,6 +2,7 @@
 //
 // P11/P13 visual evidence with synthetic data. Runs against the guarded
 // tracker_tracker_e2e database and never contacts a tracker or download client.
+import { mkdir } from "node:fs/promises"
 import { createServer } from "node:http"
 import { expect, test } from "@playwright/test"
 import { deriveKey, encrypt } from "../src/lib/crypto"
@@ -2093,6 +2094,7 @@ test.describe.serial("P42 dashboard card visual evidence", () => {
           group: "User",
           target: "Power User",
           lastAccessAt: new Date(Date.now() - 115 * 24 * 60 * 60 * 1000),
+          lastAccessSource: "manual",
         },
         {
           name: "TEST P42 Detected Login",
@@ -2101,16 +2103,17 @@ test.describe.serial("P42 dashboard card visual evidence", () => {
           group: "Zeus",
           target: "Helios",
           lastAccessAt: new Date(),
+          lastAccessSource: "detected",
         },
       ]
       for (const row of rows) {
         const [tracker] = await sql<{ id: number }[]>`
           insert into trackers (
             name, base_url, registry_slug, platform_type, is_active, joined_at,
-            last_access_at, last_polled_at, encrypted_api_token, created_at, updated_at
+            last_access_at, last_access_source, last_polled_at, encrypted_api_token, created_at, updated_at
           ) values (
             ${row.name}, ${`https://${row.slug}.invalid`}, ${row.slug}, ${row.platform}, true,
-            '2021-08-01', ${row.lastAccessAt}, now(), ${encrypt("synthetic-p42-token", key)},
+            '2021-08-01', ${row.lastAccessAt}, ${row.lastAccessSource}, now(), ${encrypt("synthetic-p42-token", key)},
             now(), now()
           ) returning id
         `
@@ -2152,7 +2155,9 @@ test.describe.serial("P42 dashboard card visual evidence", () => {
     const grid = page.locator("#main-content [data-tracker-grid]")
     await expect(grid).toBeVisible({ timeout: 15_000 })
     await expect(grid.getByText("TEST P42 Manual Login")).toBeVisible()
-    await expect(grid.getByText(/Last login: 11[456] days ago/)).toBeVisible()
+    await expect(grid.getByText(/Last login 11[456] days ago/)).toBeVisible()
+    await expect(grid.getByText("marked by you")).toBeVisible()
+    await expect(grid.getByText("detected", { exact: true })).toBeVisible()
     await expect(grid.getByText("2 of 3 met")).toBeVisible()
     const dueButton = grid.getByRole("button", { name: "Logged in today" })
     await expect(dueButton).toHaveAttribute("data-login-due", "true")
@@ -2183,5 +2188,167 @@ test.describe.serial("P42 dashboard card visual evidence", () => {
     test.setTimeout(90_000)
     await capture(page, 1440, 1000)
     await capture(page, 390, 1200)
+  })
+})
+
+test.describe.serial("P48 login deadline visual evidence", () => {
+  interface P48Fixture {
+    id: number
+    name: string
+    lastAccessSource: "manual" | "detected"
+  }
+
+  const fixtures: P48Fixture[] = []
+
+  test.beforeAll(async () => {
+    const sql = e2eSql()
+    try {
+      const [settings] = await sql<{ encryption_salt: string }[]>`
+        select encryption_salt from app_settings limit 1
+      `
+      const key = await deriveKey(E2E_OWNER.password, settings.encryption_salt)
+      const day = 24 * 60 * 60 * 1000
+      const rows = [
+        {
+          name: "TEST P48 Overdue",
+          slug: "myanonamouse",
+          platform: "mam",
+          group: "User",
+          target: "Power User",
+          lastAccessAt: new Date(Date.now() - 125 * day),
+          lastAccessSource: "manual" as const,
+        },
+        {
+          name: "TEST P48 Due Soon",
+          slug: "myanonamouse",
+          platform: "mam",
+          group: "User",
+          target: "Power User",
+          lastAccessAt: new Date(Date.now() - 115 * day),
+          lastAccessSource: "manual" as const,
+        },
+        {
+          name: "TEST P48 No Rule",
+          slug: "torrentleech",
+          platform: "torrentleech",
+          group: "Power User",
+          target: "Power User",
+          lastAccessAt: new Date(Date.now() - 10 * day),
+          lastAccessSource: "manual" as const,
+        },
+        {
+          name: "TEST P48 Detected",
+          slug: "aither",
+          platform: "unit3d",
+          group: "Zeus",
+          target: "Helios",
+          lastAccessAt: new Date(Date.now() - 2 * day),
+          lastAccessSource: "detected" as const,
+        },
+      ]
+
+      for (const row of rows) {
+        const [tracker] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active, joined_at,
+            last_access_at, last_access_source, last_polled_at, encrypted_api_token, created_at, updated_at
+          ) values (
+            ${row.name}, ${`https://p48-${row.slug}.invalid`}, ${row.slug}, ${row.platform}, true,
+            '2021-08-01', ${row.lastAccessAt}, ${row.lastAccessSource}, now(),
+            ${encrypt("synthetic-p48-token", key)}, now(), now()
+          ) returning id
+        `
+        fixtures.push({
+          id: tracker.id,
+          name: row.name,
+          lastAccessSource: row.lastAccessSource,
+        })
+        await sql`
+          insert into tracker_snapshots (
+            tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio, group_name,
+            buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+            required_ratio, warned, freeleech_tokens, is_manual
+          ) values (
+            ${tracker.id}, now(), ${2 * 1024 ** 4}, ${1.5 * 1024 ** 4}, 1.33, ${row.group},
+            ${0.5 * 1024 ** 4}, 8, 1, 1234, 0, 1, false, 0, false
+          )
+        `
+      }
+
+      const goals = Object.fromEntries(fixtures.map((fixture) => [String(fixture.id), { targetRank: rows.find((row) => row.name === fixture.name)?.target }]))
+      await sql`update app_settings set rank_goals = ${JSON.stringify(goals)}`
+    } finally {
+      await sql.end()
+    }
+    await mkdir("docs/screenshots/p48", { recursive: true })
+  })
+
+  test.afterAll(async () => {
+    const sql = e2eSql()
+    try {
+      await sql`update app_settings set rank_goals = null`
+      for (const fixture of fixtures) {
+        await sql`delete from trackers where id = ${fixture.id}`
+      }
+    } finally {
+      await sql.end()
+    }
+  })
+
+  async function capture(page: import("@playwright/test").Page, width: number, height: number) {
+    await page.setViewportSize({ width, height })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Grid" }).click()
+    const grid = page.locator("#main-content [data-tracker-grid]")
+    await expect(grid).toBeVisible({ timeout: 15_000 })
+    await expect(grid.getByText("TEST P48 Overdue")).toBeVisible()
+
+    await expect(grid.getByText("Last login 125 days ago")).toBeVisible()
+    const overdue = grid.getByText("Overdue by 5 days")
+    await expect(overdue).toBeVisible()
+    await expect(overdue).toHaveClass(/text-danger/)
+
+    const dueSoon = grid.getByText("due in 5 days")
+    await expect(dueSoon).toBeVisible()
+    await expect(dueSoon).toHaveClass(/text-warn/)
+
+    await expect(grid.getByText("No login rule")).toBeVisible()
+    await expect(grid.getByText("detected", { exact: true })).toBeVisible()
+    await expect(grid.getByText("marked by you")).toHaveCount(3)
+    await expect(grid.getByRole("button", { name: "Logged in today" })).toHaveCount(3)
+
+    const detected = fixtures.find((fixture) => fixture.lastAccessSource === "detected")
+    if (!detected) throw new Error("missing detected fixture")
+    await expect(
+      grid.locator(`[data-tracker-card="${detected.id}"]`).getByRole("button", {
+        name: "Logged in today",
+      })
+    ).toHaveCount(0)
+
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((nextTheme) => {
+        document.documentElement.dataset.theme = nextTheme
+      }, theme)
+      await page.waitForTimeout(150)
+      await grid.screenshot({
+        path: `docs/screenshots/p48/login-deadline-${width}-${theme}.png`,
+      })
+    }
+
+    const overflow = await page.evaluate(() => ({
+      html: document.documentElement.scrollWidth > window.innerWidth,
+      main: (() => {
+        const main = document.querySelector<HTMLElement>("#main-content")
+        return main ? main.scrollWidth > main.clientWidth : false
+      })(),
+    }))
+    expect(overflow.html, `page overflows horizontally at ${width}px`).toBe(false)
+    expect(overflow.main, `main overflows horizontally at ${width}px`).toBe(false)
+  }
+
+  test("captures the login deadline grid light and dark at 1440px and 390px", async ({ page }) => {
+    test.setTimeout(120_000)
+    await capture(page, 1440, 2000)
+    await capture(page, 390, 5200)
   })
 })

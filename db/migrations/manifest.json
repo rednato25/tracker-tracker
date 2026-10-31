@@ -36,6 +36,11 @@
       "version": "0006_recruitment_state",
       "file": "0006_recruitment_state.sql",
       "sha256": "2791bfe2d4142764d254ce6d67a23d11b34c8b275cc49c0fdd18e42a2e9da4c2"
+    },
+    {
+      "version": "0007_last_access_source",
+      "file": "0007_last_access_source.sql",
+      "sha256": "b04bf20b569cf2f38c73ae4e717d61a4c598af8efe58b94d092b126d972c6ab6"
     }
   ]
 }

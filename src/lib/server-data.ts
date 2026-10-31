@@ -318,6 +318,7 @@ export const trackerColumns = {
   sortOrder: trackers.sortOrder,
   joinedAt: trackers.joinedAt,
   lastAccessAt: trackers.lastAccessAt,
+  lastAccessSource: trackers.lastAccessSource,
   profileUrl: trackers.profileUrl,
   createdAt: trackers.createdAt,
   updatedAt: trackers.updatedAt,

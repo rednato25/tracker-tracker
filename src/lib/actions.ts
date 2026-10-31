@@ -87,6 +87,13 @@ const PRIORITY_ORDER: Record<ActionPriority, number> = {
   low: 3,
 }
 
+// Operator attention first: an overdue login, then one due inside the reminder
+// window, then every other action by severity.
+const LOGIN_ACTION_RANK: Partial<Record<ActionType, number>> = {
+  "login-overdue": 0,
+  "login-due": 1,
+}
+
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
@@ -114,6 +121,9 @@ function pushUnique(actions: Map<string, TrackerAction>, action: TrackerAction):
 }
 
 function compareActions(a: TrackerAction, b: TrackerAction): number {
+  const loginRank = LOGIN_ACTION_RANK[a.type] ?? 2
+  const otherLoginRank = LOGIN_ACTION_RANK[b.type] ?? 2
+  if (loginRank !== otherLoginRank) return loginRank - otherLoginRank
   const priority = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
   if (priority !== 0) return priority
   if (a.deadline !== b.deadline) {

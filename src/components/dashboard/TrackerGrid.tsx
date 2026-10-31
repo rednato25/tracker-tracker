@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Button, PulseDot } from "@/components/ui"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
+import { registryEntryFor } from "@/data/tracker-registry"
 import {
   formatAccountAge,
   formatBytesFromString,
@@ -19,7 +20,8 @@ import {
   formatRatioDisplay,
   localDateStr,
 } from "@/lib/formatters"
-import { canDetectLogin } from "@/lib/login-detection"
+import { readLoginDeadline } from "@/lib/login-deadline"
+import { loginSourceFor } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
@@ -80,29 +82,6 @@ function statusTone(label: string | null): string {
   return "text-secondary"
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
-function startOfDay(value: Date): number {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
-}
-
-function loginDate(value: string): Date | null {
-  const bare = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  const date = bare
-    ? new Date(`${value}T00:00:00`)
-    : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-function lastLoginLabel(lastAccessAt: string | null, now: Date): string {
-  if (!lastAccessAt) return "Last login: not recorded"
-  const last = loginDate(lastAccessAt)
-  if (!last) return "Last login: not recorded"
-  const days = Math.max(0, Math.floor((startOfDay(now) - startOfDay(last)) / DAY_MS))
-  if (days === 0) return "Last login: today"
-  return `Last login: ${days} day${days === 1 ? "" : "s"} ago`
-}
-
 interface LoginMarkUndo {
   previous: string | null
 }
@@ -113,13 +92,15 @@ function useLoginMarking(
   onUpdated?: (tracker: TrackerSummary) => void
 ) {
   const [lastAccessAt, setLastAccessAt] = useState(tracker.lastAccessAt)
+  const [lastAccessSource, setLastAccessSource] = useState(tracker.lastAccessSource ?? null)
   const [undo, setUndo] = useState<LoginMarkUndo | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(false)
 
   useEffect(() => {
     setLastAccessAt(tracker.lastAccessAt)
-  }, [tracker.lastAccessAt])
+    setLastAccessSource(tracker.lastAccessSource ?? null)
+  }, [tracker.lastAccessAt, tracker.lastAccessSource])
 
   useEffect(() => {
     if (!undo) return
@@ -145,6 +126,7 @@ function useLoginMarking(
     try {
       const updated = await patchLastAccess(localDateStr(now))
       setLastAccessAt(updated.lastAccessAt)
+      setLastAccessSource(updated.lastAccessSource ?? null)
       setUndo({ previous })
       onUpdated?.(updated)
     } catch {
@@ -162,6 +144,7 @@ function useLoginMarking(
     try {
       const updated = await patchLastAccess(previous)
       setLastAccessAt(updated.lastAccessAt)
+      setLastAccessSource(updated.lastAccessSource ?? null)
       setUndo(null)
       onUpdated?.(updated)
     } catch {
@@ -171,7 +154,7 @@ function useLoginMarking(
     }
   }
 
-  return { lastAccessAt, undo, saving, error, markLogin, undoMark }
+  return { lastAccessAt, lastAccessSource, undo, saving, error, markLogin, undoMark }
 }
 
 function bufferValue(tracker: TrackerSummary): string {
@@ -298,12 +281,31 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const targetRank = summary?.targetReached ? automaticTarget : (savedTarget ?? automaticTarget)
   const isAutomaticTarget = !savedTarget || Boolean(summary?.targetReached)
   const topOfLadder = !targetRank
-  const manualLogin = !canDetectLogin(tracker.platformType)
   const loginMarking = useLoginMarking(tracker, now, onTrackerUpdated)
-  const loginWindow = manualLogin
-    ? readLoginWindow({ ...tracker, lastAccessAt: loginMarking.lastAccessAt }, now)
-    : null
-  const loginDueSoon = loginWindow?.tone === "warn" || loginWindow?.tone === "crit"
+  const loginWindow = readLoginWindow(
+    { ...tracker, lastAccessAt: loginMarking.lastAccessAt },
+    now
+  )
+  const loginDeadline = readLoginDeadline({
+    lastAccessAt: loginMarking.lastAccessAt,
+    intervalDays: registryEntryFor(tracker)?.rules?.loginIntervalDays,
+    now,
+  })
+  const loginDueSoon = loginWindow.tone === "warn" || loginWindow.tone === "crit"
+  const loginSource = loginSourceFor({
+    lastAccessAt: loginMarking.lastAccessAt,
+    lastAccessSource: loginMarking.lastAccessSource,
+    platformType: tracker.platformType,
+  })
+  const manualLogin = loginSource !== "detected"
+  const loginDeadlineTone =
+    loginDeadline.overdueDays !== null
+      ? "text-danger"
+      : loginDeadline.tone === "warn"
+        ? "text-warn"
+        : loginDeadline.tone === "muted"
+          ? "text-tertiary"
+          : "text-secondary"
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -508,7 +510,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       </div>
       </Link>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+      <div className="flex flex-col gap-2 border-t border-border px-4 py-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <a
             href={tracker.baseUrl.startsWith("http") ? tracker.baseUrl : `https://${tracker.baseUrl}`}
@@ -524,53 +526,64 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             Open site
             <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
           </a>
-          {manualLogin && (
-            <>
-              <span className="text-tertiary">{"\u00b7"}</span>
-              <span className="font-mono text-xs text-secondary" data-last-login>
-                {lastLoginLabel(loginMarking.lastAccessAt, now)}
-              </span>
-            </>
-          )}
+          <span className="text-tertiary">{"\u00b7"}</span>
+          <span className="font-mono text-xs text-secondary" data-last-login>
+            {loginDeadline.lastLoginText}
+          </span>
+          <span aria-hidden="true" className="text-tertiary">
+            {"\u00b7"}
+          </span>
+          <span className={clsx("font-mono text-xs", loginDeadlineTone)} data-login-deadline>
+            {loginDeadline.dueText}
+          </span>
         </div>
-        {manualLogin && (
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {loginMarking.undo ? (
-              <>
-                <span className="font-mono text-xs text-success" role="status">
-                  Logged in today
-                </span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-tertiary" data-login-source>
+            {loginSource === "none"
+              ? ""
+              : loginSource === "detected"
+                ? "detected"
+                : "marked by you"}
+          </span>
+          {manualLogin && (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {loginMarking.undo ? (
+                <>
+                  <span className="font-mono text-xs text-success" role="status">
+                    Logged in today
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void loginMarking.undoMark()}
+                    disabled={loginMarking.saving}
+                    className="min-h-11 sm:min-h-9"
+                    data-login-undo
+                  >
+                    Undo
+                  </Button>
+                </>
+              ) : (
                 <Button
                   size="sm"
-                  variant="ghost"
-                  onClick={() => void loginMarking.undoMark()}
+                  variant={loginDueSoon ? "primary" : "secondary"}
+                  onClick={() => void loginMarking.markLogin()}
                   disabled={loginMarking.saving}
                   className="min-h-11 sm:min-h-9"
-                  data-login-undo
+                  data-login-button
+                  data-login-due={loginDueSoon ? "true" : undefined}
                 >
-                  Undo
+                  {loginMarking.saving ? "Saving…" : "Logged in today"}
                 </Button>
-              </>
-            ) : (
-              <Button
-                size="sm"
-                variant={loginDueSoon ? "primary" : "secondary"}
-                onClick={() => void loginMarking.markLogin()}
-                disabled={loginMarking.saving}
-                className="min-h-11 sm:min-h-9"
-                data-login-button
-                data-login-due={loginDueSoon ? "true" : undefined}
-              >
-                {loginMarking.saving ? "Saving…" : "Logged in today"}
-              </Button>
-            )}
-            {loginMarking.error && (
-              <span className="text-xs text-danger" role="alert">
-                Could not record login
-              </span>
-            )}
-          </div>
-        )}
+              )}
+              {loginMarking.error && (
+                <span className="text-xs text-danger" role="alert">
+                  Could not record login
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </article>
   )

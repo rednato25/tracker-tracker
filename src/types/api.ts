@@ -73,6 +73,7 @@ export interface TrackerSummary {
   sortOrder: number | null
   joinedAt: string | null
   lastAccessAt: string | null
+  lastAccessSource?: "detected" | "manual" | null
   remoteUserId: number | null
   platformMeta: PlatformMeta | null
   createdAt: string

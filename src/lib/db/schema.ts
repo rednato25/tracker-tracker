@@ -178,6 +178,9 @@ export const trackers = pgTable("trackers", {
   sortOrder: integer("sort_order"),
   joinedAt: date("joined_at"),
   lastAccessAt: date("last_access_at"),
+  // Where lastAccessAt came from: an adapter-reported value ("detected") or an
+  // operator's marker ("manual"). NULL means a legacy row or no value yet.
+  lastAccessSource: varchar("last_access_source", { length: 16 }),
   profileUrl: text("profile_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

@@ -29,6 +29,7 @@ import {
   validateCredentialValues,
 } from "@/lib/credential-forms"
 import { localDateStr } from "@/lib/formatters"
+import { loginDetectingPlatformLabels } from "@/lib/login-detection"
 import {
   MOUSEHOLE_TOKEN_TIP,
   MOUSEHOLE_URL_PLACEHOLDER,
@@ -503,6 +504,13 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
               {tracker.lastAccessAt
                 ? `Currently recorded: ${tracker.lastAccessAt}`
                 : "Not recorded yet."}
+              {tracker.lastAccessSource === "detected"
+                ? " This date came from the tracker."
+                : tracker.lastAccessSource === "manual"
+                  ? " This date was marked by you."
+                  : ""}
+              {" "}Detected automatically for {loginDetectingPlatformLabels().join(", ")}. Other
+              trackers keep a manual marker.
               {!hasLoginPolicy &&
                 " This tracker has no login-interval policy, so no dashboard timer will appear. This is for your own records."}
             </p>

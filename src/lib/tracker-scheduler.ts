@@ -198,7 +198,10 @@ export async function fetchTrackerStats(
   }
   if (stats.lastAccessDate) {
     const lastAccess = trackerDateStr(stats.lastAccessDate)
-    if (lastAccess) metaUpdates.lastAccessAt = lastAccess
+    if (lastAccess) {
+      metaUpdates.lastAccessAt = lastAccess
+      metaUpdates.lastAccessSource = "detected"
+    }
   }
   if (stats.platformMeta) metaUpdates.platformMeta = JSON.stringify(stats.platformMeta)
   if (stats.avatarUrl) metaUpdates.avatarRemoteUrl = stats.avatarUrl
@@ -278,7 +281,10 @@ export async function pollTracker(
     }
     if (stats.lastAccessDate) {
       const lastAccess = trackerDateStr(stats.lastAccessDate)
-      if (lastAccess) metaUpdates.lastAccessAt = lastAccess
+      if (lastAccess) {
+        metaUpdates.lastAccessAt = lastAccess
+        metaUpdates.lastAccessSource = "detected"
+      }
     }
     if (stats.platformMeta) {
       metaUpdates.platformMeta = JSON.stringify(stats.platformMeta)

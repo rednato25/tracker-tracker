@@ -151,6 +151,34 @@ describe("computeTrackerActions — rules and data", () => {
 })
 
 describe("computeTrackerActions — login", () => {
+  it("puts an overdue login before every other action", () => {
+    setRules({ minimumRatio: 1.0, loginIntervalDays: 30 })
+    const keys = run({
+      trackers: [tracker({ lastAccessAt: "2026-09-01", latestStats: stats({ ratio: 0.5 }) })],
+    }).map((action) => action.key)
+    expect(keys.indexOf("login-overdue:tracker:1")).toBeLessThan(
+      keys.indexOf("ratio-below-account:tracker:1")
+    )
+  })
+
+  it("puts a login due within seven days before other attention items", () => {
+    setRules({ minimumRatio: 1.0, loginIntervalDays: 30 })
+    const actions = run({
+      trackers: [tracker({ lastAccessAt: "2026-09-25", latestStats: stats({ ratio: 0.5 }) })],
+    })
+    expect(actions[0]?.key).toBe("login-due:tracker:1")
+    expect(actions.some((action) => action.type === "ratio-below-account")).toBe(true)
+  })
+
+  it("keeps a login outside the seven-day window behind current actions", () => {
+    setRules({ minimumRatio: 1.0, loginIntervalDays: 120 })
+    const actions = run({
+      trackers: [tracker({ lastAccessAt: "2026-09-01", latestStats: stats({ ratio: 0.5 }) })],
+    })
+    expect(actions[0]?.key).toBe("ratio-below-account:tracker:1")
+    expect(actions.some((action) => action.type.startsWith("login-"))).toBe(false)
+  })
+
   it("marks an overdue manual login with a derived deadline", () => {
     setRules({ loginIntervalDays: 30 })
     const actions = run({ trackers: [tracker({ lastAccessAt: "2026-09-01" })] })

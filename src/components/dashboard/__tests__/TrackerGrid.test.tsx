@@ -430,7 +430,7 @@ describe("TrackerGrid", () => {
     })
   }
 
-  it("offers quick login marking only when the adapter cannot detect a login", () => {
+  it("offers quick login marking only when there is no detected login", () => {
     const { rerender } = render(
       <TrackerGrid
         trackers={[manualTracker()]}
@@ -438,14 +438,29 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("Last login: 3 days ago")).toBeInTheDocument()
+    expect(screen.getByText("Last login 3 days ago")).toBeInTheDocument()
+    expect(screen.getByText("due in 117 days")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
 
     rerender(
-      <TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />
+      <TrackerGrid
+        trackers={[
+          tracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
     )
     expect(screen.queryByRole("button", { name: "Logged in today" })).not.toBeInTheDocument()
-    expect(screen.queryByText(/Last login:/)).not.toBeInTheDocument()
+    expect(screen.getByText("Last login 3 days ago")).toBeInTheDocument()
+    expect(screen.getByText("detected")).toBeInTheDocument()
+  })
+
+  it("keeps the button for a detecting adapter that has no value yet", () => {
+    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
+    expect(screen.getByText("Last login not recorded")).toBeInTheDocument()
+    expect(screen.getByText("No login rule")).toBeInTheDocument()
   })
 
   it("marks a login and restores the previous date from a 10-second Undo", async () => {
@@ -464,18 +479,77 @@ describe("TrackerGrid", () => {
     fireEvent.click(screen.getByRole("button", { name: "Logged in today" }))
 
     await waitFor(() => expect(screen.getByText("Logged in today")).toBeInTheDocument())
-    expect(screen.getByText("Last login: today")).toBeInTheDocument()
+    expect(screen.getByText("Last login today")).toBeInTheDocument()
+    expect(screen.getByText("due in 120 days")).toBeInTheDocument()
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
       lastAccessAt: "2026-10-28",
     })
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }))
     await waitFor(() =>
-      expect(screen.getByText("Last login: 3 days ago")).toBeInTheDocument()
+      expect(screen.getByText("Last login 3 days ago")).toBeInTheDocument()
     )
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       lastAccessAt: "2026-10-25",
     })
+  })
+
+  it("labels where the last login came from", () => {
+    const { rerender } = render(
+      <TrackerGrid
+        trackers={[
+          tracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("detected")).toHaveAttribute("data-login-source")
+
+    rerender(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-10-25" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("marked by you")).toHaveAttribute("data-login-source")
+
+    rerender(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            lastAccessAt: "2026-10-25",
+            lastAccessSource: "manual",
+          }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("marked by you")).toBeInTheDocument()
+  })
+
+  it("shows the login deadline on every card in the state's tone", () => {
+    const { rerender } = render(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-06-01" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const overdue = screen.getByText("Overdue by 29 days")
+    expect(overdue).toHaveClass("text-danger")
+    expect(overdue).toHaveAttribute("data-login-deadline")
+
+    rerender(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-06-30" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("due today")).toHaveClass("text-warn")
   })
 
   it("highlights the login button when the login deadline is within seven days", () => {
@@ -524,6 +598,27 @@ describe("TrackerGrid", () => {
     })
   })
 
+  it("records the site-link mark for a detecting adapter without a detected value", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }
+      return {
+        ok: true,
+        json: async () =>
+          tracker({ lastAccessAt: body.lastAccessAt, lastAccessSource: "manual" }),
+      } as Response
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    fireEvent.click(screen.getByRole("link", { name: "Open TorrentLeech site" }))
+
+    await waitFor(() => expect(screen.getByText("marked by you")).toBeInTheDocument())
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      lastAccessAt: "2026-10-28",
+    })
+  })
+
   it("does not record a login from the site link when the setting is off", () => {
     const fetchMock = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
@@ -542,11 +637,17 @@ describe("TrackerGrid", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
   })
 
-  it("does not record a login from the site link when the adapter detects it", () => {
+  it("does not record a login from the site link when the login was detected", () => {
     const fetchMock = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
 
-    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    render(
+      <TrackerGrid
+        trackers={[tracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
     fireEvent.click(screen.getByRole("link", { name: "Open TorrentLeech site" }))
 
     expect(fetchMock).not.toHaveBeenCalled()

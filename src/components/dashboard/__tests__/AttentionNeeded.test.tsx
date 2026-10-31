@@ -102,6 +102,31 @@ describe("AttentionNeeded", () => {
     expect(screen.getByText("Gamma")).toBeInTheDocument()
   })
 
+  it("puts trackers with a login deadline before other attention rows", () => {
+    const ratio = action({
+      key: "ratio-below-account:tracker:1",
+      trackerId: 1,
+      trackerName: "Alpha",
+      reason: "The ratio is below the account minimum.",
+    })
+    const loginDue = action({
+      key: "login-due:tracker:2",
+      type: "login-due",
+      priority: "medium",
+      trackerId: 2,
+      trackerName: "Beta",
+      reason: "The login is due inside the seven-day window.",
+      deadline: "2026-10-25",
+    })
+    renderView({ actions: [loginDue, ratio] })
+
+    const loginReason = screen.getByText(loginDue.reason)
+    const ratioReason = screen.getByText(ratio.reason)
+    expect(
+      loginReason.compareDocumentPosition(ratioReason) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
   it("links tracker and client actions to existing destinations", () => {
     renderView()
     const alphaLinks = screen.getAllByRole("link", { name: /Alpha/ })

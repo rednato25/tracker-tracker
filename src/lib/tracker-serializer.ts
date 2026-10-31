@@ -63,6 +63,10 @@ export function serializeTrackerResponse(
     sortOrder: tracker.sortOrder,
     joinedAt: tracker.joinedAt,
     lastAccessAt: tracker.lastAccessAt ?? null,
+    lastAccessSource:
+      tracker.lastAccessSource === "detected" || tracker.lastAccessSource === "manual"
+        ? tracker.lastAccessSource
+        : null,
     remoteUserId: tracker.remoteUserId ?? null,
     platformMeta: parsePlatformMeta(tracker.platformMeta),
     createdAt: tracker.createdAt?.toISOString() ?? new Date().toISOString(),

@@ -6,6 +6,7 @@
 
 import { registryEntryFor } from "@/data/tracker-registry"
 import { formatBytesFromString } from "@/lib/formatters"
+import { readLoginDeadline } from "@/lib/login-deadline"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
 import { getTrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
@@ -26,55 +27,46 @@ interface TrackerChecks {
 }
 
 function readLoginWindow(tracker: TrackerSummary, now: Date = new Date()): LoginWindow {
-  const interval = registryEntryFor(tracker)?.rules?.loginIntervalDays
-  if (interval === undefined) {
+  const registryInterval = registryEntryFor(tracker)?.rules?.loginIntervalDays
+  const deadline = readLoginDeadline({
+    lastAccessAt: tracker.lastAccessAt,
+    intervalDays: registryInterval,
+    now,
+  })
+  if (!deadline.hasRule) {
     return {
       days: null,
       label: "\u2014",
       tone: "muted",
-      reason: "No login interval is defined for this tracker.",
+      reason:
+        registryInterval === 0
+          ? "This tracker has no mandatory login interval."
+          : "No login interval is defined for this tracker.",
     }
   }
-  if (interval === 0) {
+  if (deadline.lastLoginDays === null) {
     return {
       days: null,
       label: "\u2014",
       tone: "muted",
-      reason: "This tracker has no mandatory login interval.",
+      reason: "No last-access date is recorded for this tracker.",
     }
   }
-  if (!tracker.lastAccessAt) {
+  if (deadline.overdueDays !== null) {
     return {
-      days: null,
-      label: "\u2014",
-      tone: "muted",
-      reason: "The adapter has not captured a last-access date for this tracker.",
+      days: 0,
+      label: "due",
+      tone: "crit",
+      reason: `The login window is overdue by ${deadline.overdueDays} day${deadline.overdueDays === 1 ? "" : "s"}.`,
     }
   }
-  const last = new Date(tracker.lastAccessAt).getTime()
-  if (Number.isNaN(last)) {
-    return {
-      days: null,
-      label: "\u2014",
-      tone: "muted",
-      reason: "The captured last-access date could not be parsed.",
-    }
+  const days = deadline.dueInDays ?? 0
+  return {
+    days,
+    label: days === 0 ? "today" : `${days}d`,
+    tone: deadline.tone,
+    reason: days === 0 ? "The login window closes today." : `Next login is due in ${days} days.`,
   }
-  const remaining = interval * 86_400_000 - (now.getTime() - last)
-  const days = Math.max(0, Math.floor(remaining / 86_400_000))
-  const tone: TrackerCheckTone = days <= 2 ? "crit" : days <= 7 ? "warn" : "ok"
-  if (remaining <= 0) {
-    return { days: 0, label: "due", tone: "crit", reason: "The login window is overdue." }
-  }
-  if (days < 1) {
-    return {
-      days,
-      label: `${Math.max(1, Math.floor(remaining / 3_600_000))}h`,
-      tone,
-      reason: `Next login is due in ${Math.max(1, Math.floor(remaining / 3_600_000))} hours.`,
-    }
-  }
-  return { days, label: `${days}d`, tone, reason: `Next login is due in ${days} days.` }
 }
 
 function readBuffer(tracker: TrackerSummary): { display: string; tone: TrackerCheckTone } {

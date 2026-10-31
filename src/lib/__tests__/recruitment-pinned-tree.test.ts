@@ -84,4 +84,18 @@ describe("buildPinnedRouteTrees", () => {
       totalDays: 2,
     })
   })
+
+  it("sorts sibling branches by their soonest pinned target", () => {
+    const view = buildPinnedRouteTrees([
+      path("Gamma", step("Start", "Slow", 8), step("Slow", "Gamma", 1)),
+      path("Delta", step("Start", "Quick", 2), step("Quick", "Delta", 1)),
+      path("Epsilon", step("Start", "Unknown", null), step("Unknown", "Epsilon", 0)),
+    ])
+
+    expect(view.trees[0].root.children.map((node) => node.trackerId)).toEqual([
+      "Quick",
+      "Slow",
+      "Unknown",
+    ])
+  })
 })

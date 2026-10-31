@@ -634,6 +634,38 @@ describe("TrackerPathwaysClient", () => {
     })
   })
 
+  it("indents branches less on phones and keeps them wrappable", () => {
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        route("AlphaRatio", "Mid", { minimumDays: 1 }),
+        route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+      ],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    const mid = container.querySelector('[data-tree-node="Mid"]') as HTMLElement
+    const branch = mid.querySelector("ul") as HTMLElement
+    expect(branch.className).toContain("ml-1.5")
+    expect(branch.className).toContain("pl-2")
+    expect(branch.className).toContain("sm:ml-3")
+    expect(branch.className).toContain("sm:pl-4")
+    expect(branch.className).toContain("min-w-0")
+  })
+
   it("keeps pins per target when switching targets and lists them at the top", async () => {
     const user = userEvent.setup()
     const pinCatalog: RecruitmentCatalog = {

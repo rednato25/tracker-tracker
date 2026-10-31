@@ -4,7 +4,6 @@
 
 import { H2 } from "@typography"
 import { FleetActivity } from "@/components/dashboard/FleetActivity"
-import { FleetBonusChanges } from "@/components/dashboard/FleetBonusChanges"
 import { FleetHeadline } from "@/components/dashboard/FleetHeadline"
 import { MoversAndShakers } from "@/components/dashboard/MoversAndShakers"
 import { TrackerBreakdownBars } from "@/components/dashboard/TrackerBreakdownBars"
@@ -45,7 +44,6 @@ export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) 
           Today, since 00:00
         </p>
         <FleetHeadline fleet={data.fleet} />
-        <FleetBonusChanges trackers={data.trackers} />
 
         <Divider compact />
 

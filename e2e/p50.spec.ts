@@ -73,7 +73,7 @@ const fixtures: Fixture[] = [
 
 const ids: number[] = []
 
-test.describe.serial("P50 login ring", () => {
+test.describe.serial("P50 card footer and checks", () => {
   test.beforeAll(async () => {
     const sql = e2eSql()
     try {
@@ -213,5 +213,46 @@ test.describe.serial("P50 login ring", () => {
         })
       }
     }
+  })
+
+  test("Checks tooltips name every segment", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Grid" }).click()
+    await expect(page.locator("#main-content [data-tracker-grid]")).toBeVisible({
+      timeout: 20_000,
+    })
+
+    const normalCard = page.locator(`[data-tracker-card="${ids[0]}"]`)
+    const strip = normalCard.getByRole("img", { name: /^Checks:/ })
+    const segments = strip.locator('[aria-hidden="true"] > span')
+
+    await segments.nth(0).hover()
+    await expect(
+      page.getByRole("tooltip").filter({ hasText: "Ratio 1.50 (minimum 0.6) · OK" })
+    ).toBeVisible()
+
+    await segments.nth(1).hover()
+    await expect(
+      page.getByRole("tooltip").filter({ hasText: "Buffer +4.00 TiB · OK" })
+    ).toBeVisible()
+
+    await segments.nth(2).hover()
+    await expect(
+      page.getByRole("tooltip").filter({ hasText: "Seeding 120 torrents · OK" })
+    ).toBeVisible()
+
+    await segments.nth(3).hover()
+    await expect(
+      page.getByRole("tooltip").filter({ hasText: "Login due in 100 days · OK" })
+    ).toBeVisible()
+
+    const noRuleCard = page.locator(`[data-tracker-card="${ids[4]}"]`)
+    await noRuleCard
+      .getByRole("img", { name: /^Checks:/ })
+      .locator('[aria-hidden="true"] > span')
+      .nth(3)
+      .hover()
+    await expect(page.getByRole("tooltip").filter({ hasText: "No login rule" })).toBeVisible()
   })
 })

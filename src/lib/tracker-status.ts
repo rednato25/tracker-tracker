@@ -207,6 +207,7 @@ function getHealthPulseDot(status: TrackerHealth): PulseDotStatus {
 
 export type { PauseState, TrackerHealth }
 export {
+  formatRequirement,
   getHealthBadgeVariant,
   getHealthDescription,
   getHealthLabel,

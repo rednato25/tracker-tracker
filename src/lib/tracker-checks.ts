@@ -5,23 +5,39 @@
 // both dashboard views.
 
 import { registryEntryFor } from "@/data/tracker-registry"
-import { formatBytesFromString } from "@/lib/formatters"
+import { formatBytesFromString, formatRatio } from "@/lib/formatters"
 import { readLoginDeadline } from "@/lib/login-deadline"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
-import { getTrackerHealth } from "@/lib/tracker-status"
+import { formatRequirement, getTrackerHealth } from "@/lib/tracker-status"
 import type { TrackerSummary } from "@/types/api"
 
 type TrackerCheckTone = "ok" | "warn" | "crit" | "muted"
+
+const STATE_LABEL: Record<Exclude<TrackerCheckTone, "muted">, string> = {
+  ok: "OK",
+  warn: "Warning",
+  crit: "Critical",
+}
+
+function plural(count: number, singular: string): string {
+  return `${count} ${singular}${count === 1 ? "" : "s"}`
+}
 
 interface LoginWindow {
   days: number | null
   label: string
   tone: TrackerCheckTone
   reason: string
+  detail: string
+}
+
+interface TrackerCheckSegment {
+  tone: TrackerCheckTone
+  detail: string
 }
 
 interface TrackerChecks {
-  segments: TrackerCheckTone[]
+  segments: TrackerCheckSegment[]
   passed: number
   known: boolean
 }
@@ -42,6 +58,7 @@ function readLoginWindow(tracker: TrackerSummary, now: Date = new Date()): Login
         registryInterval === 0
           ? "This tracker has no mandatory login interval."
           : "No login interval is defined for this tracker.",
+      detail: "No login rule",
     }
   }
   if (deadline.lastLoginDays === null) {
@@ -50,6 +67,7 @@ function readLoginWindow(tracker: TrackerSummary, now: Date = new Date()): Login
       label: "\u2014",
       tone: "muted",
       reason: "No last-access date is recorded for this tracker.",
+      detail: "No login recorded",
     }
   }
   if (deadline.overdueDays !== null) {
@@ -58,6 +76,7 @@ function readLoginWindow(tracker: TrackerSummary, now: Date = new Date()): Login
       label: "due",
       tone: "crit",
       reason: `The login window is overdue by ${deadline.overdueDays} day${deadline.overdueDays === 1 ? "" : "s"}.`,
+      detail: `Login overdue by ${plural(deadline.overdueDays, "day")}`,
     }
   }
   const days = deadline.dueInDays ?? 0
@@ -66,6 +85,7 @@ function readLoginWindow(tracker: TrackerSummary, now: Date = new Date()): Login
     label: days === 0 ? "today" : `${days}d`,
     tone: deadline.tone,
     reason: days === 0 ? "The login window closes today." : `Next login is due in ${days} days.`,
+    detail: days === 0 ? "Login due today" : `Login due in ${plural(days, "day")}`,
   }
 }
 
@@ -88,7 +108,23 @@ function getTrackerChecks(tracker: TrackerSummary, login = readLoginWindow(track
   const health = getTrackerHealth(tracker)
   const stats = tracker.latestStats
   if (!stats || health === "paused" || health === "error" || health === "offline") {
-    return { segments: ["muted", "muted", "muted", "muted"], passed: 0, known: false }
+    const reason = !stats
+      ? "No stats yet"
+      : health === "paused"
+        ? "No checks while paused"
+        : health === "error"
+          ? "Last poll failed"
+          : "Tracker is offline"
+    return {
+      segments: [
+        { tone: "muted", detail: reason },
+        { tone: "muted", detail: reason },
+        { tone: "muted", detail: reason },
+        { tone: "muted", detail: reason },
+      ],
+      passed: 0,
+      known: false,
+    }
   }
 
   const requirement =
@@ -102,22 +138,41 @@ function getTrackerChecks(tracker: TrackerSummary, login = readLoginWindow(track
         : stats.ratio >= requirement
           ? "warn"
           : "crit"
+  const ratioDetail =
+    ratioTone === "muted"
+      ? "No ratio data"
+      : `Ratio ${stats.ratioIsInfinite ? "\u221e" : formatRatio(stats.ratio)} (minimum ${formatRequirement(requirement)}) \u00b7 ${STATE_LABEL[ratioTone]}`
+
+  const buffer = readBuffer(tracker)
+  const bufferDetail =
+    buffer.tone === "muted"
+      ? "No buffer data"
+      : `Buffer ${buffer.display} \u00b7 ${STATE_LABEL[buffer.tone]}`
 
   const seedTone: TrackerCheckTone =
     stats.seedingCount === null ? "muted" : stats.seedingCount > 0 ? "ok" : "crit"
+  const seedDetail =
+    seedTone === "muted"
+      ? "No seeding data"
+      : `Seeding ${plural(stats.seedingCount ?? 0, "torrent")} \u00b7 ${STATE_LABEL[seedTone]}`
 
-  const segments: TrackerCheckTone[] = [
-    ratioTone,
-    readBuffer(tracker).tone,
-    seedTone,
-    login.tone,
+  const loginDetail =
+    login.tone === "muted"
+      ? login.detail
+      : `${login.detail} \u00b7 ${STATE_LABEL[login.tone]}`
+
+  const segments: TrackerCheckSegment[] = [
+    { tone: ratioTone, detail: ratioDetail },
+    { tone: buffer.tone, detail: bufferDetail },
+    { tone: seedTone, detail: seedDetail },
+    { tone: login.tone, detail: loginDetail },
   ]
   return {
     segments,
-    passed: segments.filter((segment) => segment === "ok").length,
-    known: segments.some((segment) => segment !== "muted"),
+    passed: segments.filter((segment) => segment.tone === "ok").length,
+    known: segments.some((segment) => segment.tone !== "muted"),
   }
 }
 
-export type { LoginWindow, TrackerChecks, TrackerCheckTone }
+export type { LoginWindow, TrackerCheckSegment, TrackerChecks, TrackerCheckTone }
 export { getTrackerChecks, readBuffer, readLoginWindow }

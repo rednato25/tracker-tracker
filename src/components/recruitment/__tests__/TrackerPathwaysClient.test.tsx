@@ -551,6 +551,42 @@ describe("TrackerPathwaysClient", () => {
     expect(aither.querySelector("[data-node-wait]")).toHaveTextContent("4 days left")
   })
 
+  it("shows the soonest next step above the trees", () => {
+    const youngAlpha = tracker({
+      id: 2,
+      name: "AlphaRatio",
+      registrySlug: "alpharatio",
+      joinedAt: recentJoin,
+    })
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        route("AlphaRatio", "Mid", { minimumDays: 10 }),
+        route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+        route("Mid", "Aither", { minimumDays: 4 }),
+      ],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={[tracker(), youngAlpha]}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet",
+            Aither: "tp:AlphaRatio:Mid>tp:Mid:Aither",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    expect(container.querySelector("[data-next-step]")).toHaveTextContent(
+      "Next step: Mid from AlphaRatio in 5 days"
+    )
+  })
+
   it("keeps pins per target when switching targets and lists them at the top", async () => {
     const user = userEvent.setup()
     const pinCatalog: RecruitmentCatalog = {

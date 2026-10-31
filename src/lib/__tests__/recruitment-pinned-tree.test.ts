@@ -58,4 +58,30 @@ describe("buildPinnedRouteTrees", () => {
     expect(root.children[0].unlocks).toBe(2)
     expect(root.children[1].unlocks).toBe(1)
   })
+
+  it("picks the soonest node with a pinned target on or below it", () => {
+    const view = buildPinnedRouteTrees([
+      path("Gamma", step("Start", "Slow", 5), step("Slow", "Gamma", 1)),
+      path("Delta", step("Start", "Mid", 1), step("Mid", "Fast", 0), step("Fast", "Delta", 2)),
+    ])
+
+    expect(view.nextStep).toEqual({
+      trackerId: "Mid",
+      sourceTrackerId: "Start",
+      totalDays: 1,
+    })
+  })
+
+  it("picks the next step across starting trackers", () => {
+    const view = buildPinnedRouteTrees([
+      path("Gamma", step("Alpha", "Slow", 8), step("Slow", "Gamma", 1)),
+      path("Delta", step("Beta", "Quick", 2), step("Quick", "Delta", 1)),
+    ])
+
+    expect(view.nextStep).toEqual({
+      trackerId: "Quick",
+      sourceTrackerId: "Beta",
+      totalDays: 2,
+    })
+  })
 })

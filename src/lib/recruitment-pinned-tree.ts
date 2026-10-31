@@ -53,6 +53,10 @@ interface BuildNode {
   children: BuildNode[]
 }
 
+interface NextCandidate extends PinnedNextStepView {
+  depth: number
+}
+
 function makeNode(trackerId: string, totalDays: number | null): BuildNode {
   return {
     trackerId,
@@ -112,9 +116,10 @@ function toView(node: BuildNode): PinnedTreeNodeView {
   }
 }
 
-function compareNextSteps(a: PinnedNextStepView, b: PinnedNextStepView): number {
+function compareNextSteps(a: NextCandidate, b: NextCandidate): number {
   return (
     compareDays(a.totalDays, b.totalDays) ||
+    a.depth - b.depth ||
     a.trackerId.localeCompare(b.trackerId) ||
     a.sourceTrackerId.localeCompare(b.sourceTrackerId)
   )
@@ -153,7 +158,7 @@ export function buildPinnedRouteTrees(paths: PinnedRoutePathInput[]): PinnedRout
   }
 
   const trees: PinnedRouteTreeView[] = []
-  let nextStep: PinnedNextStepView | null = null
+  const nextCandidates: NextCandidate[] = []
 
   for (const root of roots.values()) {
     finalize(root)
@@ -163,21 +168,32 @@ export function buildPinnedRouteTrees(paths: PinnedRoutePathInput[]): PinnedRout
       root: toView(root),
     })
 
-    const visit = (node: BuildNode) => {
-      if (node.trackerId !== root.trackerId && node.unlocks > 0) {
-        const candidate: PinnedNextStepView = {
+    const visit = (node: BuildNode, depth: number) => {
+      if (depth > 0 && node.unlocks > 0) {
+        nextCandidates.push({
           trackerId: node.trackerId,
           sourceTrackerId: root.trackerId,
           totalDays: node.totalDays,
-        }
-        if (!nextStep || compareNextSteps(candidate, nextStep) < 0) nextStep = candidate
+          depth,
+        })
       }
-      for (const child of node.children) visit(child)
+      for (const child of node.children) visit(child, depth + 1)
     }
-    visit(root)
+    visit(root, 0)
   }
 
   trees.sort((a, b) => a.sourceTrackerId.localeCompare(b.sourceTrackerId))
+  nextCandidates.sort(compareNextSteps)
+  const best = nextCandidates[0] ?? null
 
-  return { trees, nextStep }
+  return {
+    trees,
+    nextStep: best
+      ? {
+          trackerId: best.trackerId,
+          sourceTrackerId: best.sourceTrackerId,
+          totalDays: best.totalDays,
+        }
+      : null,
+  }
 }

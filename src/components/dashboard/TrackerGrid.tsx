@@ -9,7 +9,9 @@ import { useEffect, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Button, PulseDot } from "@/components/ui"
 import { DeadlineRing } from "@/components/ui/DeadlineRing"
+import { EyeIcon, UserIcon } from "@/components/ui/Icons"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
+import { Tooltip } from "@/components/ui/Tooltip"
 import { registryEntryFor } from "@/data/tracker-registry"
 import {
   formatAccountAge,
@@ -325,6 +327,23 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
   )
 }
 
+function LoginSourceIcon({ source }: { source: "detected" | "manual" }) {
+  const label = source === "detected" ? "Detected from the tracker" : "Marked by you"
+  const Icon = source === "detected" ? EyeIcon : UserIcon
+  return (
+    <Tooltip content={label}>
+      <button
+        type="button"
+        aria-label={label}
+        data-login-source={source}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-nm-sm text-tertiary transition-colors duration-150 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1 focus-visible:ring-offset-base sm:h-9 sm:w-9"
+      >
+        <Icon width="12" height="12" aria-hidden="true" />
+      </button>
+    </Tooltip>
+  )
+}
+
 function TrackerCard({
   tracker,
   summary,
@@ -599,13 +618,9 @@ function TrackerCard({
           </a>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs text-tertiary" data-login-source>
-            {loginSource === "none"
-              ? ""
-              : loginSource === "detected"
-                ? "detected"
-                : "marked by you"}
-          </span>
+          {loginSource === "none" ? null : (
+            <LoginSourceIcon source={loginSource} />
+          )}
           {manualLogin && (
             <div className="flex flex-wrap items-center justify-end gap-2">
               {loginMarking.undo ? (

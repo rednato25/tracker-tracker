@@ -458,7 +458,7 @@ describe("TrackerGrid", () => {
     expect(
       screen.getByLabelText("Login due in 117 days, by Feb 22, 2027")
     ).toBeInTheDocument()
-    expect(screen.getByText("detected")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Detected from the tracker" })).toBeInTheDocument()
   })
 
   it("keeps the button for a detecting adapter that has no value yet", () => {
@@ -502,7 +502,7 @@ describe("TrackerGrid", () => {
     })
   })
 
-  it("labels where the last login came from", () => {
+  it("labels where the last login came from with an icon and a tooltip", () => {
     const { rerender } = render(
       <TrackerGrid
         trackers={[
@@ -512,7 +512,10 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("detected")).toHaveAttribute("data-login-source")
+    const detected = screen.getByRole("button", { name: "Detected from the tracker" })
+    expect(detected).toHaveAttribute("data-login-source", "detected")
+    fireEvent.mouseEnter(detected)
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Detected from the tracker")
 
     rerender(
       <TrackerGrid
@@ -521,7 +524,10 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("marked by you")).toHaveAttribute("data-login-source")
+    expect(screen.getByRole("button", { name: "Marked by you" })).toHaveAttribute(
+      "data-login-source",
+      "manual"
+    )
 
     rerender(
       <TrackerGrid
@@ -535,7 +541,7 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("marked by you")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Marked by you" })).toBeInTheDocument()
   })
 
   it("shows the login deadline ring in the state's tone", () => {
@@ -657,7 +663,9 @@ describe("TrackerGrid", () => {
     render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
     fireEvent.click(screen.getByRole("link", { name: "Open TorrentLeech site" }))
 
-    await waitFor(() => expect(screen.getByText("marked by you")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Marked by you" })).toBeInTheDocument()
+    )
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       lastAccessAt: "2026-10-28",

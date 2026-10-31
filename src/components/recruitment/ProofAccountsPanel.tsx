@@ -3,10 +3,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Badge, Input } from "@/components/ui"
+import { Badge, Button, Input } from "@/components/ui"
+import { CopyIcon } from "@/components/ui/Icons"
+import { copyTextToClipboard } from "@/lib/clipboard"
 import { formatAccountAge, formatDate } from "@/lib/formatters"
 import {
   buildProofAccounts,
+  buildProofApplicationSummary,
   evaluateProofAccounts,
   findProofRequirement,
   nextProofQualification,
@@ -90,6 +93,7 @@ export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAcc
   const requirement = useMemo(() => findProofRequirement(requirementTexts), [requirementTexts])
   const [minAgeMonths, setMinAgeMonths] = useState(() => requirement?.ageMonths ?? 0)
   const [minRatio, setMinRatio] = useState(0)
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle")
 
   const accounts = useMemo(() => buildProofAccounts(trackers, now), [now, trackers])
   const rows = useMemo(
@@ -98,6 +102,13 @@ export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAcc
   )
   const qualifyingCount = rows.filter((row) => row.qualifies).length
   const next = nextProofQualification(rows)
+  const summary = buildProofApplicationSummary(rows)
+
+  async function copySummary() {
+    if (!summary) return
+    const outcome = await copyTextToClipboard(summary)
+    setCopyStatus(outcome === "copied" ? "copied" : "failed")
+  }
 
   return (
     <section
@@ -105,16 +116,27 @@ export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAcc
       aria-labelledby="proof-accounts-heading"
       data-proof-accounts
     >
-      <div className="flex flex-col gap-1">
-        <h4
-          id="proof-accounts-heading"
-          className="font-cond text-2xs font-semibold uppercase tracking-[0.12em] text-secondary"
-        >
-          Your proof accounts
-        </h4>
-        <p className="max-w-2xl text-xs text-secondary">
-          Every tracker you are on, with the class and ratio a recruiter would see.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <h4
+            id="proof-accounts-heading"
+            className="font-cond text-2xs font-semibold uppercase tracking-[0.12em] text-secondary"
+          >
+            Your proof accounts
+          </h4>
+          <p className="max-w-2xl text-xs text-secondary">
+            Every tracker you are on, with the class and ratio a recruiter would see.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="min-h-11"
+          disabled={summary.length === 0}
+          leftIcon={<CopyIcon width="12" height="12" aria-hidden="true" />}
+          text={copyStatus === "copied" ? "Copied" : "Copy application summary"}
+          onClick={() => void copySummary()}
+        />
       </div>
 
       <div className="flex max-w-lg flex-col gap-2 sm:flex-row">
@@ -128,6 +150,7 @@ export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAcc
           value={minAgeMonths}
           onChange={(event) => {
             setMinAgeMonths(numberFromInput(event.target.value))
+            setCopyStatus("idle")
           }}
         />
         <Input
@@ -140,6 +163,7 @@ export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAcc
           value={minRatio}
           onChange={(event) => {
             setMinRatio(numberFromInput(event.target.value))
+            setCopyStatus("idle")
           }}
         />
       </div>
@@ -176,6 +200,14 @@ export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAcc
           ))}
         </ul>
       )}
+
+      <span role="status" aria-live="polite" className="text-2xs text-tertiary">
+        {copyStatus === "copied"
+          ? "Copied application summary."
+          : copyStatus === "failed"
+            ? "Could not copy the application summary. Select the list and copy it manually."
+            : ""}
+      </span>
     </section>
   )
 }

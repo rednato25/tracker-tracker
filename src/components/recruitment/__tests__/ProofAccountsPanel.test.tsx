@@ -1,9 +1,19 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ProofAccountsPanel } from "@/components/recruitment/ProofAccountsPanel"
 import type { TrackerSummary } from "@/types/api"
 
 const NOW = new Date("2026-10-31T12:00:00.000Z")
+
+let clipboardStub: { writeText: ReturnType<typeof vi.fn> }
+
+function installClipboardStub() {
+  Object.defineProperty(navigator, "clipboard", {
+    value: clipboardStub,
+    configurable: true,
+    writable: true,
+  })
+}
 
 function tracker(overrides: Partial<TrackerSummary> = {}): TrackerSummary {
   return {
@@ -68,6 +78,15 @@ const aither = tracker({
     username: "alice",
     group: "Zeus",
   },
+})
+
+beforeEach(() => {
+  clipboardStub = { writeText: vi.fn().mockResolvedValue(undefined) }
+  installClipboardStub()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 
 describe("ProofAccountsPanel", () => {
@@ -161,5 +180,30 @@ describe("ProofAccountsPanel", () => {
     const young = container.querySelector('[data-proof-account="2"]') as HTMLElement
     expect(young).toHaveAttribute("data-qualifies", "false")
     expect(within(young).getByText(/Ratio below 2x/)).toBeInTheDocument()
+  })
+
+  it("copies a Markdown summary of the qualifying accounts only", async () => {
+    render(<ProofAccountsPanel trackers={[tracker(), aither]} now={NOW} requirementTexts={[]} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy application summary" }))
+
+    await waitFor(() => expect(clipboardStub.writeText).toHaveBeenCalledTimes(1))
+    const markdown = clipboardStub.writeText.mock.calls[0]?.[0] as string
+    expect(markdown).toContain("**TorrentLeech** — Power User")
+    expect(markdown).toContain("member since Jan 31, 2024")
+    expect(markdown).toContain("ratio 2.50x")
+    expect(markdown).toContain("https://tl.example/profile/owner")
+    expect(markdown).toContain("**Aither** — Zeus")
+    expect(markdown).not.toMatch(/token|cookie|passkey/i)
+    expect(markdown).not.toMatch(/@/)
+    expect(screen.getByRole("status")).toHaveTextContent("Copied application summary.")
+  })
+
+  it("does not offer a summary when nothing qualifies", () => {
+    render(<ProofAccountsPanel trackers={[tracker()]} now={NOW} requirementTexts={[]} />)
+
+    fireEvent.change(screen.getByLabelText("Minimum ratio"), { target: { value: "9" } })
+
+    expect(screen.getByRole("button", { name: "Copy application summary" })).toBeDisabled()
   })
 })

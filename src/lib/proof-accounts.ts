@@ -4,10 +4,11 @@
 // registry's pattern, and answer a single question: could I use this account as
 // proof in an application today?
 //
-// Nothing here reads credentials, cookies, IP addresses or email addresses.
+// Nothing here reads credentials, cookies, IP addresses or email addresses. The
+// application summary only formats the fields a recruiter sees on a profile.
 
 import { getTrackerBySlug } from "@/data/tracker-registry"
-import { formatRatioDisplay } from "@/lib/formatters"
+import { formatDate, formatRatioDisplay } from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
 import type { TrackerSummary } from "@/types/api"
 
@@ -261,4 +262,31 @@ export function nextProofQualification(rows: ProofAccountRow[]): ProofNextQualif
     }
   }
   return next
+}
+
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, " ").trim()
+}
+
+/**
+ * Markdown a user can paste into an application. Qualifying accounts only, and
+ * only the public profile facts. The profile link is omitted when unknown, just
+ * like on screen. Never includes a username field of its own, credentials, IPs
+ * or email addresses.
+ */
+export function buildProofApplicationSummary(rows: ProofAccountRow[]): string {
+  return rows
+    .filter((row) => row.qualifies)
+    .sort((a, b) => a.account.trackerName.localeCompare(b.account.trackerName))
+    .map(({ account }) => {
+      const memberSince = account.joinedAt ? formatDate(account.joinedAt) : "unknown"
+      const facts = [
+        account.className ? oneLine(account.className) : "Class unknown",
+        `member since ${memberSince}`,
+        `ratio ${proofRatioLabel(account)}`,
+      ]
+      if (account.profileUrl) facts.push(account.profileUrl)
+      return `- **${oneLine(account.trackerName)}** — ${facts.join(" · ")}`
+    })
+    .join("\n")
 }

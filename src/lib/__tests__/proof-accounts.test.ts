@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   buildProofAccounts,
+  buildProofApplicationSummary,
   buildProofProfileUrl,
   evaluateProofAccounts,
   findProofRequirement,
@@ -287,5 +288,50 @@ describe("evaluateProofAccounts", () => {
       accountName: "Young",
       days: 91,
     })
+  })
+})
+
+describe("buildProofApplicationSummary", () => {
+  it("writes only qualifying accounts as a short Markdown list", () => {
+    const accounts = buildProofAccounts(
+      [
+        tracker({ id: 1, name: "TorrentLeech" }),
+        tracker({
+          id: 2,
+          name: "Aither",
+          baseUrl: "https://aither.example",
+          registrySlug: "aither",
+          joinedAt: "2025-01-31T12:00:00.000Z",
+          latestStats: stats({ username: "alice", group: "Zeus" }),
+        }),
+        tracker({
+          id: 3,
+          name: "TooYoung",
+          joinedAt: "2026-09-30T12:00:00.000Z",
+        }),
+      ],
+      NOW
+    )
+    const rows = evaluateProofAccounts(accounts, { minAgeMonths: 6, minRatio: 1 }, NOW)
+    const markdown = buildProofApplicationSummary(rows)
+
+    expect(markdown).toContain("**TorrentLeech** — Power User")
+    expect(markdown).toContain("member since Jan 31, 2024")
+    expect(markdown).toContain("ratio 2.50x")
+    expect(markdown).toContain("https://tl.example/profile/owner")
+    expect(markdown).toContain("**Aither** — Zeus")
+    expect(markdown).toContain("https://aither.example/users/alice")
+    expect(markdown).not.toContain("TooYoung")
+    expect(markdown.split("\n")).toHaveLength(2)
+  })
+
+  it("never leaks credentials, cookies, addresses or email", () => {
+    const accounts = buildProofAccounts([tracker()], NOW)
+    const rows = evaluateProofAccounts(accounts, { minAgeMonths: 0, minRatio: 0 }, NOW)
+    const markdown = buildProofApplicationSummary(rows)
+
+    expect(markdown).not.toMatch(/token|cookie|passkey|api[_-]?key/i)
+    expect(markdown).not.toMatch(/@/)
+    expect(markdown).not.toMatch(/\b\d{1,3}(?:\.\d{1,3}){3}\b/)
   })
 })

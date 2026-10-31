@@ -28,6 +28,8 @@ import { POLL_CYCLE_DEADLINE_MS, POLL_INTERVAL_DEFAULT } from "@/lib/limits"
 import { log } from "@/lib/logger"
 import { dispatchNotifications } from "@/lib/notifications/dispatch"
 import { maskUsername } from "@/lib/privacy"
+import { runProfileReads } from "@/lib/profile-reading/fetch"
+import { withPreservedProfileRead } from "@/lib/profile-reading/meta"
 import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
 import { recordDatabaseSize } from "@/lib/server-data"
 import { pruneTrackerOutages, recordTrackerPollFailure } from "@/lib/tracker-outages"
@@ -203,7 +205,7 @@ export async function fetchTrackerStats(
       metaUpdates.lastAccessSource = "detected"
     }
   }
-  if (stats.platformMeta) metaUpdates.platformMeta = JSON.stringify(stats.platformMeta)
+  if (stats.platformMeta) metaUpdates.platformMeta = JSON.stringify(withPreservedProfileRead(stats.platformMeta, tracker.platformMeta))
   if (stats.avatarUrl) metaUpdates.avatarRemoteUrl = stats.avatarUrl
   if (Object.keys(metaUpdates).length > 0) {
     await db.update(trackers).set(metaUpdates).where(eq(trackers.id, tracker.id))
@@ -287,7 +289,9 @@ export async function pollTracker(
       }
     }
     if (stats.platformMeta) {
-      metaUpdates.platformMeta = JSON.stringify(stats.platformMeta)
+      metaUpdates.platformMeta = JSON.stringify(
+        withPreservedProfileRead(stats.platformMeta, tracker.platformMeta)
+      )
     }
     if (stats.avatarUrl) {
       metaUpdates.avatarRemoteUrl = stats.avatarUrl
@@ -697,6 +701,14 @@ export async function pollAllTrackers(encryptionKey: Buffer): Promise<void> {
 
   const now = Date.now()
   const nowDate = new Date(now)
+
+  // P49 runs on its own 24-hour gate, before the overdue check returns early.
+  // It is a separate request pass and never piggybacks on a tracker poll.
+  try {
+    await runProfileReads(encryptionKey, nowDate)
+  } catch (error) {
+    log.error(error, "Profile reading cycle failed")
+  }
 
   const overdue = allTrackers.filter((tracker) => {
     const pause = getPauseState(tracker)

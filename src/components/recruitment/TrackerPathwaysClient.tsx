@@ -734,6 +734,31 @@ export function TrackerPathwaysClient({
     return labels
   }, [activeTarget, catalog, now, state, targets, trackers])
 
+  // Every target keeps its own pin. This list reads them all, including targets
+  // that are not the active one, so switching targets never hides a pin.
+  const myPinnedRoutes = useMemo(() => {
+    return Object.entries(state.pinnedRoutes)
+      .map(([targetId, key]) => {
+        const result = buildWishlistPaths({
+          catalog,
+          desiredTrackerSlug: targetId,
+          trackers,
+          savedRankGoals: {},
+          state: { ...state, hiddenPathKeys: [] },
+          now,
+          maxHops: 3,
+          maxPathsPerSource: 200,
+          maxTotal: 500,
+        })
+        return {
+          targetId,
+          targetName: pathwaysTrackerName(targetId),
+          path: result.paths.find((path) => path.key === key) ?? null,
+        }
+      })
+      .sort((a, b) => a.targetName.localeCompare(b.targetName))
+  }, [catalog, now, state, trackers])
+
   async function persistState(
     next: RecruitmentState,
     previous: RecruitmentState
@@ -781,6 +806,14 @@ export function TrackerPathwaysClient({
     await persistState({ ...state, pinnedRoutes }, previous)
   }
 
+  async function unpinTarget(target: string) {
+    if (!state.pinnedRoutes[target]) return
+    const previous = state
+    const pinnedRoutes = { ...state.pinnedRoutes }
+    delete pinnedRoutes[target]
+    await persistState({ ...state, pinnedRoutes }, previous)
+  }
+
   const visibleChoices = routeChoices?.choices.slice(0, showAll ? undefined : 10) ?? []
 
   return (
@@ -794,6 +827,74 @@ export function TrackerPathwaysClient({
           community snapshot; they are not applications and do not prove a recruiter is active.
         </Paragraph>
       </div>
+
+      <section
+        className="flex flex-col gap-3"
+        aria-labelledby="my-pinned-routes-heading"
+        data-my-pinned-routes
+      >
+        <div className="flex flex-col gap-1">
+          <H2 id="my-pinned-routes-heading">My pinned routes</H2>
+          <Paragraph>
+            Every route you pinned, for every target, with its hops and wait. Pins are saved per
+            target, so switching targets keeps them all.
+          </Paragraph>
+        </div>
+
+        {myPinnedRoutes.length === 0 ? (
+          <p className="text-sm text-secondary">No pinned routes yet. Pin one below to keep it here.</p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {myPinnedRoutes.map((pinned) => (
+              <li
+                key={pinned.targetId}
+                data-pinned-route={pinned.targetId}
+                className="flex min-w-0 flex-col gap-2 border border-border bg-raised p-3"
+              >
+                <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={() => chooseTarget(pinned.targetId)}
+                      aria-label={`Open ${pinned.targetName}`}
+                      className="w-fit text-left font-cond text-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+                    >
+                      {pinned.targetName}
+                    </button>
+                    {pinned.path ? (
+                      <>
+                        <p
+                          className="flex flex-wrap items-baseline gap-x-2 text-xs text-secondary"
+                          data-pinned-route-summary
+                        >
+                          <span className="font-mono">
+                            {pinned.path.routeIds.length}{" "}
+                            {pinned.path.routeIds.length === 1 ? "hop" : "hops"}
+                          </span>
+                          <span className="text-tertiary">&middot;</span>
+                          <span>{pathWaitValue(pinned.path)}</span>
+                        </p>
+                        <p className="break-words text-2xs text-tertiary">
+                          {routeChain(pinned.path)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-warn">Pinned route is not in the current data.</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    text="Unpin"
+                    aria-label={`Unpin route to ${pinned.targetName}`}
+                    onClick={() => unpinTarget(pinned.targetId)}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="where-your-trackers-heading">
         <div className="flex flex-col gap-1">

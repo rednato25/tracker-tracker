@@ -508,6 +508,68 @@ describe("TrackerPathwaysClient", () => {
     expect(notYet.container).toHaveTextContent("Not yet: Power User+")
   })
 
+  it("keeps pins per target when switching targets and lists them at the top", async () => {
+    const user = userEvent.setup()
+    const pinCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        ...P38_CATALOG.routes,
+        route("TorrentLeech", "Aither", { minimumDays: 10 }),
+        route("AlphaRatio", "Aither", { minimumDays: 0 }),
+      ],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={pinCatalog}
+      />
+    )
+
+    const pinnedHeading = screen.getByRole("heading", { name: "My pinned routes" })
+    const ownedHeading = screen.getByRole("heading", {
+      name: "Where your trackers can take you",
+    })
+    expect(
+      pinnedHeading.compareDocumentPosition(ownedHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+
+    await user.click(screen.getAllByRole("button", { name: "Pin" })[0])
+    await waitFor(() => {
+      expect(container.querySelector('[data-pinned-route="BroadcasTheNet"]')).not.toBeNull()
+    })
+
+    await user.click(screen.getByRole("button", { name: "Choose a tracker" }))
+    await user.type(screen.getByRole("combobox", { name: "Search trackerpathways" }), "Aither")
+    await user.click(screen.getByRole("option", { name: "Aither" }))
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Get to a tracker" })).toBeInTheDocument()
+      expect(container.querySelector('[data-route-choice]')).not.toBeNull()
+    })
+
+    await user.click(screen.getAllByRole("button", { name: "Pin" })[0])
+    await waitFor(() => {
+      expect(container.querySelector('[data-pinned-route="Aither"]')).not.toBeNull()
+    })
+    expect(container.querySelector('[data-pinned-route="BroadcasTheNet"]')).not.toBeNull()
+
+    await user.click(screen.getByRole("button", { name: /^BroadcasTheNet/ }))
+    await waitFor(() => {
+      const firstChoice = container.querySelector("[data-route-choice]") as HTMLElement
+      expect(firstChoice).toHaveAttribute("data-pinned", "true")
+    })
+
+    for (const target of ["Aither", "BroadcasTheNet"]) {
+      const row = container.querySelector(`[data-pinned-route="${target}"]`) as HTMLElement
+      expect(row).not.toBeNull()
+      expect(row.querySelector("[data-pinned-route-summary]")).toHaveTextContent(/hop/)
+      expect(row.querySelector("[data-pinned-route-summary]")).toHaveTextContent(
+        /(Ready now|days? left)/
+      )
+    }
+  })
+
   it("lists owned trackers whose account age is missing", () => {
     const { container } = render(
       <TrackerPathwaysClient

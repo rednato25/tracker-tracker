@@ -386,4 +386,84 @@ test.describe("P51 data accuracy", () => {
       await sql.end()
     }
   })
+
+  test("pins stay saved per target and are listed at the top", async ({ page }) => {
+    test.setTimeout(180_000)
+    await page.setViewportSize({ width: 1440, height: 1200 })
+    await page.goto("/pathways")
+
+    const current = (await (await page.request.get("/api/recruitment/wishlist")).json()) as {
+      state: Record<string, unknown>
+    }
+    await page.request.put("/api/recruitment/wishlist", {
+      data: {
+        state: { ...current.state, desiredTrackerSlug: "BitPorn", pinnedRoutes: {} },
+      },
+    })
+    await page.reload()
+
+    await expect(page.getByRole("heading", { name: "My pinned routes" })).toBeVisible()
+    await expect(page.locator("[data-route-choice]").first()).toBeVisible()
+
+    await page.getByRole("button", { name: "Pin" }).first().click()
+    await expect(page.locator("[data-pinned-route]")).toHaveCount(1)
+
+    await page.getByRole("button", { name: "Choose a tracker" }).click()
+    await page.getByRole("combobox", { name: "Search trackerpathways" }).fill("BrokenStones")
+    await page.getByRole("option", { name: "BrokenStones" }).click()
+    await expect(page.getByRole("heading", { name: "BrokenStones" })).toBeVisible()
+    await expect(page.locator('[data-pinned-route="BitPorn"]')).toBeVisible()
+    const brokenChoice = page.locator('[data-route-choice*="BrokenStones"]').first()
+    await expect(brokenChoice).toBeVisible()
+    await brokenChoice.getByRole("button", { name: "Pin" }).click()
+    await expect(page.locator("[data-pinned-route]")).toHaveCount(2)
+
+    for (const target of ["BitPorn", "BrokenStones"]) {
+      const row = page.locator(`[data-pinned-route="${target}"]`)
+      await expect(row).toBeVisible()
+      await expect(row.locator("[data-pinned-route-summary]")).toContainText(/\d+ hops?/)
+      await expect(row.locator("[data-pinned-route-summary]")).toContainText(
+        /Ready now|days? left/
+      )
+    }
+
+    // Reload proves both pins came back from the saved state, not React memory.
+    await page.reload()
+    await expect(page.locator("[data-pinned-route]")).toHaveCount(2)
+
+    await page.getByRole("button", { name: "Open BitPorn" }).click()
+    await expect(
+      page.locator('[data-route-choice][data-pinned="true"]').first()
+    ).toBeVisible()
+
+    for (const width of [1440, 390] as const) {
+      await page.setViewportSize({ width, height: 1200 })
+      await page.waitForTimeout(250)
+      const contentHeight = await page
+        .locator("#main-content")
+        .evaluate((element) => element.scrollHeight)
+      await page.setViewportSize({ width, height: Math.min(12000, contentHeight + 80) })
+      await page.evaluate(() => {
+        const main = document.querySelector("#main-content")
+        if (main) main.scrollTop = 0
+        window.scrollTo(0, 0)
+      })
+      await page.waitForTimeout(250)
+
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((next) => {
+          document.documentElement.dataset.theme = next
+        }, theme)
+        await page.waitForTimeout(150)
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+        expect(overflow, `pins overflow at ${width}px`).toBeLessThanOrEqual(1)
+        await page.screenshot({
+          path: `docs/screenshots/p51/pins-${width}-${theme}.png`,
+          animations: "disabled",
+        })
+      }
+    }
+  })
 })

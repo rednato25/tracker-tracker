@@ -39,15 +39,3 @@ export function isIntegrationIdentityMode(value: unknown): value is IntegrationI
 export function normalizeIntegrationIdentityMode(value: unknown): IntegrationIdentityMode {
   return isIntegrationIdentityMode(value) ? value : DEFAULT_INTEGRATION_IDENTITY_MODE
 }
-
-export const INTEGRATION_SCOPE_LABELS: Record<IntegrationScope, string> = {
-  "summary:read": "Summary",
-  "actions:read": "Actions",
-  "history:read": "History",
-}
-
-export const INTEGRATION_SCOPE_DESCRIPTIONS: Record<IntegrationScope, string> = {
-  "summary:read": "Tracker health, aggregate totals and the latest stored snapshot.",
-  "actions:read": "Attention actions derived from the existing evaluator.",
-  "history:read": "Bounded stored tracker snapshot history. No live poll is triggered.",
-}

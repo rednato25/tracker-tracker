@@ -12,7 +12,6 @@ import { Tooltip } from "@/components/ui/Tooltip"
 import type { TrackerRegistryEntry, TrackerUserClass } from "@/data/tracker-registry"
 import { hexToRgba } from "@/lib/color-utils"
 import { formatCount, formatRatio } from "@/lib/formatters"
-import { resolveTrackerRules } from "@/lib/tracker-rules"
 import type { TrackerLatestStats } from "@/types/api"
 
 const Markdown = dynamic(

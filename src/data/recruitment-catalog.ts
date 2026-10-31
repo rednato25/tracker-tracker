@@ -4,11 +4,7 @@
 // snapshot in src/data/pathways/. Nothing fetches at render time.
 
 export {
-  normalizePathwaysTarget,
   PATHWAYS_TRACKERS,
-  pathwaysTrackerIdForRegistrySlug,
-  pathwaysTrackerName,
   RECRUITMENT_CATALOG,
   RECRUITMENT_ROUTES,
-  registrySlugForPathwaysTracker,
 } from "@/data/pathways/catalog"

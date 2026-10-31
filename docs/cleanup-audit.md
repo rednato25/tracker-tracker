@@ -58,6 +58,8 @@ re-exported for an external contract.
 | `WHATS_NEXT_LIMIT`, `WHATS_NEXT_LOGIN_WINDOW_DAYS`, `WHATS_NEXT_RATIO_NEAR_DANGER`, `WHATS_NEXT_DAY_MS` | `src/lib/whats-next.ts` | Fork-only exports; the underlying private constants are used inside the module, the public aliases are not. |
 | `registrySlugForPathwaysTracker` | `src/data/pathways/catalog.ts` | Fork-only wrapper; only its own re-export references it. |
 | Unused re-exports `normalizePathwaysTarget`, `pathwaysTrackerIdForRegistrySlug`, `pathwaysTrackerName`, `registrySlugForPathwaysTracker` | `src/data/recruitment-catalog.ts` | The barrel keeps `PATHWAYS_TRACKERS`, `RECRUITMENT_CATALOG` and `RECRUITMENT_ROUTES`; every consumer imports these four helpers from `src/data/pathways/catalog.ts` instead. |
+| `INTEGRATION_SCOPE_LABELS`, `INTEGRATION_SCOPE_DESCRIPTIONS` | `src/lib/integration-scopes.ts` | Fork-only labels used only by the deleted `IntegrationsSection`; the scope vocabulary and validators remain for the API. |
+| `resolveTrackerRules` import | `src/components/tracker-detail/TrackerInfoTab.tsx` | Fork-only leftover import flagged by Biome as unused; upstream does not import it. |
 
 ## Upstream unused exports kept on purpose
 
@@ -140,11 +142,16 @@ Knip reports no unused runtime dependency. Four devDependencies are flagged:
 ## Step 2 and step 3 changes
 
 1. Delete the fork-only `IntegrationsSection` component and its test.
-2. Delete the six fork-only unused exports listed above and the four unused
-   `recruitment-catalog` re-exports.
+2. Delete the six fork-only unused exports listed above, the four unused
+   `recruitment-catalog` re-exports, the two integration-scope label maps that only the
+   deleted section used, and the unused `resolveTrackerRules` import.
 3. Remove `@types/node-cron` and refresh `pnpm-lock.yaml` only for that removal.
 4. Do not touch migrations, stored data or behavior. The hidden integration-token API,
    image-hosting routes and upstream-kept components stay in place.
+
+After step 2, Knip reports 64 unused exports (down from 74) and 59 unused types. The
+remaining entries are the upstream items listed above. Unused files and devDependencies
+are unchanged until step 3 removes `@types/node-cron`.
 
 ## Verification gate
 

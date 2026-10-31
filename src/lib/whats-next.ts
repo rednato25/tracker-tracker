@@ -30,7 +30,6 @@ export interface WhatsNextItem {
   margin: number
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
 const FRESH_MS = 24 * 60 * 60 * 1000
 const LOGIN_WINDOW_DAYS = 14
 const RATIO_NEAR_DANGER = 0.1
@@ -190,8 +189,3 @@ export function buildWhatsNext(input: {
 
   return items.slice(0, input.limit ?? 5)
 }
-
-export const WHATS_NEXT_LIMIT = 5
-export const WHATS_NEXT_LOGIN_WINDOW_DAYS = LOGIN_WINDOW_DAYS
-export const WHATS_NEXT_RATIO_NEAR_DANGER = RATIO_NEAR_DANGER
-export { DAY_MS as WHATS_NEXT_DAY_MS }

@@ -443,7 +443,7 @@ describe("TrackerGrid", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("117")).toBeInTheDocument()
     expect(document.querySelector("[data-login-by]")).toHaveTextContent(
-      /117 days left · by\s+Feb 22, 2027/
+      /^by\s+Feb 22, 2027$/
     )
     expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
 
@@ -608,7 +608,7 @@ describe("TrackerGrid", () => {
     expect(container.querySelector("[data-login-by]")).toHaveClass("min-w-0")
   })
 
-  it("keeps only the day number in the ring and moves the unit beside it", () => {
+  it("keeps only the day number in the ring and shows the due date beside it", () => {
     render(
       <TrackerGrid
         trackers={[manualTracker({ lastAccessAt: "2026-10-25" })]}
@@ -624,9 +624,9 @@ describe("TrackerGrid", () => {
     expect(value).toHaveClass("text-[13px]", "tabular-nums", "font-mono")
     expect(ring).not.toHaveTextContent("days")
     expect(ring).toHaveStyle({ width: "40px", height: "40px" })
-    expect(document.querySelector("[data-login-by]")).toHaveTextContent(
-      /117 days left · by\s+Feb 22, 2027/
-    )
+    const loginBy = document.querySelector("[data-login-by]")
+    expect(loginBy).toHaveTextContent(/^by\s+Feb 22, 2027$/)
+    expect(loginBy).toHaveClass("text-tertiary")
   })
 
   it("shows the login deadline ring in the state's tone", () => {
@@ -643,6 +643,7 @@ describe("TrackerGrid", () => {
     const overdueValue = overdueRing.querySelector("[data-ring-value]")
     expect(overdueValue).toHaveClass("text-[14px]")
     expect(document.querySelector("[data-login-by]")).toHaveTextContent("overdue by 29 days")
+    expect(document.querySelector("[data-login-by]")).toHaveClass("text-danger")
     expect(container.querySelectorAll("circle")[1]?.getAttribute("stroke")).toBe(
       "var(--color-danger)"
     )
@@ -673,7 +674,7 @@ describe("TrackerGrid", () => {
     // 119 days elapsed of a 120-day rule: still inside the warning window.
     const warningRing = screen.getByLabelText(/Login due in 1 day/)
     expect(warningRing.closest("[data-login-ring]")).toHaveAttribute("data-login-tone", "warn")
-    expect(document.querySelector("[data-login-by]")).toHaveTextContent(/1 day left · by\s+Oct 29, 2026/)
+    expect(document.querySelector("[data-login-by]")).toHaveTextContent(/^by\s+Oct 29, 2026$/)
     expect(container.querySelectorAll("circle")[1]?.getAttribute("stroke")).toBe(
       "var(--color-warn)"
     )

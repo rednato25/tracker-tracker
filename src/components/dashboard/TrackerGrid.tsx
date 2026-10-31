@@ -317,7 +317,13 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
           </span>
         )}
       </DeadlineRing>
-      <span className="min-w-0 font-mono text-xs text-secondary" data-login-by>
+      <span
+        className={clsx(
+          "min-w-0 font-mono text-xs",
+          overdueDays !== null ? "text-danger" : "text-tertiary"
+        )}
+        data-login-by
+      >
         {overdueDays !== null ? (
           <>
             overdue by{" "}
@@ -326,12 +332,7 @@ function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
             </span>
           </>
         ) : (
-          <>
-            <span className="whitespace-nowrap">
-              {daysLeft} {daysLabel}
-            </span>{" "}
-            left · <span className="whitespace-nowrap">by&nbsp;{dueDate}</span>
-          </>
+          <span className="whitespace-nowrap">by&nbsp;{dueDate}</span>
         )}
       </span>
     </div>

@@ -80,7 +80,7 @@ export function readProfilePageOnce(input: {
       "Session expired. Paste a new profile cookie."
     )
   }
-  const parsed = parseProfilePage(input.registrySlug, input.html)
+  const parsed = parseProfilePage(input.registrySlug, input.html, input.now)
   if (!parsed) {
     return profileReadStopped(
       input.previous,

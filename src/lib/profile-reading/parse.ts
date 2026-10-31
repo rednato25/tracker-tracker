@@ -8,6 +8,7 @@
 // the groups page. V3X puts level and XP on the profile page when it shows them.
 
 import { parse as parseHtml } from "node-html-parser"
+import { localDateStr, trackerDateStr } from "@/lib/formatters"
 import type { ProfileReadValues } from "@/lib/profile-reading/types"
 import {
   normalizeWhitespace,
@@ -190,7 +191,45 @@ function isUploadCountLabel(label: string): boolean {
   )
 }
 
-function valuesFromLabels(pairs: LabelValue[], uploadsFallback: boolean): ProfileReadValues {
+function isLastLoginLabel(label: string): boolean {
+  const lower = foldLabel(label).replace(/\s+/g, " ").trim()
+  return lower === "last login" || lower === "ultimo login" || lower === "last login time"
+}
+
+const DAY_MS = 86_400_000
+
+/**
+ * A profile row can print a timestamp or a relative phrase ("9 minutes ago").
+ * `now` makes the relative form testable and keeps the result a calendar date,
+ * which is what the deadline ring counts in.
+ */
+export function parseProfileLoginDate(raw: string, now: Date = new Date()): string | undefined {
+  const text = normalizeWhitespace(raw)
+  if (!text) return undefined
+  const lower = text.toLowerCase()
+  if (/^(never|n\/a|unknown|desconhecido|nunca)$/i.test(lower)) return undefined
+
+  const absolute = trackerDateStr(text)
+  if (absolute) return absolute
+
+  if (/^(just now|a moment ago|moments? ago)$/.test(lower)) return localDateStr(now)
+  if (lower === "today") return localDateStr(now)
+  if (lower === "yesterday") return localDateStr(new Date(now.getTime() - DAY_MS))
+
+  if (/\bago$/.test(lower)) {
+    const seconds = parseDurationSeconds(lower.replace(/\bago$/, ""))
+    if (seconds !== undefined) {
+      return localDateStr(new Date(now.getTime() - seconds * 1000))
+    }
+  }
+  return undefined
+}
+
+function valuesFromLabels(
+  pairs: LabelValue[],
+  uploadsFallback: boolean,
+  now: Date
+): ProfileReadValues {
   const values: ProfileReadValues = {}
   for (const { label, value } of pairs) {
     const lowerLabel = label.toLowerCase()
@@ -199,6 +238,9 @@ function valuesFromLabels(pairs: LabelValue[], uploadsFallback: boolean): Profil
     }
     if (values.averageSeedTimeSeconds === undefined && isAverageSeedTimeLabel(label)) {
       values.averageSeedTimeSeconds = parseDurationSeconds(value)
+    }
+    if (values.lastLoginAt === undefined && isLastLoginLabel(label)) {
+      values.lastLoginAt = parseProfileLoginDate(value, now)
     }
     // "Uploaded" is bytes on a profile page, but some groups layouts use it as
     // the count. Only the unitless form is a count, so bytes can never slip in.
@@ -213,8 +255,8 @@ function valuesFromLabels(pairs: LabelValue[], uploadsFallback: boolean): Profil
   return values
 }
 
-export function parseUnit3dProfilePage(html: string): ProfileReadValues {
-  return valuesFromLabels(collectLabelValues(parseHtml(html)), false)
+export function parseUnit3dProfilePage(html: string, now: Date = new Date()): ProfileReadValues {
+  return valuesFromLabels(collectLabelValues(parseHtml(html)), false, now)
 }
 
 function findLeafYouElements(doc: HtmlDocument): ReturnType<HtmlDocument["querySelectorAll"]> {
@@ -302,7 +344,8 @@ export function parseV3xProfilePage(html: string): ProfileReadValues {
 
 export function parseProfilePage(
   registrySlug: string | null | undefined,
-  html: string
+  html: string,
+  now: Date = new Date()
 ): ProfilePageRead | null {
   if (registrySlug === "zenith") {
     const values = parseZenithGroupsPage(html)
@@ -312,6 +355,6 @@ export function parseProfilePage(
     const values = parseV3xProfilePage(html)
     return Object.keys(values).length > 0 ? { layout: "v3x", values } : null
   }
-  const values = parseUnit3dProfilePage(html)
+  const values = parseUnit3dProfilePage(html, now)
   return Object.keys(values).length > 0 ? { layout: "unit3d", values } : null
 }

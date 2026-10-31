@@ -101,6 +101,22 @@ describe("profile platformMeta merge", () => {
     expect(readProfileReadRecord("{broken")).toBeNull()
     expect(JSON.parse(withProfileReadRecord("{broken", record())).profileRead.status).toBeNull()
   })
+
+  it("reads the JSON text the server column stores", () => {
+    const parsed = readProfileReadRecord(JSON.stringify({ profileRead: record() }))
+    expect(parsed?.values.seedSizeBytes).toBe(1024)
+  })
+
+  it("keeps a profile Last login date and drops a malformed one", () => {
+    const withLogin = readProfileReadRecord({
+      profileRead: record({ values: { lastLoginAt: "2026-10-31" } }),
+    })
+    expect(withLogin?.values.lastLoginAt).toBe("2026-10-31")
+    const broken = readProfileReadRecord({
+      profileRead: record({ values: { lastLoginAt: "9 minutes ago" } }),
+    })
+    expect(broken?.values.lastLoginAt).toBeUndefined()
+  })
 })
 
 describe("profile read label", () => {

@@ -29,6 +29,7 @@ import { log } from "@/lib/logger"
 import { readLoginDeadline } from "@/lib/login-deadline"
 import { dispatchNotifications } from "@/lib/notifications/dispatch"
 import { maskUsername } from "@/lib/privacy"
+import { profileLoginFromMeta } from "@/lib/profile-login"
 import { runProfileReads } from "@/lib/profile-reading/fetch"
 import { withPreservedProfileRead } from "@/lib/profile-reading/meta"
 import { withBackgroundRestoreGuard } from "@/lib/restore-lock"
@@ -105,6 +106,7 @@ const POLL_TRACKER_COLUMNS = {
   remoteUserId: trackers.remoteUserId,
   platformMeta: trackers.platformMeta,
   joinedAt: trackers.joinedAt,
+  profileReadingEnabled: trackers.profileReadingEnabled,
   lastAccessAt: trackers.lastAccessAt,
   lastPolledAt: trackers.lastPolledAt,
   lastError: trackers.lastError,
@@ -138,6 +140,41 @@ async function pollUrlFor(tracker: {
 }
 
 export { POLL_FAILURE_THRESHOLD } from "@/lib/tracker-recovery"
+
+interface LastAccessTracker {
+  platformType: string
+  profileReadingEnabled: boolean
+  platformMeta: string | null
+  lastAccessAt: string | null
+}
+
+type LastAccessMetaUpdates = {
+  lastAccessAt?: string
+  lastAccessSource: "detected" | "manual"
+}
+
+/**
+ * The source follows the latest evidence, not the platform. An API value this
+ * poll returned wins. When it did not, an enabled UNIT3D profile read supplies
+ * "Last login" if that observation is at least as new as the stored date. With
+ * neither, the date is kept but marked manual so the card offers its button.
+ */
+function lastAccessMetaUpdates(
+  tracker: LastAccessTracker,
+  lastAccessDate: string | undefined
+): LastAccessMetaUpdates {
+  const lastAccess = lastAccessDate ? trackerDateStr(lastAccessDate) : undefined
+  if (lastAccess) {
+    return { lastAccessAt: lastAccess, lastAccessSource: "detected" }
+  }
+
+  const profileLogin = profileLoginFromMeta(tracker)
+  if (profileLogin && (!tracker.lastAccessAt || profileLogin.date >= tracker.lastAccessAt)) {
+    return { lastAccessAt: profileLogin.date, lastAccessSource: "detected" }
+  }
+
+  return { lastAccessSource: "manual" }
+}
 
 /**
  * Tolerance window for the overdue check. Trackers that would become overdue
@@ -200,17 +237,7 @@ export async function fetchTrackerStats(
     const joined = trackerDateStr(stats.joinedDate)
     if (joined) metaUpdates.joinedAt = joined
   }
-  const lastAccess = stats.lastAccessDate ? trackerDateStr(stats.lastAccessDate) : undefined
-  if (lastAccess) {
-    metaUpdates.lastAccessAt = lastAccess
-    metaUpdates.lastAccessSource = "detected"
-  } else {
-    // The API answered successfully and did not carry a usable last-access
-    // value. Keep the last known date for the deadline, but stop calling it
-    // detected: the card must offer the manual button until a poll reports one
-    // again.
-    metaUpdates.lastAccessSource = "manual"
-  }
+  Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats.lastAccessDate))
   if (stats.platformMeta) metaUpdates.platformMeta = JSON.stringify(withPreservedProfileRead(stats.platformMeta, tracker.platformMeta))
   if (stats.avatarUrl) metaUpdates.avatarRemoteUrl = stats.avatarUrl
   if (Object.keys(metaUpdates).length > 0) {
@@ -287,15 +314,7 @@ export async function pollTracker(
       const joined = trackerDateStr(stats.joinedDate)
       if (joined) metaUpdates.joinedAt = joined
     }
-    const lastAccess = stats.lastAccessDate ? trackerDateStr(stats.lastAccessDate) : undefined
-    if (lastAccess) {
-      metaUpdates.lastAccessAt = lastAccess
-      metaUpdates.lastAccessSource = "detected"
-    } else {
-      // See fetchTrackerStats: a successful poll without a usable last-access
-      // value falls back to manual and leaves the last known date in place.
-      metaUpdates.lastAccessSource = "manual"
-    }
+    Object.assign(metaUpdates, lastAccessMetaUpdates(tracker, stats.lastAccessDate))
     if (stats.platformMeta) {
       metaUpdates.platformMeta = JSON.stringify(
         withPreservedProfileRead(stats.platformMeta, tracker.platformMeta)

@@ -11,6 +11,7 @@ import { decrypt } from "@/lib/crypto"
 import { db } from "@/lib/db"
 import { appSettings, trackerSnapshots, trackers } from "@/lib/db/schema"
 import { errMsg } from "@/lib/error-utils"
+import { trackerDateStr } from "@/lib/formatters"
 import { log } from "@/lib/logger"
 import { withProfileReadRecord } from "@/lib/profile-reading/meta"
 import { profileReadFailed, profileReadStopped, readProfilePageOnce } from "@/lib/profile-reading/read"
@@ -51,6 +52,7 @@ export async function runProfileReads(
         registrySlug: trackers.registrySlug,
         platformType: trackers.platformType,
         platformMeta: trackers.platformMeta,
+        lastAccessAt: trackers.lastAccessAt,
         encryptedProfileCookie: trackers.encryptedProfileCookie,
       })
       .from(trackers)
@@ -134,7 +136,12 @@ export async function runProfileReads(
           previous,
           now,
         })
-        await persist(row.id, row.platformMeta, next.record)
+        await persist(
+          row.id,
+          row.platformMeta,
+          next.record,
+          detectedLoginFor(row, next.record)
+        )
         log.info(
           {
             trackerId: row.id,
@@ -162,13 +169,40 @@ export async function runProfileReads(
   }
 }
 
+/**
+ * A profile read only becomes a detected login on a UNIT3D tracker, and only
+ * when its "Last login" is not older than the date already stored. The latter
+ * keeps a manual mark made after the page was fetched from being rolled back.
+ */
+function detectedLoginFor(
+  row: { platformType: string; lastAccessAt: string | null },
+  record: ProfileReadRecord
+): string | undefined {
+  if (row.platformType !== "unit3d" || record.status || !record.values.lastLoginAt) {
+    return undefined
+  }
+  const date = trackerDateStr(record.values.lastLoginAt)
+  if (!date) return undefined
+  if (row.lastAccessAt && date < row.lastAccessAt) return undefined
+  return date
+}
+
 async function persist(
   trackerId: number,
   currentMeta: string | null,
-  record: ProfileReadRecord
+  record: ProfileReadRecord,
+  detectedLoginAt?: string
 ): Promise<void> {
-  await db
-    .update(trackers)
-    .set({ platformMeta: withProfileReadRecord(currentMeta, record) })
-    .where(eq(trackers.id, trackerId))
+  const values: {
+    platformMeta: string
+    lastAccessAt?: string
+    lastAccessSource?: "detected"
+  } = {
+    platformMeta: withProfileReadRecord(currentMeta, record),
+  }
+  if (detectedLoginAt) {
+    values.lastAccessAt = detectedLoginAt
+    values.lastAccessSource = "detected"
+  }
+  await db.update(trackers).set(values).where(eq(trackers.id, trackerId))
 }

@@ -4,6 +4,7 @@
 
 import { H1, H2, H3, Paragraph, Subtext } from "@typography"
 import { useId, useMemo, useRef, useState } from "react"
+import { ProofAccountsPanel } from "@/components/recruitment/ProofAccountsPanel"
 import { Badge, Button, Card, Input, Notice, Select } from "@/components/ui"
 import { ChevronDownSmallIcon, PinIcon, XIcon } from "@/components/ui/Icons"
 import { Tooltip } from "@/components/ui/Tooltip"
@@ -260,7 +261,15 @@ function ProfileRouteList({
   )
 }
 
-function TargetProfile({ profile }: { profile: TrackerProfileView }) {
+function TargetProfile({
+  profile,
+  trackers,
+  now,
+}: {
+  profile: TrackerProfileView
+  trackers: TrackerSummary[]
+  now: Date
+}) {
   const badgeVariant =
     profile.recruitingStatus === "open"
       ? "success"
@@ -300,6 +309,8 @@ function TargetProfile({ profile }: { profile: TrackerProfileView }) {
           </span>
         </div>
       </div>
+
+      <ProofAccountsPanel key={profile.targetTrackerId} trackers={trackers} now={now} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <section data-invited-from>
@@ -1234,7 +1245,7 @@ export function TrackerPathwaysClient({
             ) : (
               profile.noRoute && <NoRouteBlock noRoute={profile.noRoute} />
             )}
-            <TargetProfile profile={profile} />
+            <TargetProfile profile={profile} trackers={trackers} now={now} />
           </div>
         ) : null}
       </section>

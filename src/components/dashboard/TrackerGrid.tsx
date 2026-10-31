@@ -510,7 +510,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       </div>
       </Link>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+      <div className="flex flex-col gap-2 border-t border-border px-4 py-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <a
             href={tracker.baseUrl.startsWith("http") ? tracker.baseUrl : `https://${tracker.baseUrl}`}
@@ -536,55 +536,54 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           <span className={clsx("font-mono text-xs", loginDeadlineTone)} data-login-deadline>
             {loginDeadline.dueText}
           </span>
-          {loginSource !== "none" && (
-            <>
-              <span aria-hidden="true" className="text-tertiary">
-                {"\u00b7"}
-              </span>
-              <span className="text-xs text-tertiary" data-login-source>
-                {loginSource === "detected" ? "detected" : "marked by you"}
-              </span>
-            </>
-          )}
         </div>
-        {manualLogin && (
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {loginMarking.undo ? (
-              <>
-                <span className="font-mono text-xs text-success" role="status">
-                  Logged in today
-                </span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-tertiary" data-login-source>
+            {loginSource === "none"
+              ? ""
+              : loginSource === "detected"
+                ? "detected"
+                : "marked by you"}
+          </span>
+          {manualLogin && (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {loginMarking.undo ? (
+                <>
+                  <span className="font-mono text-xs text-success" role="status">
+                    Logged in today
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void loginMarking.undoMark()}
+                    disabled={loginMarking.saving}
+                    className="min-h-11 sm:min-h-9"
+                    data-login-undo
+                  >
+                    Undo
+                  </Button>
+                </>
+              ) : (
                 <Button
                   size="sm"
-                  variant="ghost"
-                  onClick={() => void loginMarking.undoMark()}
+                  variant={loginDueSoon ? "primary" : "secondary"}
+                  onClick={() => void loginMarking.markLogin()}
                   disabled={loginMarking.saving}
                   className="min-h-11 sm:min-h-9"
-                  data-login-undo
+                  data-login-button
+                  data-login-due={loginDueSoon ? "true" : undefined}
                 >
-                  Undo
+                  {loginMarking.saving ? "Saving…" : "Logged in today"}
                 </Button>
-              </>
-            ) : (
-              <Button
-                size="sm"
-                variant={loginDueSoon ? "primary" : "secondary"}
-                onClick={() => void loginMarking.markLogin()}
-                disabled={loginMarking.saving}
-                className="min-h-11 sm:min-h-9"
-                data-login-button
-                data-login-due={loginDueSoon ? "true" : undefined}
-              >
-                {loginMarking.saving ? "Saving…" : "Logged in today"}
-              </Button>
-            )}
-            {loginMarking.error && (
-              <span className="text-xs text-danger" role="alert">
-                Could not record login
-              </span>
-            )}
-          </div>
-        )}
+              )}
+              {loginMarking.error && (
+                <span className="text-xs text-danger" role="alert">
+                  Could not record login
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </article>
   )

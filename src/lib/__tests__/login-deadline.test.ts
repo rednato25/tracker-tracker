@@ -1,7 +1,27 @@
 import { describe, expect, it } from "vitest"
-import { readLoginDeadline } from "@/lib/login-deadline"
+import {
+  calendarDayNumber,
+  dateFromCalendarDay,
+  readLoginDeadline,
+} from "@/lib/login-deadline"
 
 const NOW = new Date("2026-10-28T12:00:00.000Z")
+
+describe("calendarDayNumber", () => {
+  it("keeps a date-only value on its own calendar day", () => {
+    const day = calendarDayNumber("2026-06-15")
+    expect(day).not.toBeNull()
+    const date = dateFromCalendarDay(day ?? 0)
+    expect(date.getFullYear()).toBe(2026)
+    expect(date.getMonth()).toBe(5)
+    expect(date.getDate()).toBe(15)
+  })
+
+  it("reads a timestamp as the local calendar day, not elapsed hours", () => {
+    const lateLogin = new Date(2026, 5, 15, 23, 30)
+    expect(calendarDayNumber(lateLogin)).toBe(calendarDayNumber("2026-06-15"))
+  })
+})
 
 describe("readLoginDeadline", () => {
   it("uses the calendar due date and the last login in the card footer", () => {

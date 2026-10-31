@@ -20,7 +20,7 @@ describe("LoginDeadlineCard", () => {
 
   it("shows days remaining at 50% elapsed (accent color)", () => {
     // 90-day interval, 45 days elapsed → 45 days remaining
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
     const lastAccess = new Date(now.getTime() - 45 * DAY_MS).toISOString()
 
@@ -37,7 +37,7 @@ describe("LoginDeadlineCard", () => {
 
   it("shows danger color when >80% elapsed", () => {
     // 90-day interval, 85 days elapsed → 5 days remaining
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
     const lastAccess = new Date(now.getTime() - 85 * DAY_MS).toISOString()
 
@@ -51,23 +51,41 @@ describe("LoginDeadlineCard", () => {
     expect(progressCircle?.getAttribute("stroke")).toBe("var(--color-danger)")
   })
 
-  it("switches to hours when <24h remaining", () => {
-    // 90-day interval, 89.5 days elapsed → ~12 hours remaining
-    const now = new Date("2026-06-15T00:00:00Z")
+  it("shows 0 days on the due date, not overdue until the next day", () => {
+    // 90-day interval, the login day is exactly 90 calendar days ago.
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
     const lastAccess = new Date(now.getTime() - 89.5 * DAY_MS).toISOString()
 
-    render(
+    const { container } = render(
       <StatCard type="ring" lastAccessAt={lastAccess} loginIntervalDays={90} accentColor={ACCENT} />
     )
 
-    expect(screen.getByText("12")).toBeInTheDocument()
-    expect(screen.getByText("hrs")).toBeInTheDocument()
+    expect(screen.getByText("0")).toBeInTheDocument()
+    expect(screen.getByText("days")).toBeInTheDocument()
+    // The ring is full, but the account is not overdue until tomorrow.
+    expect(screen.queryByText("OVERDUE")).not.toBeInTheDocument()
+    const progressCircle = container.querySelectorAll("circle")[1]
+    expect(progressCircle?.getAttribute("stroke")).toBe("var(--color-danger)")
+  })
+
+  it("shows the full interval on the day of a login, not one less", () => {
+    // 60-day interval, logged in today at 23:30 local: elapsed hours are 23.5,
+    // but the countdown counts calendar days and must still read 60.
+    vi.setSystemTime(new Date("2026-06-15T23:30:00"))
+
+    render(
+      <StatCard type="ring" lastAccessAt="2026-06-15" loginIntervalDays={60} accentColor={ACCENT} />
+    )
+
+    expect(screen.getByText("60")).toBeInTheDocument()
+    expect(screen.getByText("days")).toBeInTheDocument()
+    expect(screen.queryByText("59")).not.toBeInTheDocument()
   })
 
   it("shows OVERDUE when past deadline", () => {
     // 90-day interval, 100 days elapsed → 10 days overdue
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
     const lastAccess = new Date(now.getTime() - 100 * DAY_MS).toISOString()
 
@@ -80,7 +98,7 @@ describe("LoginDeadlineCard", () => {
   })
 
   it("shows full interval remaining when just logged in", () => {
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
     const lastAccess = now.toISOString()
 
@@ -97,7 +115,7 @@ describe("LoginDeadlineCard", () => {
 
   it("shows warn color at 50-80% range", () => {
     // 90-day interval, 60 days elapsed → 66.7% → warn
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
     const lastAccess = new Date(now.getTime() - 60 * DAY_MS).toISOString()
 
@@ -111,7 +129,7 @@ describe("LoginDeadlineCard", () => {
   })
 
   it("shows 1 day overdue singular", () => {
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
     const lastAccess = new Date(now.getTime() - 91 * DAY_MS).toISOString()
 
@@ -123,7 +141,7 @@ describe("LoginDeadlineCard", () => {
   })
 
   it("renders nothing for unparseable date string (XSS-safe)", () => {
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
 
     const { container } = render(
@@ -140,7 +158,7 @@ describe("LoginDeadlineCard", () => {
   })
 
   it("renders nothing for empty string date", () => {
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
 
     const { container } = render(
@@ -151,7 +169,7 @@ describe("LoginDeadlineCard", () => {
   })
 
   it("handles negative loginIntervalDays gracefully", () => {
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
 
     render(
@@ -168,7 +186,7 @@ describe("LoginDeadlineCard", () => {
   })
 
   it("does not crash with extremely large loginIntervalDays", () => {
-    const now = new Date("2026-06-15T00:00:00Z")
+    const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
 
     expect(() => {
@@ -187,11 +205,11 @@ describe("LoginDeadlineCard", () => {
 describe("LoginDeadlineCard — Login Now action", () => {
   const TRACKER_URL = "https://tracker.example.com"
 
-  // Frozen clock so the "45 days remaining" assertions are exact. On the real
-  // clock the elapsed milliseconds of the test itself floor the count to 44.
+  // Frozen clock keeps the "45 days remaining" assertions exact; the count is
+  // whole calendar days, not elapsed milliseconds.
   beforeEach(() => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date("2026-06-15T00:00:00Z"))
+    vi.setSystemTime(new Date(2026, 5, 15, 12))
   })
 
   afterEach(() => {

@@ -27,7 +27,18 @@ function dayNumber(year: number, month: number, day: number): number {
   return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS)
 }
 
-function calendarDay(value: string): number | null {
+/**
+ * The local calendar day of a stored login date, as a whole-day number. A bare
+ * `YYYY-MM-DD` is already a calendar date and is read from its own components;
+ * an ISO timestamp is converted to the local date first. Using elapsed
+ * milliseconds instead makes "today" read as one day less whenever the login
+ * happened earlier in the day, and shifts the date across a UTC offset.
+ */
+export function calendarDayNumber(value: string | Date): number | null {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null
+    return dayNumber(value.getFullYear(), value.getMonth() + 1, value.getDate())
+  }
   const bare = DATE_ONLY.exec(value)
   if (bare) {
     return dayNumber(Number(bare[1]), Number(bare[2]), Number(bare[3]))
@@ -37,8 +48,10 @@ function calendarDay(value: string): number | null {
   return dayNumber(date.getFullYear(), date.getMonth() + 1, date.getDate())
 }
 
-function todayDay(now: Date): number {
-  return dayNumber(now.getFullYear(), now.getMonth() + 1, now.getDate())
+/** Local midnight of a whole-day number, for rendering the due date. */
+export function dateFromCalendarDay(day: number): Date {
+  const utc = new Date(day * DAY_MS)
+  return new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate())
 }
 
 function isoDay(day: number): string {
@@ -60,9 +73,9 @@ export function readLoginDeadline(input: {
     input.intervalDays > 0
       ? Math.floor(input.intervalDays)
       : null
-  const lastDay = input.lastAccessAt ? calendarDay(input.lastAccessAt) : null
-  const lastLoginDays =
-    lastDay === null ? null : Math.max(0, todayDay(input.now) - lastDay)
+  const lastDay = input.lastAccessAt ? calendarDayNumber(input.lastAccessAt) : null
+  const today = calendarDayNumber(input.now)
+  const lastLoginDays = lastDay === null || today === null ? null : Math.max(0, today - lastDay)
 
   const lastLoginText =
     lastLoginDays === null
@@ -85,7 +98,7 @@ export function readLoginDeadline(input: {
     }
   }
 
-  if (lastDay === null) {
+  if (lastDay === null || today === null) {
     return {
       intervalDays: interval,
       hasRule: true,
@@ -100,7 +113,6 @@ export function readLoginDeadline(input: {
   }
 
   const dueDay = lastDay + interval
-  const today = todayDay(input.now)
   const dueInDays = Math.max(0, dueDay - today)
   const overdueDays = today > dueDay ? today - dueDay : null
 

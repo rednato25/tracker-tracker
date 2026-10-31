@@ -6,6 +6,7 @@ import { ExternalLinkIcon } from "@/components/ui/Icons"
 import { SectionToggle } from "@/components/ui/SectionToggle"
 import { StatCard } from "@/components/ui/StatCard"
 import { registryEntryFor } from "@/data/tracker-registry"
+import { calendarDayNumber } from "@/lib/login-deadline"
 import type { TrackerSummary } from "@/types/api"
 
 interface TimerEntry {
@@ -42,9 +43,9 @@ export function LoginTimers({ trackers, expanded, onToggleExpanded }: LoginTimer
     })
     .filter((e): e is TimerEntry => e !== null)
     .sort((a, b) => {
-      const now = Date.now()
-      const remA = a.loginIntervalDays * 86400000 - (now - new Date(a.lastAccessAt).getTime())
-      const remB = b.loginIntervalDays * 86400000 - (now - new Date(b.lastAccessAt).getTime())
+      const today = calendarDayNumber(new Date()) ?? 0
+      const remA = (calendarDayNumber(a.lastAccessAt) ?? today) + a.loginIntervalDays - today
+      const remB = (calendarDayNumber(b.lastAccessAt) ?? today) + b.loginIntervalDays - today
       return remA - remB
     })
 

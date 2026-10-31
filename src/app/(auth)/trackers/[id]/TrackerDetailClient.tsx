@@ -469,6 +469,8 @@ export function TrackerDetailClient({
           delta={delta}
           minimumRatio={resolveAccountRatio(null, registryEntry?.rules) ?? undefined}
           bonusName={registryBonusName(registryEntry)}
+          userClasses={registryEntry?.userClasses ?? []}
+          rankPaths={registryEntry?.rankPaths}
           statCardSlots={statCardSlots}
           progressSlots={progressSlots}
         />

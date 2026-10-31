@@ -48,7 +48,18 @@ test.describe("P52 rank goal and what's next", () => {
           required_ratio, warned, freeleech_tokens, group_name, is_manual
         ) values (
           ${tracker.id}, now(), ${2 * TIB}, ${TIB}, 2, ${TIB}, 20, 0, 100,
-          0, 1, false, 0, 'Registered', false
+          0, 1, false, 0, 'Power User', false
+        )
+      `
+      await sql`
+        insert into tracker_snapshots (
+          tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio,
+          buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+          required_ratio, warned, freeleech_tokens, group_name, is_manual
+        ) values (
+          ${tracker.id}, ${new Date(Date.now() - 20 * DAY_MS)},
+          ${1 * TIB}, ${TIB}, 1, ${0}, 10, 0, 50, 0, 1, false, 0,
+          'Registered', false
         )
       `
       await sql`
@@ -116,6 +127,65 @@ test.describe("P52 rank goal and what's next", () => {
         expect(overflow, `rank goal overflows at ${width}px`).toBeLessThanOrEqual(1)
         await panel.screenshot({
           path: `docs/screenshots/p52/rank-goal-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
+  test("puts the target hint above the chips and promotion history in the data tab", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000)
+    expect(trackerId).not.toBeNull()
+
+    for (const width of [1440, 390] as const) {
+      await page.setViewportSize({ width, height: 1200 })
+      await page.goto(`/trackers/${trackerId}`)
+      const progression = page.locator("[data-rank-progression]")
+      await expect(progression).toBeVisible({ timeout: 20_000 })
+
+      const hint = progression.locator("[data-rank-target-hint]")
+      await expect(hint).toBeVisible()
+      await expect(progression.locator("[data-promotion-history]")).toHaveCount(0)
+
+      const firstChip = progression.getByRole("button").first()
+      const hintBox = await hint.boundingBox()
+      const chipBox = await firstChip.boundingBox()
+      expect(hintBox).not.toBeNull()
+      expect(chipBox).not.toBeNull()
+      if (hintBox && chipBox) expect(hintBox.y).toBeLessThan(chipBox.y)
+
+      const history = page.locator("[data-promotion-history]")
+      await expect(history).toBeVisible()
+      await expect(history).toContainText("Promotion history")
+      await expect(history).toContainText("Registered")
+      await expect(history).toContainText("Power User")
+
+      const height = Math.min(6000, (await page.locator("#main-content").evaluate(
+        (element) => element.scrollHeight
+      )) + 80)
+      await page.setViewportSize({ width, height })
+      await page.evaluate(() => {
+        const main = document.querySelector("#main-content")
+        if (main) main.scrollTop = 0
+        window.scrollTo(0, 0)
+      })
+      await page.waitForTimeout(200)
+
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((next) => {
+          document.documentElement.dataset.theme = next
+        }, theme)
+        await page.waitForTimeout(150)
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+        expect(overflow, `tracker page overflows at ${width}px`).toBeLessThanOrEqual(1)
+        await progression.screenshot({
+          path: `docs/screenshots/p52/tracker-progression-${width}-${theme}.png`,
+        })
+        await history.screenshot({
+          path: `docs/screenshots/p52/tracker-history-${width}-${theme}.png`,
         })
       }
     }

@@ -3,11 +3,16 @@
 
 import clsx from "clsx"
 import { type ReactNode, useMemo } from "react"
+import {
+  buildRankTimeline,
+  RankTimeline,
+} from "@/components/dashboard/RankProgress"
 import { AnalyticsCharts } from "@/components/tracker-detail/AnalyticsCharts"
 import { buildCoreStatDescriptors } from "@/components/tracker-detail/CoreStatCards"
 import { PollLog } from "@/components/tracker-detail/PollLog"
 import { SlotRenderer } from "@/components/tracker-detail/SlotRenderer"
 import { StatCard } from "@/components/ui/StatCard"
+import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import {
   findOptimalLayout2Col,
   findOptimalLayout3Col,
@@ -38,6 +43,8 @@ interface AnalyticsTabProps {
   delta: DeltaDisplay
   minimumRatio?: number
   bonusName?: string
+  userClasses?: TrackerUserClass[]
+  rankPaths?: TrackerRankPath[]
   statCardSlots: ResolvedSlot[]
   progressSlots: ResolvedSlot[]
 }
@@ -54,9 +61,15 @@ export function AnalyticsTab({
   delta,
   minimumRatio,
   bonusName,
+  userClasses = [],
+  rankPaths,
   statCardSlots,
   progressSlots,
 }: AnalyticsTabProps) {
+  const timeline = useMemo(
+    () => buildRankTimeline(snapshots, userClasses, rankPaths),
+    [snapshots, userClasses, rankPaths]
+  )
   // Build core stat descriptors (data, not elements)
   const coreDescriptors = useMemo(
     () => buildCoreStatDescriptors(stats, latestSnapshot, minimumRatio),
@@ -148,6 +161,15 @@ export function AnalyticsTab({
       <div className={`hidden gap-5 lg:grid ${lgColClass}`} data-core-stat-cards>
         {renderLayoutCards(layout4)}
       </div>
+
+      {timeline.length > 0 && (
+        <section className="flex flex-col gap-3" data-promotion-history>
+          <h3 className="font-cond text-xs font-semibold uppercase tracking-wider text-secondary">
+            Promotion history
+          </h3>
+          <RankTimeline events={timeline} />
+        </section>
+      )}
 
       <hr className="border-border" />
       <PollLog

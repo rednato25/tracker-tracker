@@ -506,7 +506,7 @@ describe("TrackerGrid", () => {
     const { rerender } = render(
       <TrackerGrid
         trackers={[
-          tracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" }),
+          manualTracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" }),
         ]}
         summaries={[summary()]}
         now={NOW}
@@ -541,7 +541,8 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByRole("button", { name: "Marked by you" })).toBeInTheDocument()
+    // No login rule: the footer only carries the muted rule notice.
+    expect(screen.queryByRole("button", { name: "Marked by you" })).not.toBeInTheDocument()
   })
 
   it("shows no ring for a tracker without a login rule, only muted text", () => {
@@ -557,6 +558,7 @@ describe("TrackerGrid", () => {
     expect(noRule).toHaveAttribute("data-login-no-rule")
     expect(container.querySelector("[data-login-ring]")).toBeNull()
     expect(screen.queryByText(/^by /)).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Marked by you" })).not.toBeInTheDocument()
   })
 
   it("keeps the ring, source, site link and login button in one footer row", () => {
@@ -724,7 +726,7 @@ describe("TrackerGrid", () => {
     fireEvent.click(screen.getByRole("link", { name: "Open TorrentLeech site" }))
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Marked by you" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument()
     )
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({

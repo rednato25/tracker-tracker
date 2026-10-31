@@ -603,7 +603,9 @@ function TrackerCard({
       >
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 xl:flex-1 xl:flex-nowrap">
           <LoginDeadlineReadout deadline={loginDeadline} />
-          {loginSource === "none" ? null : <LoginSourceIcon source={loginSource} />}
+          {loginSource === "none" || !loginDeadline.hasRule ? null : (
+            <LoginSourceIcon source={loginSource} />
+          )}
         </div>
         <div
           className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto sm:justify-end"

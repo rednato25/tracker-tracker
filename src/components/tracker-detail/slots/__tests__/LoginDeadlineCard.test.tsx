@@ -55,7 +55,7 @@ describe("LoginDeadlineCard", () => {
     // 90-day interval, the login day is exactly 90 calendar days ago.
     const now = new Date(2026, 5, 15, 12)
     vi.setSystemTime(now)
-    const lastAccess = new Date(now.getTime() - 89.5 * DAY_MS).toISOString()
+    const lastAccess = new Date(now.getTime() - 90 * DAY_MS).toISOString()
 
     const { container } = render(
       <StatCard type="ring" lastAccessAt={lastAccess} loginIntervalDays={90} accentColor={ACCENT} />

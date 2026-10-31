@@ -322,6 +322,7 @@ function makeBackupPayload(encryptionSalt: string, ct: Ciphertexts): BackupPaylo
         notifyRatioDanger: false,
         notifyZeroSeeding: false,
         notifyRankChange: false,
+        notifyLoginDue: false,
         notifyAnniversary: false,
         notifyBonusCap: true,
         notifyVipExpiring: true,

@@ -46,6 +46,11 @@
       "version": "0008_profile_reading",
       "file": "0008_profile_reading.sql",
       "sha256": "8613751fb2f38aedd02774899336e568d3d1fc7cc5468d0a7c30fc919f3b5d7f"
+    },
+    {
+      "version": "0009_notify_login_due",
+      "file": "0009_notify_login_due.sql",
+      "sha256": "38f75f830ec8fd633f111147859a2a297f1cb51f3c4008fd704569822bcc4af8"
     }
   ]
 }

@@ -26,6 +26,7 @@ import { errMsg, sanitizeNetworkError } from "@/lib/error-utils"
 import { localDateStr, trackerDateStr } from "@/lib/formatters"
 import { POLL_CYCLE_DEADLINE_MS, POLL_INTERVAL_DEFAULT } from "@/lib/limits"
 import { log } from "@/lib/logger"
+import { readLoginDeadline } from "@/lib/login-deadline"
 import { dispatchNotifications } from "@/lib/notifications/dispatch"
 import { maskUsername } from "@/lib/privacy"
 import { runProfileReads } from "@/lib/profile-reading/fetch"
@@ -104,6 +105,7 @@ const POLL_TRACKER_COLUMNS = {
   remoteUserId: trackers.remoteUserId,
   platformMeta: trackers.platformMeta,
   joinedAt: trackers.joinedAt,
+  lastAccessAt: trackers.lastAccessAt,
   lastPolledAt: trackers.lastPolledAt,
   lastError: trackers.lastError,
   lastErrorAt: trackers.lastErrorAt,
@@ -388,6 +390,12 @@ export async function pollTracker(
         ? (stats.platformMeta as C411PlatformMeta | HawkePlatformMeta | undefined)
         : undefined
 
+      const loginDeadline = readLoginDeadline({
+        lastAccessAt: tracker.lastAccessAt,
+        intervalDays: registryEntryFor(tracker)?.rules?.loginIntervalDays,
+        now: timestamp,
+      })
+
       await dispatchNotifications(
         {
           trackerId: tracker.id,
@@ -409,6 +417,9 @@ export async function pollTracker(
           trackerIsActive: tracker.isActive,
           trackerPausedAt: null,
           trackerJoinedAt: tracker.joinedAt ?? null,
+          trackerRegistrySlug: tracker.registrySlug ?? null,
+          loginDueInDays:
+            loginDeadline.dueInDays ?? (loginDeadline.overdueDays !== null ? 0 : null),
           minimumRatio: resolveRequiredRatio(stats.requiredRatio, tracker) ?? undefined,
           platformContext:
             tracker.platformType === "mam"

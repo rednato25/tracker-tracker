@@ -222,7 +222,7 @@ create_database tt_fresh
 start_app tt-ci-fresh tt_fresh
 FRESH_PORT="$STARTED_PORT"
 wait_health tt-ci-fresh "$FRESH_PORT"
-assert_equal 9 "$(psql_query tt_fresh 'select count(*) from schema_migrations')" "fresh ledger rows"
+assert_equal 10 "$(psql_query tt_fresh 'select count(*) from schema_migrations')" "fresh ledger rows"
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0000_baseline' and baseline")" "fresh baseline row"
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0001_digest_settings'")" "fresh digest migration row"
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0002_quiet_hours'")" "fresh quiet-hours migration row"
@@ -232,6 +232,7 @@ assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations wh
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0006_recruitment_state'")" "fresh recruitment-state migration row"
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0007_last_access_source'")" "fresh last-access-source migration row"
 assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0008_profile_reading'")" "fresh profile-reading migration row"
+assert_equal 1 "$(psql_query tt_fresh "select count(*) from schema_migrations where version='0009_notify_login_due'")" "fresh login-due migration row"
 assert_equal 20 "$(psql_query tt_fresh "select count(*) from pg_tables where schemaname='public' and tablename <> 'schema_migrations'")" "fresh application tables"
 echo "fresh startup healthy with one baseline ledger row"
 echo "::endgroup::"
@@ -246,7 +247,7 @@ remove_app tt-ci-managed-1
 start_app tt-ci-managed-2 tt_managed
 MANAGED_PORT="$STARTED_PORT"
 wait_health tt-ci-managed-2 "$MANAGED_PORT"
-assert_equal 9 "$(psql_query tt_managed 'select count(*) from schema_migrations')" "managed ledger rows"
+assert_equal 10 "$(psql_query tt_managed 'select count(*) from schema_migrations')" "managed ledger rows"
 assert_log tt-ci-managed-2 '"path": *"noop"'
 echo "managed restart healthy with a no-op migration path"
 echo "::endgroup::"
@@ -275,7 +276,7 @@ psql_query tt_ahead "INSERT INTO schema_migrations (version, checksum, app_versi
 start_app tt-ci-ahead-2 tt_ahead
 AHEAD_PORT="$STARTED_PORT"
 wait_exit tt-ci-ahead-2
-assert_equal 10 "$(psql_query tt_ahead 'select count(*) from schema_migrations')" "ahead ledger rows"
+assert_equal 11 "$(psql_query tt_ahead 'select count(*) from schema_migrations')" "ahead ledger rows"
 assert_equal 0 "$(psql_query tt_ahead "select count(*) from pg_tables where schemaname='public' and tablename='0005_future'")" "ahead migration table"
 assert_log tt-ci-ahead-2 'DATABASE_AHEAD|ahead of this application'
 echo "database ahead refused without applying the unknown version"
@@ -290,7 +291,7 @@ start_app tt-ci-concurrent-2 tt_concurrent
 CONCURRENT_2_PORT="$STARTED_PORT"
 wait_health tt-ci-concurrent-1 "$CONCURRENT_1_PORT"
 wait_health tt-ci-concurrent-2 "$CONCURRENT_2_PORT"
-assert_equal 9 "$(psql_query tt_concurrent 'select count(*) from schema_migrations')" "concurrent ledger rows"
+assert_equal 10 "$(psql_query tt_concurrent 'select count(*) from schema_migrations')" "concurrent ledger rows"
 echo "both concurrent containers healthy with one ledger row"
 echo "::endgroup::"
 
@@ -306,7 +307,7 @@ P02A_DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PG_HOST_PO
 start_app tt-ci-p02a tt_p02a
 P02A_PORT="$STARTED_PORT"
 wait_health tt-ci-p02a "$P02A_PORT"
-assert_equal 9 "$(psql_query tt_p02a 'select count(*) from schema_migrations')" "P02a ledger rows"
+assert_equal 10 "$(psql_query tt_p02a 'select count(*) from schema_migrations')" "P02a ledger rows"
 assert_equal 2 "$(psql_query tt_p02a 'select count(*) from trackers')" "P02a seeded trackers"
 assert_equal "p02a-fixture" "$(psql_query tt_p02a 'select username from app_settings limit 1')" "P02a settings"
 echo "unmanaged P02a baseline adopted with seeded rows preserved"
@@ -361,7 +362,7 @@ docker compose --project-name "$COMPOSE_PROJECT" --env-file "$COMPOSE_DIR/.env" 
 assert_equal "$IMAGE" "$(docker inspect tracker-tracker-app --format '{{.Config.Image}}')" "Compose candidate image"
 curl -fsS --max-time 5 "http://127.0.0.1:${COMPOSE_PORT}/api/health" | grep -q '"status":"ok"' ||
   fail "Compose app health check failed"
-assert_equal 9 "$(docker exec tracker-tracker-db psql -U "$DB_USER" -d tracker_tracker -Atc 'select count(*) from schema_migrations')" "Compose ledger rows"
+assert_equal 10 "$(docker exec tracker-tracker-db psql -U "$DB_USER" -d tracker_tracker -Atc 'select count(*) from schema_migrations')" "Compose ledger rows"
 echo "Compose Quick Start healthy with the explicit candidate image"
 docker compose --project-name "$COMPOSE_PROJECT" --env-file "$COMPOSE_DIR/.env" \
   -f "$COMPOSE_DIR/docker-compose.yml" -f "$COMPOSE_DIR/override.yml" down -v --remove-orphans >/dev/null

@@ -32,6 +32,11 @@ interface ManualValueEditorProps {
   now: Date
   onSave: (value: RankManualValue) => Promise<void>
   onClear: () => Promise<void>
+  /** Controlled editing, so the inline trigger can live in a compact row. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  triggerVariant?: "button" | "link"
+  hideTrigger?: boolean
 }
 
 export function ManualValueEditor({
@@ -46,9 +51,18 @@ export function ManualValueEditor({
   now,
   onSave,
   onClear,
+  open,
+  onOpenChange,
+  triggerVariant = "button",
+  hideTrigger = false,
 }: ManualValueEditorProps) {
   const units = manualUnitsFor(metric)
-  const [editing, setEditing] = useState(false)
+  const [internalEditing, setInternalEditing] = useState(false)
+  const editing = open ?? internalEditing
+  const setEditing = (next: boolean) => {
+    if (open === undefined) setInternalEditing(next)
+    onOpenChange?.(next)
+  }
   const [value, setValue] = useState("")
   const [unit, setUnit] = useState<RankManualUnit>(manual?.unit ?? units[0] ?? "count")
   const [saving, setSaving] = useState(false)
@@ -131,15 +145,26 @@ export function ManualValueEditor({
   return (
     <div className="mt-1 flex flex-col gap-1.5">
       {!editing ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => setEditing(true)}
-          className="min-h-11 px-2 sm:min-h-8"
-          data-enter-manual-value
-        >
-          Enter value
-        </Button>
+        hideTrigger ? null : triggerVariant === "link" ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="w-fit text-2xs font-medium text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+            data-enter-manual-value
+          >
+            Enter value
+          </button>
+        ) : (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setEditing(true)}
+            className="min-h-11 px-2 sm:min-h-8"
+            data-enter-manual-value
+          >
+            Enter value
+          </Button>
+        )
       ) : (
         <div className="flex flex-wrap items-end gap-1.5">
           <label className="flex flex-col gap-0.5">

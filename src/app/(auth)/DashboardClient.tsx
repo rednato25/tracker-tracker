@@ -26,6 +26,7 @@ import { TrackerRegister } from "@/components/dashboard/TrackerRegister"
 import { useChartPreferences } from "@/components/dashboard/useChartPreferences"
 import { useDashboardSettings } from "@/components/dashboard/useDashboardSettings"
 import { useDashboardView } from "@/components/dashboard/useDashboardView"
+import { WhatsNext } from "@/components/dashboard/WhatsNext"
 import { Button, Divider, GearIcon, TabBar } from "@/components/ui"
 import { SectionToggle } from "@/components/ui/SectionToggle"
 import { ChartGridSkeleton } from "@/components/ui/skeletons"
@@ -45,6 +46,7 @@ import type {
 import { putRankManualValue } from "@/lib/rank-manual-values-client"
 import { buildRankGoalSummaries, parseSavedRankGoals } from "@/lib/rank-summary"
 import type { RankCheck } from "@/lib/recruitment-state"
+import { buildWhatsNext } from "@/lib/whats-next"
 import type { Snapshot, TrackerSummary } from "@/types/api"
 import type { TrackerSnapshotSeries } from "@/types/charts"
 
@@ -132,6 +134,16 @@ export function DashboardClient({
   const rankSummaries = useMemo(
     () => buildRankGoalSummaries(data.trackers, savedRankGoals, new Date(now), rankManualValues),
     [data.trackers, savedRankGoals, now, rankManualValues]
+  )
+  const whatsNext = useMemo(
+    () =>
+      buildWhatsNext({
+        trackers: data.trackers,
+        savedRankGoals,
+        manualValues: rankManualValues,
+        now: new Date(now),
+      }),
+    [data.trackers, savedRankGoals, rankManualValues, now]
   )
   const trackerSeries = useMemo(
     () => buildTrackerSeries(data.trackers, data.snapshotMap),
@@ -241,6 +253,8 @@ export function DashboardClient({
       </div>
 
       <div className="flex flex-col gap-6 pb-12" data-dashboard-view={dashboardView}>
+        <WhatsNext items={whatsNext} />
+
         <DashboardTotals
           trackers={data.trackers}
           aggregateStats={aggregateStats}

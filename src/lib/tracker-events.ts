@@ -24,6 +24,22 @@ export function checkRatioBelowMinimum(
   return Number.isFinite(minimumRatio) && ratio < minimumRatio
 }
 
+export const RATIO_NEAR_DANGER_BAND = 0.1
+
+/**
+ * P52: true while the ratio is still above the demotion threshold but inside
+ * the 10% warning band. Below the threshold is the separate ratio_danger event.
+ */
+export function checkRatioNearMinimum(
+  ratio: number | null | undefined,
+  minimumRatio: number | undefined
+): boolean {
+  if (ratio === null || ratio === undefined) return false
+  if (minimumRatio === undefined) return false
+  if (!Number.isFinite(ratio) || !Number.isFinite(minimumRatio) || minimumRatio <= 0) return false
+  return ratio > minimumRatio && ratio <= minimumRatio * (1 + RATIO_NEAR_DANGER_BAND)
+}
+
 export function checkRatioDelta(
   previousRatio: number | null,
   currentRatio: number | null,
@@ -214,6 +230,9 @@ export const EVENT_SNOOZE_MS: Record<NotificationEventType, number> = {
   ratio_danger: 24 * 60 * 60 * 1000, // 24 hours. State-based, fires while below minimum
   zero_seeding: 24 * 60 * 60 * 1000, // 24 hours. State-based, fires while at 0 seeds
   rank_change: 7 * 24 * 60 * 60 * 1000, // 7 days. Rare event, one notification per change
+  target_reached: 7 * 24 * 60 * 60 * 1000, // 7 days. Once when the saved target is crossed
+  ratio_near_danger: 24 * 60 * 60 * 1000, // 24 hours. State-based warning band
+  login_due: 24 * 60 * 60 * 1000, // 24 hours. State-based inside the 7-day window
   anniversary: 7 * 24 * 60 * 60 * 1000, // 7 days. Longer than the ±3-day detection window
   bonus_cap: 24 * 60 * 60 * 1000, // 24 hours
   vip_expiring: 24 * 60 * 60 * 1000, // 24 hours

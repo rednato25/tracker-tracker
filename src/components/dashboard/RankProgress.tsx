@@ -145,6 +145,20 @@ function classifyDirection(
   return toPos > fromPos ? "promotion" : "demotion"
 }
 
+export function buildRankTimeline(
+  snapshots: Snapshot[],
+  userClasses: TrackerUserClass[],
+  rankPaths?: TrackerRankPath[]
+): TimelineEvent[] {
+  return [...extractRankHistory(snapshots)].reverse().map((change) => ({
+    kind: "rank" as const,
+    from: change.from,
+    to: change.to,
+    date: change.date,
+    direction: classifyDirection(change.from, change.to, userClasses, rankPaths),
+  }))
+}
+
 function classChipTone(item: RankProgressionClass): string {
   if (item.outsideLadder) {
     return "border-dashed border-border bg-control-bg text-tertiary"
@@ -219,7 +233,7 @@ function ClassChip({
   )
 }
 
-function RankTimeline({ events }: RankTimelineProps) {
+export function RankTimeline({ events }: RankTimelineProps) {
   if (events.length === 0) return null
 
   return (
@@ -281,7 +295,6 @@ function RankProgress({
   userClasses,
   rankPaths,
   currentRank,
-  snapshots,
   savedTargetRank = null,
   onSetTarget,
   observations = {},
@@ -301,15 +314,6 @@ function RankProgress({
   useEffect(() => {
     setDisplayTarget(savedTargetRank)
   }, [savedTargetRank])
-
-  const rankHistory = extractRankHistory(snapshots)
-  const events: TimelineEvent[] = [...rankHistory].reverse().map((change) => ({
-    kind: "rank" as const,
-    from: change.from,
-    to: change.to,
-    date: change.date,
-    direction: classifyDirection(change.from, change.to, userClasses, rankPaths),
-  }))
 
   const progression = useMemo(
     () =>
@@ -364,7 +368,7 @@ function RankProgress({
     }
   }
 
-  if (!hasRows && events.length === 0) return null
+  if (!hasRows) return null
 
   return (
     <div className="flex flex-col gap-4">
@@ -374,10 +378,13 @@ function RankProgress({
         onToggle={() => setExpanded((e) => !e)}
       />
 
-      {expanded && (
-        <>
-          {hasRows && (
-            <div className="flex flex-col gap-4" data-rank-progression>
+      {expanded && hasRows && (
+        <div className="flex flex-col gap-4" data-rank-progression>
+              {!undoState && (
+                <span className="text-2xs text-tertiary" data-rank-target-hint>
+                  Click a class to set it as your target.
+                </span>
+              )}
               {progression.shared.length > 0 && (
                 <div
                   className="flex flex-wrap items-center gap-x-2 gap-y-1.5"
@@ -478,22 +485,14 @@ function RankProgress({
                       Undo
                     </Button>
                   </>
-                ) : (
-                  <span className="text-2xs text-tertiary">
-                    Click a class to set it as your target.
-                  </span>
-                )}
+                ) : null}
               </div>
               {error && (
                 <p className="text-xs text-danger" role="alert">
                   {error}
                 </p>
               )}
-            </div>
-          )}
-
-          <RankTimeline events={events} />
-        </>
+        </div>
       )}
     </div>
   )

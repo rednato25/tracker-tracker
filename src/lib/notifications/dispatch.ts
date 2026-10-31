@@ -2,6 +2,7 @@
 
 import { eq } from "drizzle-orm"
 import { MAM_BONUS_CAP } from "@/data/platform-types"
+import { registryEntryFor } from "@/data/tracker-registry"
 import { db } from "@/lib/db"
 import type { NotificationTargetRow } from "@/lib/db/schema"
 import { appSettings, notificationDeliveryState, notificationTargets } from "@/lib/db/schema"
@@ -38,6 +39,8 @@ import {
   type TelegramConfig,
 } from "@/lib/notifications/types"
 import { isCriticalQuietEvent, isQuietHours, quietHoursConfigFromSettings } from "@/lib/quiet-hours"
+import { ladderPosition } from "@/lib/rank-ladder"
+import { parseSavedRankGoals } from "@/lib/rank-summary"
 import {
   checkActiveHnrs,
   checkAnniversaryMilestone,
@@ -48,6 +51,7 @@ import {
   checkRankChange,
   checkRatioBelowMinimumTransition,
   checkRatioDelta,
+  checkRatioNearMinimum,
   checkUnsatisfiedLimitApproaching,
   checkVipExpiringSoon,
   checkWarnedTransition,
@@ -107,6 +111,7 @@ export async function dispatchNotifications(
       quietHoursEnd: appSettings.quietHoursEnd,
       quietHoursTimezone: appSettings.quietHoursTimezone,
       quietHoursCriticalBypass: appSettings.quietHoursCriticalBypass,
+      rankGoals: appSettings.rankGoals,
     })
     .from(appSettings)
     .limit(1)
@@ -115,12 +120,34 @@ export async function dispatchNotifications(
     : null
   const quiet = quietConfig ? isQuietHours(quietConfig, now) : false
 
+  // P52: target reached is a transition, not "currently at the target". The
+  // ladder comparison uses the same registry order as the tracker page.
+  const targetRank =
+    parseSavedRankGoals(quietSettings?.rankGoals ?? null)[String(ctx.trackerId)]?.targetRank ?? null
+  const entry = registryEntryFor({ registrySlug: ctx.trackerRegistrySlug ?? null })
+  const requiredPosition =
+    targetRank && entry ? ladderPosition(entry.userClasses, targetRank) : null
+  const currentPosition = entry ? ladderPosition(entry.userClasses, ctx.currentGroup) : null
+  const previousPosition = entry ? ladderPosition(entry.userClasses, ctx.previousGroup) : null
+  const eventCtx: SnapshotContext = {
+    ...ctx,
+    targetRank,
+    targetReached:
+      requiredPosition !== null && currentPosition !== null
+        ? currentPosition >= requiredPosition
+        : null,
+    previousTargetReached:
+      requiredPosition !== null && previousPosition !== null
+        ? previousPosition >= requiredPosition
+        : null,
+  }
+
   for (const target of targets) {
     try {
       // Scope filter. null means all trackers, array means specific tracker IDs
       if (target.scope !== null && !target.scope.includes(ctx.trackerId)) continue
 
-      const events = detectEvents(ctx, target)
+      const events = detectEvents(eventCtx, target)
       if (events.length === 0) continue
 
       let activeEvents = events
@@ -185,7 +212,7 @@ export async function dispatchNotifications(
             trackerName: ctx.trackerName,
             includeTrackerName: target.includeTrackerName,
             storeUsernames: ctx.storeUsernames,
-            data: buildEventData(event, ctx, targetThresholds, anniversaryLabel),
+            data: buildEventData(event, eventCtx, targetThresholds, anniversaryLabel),
           }
 
           let result: DeliveryResult
@@ -328,13 +355,32 @@ export function detectEvents(
     events.push("ratio_danger")
   }
 
+  if (target.notifyRatioDanger && checkRatioNearMinimum(ctx.currentRatio, ctx.minimumRatio)) {
+    events.push("ratio_near_danger")
+  }
+
   if (target.notifyZeroSeeding && checkZeroSeeding(ctx.currentSeedingCount, ctx.trackerIsActive)) {
     events.push("zero_seeding")
   }
 
-  if (target.notifyRankChange) {
+  const targetReachedNow =
+    target.notifyRankChange &&
+    ctx.targetReached === true &&
+    ctx.previousTargetReached === false
+  if (targetReachedNow) {
+    events.push("target_reached")
+  } else if (target.notifyRankChange) {
     const newGroup = checkRankChange(ctx.currentGroup, ctx.previousGroup)
     if (newGroup) events.push("rank_change")
+  }
+
+  if (
+    target.notifyLoginDue &&
+    ctx.loginDueInDays !== null &&
+    ctx.loginDueInDays !== undefined &&
+    ctx.loginDueInDays <= 7
+  ) {
+    events.push("login_due")
   }
 
   if (target.notifyAnniversary && checkAnniversaryMilestone(ctx.trackerJoinedAt)) {
@@ -419,10 +465,16 @@ export function buildEventData(
       return {}
     case "ratio_danger":
       return { currentRatio: ctx.currentRatio, minimumRatio: ctx.minimumRatio }
+    case "ratio_near_danger":
+      return { currentRatio: ctx.currentRatio, minimumRatio: ctx.minimumRatio }
     case "zero_seeding":
       return {}
     case "rank_change":
       return { newGroup: ctx.currentGroup, previousGroup: ctx.previousGroup }
+    case "target_reached":
+      return { newGroup: ctx.currentGroup, targetRank: ctx.targetRank ?? null }
+    case "login_due":
+      return { daysUntilLogin: ctx.loginDueInDays ?? null }
     case "anniversary":
       return { label: anniversaryLabel ?? "Anniversary" }
     case "bonus_cap": {

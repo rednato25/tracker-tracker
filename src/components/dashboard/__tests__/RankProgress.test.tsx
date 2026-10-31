@@ -7,7 +7,11 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
-import { RankProgress } from "@/components/dashboard/RankProgress"
+import {
+  buildRankTimeline,
+  RankProgress,
+  RankTimeline,
+} from "@/components/dashboard/RankProgress"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import type { RankObservationMap } from "@/lib/rank-goals"
 import { checkAnniversaryMilestone } from "@/lib/tracker-events"
@@ -248,19 +252,32 @@ describe("RankProgress rows", () => {
     const rows = container.querySelector("[data-rank-progression]")
     expect(rows?.className).not.toContain("overflow-x-auto")
   })
+
+  it("puts the target hint above the class chips", () => {
+    const { container } = render(
+      <RankProgress userClasses={classes} currentRank="User" snapshots={[]} />
+    )
+    const hint = container.querySelector("[data-rank-target-hint]")
+    const chip = container.querySelector("[data-rank-progression] button")
+    expect(hint).not.toBeNull()
+    expect(chip).not.toBeNull()
+    if (!hint || !chip) throw new Error("missing hint or chip")
+    expect(
+      hint.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(container.querySelector("[data-promotion-history]")).toBeNull()
+  })
 })
 
 function renderChange(from: string, to: string) {
-  return render(
-    <RankProgress
-      userClasses={uploadcx}
-      currentRank={null}
-      snapshots={[
-        { ...baseSnapshot, group: from },
-        { ...baseSnapshot, polledAt: "2026-08-14T12:00:00.000Z", group: to },
-      ]}
-    />
+  const events = buildRankTimeline(
+    [
+      { ...baseSnapshot, group: from },
+      { ...baseSnapshot, polledAt: "2026-08-14T12:00:00.000Z", group: to },
+    ],
+    uploadcx
   )
+  return render(<RankTimeline events={events} />)
 }
 
 const zenithClasses: TrackerUserClass[] = [
@@ -278,17 +295,15 @@ const zenithPaths: TrackerRankPath[] = [
 ]
 
 function renderPathChange(from: string, to: string) {
-  return render(
-    <RankProgress
-      userClasses={zenithClasses}
-      rankPaths={zenithPaths}
-      currentRank={null}
-      snapshots={[
-        { ...baseSnapshot, group: from },
-        { ...baseSnapshot, polledAt: "2026-08-14T12:00:00.000Z", group: to },
-      ]}
-    />
+  const events = buildRankTimeline(
+    [
+      { ...baseSnapshot, group: from },
+      { ...baseSnapshot, polledAt: "2026-08-14T12:00:00.000Z", group: to },
+    ],
+    zenithClasses,
+    zenithPaths
   )
+  return render(<RankTimeline events={events} />)
 }
 
 describe("RankProgress timeline direction", () => {

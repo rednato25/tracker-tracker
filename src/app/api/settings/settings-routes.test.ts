@@ -87,6 +87,7 @@ vi.mock("@/lib/db/schema", () => ({
     notifyRatioDanger: "notifyRatioDanger",
     notifyZeroSeeding: "notifyZeroSeeding",
     notifyRankChange: "notifyRankChange",
+    notifyLoginDue: "notifyLoginDue",
     notifyAnniversary: "notifyAnniversary",
     notifyBonusCap: "notifyBonusCap",
     notifyVipExpiring: "notifyVipExpiring",

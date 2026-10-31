@@ -86,10 +86,7 @@ function findAgeCondition(goal: RankRequirementGroup): RankNumericCondition | nu
   return null
 }
 
-function formatValue(
-  metric: RankNumericCondition["metric"],
-  value: number | null
-): string {
+function formatValue(metric: RankMetric | undefined, value: number | null): string {
   if (value === null) return "Unknown"
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
     return formatBytesNum(value)
@@ -120,18 +117,25 @@ function ConditionRow({
   onSaveManual?: (value: RankManualValue) => Promise<void>
   onClearManual?: () => Promise<void>
 }) {
+  const [editingManual, setEditingManual] = useState(false)
+  const isTimeOnly = condition.metric === "accountAgeDays"
+  const timeOnlyUnmet = isTimeOnly && condition.status === "unmet"
   const statusClass =
     condition.status === "met"
       ? "text-success"
-      : condition.status === "unmet"
-        ? "text-danger"
-        : "text-warn"
+      : timeOnlyUnmet
+        ? "text-secondary"
+        : condition.status === "unmet"
+          ? "text-danger"
+          : "text-warn"
   const barClass =
     condition.status === "met"
       ? "bg-success"
-      : condition.status === "unmet"
-        ? "bg-danger"
-        : "bg-warn"
+      : timeOnlyUnmet
+        ? "bg-secondary"
+        : condition.status === "unmet"
+          ? "bg-danger"
+          : "bg-warn"
   const comparison = condition.comparison ?? "gte"
   const geometry =
     condition.requiredValue !== null
@@ -158,71 +162,65 @@ function ConditionRow({
     !manual &&
     condition.metric !== undefined &&
     condition.scope !== "per-torrent" &&
-    condition.verification !== "unresolved"
-  const showManual =
-    Boolean(onSaveManual && onClearManual && condition.metric) && (manual !== null || canEnter)
+    condition.verification !== "unresolved" &&
+    Boolean(onSaveManual && onClearManual)
+  const showEditor =
+    Boolean(onSaveManual && onClearManual && condition.metric) && (manual !== null || editingManual)
+  const statusText =
+    timeOnlyUnmet && condition.remaining !== null
+      ? `in ${condition.remaining} day${condition.remaining === 1 ? "" : "s"}`
+      : statusLabel(condition.status)
 
   return (
-    <li className="border-t border-border py-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-xs text-primary">{condition.label}</span>
-        <span className="flex items-center gap-2">
+    <li
+      className="border-t border-border py-2 first:border-t-0"
+      data-rank-condition
+      data-time-only={isTimeOnly}
+    >
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,auto)_auto_minmax(6rem,0.35fr)]">
+        <span className="min-w-0 break-words text-xs text-primary">{condition.label}</span>
+        <span className="whitespace-nowrap font-mono text-xs text-secondary">
+          {formatValue(condition.metric, condition.observedValue)} /{" "}
+          {formatValue(condition.metric, condition.requiredValue)}
+        </span>
+        <span className="col-span-2 flex flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-1">
           {condition.manual && (
             <span className="font-mono text-3xs uppercase tracking-[0.1em] text-accent">
               Manual
             </span>
           )}
-          <span className={`font-mono text-3xs uppercase tracking-[0.1em] ${statusClass}`}>
-            {statusLabel(condition.status)}
+          <span className={`font-mono text-2xs uppercase tracking-[0.1em] ${statusClass}`}>
+            {statusText}
           </span>
+          {canEnter && !editingManual && (
+            <button
+              type="button"
+              onClick={() => setEditingManual(true)}
+              className="w-fit text-2xs font-medium text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+              data-enter-manual-value
+            >
+              Enter value
+            </button>
+          )}
         </span>
-      </div>
-      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono text-4xs text-secondary">
-        <span>
-          current {formatValue(condition.metric ?? "accountRatio", condition.observedValue)}
-        </span>
-        <span>
-          required {formatValue(condition.metric ?? "accountRatio", condition.requiredValue)}
-        </span>
-        {condition.remaining !== null && (
-          <span>
-            remaining{" "}
-            {formatValue(condition.metric ?? "accountRatio", condition.remaining)}
-          </span>
-        )}
-        {condition.source === "profile" && condition.observedAt && (
-          <span className="text-tertiary">
-            {formatProfileReadAge(condition.observedAt, now)}
-          </span>
-        )}
-      </div>
-      {geometry && (
-        <div className="mt-2" data-rank-condition-bar>
-          <RequirementBarTrack
-            percent={geometry.percent}
-            fillClassName={barClass}
-            shortfall={geometry.atStrictThreshold}
-          />
+        <div className="col-span-2 sm:col-span-1" data-rank-condition-bar>
+          {geometry ? (
+            <RequirementBarTrack
+              percent={geometry.percent}
+              fillClassName={barClass}
+              shortfall={geometry.atStrictThreshold}
+            />
+          ) : (
+            <div className="h-1 rounded-full bg-control-bg" aria-hidden="true" />
+          )}
         </div>
-      )}
+      </div>
       {requirementText && (
-        <p className="mt-1 font-mono text-4xs text-danger" data-strict-requirement>
+        <p className="mt-1 font-mono text-2xs text-danger" data-strict-requirement>
           {requirementText}
         </p>
       )}
-      {condition.unitReading === "conservative" && (
-        <p className="mt-1 font-mono text-4xs text-tertiary">conservative unit reading</p>
-      )}
-      {condition.status === "unknown" && (
-        <p className="mt-1 font-mono text-4xs text-warn">
-          {observed
-            ? (condition.reason ?? "The observation needs checking.")
-            : condition.metric
-              ? apiDoesNotReportMessage(trackerName, condition.metric)
-              : (condition.reason ?? "This condition cannot be read from the tracker's API.")}
-        </p>
-      )}
-      {showManual && condition.metric && (
+      {showEditor && condition.metric && (
         <ManualValueEditor
           trackerName={trackerName}
           metric={condition.metric}
@@ -235,14 +233,12 @@ function ConditionRow({
           now={now}
           onSave={onSaveManual as (value: RankManualValue) => Promise<void>}
           onClear={onClearManual as () => Promise<void>}
+          triggerVariant="link"
+          hideTrigger
+          open={editingManual ? true : undefined}
+          onOpenChange={setEditingManual}
         />
       )}
-      <details className="mt-1">
-        <summary className="cursor-pointer font-mono text-4xs text-muted">Evidence</summary>
-        <p className="mt-1 font-mono text-4xs text-tertiary">
-          source={condition.source} · freshness={condition.freshness}
-        </p>
-      </details>
     </li>
   )
 }
@@ -582,44 +578,79 @@ export function RankGoalPanel({
               />
             ))}
           </ul>
-          <div className="mt-3 grid gap-2 border-t border-border pt-2 font-mono text-4xs text-secondary sm:grid-cols-2">
-            <p>
-              Account-age threshold date: {ageDate ?? "unavailable"}
-            </p>
-            <p>
-              Upload estimate:{" "}
-              {uploadUnresolved
-                ? "unavailable — unit unresolved"
-                : uploadEstimate
-                  ? `${uploadEstimate.date} · ${uploadEstimate.daysRemaining.toFixed(0)} days at the recent ${uploadEstimate.basisDays}-day trend`
-                  : "unavailable — insufficient, stale or non-positive history"}
-            </p>
-          </div>
-          <p className="mt-1 font-mono text-4xs text-muted">
-            An upload estimate is not a promotion date; bonuses, donations and manual rules can change it.
-          </p>
-          <details className="mt-2 border-t border-border pt-2">
-            <summary className="cursor-pointer font-mono text-4xs text-tertiary">
-              Source and verification
-            </summary>
-            <div className="mt-1 space-y-1 font-mono text-4xs text-tertiary">
-              <p>{pilot.source.title}</p>
-              <p>
-                accessed{" "}
-                {pilot.source.accessedAt
-                  ? formatDate(pilot.source.accessedAt)
-                  : "not available"}{" "}
-                Â· page modified{" "}
-                {pilot.source.sourceLastModified
-                  ? formatDate(pilot.source.sourceLastModified)
-                  : "unknown"}
-              </p>
-              <p>{pilot.source.note}</p>
-              {pilot.unresolved.map((item) => (
-                <p key={item} className="text-warn">
-                  unresolved: {item}
+          <details className="mt-3 border-t border-border pt-2" data-rank-details>
+            <summary className="cursor-pointer font-mono text-2xs text-tertiary">Details</summary>
+            <div className="mt-2 flex flex-col gap-3">
+              <ul className="flex flex-col gap-2">
+                {conditions.map((condition) => {
+                  const observed =
+                    condition.observedValue !== null &&
+                    condition.source !== "manual" &&
+                    condition.manual !== true
+                  return (
+                    <li
+                      key={`detail-${condition.id}`}
+                      className="flex flex-col gap-0.5 font-mono text-2xs text-tertiary"
+                      data-rank-condition-detail
+                    >
+                      <span className="text-secondary">{condition.label}</span>
+                      <span>
+                        source={condition.source} Â· freshness={condition.freshness}
+                        {condition.source === "profile" && condition.observedAt
+                          ? ` Â· ${formatProfileReadAge(condition.observedAt, now ?? new Date(0))}`
+                          : ""}
+                      </span>
+                      {condition.unitReading === "conservative" && (
+                        <span>conservative unit reading</span>
+                      )}
+                      {condition.status === "unknown" && (
+                        <span className="text-warn">
+                          {observed
+                            ? (condition.reason ?? "The observation needs checking.")
+                            : condition.metric
+                              ? apiDoesNotReportMessage(trackerName, condition.metric)
+                              : (condition.reason ??
+                                "This condition cannot be read from the tracker's API.")}
+                        </span>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+              <div className="grid gap-2 font-mono text-2xs text-secondary sm:grid-cols-2">
+                <p>Account-age threshold date: {ageDate ?? "unavailable"}</p>
+                <p>
+                  Upload estimate:{" "}
+                  {uploadUnresolved
+                    ? "unavailable â€” unit unresolved"
+                    : uploadEstimate
+                      ? `${uploadEstimate.date} Â· ${uploadEstimate.daysRemaining.toFixed(0)} days at the recent ${uploadEstimate.basisDays}-day trend`
+                      : "unavailable â€” insufficient, stale or non-positive history"}
                 </p>
-              ))}
+              </div>
+              <p className="font-mono text-2xs text-muted">
+                An upload estimate is not a promotion date; bonuses, donations and manual rules can
+                change it.
+              </p>
+              <div className="space-y-1 font-mono text-2xs text-tertiary">
+                <p>{pilot.source.title}</p>
+                <p>
+                  accessed{" "}
+                  {pilot.source.accessedAt
+                    ? formatDate(pilot.source.accessedAt)
+                    : "not available"}{" "}
+                  Â· page modified{" "}
+                  {pilot.source.sourceLastModified
+                    ? formatDate(pilot.source.sourceLastModified)
+                    : "unknown"}
+                </p>
+                <p>{pilot.source.note}</p>
+                {pilot.unresolved.map((item) => (
+                  <p key={item} className="text-warn">
+                    unresolved: {item}
+                  </p>
+                ))}
+              </div>
             </div>
           </details>
           <Notice message={error} />

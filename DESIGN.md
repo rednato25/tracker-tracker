@@ -200,8 +200,23 @@ the only violet used for controls.
   itself.
 - Rank ladders show earned classes by default. Staff, VIP and other off-ladder
   classes sit behind a "Show all classes" toggle.
-- Do not add a seedbox strip, per-tracker health score or time-to-next-rank
-  estimate.
+- Do not add a seedbox strip, per-tracker health score or a time-to-next-rank
+  estimate built from transfer trends. An account-age-only wait may say
+  `in N days` because the join date and registry threshold are exact.
+
+### What's next
+
+- One panel at the top of the dashboard, at most five rows, soonest first.
+- Rows are: an account-age-only promotion wait, an all-met promotion waiting
+  for the site, a login deadline inside 14 days, and a ratio within 10% above
+  the tracker's demotion threshold.
+- Each row is a link to the tracker that owns the work. No new action button
+  and no notification control lives in the panel.
+- Promotion rows use the exact registry threshold and `joinedAt`; never estimate
+  an upload ETA. Ratio and login rows use the same rules and observation
+  freshness as the register, so a stale row cannot claim urgency.
+- The panel disappears when there is nothing to show; it never prints a zero
+  state or a fabricated deadline.
 
 ### Tracker card
 
@@ -217,8 +232,10 @@ the only violet used for controls.
   with a threshold tick, MET/UNMET/UNKNOWN text and a fill that never contradicts
   the text. Fill uses the requirement state color, not a generic progress color.
   Unknown current or required values show `?`; stale values show `*`.
-- Rank targets come from the registry and saved rank goals. There is no ETA, no
-  promotion date and no invented threshold.
+- Rank targets come from the registry and saved rank goals. There is no ETA
+  from transfer trends, no guessed promotion date and no invented threshold.
+  The only time forecast is an account-age-only wait where every other
+  condition is already met; label it `in N days`, neutral, never red.
 - At the top of the automatic ladder, say `Highest automatic class reached`.
   Never invent thresholds for staff, VIP, awarded or unpublished classes.
 - A saved target at or below the current class says `Target reached`; offer the
@@ -281,7 +298,8 @@ the only violet used for controls.
   or interviews.`
 - Route chips use surface-2 with a 1px border. They are route facts, not
   decorative pills.
-- No seedbox bar, no Yata target headline copy, no promotion estimate.
+- No seedbox bar, no Yata target headline copy, no promotion estimate. An
+  account-age-only wait is an exact threshold, not a promotion estimate.
 
 ### Controls
 
@@ -305,7 +323,9 @@ the only violet used for controls.
   evidence, unknown waits and unverified availability.
 - Do not invent thresholds, ratio rules, eligibility rules, recruiter activity,
   promotion dates or time-to-next-rank estimates. Use the tracker registry,
-  saved goals and trackerpathways data as the only sources.
+  saved goals and trackerpathways data as the only sources. The exact
+  account-age-only `in N days` wait is allowed when every other condition is
+  met; it is derived from `joinedAt` and the registry, not estimated.
 - Availability, eligibility, time gates and admission remain separate. Meeting a
   requirement never guarantees an invitation or admission.
 - Source text remains readable. Do not parse `reqs` prose into numbers.

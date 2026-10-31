@@ -430,7 +430,7 @@ describe("TrackerGrid", () => {
     })
   }
 
-  it("offers quick login marking only when the adapter cannot detect a login", () => {
+  it("offers quick login marking only when there is no detected login", () => {
     const { rerender } = render(
       <TrackerGrid
         trackers={[manualTracker()]}
@@ -443,9 +443,22 @@ describe("TrackerGrid", () => {
     expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
 
     rerender(
-      <TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />
+      <TrackerGrid
+        trackers={[
+          tracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
     )
     expect(screen.queryByRole("button", { name: "Logged in today" })).not.toBeInTheDocument()
+    expect(screen.getByText("Last login 3 days ago")).toBeInTheDocument()
+    expect(screen.getByText("detected")).toBeInTheDocument()
+  })
+
+  it("keeps the button for a detecting adapter that has no value yet", () => {
+    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
     expect(screen.getByText("Last login not recorded")).toBeInTheDocument()
     expect(screen.getByText("No login rule")).toBeInTheDocument()
   })
@@ -585,6 +598,27 @@ describe("TrackerGrid", () => {
     })
   })
 
+  it("records the site-link mark for a detecting adapter without a detected value", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }
+      return {
+        ok: true,
+        json: async () =>
+          tracker({ lastAccessAt: body.lastAccessAt, lastAccessSource: "manual" }),
+      } as Response
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    fireEvent.click(screen.getByRole("link", { name: "Open TorrentLeech site" }))
+
+    await waitFor(() => expect(screen.getByText("marked by you")).toBeInTheDocument())
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      lastAccessAt: "2026-10-28",
+    })
+  })
+
   it("does not record a login from the site link when the setting is off", () => {
     const fetchMock = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
@@ -603,11 +637,17 @@ describe("TrackerGrid", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
   })
 
-  it("does not record a login from the site link when the adapter detects it", () => {
+  it("does not record a login from the site link when the login was detected", () => {
     const fetchMock = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
 
-    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    render(
+      <TrackerGrid
+        trackers={[tracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
     fireEvent.click(screen.getByRole("link", { name: "Open TorrentLeech site" }))
 
     expect(fetchMock).not.toHaveBeenCalled()

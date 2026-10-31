@@ -21,7 +21,7 @@ import {
   localDateStr,
 } from "@/lib/formatters"
 import { readLoginDeadline } from "@/lib/login-deadline"
-import { canDetectLogin, loginSourceFor } from "@/lib/login-detection"
+import { loginSourceFor } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
@@ -281,7 +281,6 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const targetRank = summary?.targetReached ? automaticTarget : (savedTarget ?? automaticTarget)
   const isAutomaticTarget = !savedTarget || Boolean(summary?.targetReached)
   const topOfLadder = !targetRank
-  const manualLogin = !canDetectLogin(tracker.platformType)
   const loginMarking = useLoginMarking(tracker, now, onTrackerUpdated)
   const loginWindow = readLoginWindow(
     { ...tracker, lastAccessAt: loginMarking.lastAccessAt },
@@ -298,6 +297,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
     lastAccessSource: loginMarking.lastAccessSource,
     platformType: tracker.platformType,
   })
+  const manualLogin = loginSource !== "detected"
   const loginDeadlineTone =
     loginDeadline.overdueDays !== null
       ? "text-danger"

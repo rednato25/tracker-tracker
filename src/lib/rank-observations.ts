@@ -3,6 +3,7 @@
 // Single observation builder for P09 consumers (dashboard summary and tracker
 // detail). The 24h freshness and source handling stay identical across both.
 
+import { isProfileReadFresh, readProfileReadRecord } from "@/lib/profile-reading/types"
 import type { RankObservationMap } from "@/lib/rank-goals"
 import type { TrackerLatestStats } from "@/types/api"
 import type {
@@ -103,6 +104,36 @@ export function buildRankObservations(input: RankObservationSource): RankObserva
     const uploaded = community?.uploaded
     if (typeof uploaded === "number" && Number.isSafeInteger(uploaded) && uploaded >= 0) {
       observations.uploads = { value: uploaded, freshness, source, observedAt }
+    }
+  }
+
+  // P49: a daily profile read is an observation in its own right. It fills a
+  // metric only when the normal poll does not already report one, and it is
+  // marked stale after its own 24-hour window or after a stopped read.
+  const profile = readProfileReadRecord(input.platformMeta)
+  if (profile?.fetchedAt) {
+    const profileFreshness: "fresh" | "stale" = isProfileReadFresh(profile, input.now)
+      ? "fresh"
+      : "stale"
+    const profileObservation = (value: number) => ({
+      value,
+      freshness: profileFreshness,
+      source: "profile" as const,
+      observedAt: profile.fetchedAt,
+    })
+    if (profile.values.seedSizeBytes !== undefined && !observations.seedSizeBytes) {
+      observations.seedSizeBytes = profileObservation(profile.values.seedSizeBytes)
+    }
+    if (
+      profile.values.averageSeedTimeSeconds !== undefined &&
+      !observations.averageSeedTimeSeconds
+    ) {
+      observations.averageSeedTimeSeconds = profileObservation(
+        profile.values.averageSeedTimeSeconds
+      )
+    }
+    if (profile.values.uploads !== undefined && !observations.uploads) {
+      observations.uploads = profileObservation(profile.values.uploads)
     }
   }
 

@@ -68,6 +68,9 @@ export interface RankOverviewCondition {
   manualUsed: boolean
   manualStale: boolean
   observed: boolean
+  /** "profile" when the value came from the daily profile page read. */
+  source: string
+  observedAt: string | null
   canEnterManual: boolean
 }
 
@@ -165,6 +168,8 @@ function toCondition(
     manualUsed,
     manualStale: condition.manualStale === true,
     observed,
+    source: condition.source,
+    observedAt: condition.observedAt ?? null,
     canEnterManual:
       Boolean(metric) &&
       condition.scope !== "per-torrent" &&

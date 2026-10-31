@@ -466,6 +466,81 @@ describe("TrackerSettingsSheet registry data", () => {
   })
 })
 
+describe("TrackerSettingsSheet profile reading", () => {
+  const supported: TrackerSummary = { ...TRACKER, registrySlug: "uploadcx" }
+
+  it("offers no profile-reading setting for a tracker it cannot read", () => {
+    renderSheet()
+    expect(screen.queryByText("Read profile page daily")).toBeNull()
+    expect(
+      screen.queryByText("Check this tracker's rules allow automated access before enabling.")
+    ).toBeNull()
+  })
+
+  it("is off by default and shows the rules warning once", () => {
+    renderSheet({ tracker: supported })
+
+    expect(screen.getByText("Read profile page daily")).toBeInTheDocument()
+    expect(screen.getByRole("switch", { name: "Read profile page daily", checked: false })).toBeInTheDocument()
+    expect(
+      screen.getByText("Check this tracker's rules allow automated access before enabling.")
+    ).toBeInTheDocument()
+    expect(screen.queryByLabelText("Session cookie")).toBeNull()
+  })
+
+  it("sends the opt-in and the pasted cookie with Save", async () => {
+    const user = userEvent.setup()
+    renderSheet({ tracker: supported })
+
+    await user.click(screen.getByRole("switch", { name: "Read profile page daily" }))
+    await user.type(screen.getByLabelText("Session cookie"), "session=abc123")
+    await user.click(screen.getByRole("button", { name: "Save Changes" }))
+
+    const [saveCall] = trackerRequests()
+    expect(JSON.parse(saveCall[1].body)).toMatchObject({
+      profileReadingEnabled: true,
+      profileCookie: "session=abc123",
+    })
+  })
+
+  it("marks a stopped read as Session expired", () => {
+    renderSheet({
+      tracker: {
+        ...supported,
+        platformMeta: {
+          profileRead: {
+            fetchedAt: "2026-10-30T09:00:00.000Z",
+            attemptedAt: "2026-10-30T09:00:00.000Z",
+            status: "session_expired",
+            values: { seedSizeBytes: 1024 },
+          },
+        },
+      },
+    })
+
+    expect(screen.getByText("Session expired.")).toBeInTheDocument()
+    expect(screen.getByText(/Reading is stopped for this tracker/)).toBeInTheDocument()
+  })
+
+  it("marks a changed layout as Page changed", () => {
+    renderSheet({
+      tracker: {
+        ...supported,
+        platformMeta: {
+          profileRead: {
+            fetchedAt: null,
+            attemptedAt: "2026-10-30T09:00:00.000Z",
+            status: "page_changed",
+            values: {},
+          },
+        },
+      },
+    })
+
+    expect(screen.getByText("Page changed.")).toBeInTheDocument()
+  })
+})
+
 describe("TrackerSettingsSheet base URL", () => {
   // The URL is registry data copied in when the tracker was added, so the sheet
   // neither shows a field for it nor sends one; the row keeps what the registry gave it.

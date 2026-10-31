@@ -269,7 +269,12 @@ const MASTER_KEY_TABLES = [
     // encrypted_credentials and encrypted_mousehole_token are NULLABLE; a tracker
     // without a vault or token stores NULL, which isPlaintextSentinel() already
     // preserves untouched.
-    columns: ["encrypted_api_token", "encrypted_credentials", "encrypted_mousehole_token"],
+    columns: [
+      "encrypted_api_token",
+      "encrypted_credentials",
+      "encrypted_mousehole_token",
+      "encrypted_profile_cookie",
+    ],
   },
   {
     table: "download_clients",

@@ -41,6 +41,11 @@
       "version": "0007_last_access_source",
       "file": "0007_last_access_source.sql",
       "sha256": "b04bf20b569cf2f38c73ae4e717d61a4c598af8efe58b94d092b126d972c6ab6"
+    },
+    {
+      "version": "0008_profile_reading",
+      "file": "0008_profile_reading.sql",
+      "sha256": "8613751fb2f38aedd02774899336e568d3d1fc7cc5468d0a7c30fc919f3b5d7f"
     }
   ]
 }

@@ -21,6 +21,8 @@ const mockTracker = {
   qbtTag: null,
   mouseholeUrl: null,
   hasMouseholeToken: false,
+  profileReadingEnabled: false,
+  hasProfileCookie: false,
   hideUnreadBadges: false,
   remoteUserId: null,
   platformMeta: null,

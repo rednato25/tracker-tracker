@@ -6,6 +6,7 @@
 // client bundle.
 
 import type { PlatformType } from "@/data/platform-types"
+import type { ProfileReadRecord } from "@/lib/profile-reading/types"
 
 export interface TrackerStats {
   username: string
@@ -310,6 +311,14 @@ export interface V3xPlatformMeta {
   seedStreak?: number
 }
 
+/**
+ * P49 daily profile read. Platform-agnostic: every supported tracker stores the
+ * same latest-only record beside whatever its adapter wrote.
+ */
+export interface ProfileReadPlatformMeta {
+  profileRead?: ProfileReadRecord
+}
+
 /** Union of all platform-specific metadata types */
 export type PlatformMeta =
   | GGnPlatformMeta
@@ -327,6 +336,7 @@ export type PlatformMeta =
   | PortugasPlatformMeta
   | CarptPlatformMeta
   | V3xPlatformMeta
+  | ProfileReadPlatformMeta
 
 /** Maps platformType string → the corresponding PlatformMeta variant */
 export interface PlatformMetaMap {

@@ -59,7 +59,7 @@ export interface TrackerUserClass {
   path?: string
 }
 
-export type RuleSource = "manual" | "api" | "snapshot" | "unknown"
+export type RuleSource = "manual" | "api" | "snapshot" | "profile" | "unknown"
 
 /** What the timestamp beside a value actually describes. */
 export type RuleTimestampKind = "metric" | "snapshot" | "unknown"

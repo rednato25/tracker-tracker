@@ -9,6 +9,8 @@ import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatDate, formatRatio, formatSeedSize, formatSeedTime } from "@/lib/formatters"
+import { formatProfileReadAge } from "@/lib/profile-reading/labels"
+import { readProfileReadRecord } from "@/lib/profile-reading/types"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
   evaluateRankGoal,
@@ -188,6 +190,11 @@ function ConditionRow({
             {formatValue(condition.metric ?? "accountRatio", condition.remaining)}
           </span>
         )}
+        {condition.source === "profile" && condition.observedAt && (
+          <span className="text-tertiary">
+            {formatProfileReadAge(condition.observedAt, now)}
+          </span>
+        )}
       </div>
       {geometry && (
         <div className="mt-2" data-rank-condition-bar>
@@ -309,6 +316,14 @@ export function RankGoalPanel({
       .catch(() => setTarget(null))
       .finally(() => setLoaded(true))
   }, [trackerId, targetOptions, onSavedGoalsChange])
+
+  const profileRead = readProfileReadRecord(platformMeta)
+  const profileStopped =
+    profileRead?.status === "session_expired"
+      ? "Session expired"
+      : profileRead?.status === "page_changed"
+        ? "Page changed"
+        : null
 
   const observationMap = useMemo<RankObservationMap>(
     () =>
@@ -483,6 +498,13 @@ export function RankGoalPanel({
           )}
         </div>
       </div>
+
+      {profileStopped && (
+        <p className="mt-3 font-mono text-4xs text-warn" data-profile-read-stopped>
+          <span className="font-semibold">{profileStopped}.</span> Profile reading is stopped for
+          this tracker; the last values are stale. Save a new cookie in Settings to retry.
+        </p>
+      )}
 
       {!loaded || !now ? (
         <p className="mt-3 font-mono text-xs text-secondary" role="status">

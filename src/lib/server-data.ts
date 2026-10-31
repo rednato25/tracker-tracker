@@ -309,6 +309,10 @@ export const trackerColumns = {
   hasMouseholeToken: sql<boolean>`(${trackers.encryptedMouseholeToken} IS NOT NULL)`.as(
     "has_mousehole_token"
   ),
+  profileReadingEnabled: trackers.profileReadingEnabled,
+  hasProfileCookie: sql<boolean>`(${trackers.encryptedProfileCookie} IS NOT NULL)`.as(
+    "has_profile_cookie"
+  ),
   remoteUserId: trackers.remoteUserId,
   platformMeta: trackers.platformMeta,
   useProxy: trackers.useProxy,

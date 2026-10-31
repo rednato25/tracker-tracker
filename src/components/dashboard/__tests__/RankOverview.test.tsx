@@ -86,6 +86,32 @@ describe("RankOverview", () => {
     expect(document.querySelectorAll("[data-rank-condition]")).toHaveLength(3)
   })
 
+  it("shows a profile page value with its source and age", () => {
+    render(
+      overview({
+        trackers: [
+          tracker({
+            name: "Upload.cx",
+            registrySlug: "uploadcx",
+            latestStats: { ...BASE_STATS, group: "User" },
+            platformMeta: {
+              profileRead: {
+                fetchedAt: "2026-10-30T09:00:00.000Z",
+                attemptedAt: "2026-10-30T09:00:00.000Z",
+                status: null,
+                values: { seedSizeBytes: 6 * TIB },
+              },
+            },
+          }),
+        ],
+        savedGoals: { "1": { targetRank: "Seeder" } },
+      })
+    )
+
+    expect(screen.getByText("6.00 TiB")).toBeInTheDocument()
+    expect(screen.getByText("from profile page · 3 hours ago")).toBeInTheDocument()
+  })
+
   it("shows the registry source, verification status and a link to the tracker site", () => {
     render(overview())
     expect(screen.getByRole("link", { name: "Open TorrentLeech site" })).toHaveAttribute(

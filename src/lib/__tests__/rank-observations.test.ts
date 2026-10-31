@@ -56,8 +56,52 @@ describe("buildRankObservations", () => {
     expect(result.uploads).toBeUndefined()
   })
 
-  it("keeps an infinite ratio as a usable observation", () => {
+  it("turns a fresh profile read into observed values with the profile source", () => {
     const result = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "unit3d",
+      platformMeta: {
+        profileRead: {
+          fetchedAt: "2026-10-28T06:00:00.000Z",
+          attemptedAt: "2026-10-28T06:00:00.000Z",
+          status: null,
+          values: { seedSizeBytes: 1234, averageSeedTimeSeconds: 86_400, uploads: 7 },
+        },
+      },
+      now: NOW,
+    })
+
+    expect(result.seedSizeBytes).toEqual({
+      value: 1234,
+      freshness: "fresh",
+      source: "profile",
+      observedAt: "2026-10-28T06:00:00.000Z",
+    })
+    expect(result.averageSeedTimeSeconds).toMatchObject({ value: 86_400, source: "profile" })
+    expect(result.uploads).toMatchObject({ value: 7, source: "profile" })
+  })
+
+  it("marks profile values stale after a stopped read", () => {
+    const result = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "unit3d",
+      platformMeta: {
+        profileRead: {
+          fetchedAt: "2026-10-28T06:00:00.000Z",
+          attemptedAt: "2026-10-28T09:00:00.000Z",
+          status: "session_expired",
+          values: { seedSizeBytes: 1234 },
+        },
+      },
+      now: NOW,
+    })
+
+    expect(result.seedSizeBytes).toMatchObject({ value: 1234, freshness: "stale" })
+  })
+
+  it("keeps an infinite ratio as a usable observation", () => {    const result = buildRankObservations({
       latestStats: stats({ ratio: null, ratioIsInfinite: true }),
       lastPolledAt: "2026-10-28T11:00:00.000Z",
       platformType: "unit3d",

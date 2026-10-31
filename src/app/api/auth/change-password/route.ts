@@ -107,7 +107,12 @@ export async function POST(request: Request) {
   // stored shapes: a vault written by a newer build must survive it untouched.
   const trackerPlaintexts = new Map<
     number,
-    { token: string; vault: string | null; mouseholeToken: string | null }
+    {
+      token: string
+      vault: string | null
+      mouseholeToken: string | null
+      profileCookie: string | null
+    }
   >()
   const clientPlaintexts = new Map<
     number,
@@ -117,6 +122,7 @@ export async function POST(request: Request) {
   const failedTrackers: string[] = []
   const failedVaults: string[] = []
   const failedMouseholeTokens: string[] = []
+  const failedProfileCookies: string[] = []
   const failedClients: string[] = []
   const failedNotifications: string[] = []
 
@@ -128,6 +134,7 @@ export async function POST(request: Request) {
         encryptedApiToken: trackers.encryptedApiToken,
         encryptedCredentials: trackers.encryptedCredentials,
         encryptedMouseholeToken: trackers.encryptedMouseholeToken,
+        encryptedProfileCookie: trackers.encryptedProfileCookie,
       })
       .from(trackers),
     db
@@ -203,7 +210,23 @@ export async function POST(request: Request) {
       }
     }
 
-    trackerPlaintexts.set(tracker.id, { token, vault, mouseholeToken })
+    // The profile-reading cookie follows the same NULL rule: NULL stays NULL,
+    // and an unreadable value is cleared so the user can paste a new one.
+    let profileCookie: string | null = null
+    if (tracker.encryptedProfileCookie) {
+      try {
+        profileCookie = decrypt(tracker.encryptedProfileCookie, oldKey)
+      } catch (err) {
+        log.warn(
+          { trackerId: tracker.id, error: String(err) },
+          "Failed to decrypt profile-reading cookie during password change"
+        )
+        profileCookie = null
+        failedProfileCookies.push(tracker.name)
+      }
+    }
+
+    trackerPlaintexts.set(tracker.id, { token, vault, mouseholeToken, profileCookie })
   }
 
   for (const client of allClients) {
@@ -372,6 +395,8 @@ export async function POST(request: Request) {
             encryptedCredentials: plain.vault === null ? null : encrypt(plain.vault, newKey),
             encryptedMouseholeToken:
               plain.mouseholeToken === null ? null : encrypt(plain.mouseholeToken, newKey),
+            encryptedProfileCookie:
+              plain.profileCookie === null ? null : encrypt(plain.profileCookie, newKey),
           })
           .where(eq(trackers.id, id))
       }
@@ -451,6 +476,11 @@ export async function POST(request: Request) {
   if (failedMouseholeTokens.length > 0) {
     warnings.push(
       `${failedMouseholeTokens.length} Mousehole API token(s) could not be re-encrypted and were cleared: ${failedMouseholeTokens.join(", ")}. Re-enter them in tracker settings.`
+    )
+  }
+  if (failedProfileCookies.length > 0) {
+    warnings.push(
+      `${failedProfileCookies.length} profile-reading cookie(s) could not be re-encrypted and were cleared: ${failedProfileCookies.join(", ")}. Re-paste them in tracker settings.`
     )
   }
   if (failedClients.length > 0) {

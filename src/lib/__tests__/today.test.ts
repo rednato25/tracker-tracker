@@ -115,13 +115,14 @@ import { computeTodayAtAGlance } from "@/lib/today"
 
 function makeTracker(
   id: number,
-  overrides: { qbtTag?: string | null; color?: string | null } = {}
+  overrides: { qbtTag?: string | null; color?: string | null; baseUrl?: string } = {}
 ) {
   return {
     id,
     name: `Tracker ${id}`,
     color: overrides.color ?? null,
     qbtTag: overrides.qbtTag ?? null,
+    baseUrl: overrides.baseUrl ?? `https://tracker${id}.invalid`,
   }
 }
 
@@ -181,13 +182,15 @@ function makeTorrent(
   uploaded: number,
   downloaded: number,
   addedAt = 0,
-  completedAt = -1
+  completedAt = -1,
+  tracker: string | null = null
 ) {
   return {
     hash,
     name,
     state: "uploading",
     tags,
+    tracker,
     category: "",
     uploadSpeed: 0,
     downloadSpeed: 0,
@@ -568,6 +571,79 @@ describe("computeTodayAtAGlance — torrent movers tag filtering", () => {
     expect(result.movers.topUploaders).toHaveLength(1)
     expect(result.movers.topUploaders[0].hash).toBe("hash1")
     expect(result.movers.topUploaders[0].qbtTag).toBe("aither")
+  })
+
+  it("ranks today's transfer across every connected client and names the client", async () => {
+    const tagged = makeTracker(1, { qbtTag: "aither", color: "#00d4ff" })
+    const announced = makeTracker(2, { baseUrl: "https://seedpool.example", color: "#22c55e" })
+
+    const taggedUpload = makeTorrent("tagged-upload", "Tagged Upload", "aither", 20 * 1024 ** 3, 0)
+    const taggedIdle = makeTorrent("tagged-idle", "Zero Upload", "aither", 5 * 1024 ** 3, 0)
+    const announcedUpload = makeTorrent(
+      "seed-upload",
+      "Seed Upload",
+      "",
+      522 * 1024 ** 3,
+      0,
+      0,
+      -1,
+      "https://seedpool.example/announce"
+    )
+    const announcedDownload = makeTorrent(
+      "seed-download",
+      "Seed Download",
+      "",
+      0,
+      32 * 1024 ** 3,
+      0,
+      -1,
+      "https://seedpool.example/announce"
+    )
+
+    const checkpoints = [
+      makeTorrentCheckpoint(1, "tagged-upload", "0", "0"),
+      makeTorrentCheckpoint(1, "tagged-idle", String(5 * 1024 ** 3), "0"),
+      makeTorrentCheckpoint(2, "seed-upload", "0", "0"),
+      makeTorrentCheckpoint(2, "seed-download", "0", "0"),
+    ]
+    const clients = [
+      {
+        id: 1,
+        name: "qBittorrent",
+        cachedTorrents: JSON.stringify([taggedUpload, taggedIdle]),
+      },
+      {
+        id: 2,
+        name: "Transmission",
+        cachedTorrents: JSON.stringify([announcedUpload, announcedDownload]),
+      },
+    ]
+
+    seedStore([tagged, announced], [], [], [], checkpoints, clients)
+
+    const result = await computeTodayAtAGlance()
+
+    expect(result.movers.clientCount).toBe(2)
+    expect(result.movers.topUploaders.map((t) => t.hash)).toEqual([
+      "seed-upload",
+      "tagged-upload",
+    ])
+    expect(result.movers.topUploaders.map((t) => t.name)).toEqual([
+      "Seed Upload",
+      "Tagged Upload",
+    ])
+    expect(result.movers.topUploaders.map((t) => t.clientName)).toEqual([
+      "Transmission",
+      "qBittorrent",
+    ])
+    expect(result.movers.topUploaders[0].uploadedToday).toBe(String(522 * 1024 ** 3))
+    expect(result.movers.topUploaders[0].qbtTag).toBeNull()
+    expect(result.movers.topUploaders[0].trackerColor).toBe("#22c55e")
+    expect(result.movers.topUploaders.some((t) => t.name === "Zero Upload")).toBe(false)
+
+    expect(result.movers.topDownloaders.map((t) => t.hash)).toEqual(["seed-download"])
+    expect(result.movers.topDownloaders[0].clientName).toBe("Transmission")
+    expect(result.movers.topDownloaders[0].downloadedToday).toBe(String(32 * 1024 ** 3))
   })
 
   it("excludes torrents with zero upload delta from topUploaders", async () => {

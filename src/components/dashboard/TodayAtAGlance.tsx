@@ -28,14 +28,9 @@ function UpdatedAt({ iso }: { iso: string | null }) {
 }
 
 export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) {
-  // No client means no torrent-level odometer, so both lists stay hidden
-  // rather than telling the user they had no activity.
-  const hasActivity =
-    data.movers.clientCount > 0 &&
-    (data.activity.addedToday > 0 ||
-      data.activity.completedToday > 0 ||
-      data.movers.topUploaders.length > 0 ||
-      data.movers.topDownloaders.length > 0)
+  // A connected client is enough to show the transfer section. With no
+  // transfer today it still says so, instead of hiding the whole block.
+  const hasClient = data.movers.clientCount > 0
 
   return (
     <Card className="w-full" data-today-at-a-glance>
@@ -72,7 +67,7 @@ export function TodayAtAGlance({ data, variant = "bars" }: TodayAtAGlanceProps) 
           </div>
         </div>
 
-        {hasActivity && (
+        {hasClient && (
           <>
             <Divider compact />
             <div className="flex items-center justify-between gap-3">

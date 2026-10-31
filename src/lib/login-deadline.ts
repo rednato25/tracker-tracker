@@ -13,6 +13,8 @@ export interface LoginDeadline {
   lastLoginDays: number | null
   dueInDays: number | null
   overdueDays: number | null
+  /** Calendar due date as YYYY-MM-DD, or null when it cannot be known. */
+  dueAt: string | null
   tone: LoginTone
   lastLoginText: string
   dueText: string
@@ -37,6 +39,10 @@ function calendarDay(value: string): number | null {
 
 function todayDay(now: Date): number {
   return dayNumber(now.getFullYear(), now.getMonth() + 1, now.getDate())
+}
+
+function isoDay(day: number): string {
+  return new Date(day * DAY_MS).toISOString().slice(0, 10)
 }
 
 function pluralDays(count: number): string {
@@ -72,6 +78,7 @@ export function readLoginDeadline(input: {
       lastLoginDays,
       dueInDays: null,
       overdueDays: null,
+      dueAt: null,
       tone: "muted",
       lastLoginText,
       dueText: "No login rule",
@@ -85,6 +92,7 @@ export function readLoginDeadline(input: {
       lastLoginDays: null,
       dueInDays: null,
       overdueDays: null,
+      dueAt: null,
       tone: "muted",
       lastLoginText,
       dueText: "due date unknown",
@@ -103,6 +111,7 @@ export function readLoginDeadline(input: {
       lastLoginDays,
       dueInDays: null,
       overdueDays,
+      dueAt: isoDay(dueDay),
       tone: "crit",
       lastLoginText,
       dueText: `Overdue by ${pluralDays(overdueDays)}`,
@@ -115,6 +124,7 @@ export function readLoginDeadline(input: {
     lastLoginDays,
     dueInDays,
     overdueDays: null,
+    dueAt: isoDay(dueDay),
     tone: dueInDays <= 7 ? "warn" : "ok",
     lastLoginText,
     dueText: dueInDays === 0 ? "due today" : `due in ${pluralDays(dueInDays)}`,

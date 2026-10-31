@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { CHART_THEME } from "@/components/charts/lib/theme"
 import { Button, PulseDot } from "@/components/ui"
+import { DeadlineRing } from "@/components/ui/DeadlineRing"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import { registryEntryFor } from "@/data/tracker-registry"
 import {
@@ -20,7 +21,7 @@ import {
   formatRatioDisplay,
   localDateStr,
 } from "@/lib/formatters"
-import { readLoginDeadline } from "@/lib/login-deadline"
+import { type LoginDeadline, readLoginDeadline } from "@/lib/login-deadline"
 import { loginSourceFor } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
@@ -250,7 +251,81 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       )}
     </div>
   )
-}function TrackerCard({
+}
+
+function LoginDeadlineReadout({ deadline }: { deadline: LoginDeadline }) {
+  if (!deadline.hasRule) {
+    return (
+      <span className="text-xs text-tertiary" data-login-no-rule>
+        No login rule
+      </span>
+    )
+  }
+
+  if (deadline.dueAt === null || deadline.lastLoginDays === null) {
+    return (
+      <span className="text-xs text-tertiary" data-login-unknown>
+        No login recorded
+      </span>
+    )
+  }
+
+  const overdueDays = deadline.overdueDays
+  const intervalDays = deadline.intervalDays ?? 0
+  const progress = intervalDays > 0 ? deadline.lastLoginDays / intervalDays : 0
+  const daysLeft = deadline.dueInDays ?? 0
+  const dueDate = formatDate(deadline.dueAt)
+  const color =
+    overdueDays !== null
+      ? "var(--color-danger)"
+      : deadline.tone === "warn"
+        ? "var(--color-warn)"
+        : "var(--color-success)"
+  const ariaLabel =
+    overdueDays !== null
+      ? `Login overdue by ${overdueDays} ${overdueDays === 1 ? "day" : "days"}, due by ${dueDate}`
+      : `Login due in ${daysLeft} ${daysLeft === 1 ? "day" : "days"}, by ${dueDate}`
+
+  return (
+    <div className="flex min-w-0 items-center gap-2" data-login-ring data-login-tone={deadline.tone}>
+      <DeadlineRing
+        progress={progress}
+        color={color}
+        ariaLabel={ariaLabel}
+        size={40}
+        strokeWidth={4}
+      >
+        {overdueDays !== null ? (
+          <span
+            className="font-cond text-[12px] font-semibold leading-[12px] tracking-[-0.02em]"
+            style={{ color }}
+          >
+            over
+            <br />
+            due
+          </span>
+        ) : (
+          <>
+            <span
+              className="font-mono text-sm font-semibold leading-none tabular-nums"
+              style={{ color }}
+            >
+              {daysLeft}
+            </span>
+            <span className="mt-0.5 font-cond text-[12px] leading-[12px] text-tertiary">
+              days
+            </span>
+          </>
+        )}
+      </DeadlineRing>
+      <span className="font-mono text-xs text-secondary" data-login-by>
+        by {dueDate}
+      </span>
+    </div>
+  )
+}
+
+function TrackerCard({
   tracker,
   summary,
   now,
@@ -298,14 +373,6 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
     platformType: tracker.platformType,
   })
   const manualLogin = loginSource !== "detected"
-  const loginDeadlineTone =
-    loginDeadline.overdueDays !== null
-      ? "text-danger"
-      : loginDeadline.tone === "warn"
-        ? "text-warn"
-        : loginDeadline.tone === "muted"
-          ? "text-tertiary"
-          : "text-secondary"
   const snapshotMarker = stats
     ? snapshot.state === "stale"
       ? "*"
@@ -512,6 +579,10 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
 
       <div className="flex flex-col gap-2 border-t border-border px-4 py-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <LoginDeadlineReadout deadline={loginDeadline} />
+          <span aria-hidden="true" className="text-tertiary">
+            {"\u00b7"}
+          </span>
           <a
             href={tracker.baseUrl.startsWith("http") ? tracker.baseUrl : `https://${tracker.baseUrl}`}
             target="_blank"
@@ -526,16 +597,6 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
             Open site
             <ExternalLinkSmallIcon width="12" height="12" aria-hidden="true" />
           </a>
-          <span className="text-tertiary">{"\u00b7"}</span>
-          <span className="font-mono text-xs text-secondary" data-last-login>
-            {loginDeadline.lastLoginText}
-          </span>
-          <span aria-hidden="true" className="text-tertiary">
-            {"\u00b7"}
-          </span>
-          <span className={clsx("font-mono text-xs", loginDeadlineTone)} data-login-deadline>
-            {loginDeadline.dueText}
-          </span>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-tertiary" data-login-source>

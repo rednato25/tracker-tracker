@@ -8,6 +8,7 @@
 
 import clsx from "clsx"
 import type { HTMLAttributes, ReactNode } from "react"
+import { DeadlineRing } from "@/components/ui/DeadlineRing"
 import { TriangleWarningIcon } from "@/components/ui/Icons"
 import { InfoTip } from "@/components/ui/InfoTip"
 import { Tooltip } from "@/components/ui/Tooltip"
@@ -382,10 +383,6 @@ function RingContent({
 
   const size = 80
   const strokeWidth = 6
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
-  // Round to 2 decimal places to prevent SSR/client hydration mismatch
-  const dashOffset = Math.round(circumference * progress * 100) / 100
 
   const deadlineDate = new Date(deadlineMs)
   const deadlineDateStr = deadlineDate.toLocaleDateString("en-US", {
@@ -400,47 +397,24 @@ function RingContent({
   const valueText =
     remainingMs <= 0 ? pastCopy.label : days >= 1 ? `${days}` : `${Math.max(1, hours)}`
   const unitText = remainingMs <= 0 ? "" : days >= 1 ? "days" : "hrs"
+  const ariaLabel = isOverdue
+    ? `${pastCopy.label.toLowerCase()}: ${pastCopy.footer(overdueDays)}`
+    : `${valueText} ${unitText} left, due by ${deadlineDateStr}`
 
   return (
     <>
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg
-          width={size}
-          height={size}
-          viewBox={`0 0 ${size} ${size}`}
-          className="-rotate-90"
-          aria-hidden="true"
-        >
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="var(--color-border)"
-            strokeWidth={strokeWidth}
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            style={{
-              transition: "stroke-dashoffset 0.5s ease, stroke 0.3s ease",
-            }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-mono text-lg font-bold leading-none" style={{ color }}>
-            {valueText}
-          </span>
-          {!isOverdue && <span className="timestamp mt-0.5">{unitText}</span>}
-        </div>
-      </div>
+      <DeadlineRing
+        progress={progress}
+        color={color}
+        ariaLabel={ariaLabel}
+        size={size}
+        strokeWidth={strokeWidth}
+      >
+        <span className="font-mono text-lg font-bold leading-none" style={{ color }}>
+          {valueText}
+        </span>
+        {!isOverdue && <span className="timestamp mt-0.5">{unitText}</span>}
+      </DeadlineRing>
       <p className="timestamp text-center">
         {isOverdue ? pastCopy.footer(overdueDays) : `by ${deadlineDateStr}`}
       </p>

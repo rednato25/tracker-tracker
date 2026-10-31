@@ -14,6 +14,7 @@ describe("readLoginDeadline", () => {
     expect(deadline.dueText).toBe("due in 27 days")
     expect(deadline.dueInDays).toBe(27)
     expect(deadline.overdueDays).toBeNull()
+    expect(deadline.dueAt).toBe("2026-11-24")
     expect(deadline.tone).toBe("ok")
   })
 
@@ -48,6 +49,7 @@ describe("readLoginDeadline", () => {
     expect(deadline.dueText).toBe("Overdue by 27 days")
     expect(deadline.overdueDays).toBe(27)
     expect(deadline.dueInDays).toBeNull()
+    expect(deadline.dueAt).toBe("2026-10-01")
     expect(deadline.tone).toBe("crit")
   })
 
@@ -60,6 +62,7 @@ describe("readLoginDeadline", () => {
       })
       expect(deadline.hasRule).toBe(false)
       expect(deadline.dueText).toBe("No login rule")
+      expect(deadline.dueAt).toBeNull()
       expect(deadline.tone).toBe("muted")
     }
   })
@@ -72,6 +75,7 @@ describe("readLoginDeadline", () => {
     })
     expect(deadline.lastLoginText).toBe("Last login not recorded")
     expect(deadline.dueText).toBe("due date unknown")
+    expect(deadline.dueAt).toBeNull()
     expect(deadline.tone).toBe("muted")
   })
 

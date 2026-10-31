@@ -401,7 +401,6 @@ function TrackerCard({
   const loginSource = loginSourceFor({
     lastAccessAt: loginMarking.lastAccessAt,
     lastAccessSource: loginMarking.lastAccessSource,
-    platformType: tracker.platformType,
   })
   const manualLogin = loginSource !== "detected"
   const snapshotMarker = stats

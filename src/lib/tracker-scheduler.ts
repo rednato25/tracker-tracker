@@ -200,12 +200,16 @@ export async function fetchTrackerStats(
     const joined = trackerDateStr(stats.joinedDate)
     if (joined) metaUpdates.joinedAt = joined
   }
-  if (stats.lastAccessDate) {
-    const lastAccess = trackerDateStr(stats.lastAccessDate)
-    if (lastAccess) {
-      metaUpdates.lastAccessAt = lastAccess
-      metaUpdates.lastAccessSource = "detected"
-    }
+  const lastAccess = stats.lastAccessDate ? trackerDateStr(stats.lastAccessDate) : undefined
+  if (lastAccess) {
+    metaUpdates.lastAccessAt = lastAccess
+    metaUpdates.lastAccessSource = "detected"
+  } else {
+    // The API answered successfully and did not carry a usable last-access
+    // value. Keep the last known date for the deadline, but stop calling it
+    // detected: the card must offer the manual button until a poll reports one
+    // again.
+    metaUpdates.lastAccessSource = "manual"
   }
   if (stats.platformMeta) metaUpdates.platformMeta = JSON.stringify(withPreservedProfileRead(stats.platformMeta, tracker.platformMeta))
   if (stats.avatarUrl) metaUpdates.avatarRemoteUrl = stats.avatarUrl
@@ -283,12 +287,14 @@ export async function pollTracker(
       const joined = trackerDateStr(stats.joinedDate)
       if (joined) metaUpdates.joinedAt = joined
     }
-    if (stats.lastAccessDate) {
-      const lastAccess = trackerDateStr(stats.lastAccessDate)
-      if (lastAccess) {
-        metaUpdates.lastAccessAt = lastAccess
-        metaUpdates.lastAccessSource = "detected"
-      }
+    const lastAccess = stats.lastAccessDate ? trackerDateStr(stats.lastAccessDate) : undefined
+    if (lastAccess) {
+      metaUpdates.lastAccessAt = lastAccess
+      metaUpdates.lastAccessSource = "detected"
+    } else {
+      // See fetchTrackerStats: a successful poll without a usable last-access
+      // value falls back to manual and leaves the last known date in place.
+      metaUpdates.lastAccessSource = "manual"
     }
     if (stats.platformMeta) {
       metaUpdates.platformMeta = JSON.stringify(

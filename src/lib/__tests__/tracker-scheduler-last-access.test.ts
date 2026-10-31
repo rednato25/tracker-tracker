@@ -80,6 +80,7 @@ const TRACKER = {
   remoteUserId: null,
   joinedAt: null,
   platformMeta: null,
+  lastAccessAt: "2026-10-24",
   lastPolledAt: null,
   lastError: null,
   lastErrorAt: null,
@@ -118,5 +119,15 @@ describe("pollTracker last-access provenance", () => {
       lastAccessAt: "2026-10-20",
       lastAccessSource: "detected",
     })
+  })
+
+  it("falls back to manual and keeps the last known date when the API stops reporting one", async () => {
+    fetchStats.mockResolvedValueOnce({ ...STATS, lastAccessDate: undefined })
+
+    await pollTracker(42, KEY, false)
+
+    const metadata = setCalls.find((values) => "lastAccessSource" in values)
+    expect(metadata).toMatchObject({ lastAccessSource: "manual" })
+    expect(metadata).not.toHaveProperty("lastAccessAt")
   })
 })

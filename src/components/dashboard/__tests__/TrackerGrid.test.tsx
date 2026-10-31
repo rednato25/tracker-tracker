@@ -470,6 +470,28 @@ describe("TrackerGrid", () => {
     expect(document.querySelector("[data-login-ring]")).toBeNull()
   })
 
+  it("offers the manual button on a detecting platform whose latest poll had no value", () => {
+    render(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            registrySlug: "yuscene",
+            platformType: "unit3d",
+            lastAccessAt: "2026-10-24",
+            lastAccessSource: "manual",
+          }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Marked by you" })).toHaveAttribute(
+      "data-login-source",
+      "manual"
+    )
+  })
+
   it("marks a login and restores the previous date from a 10-second Undo", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }

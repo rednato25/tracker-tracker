@@ -503,6 +503,10 @@ export async function POST(request: Request) {
             sortOrder: (fields.sortOrder as number | null) ?? null,
             joinedAt: (fields.joinedAt as string | null) ?? null,
             lastAccessAt: (fields.lastAccessAt as string | null) ?? null,
+            lastAccessSource:
+              fields.lastAccessSource === "detected" || fields.lastAccessSource === "manual"
+                ? fields.lastAccessSource
+                : null,
             profileUrl: (fields.profileUrl as string | null) ?? null,
             createdAt: new Date(fields.createdAt as string),
             updatedAt: new Date(fields.updatedAt as string),

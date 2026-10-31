@@ -453,6 +453,17 @@ describe("TrackerSettingsSheet registry data", () => {
     renderSheet({ tracker: { ...TRACKER, registrySlug: null, baseUrl: "https://aither.cc" } })
     expect(loginHint()).toBeInTheDocument()
   })
+
+  it("lists the adapters that detect a last-access value", () => {
+    renderSheet()
+    expect(
+      screen.getByText(
+        (_content, element) =>
+          element?.tagName === "P" &&
+          Boolean(element.textContent?.includes("Detected automatically for AvistaZ, CarPT"))
+      )
+    ).toBeInTheDocument()
+  })
 })
 
 describe("TrackerSettingsSheet base URL", () => {

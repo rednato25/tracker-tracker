@@ -481,6 +481,42 @@ describe("TrackerGrid", () => {
     })
   })
 
+  it("labels where the last login came from", () => {
+    const { rerender } = render(
+      <TrackerGrid
+        trackers={[
+          tracker({ lastAccessAt: "2026-10-25", lastAccessSource: "detected" }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("detected")).toHaveAttribute("data-login-source")
+
+    rerender(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-10-25" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("marked by you")).toHaveAttribute("data-login-source")
+
+    rerender(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            lastAccessAt: "2026-10-25",
+            lastAccessSource: "manual",
+          }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("marked by you")).toBeInTheDocument()
+  })
+
   it("shows the login deadline on every card in the state's tone", () => {
     const { rerender } = render(
       <TrackerGrid

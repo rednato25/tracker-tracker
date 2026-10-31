@@ -21,7 +21,7 @@ import {
   localDateStr,
 } from "@/lib/formatters"
 import { readLoginDeadline } from "@/lib/login-deadline"
-import { canDetectLogin } from "@/lib/login-detection"
+import { canDetectLogin, loginSourceFor } from "@/lib/login-detection"
 import type { RankGoalSummary, RankSummaryBar } from "@/lib/rank-summary"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
 import { getSnapshotReadout } from "@/lib/snapshot-freshness"
@@ -92,13 +92,15 @@ function useLoginMarking(
   onUpdated?: (tracker: TrackerSummary) => void
 ) {
   const [lastAccessAt, setLastAccessAt] = useState(tracker.lastAccessAt)
+  const [lastAccessSource, setLastAccessSource] = useState(tracker.lastAccessSource ?? null)
   const [undo, setUndo] = useState<LoginMarkUndo | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(false)
 
   useEffect(() => {
     setLastAccessAt(tracker.lastAccessAt)
-  }, [tracker.lastAccessAt])
+    setLastAccessSource(tracker.lastAccessSource ?? null)
+  }, [tracker.lastAccessAt, tracker.lastAccessSource])
 
   useEffect(() => {
     if (!undo) return
@@ -124,6 +126,7 @@ function useLoginMarking(
     try {
       const updated = await patchLastAccess(localDateStr(now))
       setLastAccessAt(updated.lastAccessAt)
+      setLastAccessSource(updated.lastAccessSource ?? null)
       setUndo({ previous })
       onUpdated?.(updated)
     } catch {
@@ -141,6 +144,7 @@ function useLoginMarking(
     try {
       const updated = await patchLastAccess(previous)
       setLastAccessAt(updated.lastAccessAt)
+      setLastAccessSource(updated.lastAccessSource ?? null)
       setUndo(null)
       onUpdated?.(updated)
     } catch {
@@ -150,7 +154,7 @@ function useLoginMarking(
     }
   }
 
-  return { lastAccessAt, undo, saving, error, markLogin, undoMark }
+  return { lastAccessAt, lastAccessSource, undo, saving, error, markLogin, undoMark }
 }
 
 function bufferValue(tracker: TrackerSummary): string {
@@ -289,6 +293,11 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
     now,
   })
   const loginDueSoon = loginWindow.tone === "warn" || loginWindow.tone === "crit"
+  const loginSource = loginSourceFor({
+    lastAccessAt: loginMarking.lastAccessAt,
+    lastAccessSource: loginMarking.lastAccessSource,
+    platformType: tracker.platformType,
+  })
   const loginDeadlineTone =
     loginDeadline.overdueDays !== null
       ? "text-danger"
@@ -527,6 +536,16 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
           <span className={clsx("font-mono text-xs", loginDeadlineTone)} data-login-deadline>
             {loginDeadline.dueText}
           </span>
+          {loginSource !== "none" && (
+            <>
+              <span aria-hidden="true" className="text-tertiary">
+                {"\u00b7"}
+              </span>
+              <span className="text-xs text-tertiary" data-login-source>
+                {loginSource === "detected" ? "detected" : "marked by you"}
+              </span>
+            </>
+          )}
         </div>
         {manualLogin && (
           <div className="flex flex-wrap items-center justify-end gap-2">

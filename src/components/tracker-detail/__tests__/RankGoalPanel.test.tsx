@@ -285,6 +285,7 @@ describe("RankGoalPanel", () => {
     const row = ageLabel.closest("li")
     expect(row).not.toBeNull()
     if (!row) return
+    expect(row).toHaveAttribute("data-time-only", "true")
     const status = within(row).getByText(/in 1[234] days/)
     expect(status.className).toContain("text-secondary")
     expect(status.className).not.toContain("text-danger")
@@ -307,6 +308,7 @@ describe("RankGoalPanel", () => {
     const row = uploadLabel.closest("li")
     expect(row).not.toBeNull()
     if (!row) return
+    expect(row).toHaveAttribute("data-time-only", "false")
     const status = within(row).getByText("Unmet")
     expect(status.className).toContain("text-danger")
     expect(row.querySelector("[data-bar-fill]")?.className).toContain("bg-danger")

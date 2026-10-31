@@ -172,7 +172,11 @@ function ConditionRow({
       : statusLabel(condition.status)
 
   return (
-    <li className="border-t border-border py-2 first:border-t-0" data-rank-condition>
+    <li
+      className="border-t border-border py-2 first:border-t-0"
+      data-rank-condition
+      data-time-only={isTimeOnly}
+    >
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,auto)_auto_minmax(6rem,0.35fr)]">
         <span className="min-w-0 break-words text-xs text-primary">{condition.label}</span>
         <span className="whitespace-nowrap font-mono text-xs text-secondary">

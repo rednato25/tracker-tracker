@@ -204,6 +204,20 @@ the only violet used for controls.
   estimate built from transfer trends. An account-age-only wait may say
   `in N days` because the join date and registry threshold are exact.
 
+### What's next
+
+- One panel at the top of the dashboard, at most five rows, soonest first.
+- Rows are: an account-age-only promotion wait, an all-met promotion waiting
+  for the site, a login deadline inside 14 days, and a ratio within 10% above
+  the tracker's demotion threshold.
+- Each row is a link to the tracker that owns the work. No new action button
+  and no notification control lives in the panel.
+- Promotion rows use the exact registry threshold and `joinedAt`; never estimate
+  an upload ETA. Ratio and login rows use the same rules and observation
+  freshness as the register, so a stale row cannot claim urgency.
+- The panel disappears when there is nothing to show; it never prints a zero
+  state or a fabricated deadline.
+
 ### Tracker card
 
 - Header: health dot plus written state, tracker name, host, class chip and

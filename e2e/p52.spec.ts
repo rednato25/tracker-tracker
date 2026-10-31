@@ -19,6 +19,7 @@ function dateOnly(daysAgo: number): string {
 }
 
 let trackerId: number | null = null
+const extraTrackerIds: number[] = []
 
 test.describe.configure({ mode: "serial" })
 
@@ -62,12 +63,83 @@ test.describe("P52 rank goal and what's next", () => {
           'Registered', false
         )
       `
-      await sql`
-        update app_settings
-        set rank_goals = ${JSON.stringify({
-          [String(tracker.id)]: { targetRank: "Super User" },
-        })}
-      `
+      const extras = [
+        {
+          name: "P52 AllMet",
+          slug: "torrentleech",
+          joinedAt: dateOnly(100),
+          group: "Power User",
+          ratio: 3,
+          uploaded: 2 * TIB,
+          target: "Super User",
+          lastAccessAt: new Date(Date.now() - 2 * DAY_MS),
+        },
+        {
+          name: "P52 TimeOnly",
+          slug: "torrentleech",
+          joinedAt: dateOnly(70),
+          group: "Power User",
+          ratio: 3,
+          uploaded: 2 * TIB,
+          target: "Super User",
+          lastAccessAt: new Date(Date.now() - 2 * DAY_MS),
+        },
+        {
+          name: "P52 RatioEdge",
+          slug: "torrentleech",
+          joinedAt: dateOnly(200),
+          group: "Power User",
+          ratio: 1.05,
+          uploaded: Math.round(0.1 * TIB),
+          target: null,
+          lastAccessAt: new Date(Date.now() - 2 * DAY_MS),
+        },
+        {
+          name: "P52 LoginDue",
+          slug: "blutopia",
+          joinedAt: null,
+          group: null,
+          ratio: null,
+          uploaded: 0,
+          target: null,
+          lastAccessAt: new Date(Date.now() - 20 * DAY_MS),
+        },
+      ]
+
+      for (const extra of extras) {
+        const [row] = await sql<{ id: number }[]>`
+          insert into trackers (
+            name, base_url, registry_slug, platform_type, is_active, joined_at,
+            last_polled_at, last_access_at, encrypted_api_token, color,
+            created_at, updated_at
+          ) values (
+            ${extra.name}, ${`https://${extra.slug}.invalid`}, ${extra.slug},
+            'unit3d', true, ${extra.joinedAt}::date, now(), ${extra.lastAccessAt},
+            ${encrypt("synthetic-p52-token", key)}, '#64748b', now(), now()
+          ) returning id
+        `
+        extraTrackerIds.push(row.id)
+        if (extra.group) {
+          await sql`
+            insert into tracker_snapshots (
+              tracker_id, polled_at, uploaded_bytes, downloaded_bytes, ratio,
+              buffer_bytes, seeding_count, leeching_count, seedbonus, hit_and_runs,
+              required_ratio, warned, freeleech_tokens, group_name, is_manual
+            ) values (
+              ${row.id}, now(), ${extra.uploaded}, ${TIB}, ${extra.ratio},
+              ${0}, 10, 0, 100, 0, 1, false, 0, ${extra.group}, false
+            )
+          `
+        }
+      }
+
+      const goals: Record<string, { targetRank: string }> = {
+        [String(tracker.id)]: { targetRank: "Super User" },
+      }
+      for (const [index, extra] of extras.entries()) {
+        if (extra.target) goals[String(extraTrackerIds[index])] = { targetRank: extra.target }
+      }
+      await sql`update app_settings set rank_goals = ${JSON.stringify(goals)}`
     } finally {
       await sql.end()
     }
@@ -78,6 +150,7 @@ test.describe("P52 rank goal and what's next", () => {
     const sql = e2eSql()
     try {
       if (trackerId !== null) await sql`delete from trackers where id = ${trackerId}`
+      for (const id of extraTrackerIds) await sql`delete from trackers where id = ${id}`
       await sql`update app_settings set rank_goals = null`
     } finally {
       await sql.end()
@@ -186,6 +259,56 @@ test.describe("P52 rank goal and what's next", () => {
         })
         await history.screenshot({
           path: `docs/screenshots/p52/tracker-history-${width}-${theme}.png`,
+        })
+      }
+    }
+  })
+
+  test("shows what's next at the top of the dashboard, soonest first", async ({ page }) => {
+    test.setTimeout(120_000)
+    for (const width of [1440, 390] as const) {
+      await page.setViewportSize({ width, height: 1200 })
+      await page.goto("/")
+
+      const panel = page.locator("[data-whats-next]:visible").first()
+      await expect(panel).toBeVisible({ timeout: 20_000 })
+      const rows = panel.locator("[data-whats-next-row]")
+      await expect(rows).toHaveCount(4)
+
+      await expect(rows.nth(0)).toHaveAttribute("data-whats-next-kind", "promotion-waiting")
+      await expect(rows.nth(0)).toContainText("P52 AllMet \u2192 Super User")
+      await expect(rows.nth(0)).toContainText("waiting for the site")
+      await expect(rows.nth(1)).toHaveAttribute("data-whats-next-kind", "login")
+      await expect(rows.nth(1)).toContainText("P52 LoginDue login")
+      await expect(rows.nth(1)).toContainText("due in 10 days")
+      await expect(rows.nth(2)).toHaveAttribute("data-whats-next-kind", "promotion-time")
+      await expect(rows.nth(2)).toContainText("P52 TimeOnly \u2192 Super User")
+      await expect(rows.nth(2)).toContainText("in 14 days of account age")
+      await expect(rows.nth(3)).toHaveAttribute("data-whats-next-kind", "ratio")
+      await expect(rows.nth(3)).toContainText("P52 RatioEdge ratio")
+      await expect(rows.nth(3)).toContainText("minimum 1.00")
+
+      const box = await panel.boundingBox()
+      const visibleHeight = page.viewportSize()?.height ?? 0
+      if (box && box.height + 160 > visibleHeight) {
+        await page.setViewportSize({
+          width,
+          height: Math.min(6000, Math.ceil(box.height + 160)),
+        })
+        await page.waitForTimeout(200)
+      }
+
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((next) => {
+          document.documentElement.dataset.theme = next
+        }, theme)
+        await page.waitForTimeout(150)
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+        expect(overflow, `what's next overflows at ${width}px`).toBeLessThanOrEqual(1)
+        await panel.screenshot({
+          path: `docs/screenshots/p52/whats-next-${width}-${theme}.png`,
         })
       }
     }

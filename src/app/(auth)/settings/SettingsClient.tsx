@@ -65,9 +65,6 @@ export interface SettingsData {
   credentialVaultEnabled: boolean
   integrationIdentityMode: "none" | "trackers" | "full"
   rankGoals: string | null
-  prowlarrUrl: string | null
-  hasProwlarrApiKey: boolean
-  prowlarrAllowPrivate: boolean
   digestEnabled: boolean
   digestTime: string
   digestTimezone: string

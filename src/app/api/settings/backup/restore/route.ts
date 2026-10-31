@@ -1210,10 +1210,6 @@ export async function POST(request: Request) {
                 normalizeRecruitmentState(payload.settings.recruitmentState)
               )
             : null,
-          prowlarrUrl: (payload.settings.prowlarrUrl as string | null) ?? null,
-          encryptedProwlarrApiKey:
-            (payload.settings.encryptedProwlarrApiKey as string | null) ?? null,
-          prowlarrAllowPrivate: (payload.settings.prowlarrAllowPrivate as boolean) ?? false,
           digestEnabled: (payload.settings.digestEnabled as boolean) ?? false,
           digestTime: (payload.settings.digestTime as string | null) ?? "09:00",
           digestTimezone: (payload.settings.digestTimezone as string | null) ?? "UTC",

@@ -3,8 +3,8 @@
 // Single observation builder for P09 consumers (dashboard summary and tracker
 // detail). The 24h freshness and source handling stay identical across both.
 
-import type { RankObservationMap } from "@/lib/rank-goals"
 import { isProfileReadFresh, readProfileReadRecord } from "@/lib/profile-reading/types"
+import type { RankObservationMap } from "@/lib/rank-goals"
 import type { TrackerLatestStats } from "@/types/api"
 import type {
   CarptPlatformMeta,

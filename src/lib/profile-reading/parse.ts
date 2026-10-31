@@ -8,12 +8,12 @@
 // the groups page. V3X puts level and XP on the profile page when it shows them.
 
 import { parse as parseHtml } from "node-html-parser"
+import type { ProfileReadValues } from "@/lib/profile-reading/types"
 import {
   normalizeWhitespace,
   tryParseCount,
   tryParseSiteBytes,
 } from "@/lib/tracker-platforms/helpers/html-parse"
-import type { ProfileReadValues } from "@/lib/profile-reading/types"
 
 type HtmlDocument = ReturnType<typeof parseHtml>
 

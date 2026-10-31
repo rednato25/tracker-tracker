@@ -14,8 +14,8 @@ import {
   parseZenithGroupsPage,
 } from "@/lib/profile-reading/parse"
 import { readProfilePageOnce } from "@/lib/profile-reading/read"
-import { looksLikeLoginPage } from "@/lib/profile-reading/urls"
 import type { ProfileReadRecord } from "@/lib/profile-reading/types"
+import { looksLikeLoginPage } from "@/lib/profile-reading/urls"
 
 const TiB = 1024 ** 4
 const GiB = 1024 ** 3

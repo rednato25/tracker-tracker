@@ -6,14 +6,14 @@
 import { describe, expect, it } from "vitest"
 import { formatProfileReadAge } from "@/lib/profile-reading/labels"
 import { withPreservedProfileRead, withProfileReadRecord } from "@/lib/profile-reading/meta"
-import { profilePageUrl } from "@/lib/profile-reading/urls"
 import {
   isProfileReadDue,
   isProfileReadFresh,
   PROFILE_READ_INTERVAL_MS,
-  readProfileReadRecord,
   type ProfileReadRecord,
+  readProfileReadRecord,
 } from "@/lib/profile-reading/types"
+import { profilePageUrl } from "@/lib/profile-reading/urls"
 
 const NOW = new Date("2026-10-31T12:00:00.000Z")
 

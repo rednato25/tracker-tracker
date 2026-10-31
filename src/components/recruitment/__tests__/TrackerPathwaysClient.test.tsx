@@ -508,6 +508,49 @@ describe("TrackerPathwaysClient", () => {
     expect(notYet.container).toHaveTextContent("Not yet: Power User+")
   })
 
+  it("shows waits, pin markers, and unlock counts on tree nodes", () => {
+    const treeCatalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: [
+        route("AlphaRatio", "Mid", { minimumDays: 1 }),
+        route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+        route("Mid", "Aither", { minimumDays: 4 }),
+      ],
+      sourceGates: [],
+    }
+
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={{
+          ...stateFor("BroadcasTheNet"),
+          pinnedRoutes: {
+            BroadcasTheNet: "tp:AlphaRatio:Mid>tp:Mid:BroadcasTheNet",
+            Aither: "tp:AlphaRatio:Mid>tp:Mid:Aither",
+          },
+        }}
+        catalog={treeCatalog}
+      />
+    )
+
+    expect(container.querySelectorAll("[data-pinned-tree]")).toHaveLength(1)
+
+    const mid = container.querySelector('[data-tree-node="Mid"]') as HTMLElement
+    expect(mid.querySelector("[data-node-wait]")).toHaveTextContent("Ready now")
+    expect(mid).toHaveTextContent("unlocks 2 of your targets")
+
+    const broad = container.querySelector(
+      '[data-pinned-route="BroadcasTheNet"]'
+    ) as HTMLElement
+    expect(broad.querySelector("[data-pin-marker]")).not.toBeNull()
+    expect(broad.querySelector("[data-node-wait]")).toHaveTextContent("2 days left")
+    expect(broad).not.toHaveTextContent("unlocks")
+
+    const aither = container.querySelector('[data-pinned-route="Aither"]') as HTMLElement
+    expect(aither.querySelector("[data-pin-marker]")).not.toBeNull()
+    expect(aither.querySelector("[data-node-wait]")).toHaveTextContent("4 days left")
+  })
+
   it("keeps pins per target when switching targets and lists them at the top", async () => {
     const user = userEvent.setup()
     const pinCatalog: RecruitmentCatalog = {

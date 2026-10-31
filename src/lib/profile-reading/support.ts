@@ -18,8 +18,6 @@ export const PROFILE_READING_SLUGS = [
   "v3x",
 ] as const
 
-export type ProfileReadingSlug = (typeof PROFILE_READING_SLUGS)[number]
-
 const PROFILE_READING_SLUG_SET: ReadonlySet<string> = new Set(PROFILE_READING_SLUGS)
 
 export function supportsProfileReading(tracker: {

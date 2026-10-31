@@ -31,11 +31,6 @@ const g = globalThis as typeof globalThis & {
   __profileReadInFlight?: boolean
 }
 
-/** Exposed for the scheduler tests; the runner is deliberately single-flight. */
-export function isProfileReadingRunning(): boolean {
-  return g.__profileReadInFlight ?? false
-}
-
 /**
  * Reads every enabled tracker whose last attempt is at least 24 hours old and
  * whose last outcome did not stop reading. Sequential on purpose: this is one

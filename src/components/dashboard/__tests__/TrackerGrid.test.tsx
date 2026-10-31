@@ -438,14 +438,16 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("Last login: 3 days ago")).toBeInTheDocument()
+    expect(screen.getByText("Last login 3 days ago")).toBeInTheDocument()
+    expect(screen.getByText("due in 117 days")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
 
     rerender(
       <TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />
     )
     expect(screen.queryByRole("button", { name: "Logged in today" })).not.toBeInTheDocument()
-    expect(screen.queryByText(/Last login:/)).not.toBeInTheDocument()
+    expect(screen.getByText("Last login not recorded")).toBeInTheDocument()
+    expect(screen.getByText("No login rule")).toBeInTheDocument()
   })
 
   it("marks a login and restores the previous date from a 10-second Undo", async () => {
@@ -464,18 +466,41 @@ describe("TrackerGrid", () => {
     fireEvent.click(screen.getByRole("button", { name: "Logged in today" }))
 
     await waitFor(() => expect(screen.getByText("Logged in today")).toBeInTheDocument())
-    expect(screen.getByText("Last login: today")).toBeInTheDocument()
+    expect(screen.getByText("Last login today")).toBeInTheDocument()
+    expect(screen.getByText("due in 120 days")).toBeInTheDocument()
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
       lastAccessAt: "2026-10-28",
     })
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }))
     await waitFor(() =>
-      expect(screen.getByText("Last login: 3 days ago")).toBeInTheDocument()
+      expect(screen.getByText("Last login 3 days ago")).toBeInTheDocument()
     )
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       lastAccessAt: "2026-10-25",
     })
+  })
+
+  it("shows the login deadline on every card in the state's tone", () => {
+    const { rerender } = render(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-06-01" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const overdue = screen.getByText("Overdue by 29 days")
+    expect(overdue).toHaveClass("text-danger")
+    expect(overdue).toHaveAttribute("data-login-deadline")
+
+    rerender(
+      <TrackerGrid
+        trackers={[manualTracker({ lastAccessAt: "2026-06-30" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("due today")).toHaveClass("text-warn")
   })
 
   it("highlights the login button when the login deadline is within seven days", () => {

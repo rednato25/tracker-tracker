@@ -544,6 +544,21 @@ describe("TrackerGrid", () => {
     expect(screen.getByRole("button", { name: "Marked by you" })).toBeInTheDocument()
   })
 
+  it("shows no ring for a tracker without a login rule, only muted text", () => {
+    const { container } = render(
+      <TrackerGrid
+        trackers={[tracker({ lastAccessAt: "2026-10-20" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    const noRule = screen.getByText("No login rule")
+    expect(noRule).toHaveClass("text-tertiary")
+    expect(noRule).toHaveAttribute("data-login-no-rule")
+    expect(container.querySelector("[data-login-ring]")).toBeNull()
+    expect(screen.queryByText(/^by /)).not.toBeInTheDocument()
+  })
+
   it("keeps the ring, source, site link and login button in one footer row", () => {
     const { container } = render(
       <TrackerGrid

@@ -10,6 +10,7 @@ import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import { useClickOutside } from "@/hooks/useClickOutside"
 import { formatAccountAge, formatDate } from "@/lib/formatters"
+import type { ClassGateComparison } from "@/lib/rank-class-gate"
 import {
   buildOwnedTrackerCards,
   buildRouteChoices,
@@ -95,6 +96,25 @@ function inviteTimingLabel(card: OwnedTrackerCardView) {
   )
 }
 
+function ClassGateBadge({ gate }: { gate: ClassGateComparison }) {
+  const label = `${gate.status === "met" ? "Met" : gate.status === "not-yet" ? "Not yet" : "Class unknown"}: ${gate.written.join(" or ")}`
+  return (
+    <span
+      data-class-gate={gate.status}
+      title={gate.detail}
+      className={
+        gate.status === "met"
+          ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-success"
+          : gate.status === "not-yet"
+            ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-warn"
+            : "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-tertiary"
+      }
+    >
+      {label}
+    </span>
+  )
+}
+
 function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
   const [expanded, setExpanded] = useState(false)
   const destinations = expanded ? card.destinations : card.destinations.slice(0, DESTINATION_LIMIT)
@@ -149,19 +169,22 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
                 >
                   {destination.destinationName}
                 </span>
-                <span
-                  className={`line-clamp-2 max-w-[58%] text-right text-xs ${
-                    destination.closed ? "text-tertiary" : "text-secondary"
-                  }`}
-                  title={destination.requirementText ?? undefined}
-                >
-                  {destination.closed && (
-                    <span className="mr-1 font-cond text-2xs font-semibold uppercase tracking-[0.1em]">
-                      Closed
-                    </span>
-                  )}
-                  {destination.requirementText ?? "No requirement text"}
-                </span>
+                <div className="flex max-w-[58%] flex-col items-end gap-0.5 text-right">
+                  <span
+                    className={`line-clamp-2 text-xs ${
+                      destination.closed ? "text-tertiary" : "text-secondary"
+                    }`}
+                    title={destination.requirementText ?? undefined}
+                  >
+                    {destination.closed && (
+                      <span className="mr-1 font-cond text-2xs font-semibold uppercase tracking-[0.1em]">
+                        Closed
+                      </span>
+                    )}
+                    {destination.requirementText ?? "No requirement text"}
+                  </span>
+                  {destination.classGate && <ClassGateBadge gate={destination.classGate} />}
+                </div>
               </li>
             ))}
           </ul>
@@ -477,6 +500,7 @@ function RouteChoiceRow({
           {choice.needsChecking ? "Needs checking" : "No checks pending"}
         </span>
       </div>
+      {choice.classGate && <ClassGateBadge gate={choice.classGate} />}
     </li>
   )
 }
@@ -710,6 +734,31 @@ export function TrackerPathwaysClient({
     return labels
   }, [activeTarget, catalog, now, state, targets, trackers])
 
+  // Every target keeps its own pin. This list reads them all, including targets
+  // that are not the active one, so switching targets never hides a pin.
+  const myPinnedRoutes = useMemo(() => {
+    return Object.entries(state.pinnedRoutes)
+      .map(([targetId, key]) => {
+        const result = buildWishlistPaths({
+          catalog,
+          desiredTrackerSlug: targetId,
+          trackers,
+          savedRankGoals: {},
+          state: { ...state, hiddenPathKeys: [] },
+          now,
+          maxHops: 3,
+          maxPathsPerSource: 200,
+          maxTotal: 500,
+        })
+        return {
+          targetId,
+          targetName: pathwaysTrackerName(targetId),
+          path: result.paths.find((path) => path.key === key) ?? null,
+        }
+      })
+      .sort((a, b) => a.targetName.localeCompare(b.targetName))
+  }, [catalog, now, state, trackers])
+
   async function persistState(
     next: RecruitmentState,
     previous: RecruitmentState
@@ -757,6 +806,14 @@ export function TrackerPathwaysClient({
     await persistState({ ...state, pinnedRoutes }, previous)
   }
 
+  async function unpinTarget(target: string) {
+    if (!state.pinnedRoutes[target]) return
+    const previous = state
+    const pinnedRoutes = { ...state.pinnedRoutes }
+    delete pinnedRoutes[target]
+    await persistState({ ...state, pinnedRoutes }, previous)
+  }
+
   const visibleChoices = routeChoices?.choices.slice(0, showAll ? undefined : 10) ?? []
 
   return (
@@ -770,6 +827,74 @@ export function TrackerPathwaysClient({
           community snapshot; they are not applications and do not prove a recruiter is active.
         </Paragraph>
       </div>
+
+      <section
+        className="flex flex-col gap-3"
+        aria-labelledby="my-pinned-routes-heading"
+        data-my-pinned-routes
+      >
+        <div className="flex flex-col gap-1">
+          <H2 id="my-pinned-routes-heading">My pinned routes</H2>
+          <Paragraph>
+            Every route you pinned, for every target, with its hops and wait. Pins are saved per
+            target, so switching targets keeps them all.
+          </Paragraph>
+        </div>
+
+        {myPinnedRoutes.length === 0 ? (
+          <p className="text-sm text-secondary">No pinned routes yet. Pin one below to keep it here.</p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {myPinnedRoutes.map((pinned) => (
+              <li
+                key={pinned.targetId}
+                data-pinned-route={pinned.targetId}
+                className="flex min-w-0 flex-col gap-2 border border-border bg-raised p-3"
+              >
+                <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={() => chooseTarget(pinned.targetId)}
+                      aria-label={`Open ${pinned.targetName}`}
+                      className="w-fit text-left font-cond text-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+                    >
+                      {pinned.targetName}
+                    </button>
+                    {pinned.path ? (
+                      <>
+                        <p
+                          className="flex flex-wrap items-baseline gap-x-2 text-xs text-secondary"
+                          data-pinned-route-summary
+                        >
+                          <span className="font-mono">
+                            {pinned.path.routeIds.length}{" "}
+                            {pinned.path.routeIds.length === 1 ? "hop" : "hops"}
+                          </span>
+                          <span className="text-tertiary">&middot;</span>
+                          <span>{pathWaitValue(pinned.path)}</span>
+                        </p>
+                        <p className="break-words text-2xs text-tertiary">
+                          {routeChain(pinned.path)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-warn">Pinned route is not in the current data.</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    text="Unpin"
+                    aria-label={`Unpin route to ${pinned.targetName}`}
+                    onClick={() => unpinTarget(pinned.targetId)}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="where-your-trackers-heading">
         <div className="flex flex-col gap-1">
@@ -794,6 +919,14 @@ export function TrackerPathwaysClient({
           </p>
         )}
 
+        {ownedCards.missingAccountAgeTrackers.length > 0 && (
+          <p className="text-xs text-warn" data-missing-account-age>
+            Account age missing:{" "}
+            {ownedCards.missingAccountAgeTrackers.map((tracker) => tracker.name).join(", ")}. The
+            first-hop wait on these trackers stays unknown until you add a join date.
+          </p>
+        )}
+
         {ownedCards.unsupportedOwnedTrackers.length > 0 && (
           <p className="text-xs text-tertiary">
             Not in trackerpathways data:{" "}
@@ -806,7 +939,8 @@ export function TrackerPathwaysClient({
         <div className="flex flex-col gap-1">
           <H2 id="get-to-tracker-heading">Get to a tracker</H2>
           <Paragraph>
-            Pick a target to see its invite class, who leads there, and where it can take you.
+            Pick a target to see its invite class, who leads there, and where it can take you. The
+            first hop uses your account age on the tracker you start from.
           </Paragraph>
         </div>
 

@@ -4,6 +4,8 @@
 // profile. They do not change data, invent thresholds, or touch the database.
 
 import { pathwaysTrackerIdForRegistrySlug, pathwaysTrackerName } from "@/data/pathways/catalog"
+import { getTrackerBySlug } from "@/data/tracker-registry"
+import { type ClassGateComparison, compareClassGate } from "@/lib/rank-class-gate"
 import type {
   RecruitmentCatalog,
   RecruitmentRouteRecord,
@@ -35,6 +37,8 @@ export interface OwnedTrackerDestinationView {
   requirementText: string | null
   days: number | null
   closed: boolean
+  /** Null unless the source tracker's registry ladder names a required class. */
+  classGate: ClassGateComparison | null
 }
 
 export interface OwnedTrackerCardView {
@@ -52,6 +56,8 @@ export interface OwnedTrackerCardView {
 export interface OwnedTrackerCardsResult {
   cards: OwnedTrackerCardView[]
   unsupportedOwnedTrackers: TrackerSummary[]
+  /** Owned accounts whose join date is missing, so the first-hop wait is unknown. */
+  missingAccountAgeTrackers: TrackerSummary[]
 }
 
 export interface ProfileRouteView {
@@ -177,16 +183,29 @@ export function buildOwnedTrackerCards(input: {
   for (const [sourceTrackerId, sourceTracker] of ownedBySlug) {
     const gate =
       input.catalog.sourceGates.find((candidate) => candidate.trackerId === sourceTrackerId) ?? null
+    const registryEntry = sourceTracker.registrySlug
+      ? getTrackerBySlug(sourceTracker.registrySlug)
+      : undefined
     const destinations = input.catalog.routes
       .filter((route) => route.sourceTrackerId === sourceTrackerId)
-      .map<OwnedTrackerDestinationView>((route) => ({
-        routeId: route.id,
-        destinationTrackerId: route.destinationTrackerId,
-        destinationName: pathwaysTrackerName(route.destinationTrackerId),
-        requirementText: routeRequirementText(route),
-        days: route.minimumDays,
-        closed: route.availability === "closed",
-      }))
+      .map<OwnedTrackerDestinationView>((route) => {
+        const requirementText = routeRequirementText(route)
+        return {
+          routeId: route.id,
+          destinationTrackerId: route.destinationTrackerId,
+          destinationName: pathwaysTrackerName(route.destinationTrackerId),
+          requirementText,
+          days: route.minimumDays,
+          closed: route.availability === "closed",
+          classGate: registryEntry
+            ? compareClassGate({
+                texts: [requirementText, gate?.text],
+                classes: registryEntry.userClasses,
+                currentClass: sourceTracker.latestStats?.group ?? null,
+              })
+            : null,
+        }
+      })
       .sort((a, b) =>
         compareOpenThenName(
           { closed: a.closed, name: a.destinationName },
@@ -217,7 +236,11 @@ export function buildOwnedTrackerCards(input: {
     return a.sourceName.localeCompare(b.sourceName)
   })
 
-  return { cards, unsupportedOwnedTrackers }
+  const missingAccountAgeTrackers = input.trackers
+    .filter((tracker) => !tracker.joinedAt)
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  return { cards, unsupportedOwnedTrackers, missingAccountAgeTrackers }
 }
 
 function profileRoute(
@@ -453,6 +476,8 @@ export interface PathwayRouteChoiceView {
   hops: number
   waitLabel: string
   needsChecking: boolean
+  /** Class gate on the owned first hop, if the source ladder has one. */
+  classGate: ClassGateComparison | null
 }
 
 export interface PathwayRouteChoicesResult {
@@ -512,6 +537,7 @@ function routeChoice(path: WishlistPathView, fastestKey: string | null, pinnedKe
     hops: path.routeIds.length,
     waitLabel: pathWaitValue(path),
     needsChecking: pathHasUncheckedRequirements(path),
+    classGate: path.steps[0]?.classGate ?? null,
   } satisfies PathwayRouteChoiceView
 }
 

@@ -38,28 +38,48 @@ function buildTooltip(entry: TorrentRankListEntry): ReactNode {
   )
 }
 
+function hasTransfer(bytes: string): boolean {
+  try {
+    return BigInt(bytes) > 0n
+  } catch {
+    return false
+  }
+}
+
 function TorrentRankList({ label, entries }: { label: string; entries: TorrentRankListEntry[] }) {
+  const withTransfer = entries.filter((entry) => hasTransfer(entry.bytes))
   return (
     <div className="nm-inset-sm rounded-nm-md p-4 overflow-hidden">
       <H2 className="uppercase tracking-wider mb-3">{label}</H2>
-      {entries.length === 0 ? (
+      {withTransfer.length === 0 ? (
         <p className="text-xs text-muted">No activity</p>
       ) : (
         <ul>
-          {entries.map((entry, index) => (
+          {withTransfer.map((entry, index) => (
             <Tooltip key={entry.hash} content={buildTooltip(entry)}>
               <li
                 className={clsx(
                   "grid grid-cols-[1fr_auto] items-center gap-3 py-1.5",
-                  index < entries.length - 1 && "border-b border-border"
+                  index < withTransfer.length - 1 && "border-b border-border"
                 )}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className="color-dot"
+                    className="color-dot shrink-0"
                     style={{ backgroundColor: entry.trackerColor ?? "var(--color-accent)" }}
+                    aria-hidden="true"
                   />
-                  <MarqueeText className="text-xs font-mono text-primary">{entry.name}</MarqueeText>
+                  <div className="flex min-w-0 flex-col">
+                    <MarqueeText className="text-xs font-mono text-primary">
+                      {entry.name}
+                    </MarqueeText>
+                    <span
+                      className="truncate text-2xs text-tertiary"
+                      data-transfer-client={entry.clientName ?? "unknown"}
+                    >
+                      Client: {entry.clientName ?? "Unknown"}
+                    </span>
+                  </div>
                 </div>
                 <DataCell className="whitespace-nowrap">
                   {formatBytesFromString(entry.bytes)}
@@ -76,19 +96,16 @@ function TorrentRankList({ label, entries }: { label: string; entries: TorrentRa
 export function MoversAndShakers({ movers }: MoversAndShakersProps) {
   const { topUploaders, topDownloaders, clientCount, unmatchedTorrents } = movers
 
+  // No client means no torrent-level transfer data. Both lists are hidden,
+  // not shown empty.
+  if (clientCount === 0) return null
+
   if (topUploaders.length === 0 && topDownloaders.length === 0) {
-    // Three genuinely different situations used to share one message, which
-    // told users with a working client to go connect one (issue #157).
-    let message: string
-    if (clientCount === 0) {
-      message = "Connect a download client to see torrent activity"
-    } else if (unmatchedTorrents > 0) {
-      message =
-        `${unmatchedTorrents} torrent${unmatchedTorrents === 1 ? "" : "s"} found, but none ` +
-        "belong to a tracked tracker. Check the tracker's URL, or set a qBittorrent tag on it."
-    } else {
-      message = "No torrent activity today"
-    }
+    const message =
+      unmatchedTorrents > 0
+        ? `${unmatchedTorrents} torrent${unmatchedTorrents === 1 ? "" : "s"} found, but none ` +
+          "belong to a tracked tracker. Check the tracker's URL, or set a qBittorrent tag on it."
+        : "No torrent activity today"
 
     return <p className="text-xs font-mono text-muted p-4 text-center">{message}</p>
   }

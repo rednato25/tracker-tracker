@@ -328,6 +328,46 @@ describe("computeTodayAtAGlance — single tracker two snapshots today", () => {
 })
 
 // ---------------------------------------------------------------------------
+// An exact 512 GiB upload jump
+//
+// P51: a round 512 GiB jump can be a real bonus-for-upload exchange or a bad
+// snapshot. The aggregation must preserve the exact byte delta, not round it
+// through GiB, so the investigation can tell the two apart.
+// ---------------------------------------------------------------------------
+
+describe("computeTodayAtAGlance with an exact 512 GiB upload jump", () => {
+  it("keeps the jump in upload and leaves download alone", async () => {
+    const now = Date.now()
+    const tracker = makeTracker(1)
+    const first = makeSnapshot(
+      1,
+      new Date(now - 60 * 60 * 1000),
+      String(10n * 1024n ** 3n),
+      String(4n * 1024n ** 3n),
+      null,
+      null,
+      1000
+    )
+    const last = makeSnapshot(
+      1,
+      new Date(now),
+      String(522n * 1024n ** 3n),
+      String(4n * 1024n ** 3n),
+      null,
+      null,
+      1200
+    )
+    seedStore([tracker], [first, last])
+
+    const result = await computeTodayAtAGlance()
+    expect(result.trackers[0].uploadDelta).toBe(String(512n * 1024n ** 3n))
+    expect(result.fleet.uploadDelta).toBe(String(512n * 1024n ** 3n))
+    expect(result.trackers[0].downloadDelta).toBe("0")
+    expect(result.trackers[0].seedbonusChange).toBe(200)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Fewer than 2 snapshots
 // ---------------------------------------------------------------------------
 
@@ -406,7 +446,35 @@ describe("computeTodayAtAGlance on the day a tracker starts reporting its bonus"
 
   it("counts only what was gained after the first reading with a bonus", async () => {
     const result = await computeTodayAtAGlance()
-    expect(result.fleet.seedbonusChange).toBe(200)
+    expect(result.trackers[0].seedbonusChange).toBe(200)
+  })
+
+  it("keeps bonus changes per tracker instead of summing one fleet figure", async () => {
+    const now = Date.now()
+    const first = makeTracker(1)
+    const second = makeTracker(2)
+    const firstSnaps = [500, 700].map((bonus, i) =>
+      makeSnapshot(1, new Date(now - (1 - i) * 3600000), "1000000000", "500000000", null, null, bonus)
+    )
+    const secondSnaps = [50, 90].map((bonus, i) =>
+      makeSnapshot(2, new Date(now - (1 - i) * 3600000), "2000000000", "500000000", null, null, bonus)
+    )
+    seedStore([first, second], [...firstSnaps, ...secondSnaps])
+
+    const result = await computeTodayAtAGlance()
+    expect(result.trackers.map((tracker) => tracker.seedbonusChange)).toEqual([200, 40])
+    expect(result.fleet).not.toHaveProperty("seedbonusChange")
+  })
+
+  it("leaves a tracker with fewer than two bonus readings null", async () => {
+    const tracker = makeTracker(1)
+    const snaps = [500].map((bonus) =>
+      makeSnapshot(1, new Date(), "1000000000", "500000000", null, null, bonus)
+    )
+    seedStore([tracker], snaps)
+
+    const result = await computeTodayAtAGlance()
+    expect(result.trackers[0].seedbonusChange).toBeNull()
   })
 })
 
@@ -800,7 +868,7 @@ describe("computeTodayAtAGlance — output shape", () => {
     expect(result.fleet).toHaveProperty("downloadDelta")
     expect(result.fleet).toHaveProperty("bufferDelta")
     expect(result.fleet).toHaveProperty("ratioChange")
-    expect(result.fleet).toHaveProperty("seedbonusChange")
+    expect(result.fleet).not.toHaveProperty("seedbonusChange")
     expect(result.fleet).toHaveProperty("uploadDeltaYesterday")
     expect(result.fleet).toHaveProperty("downloadDeltaYesterday")
     expect(result.fleet).toHaveProperty("bufferDeltaYesterday")
@@ -833,5 +901,6 @@ describe("computeTodayAtAGlance — output shape", () => {
     expect(t).toHaveProperty("uploadDelta")
     expect(t).toHaveProperty("downloadDelta")
     expect(t).toHaveProperty("bufferDelta")
+    expect(t).toHaveProperty("seedbonusChange")
   })
 })

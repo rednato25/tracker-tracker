@@ -28,7 +28,8 @@ interface TrackerDelta {
   downloadDelta: bigint
   bufferDelta: bigint
   ratioChange: number
-  seedbonusChange: number
+  /** Bonus points are tracker-specific currency, so this is never summed. */
+  seedbonusChange: number | null
 }
 
 function zeroDelta(tracker: { id: number; name: string; color: string | null }): TrackerDelta {
@@ -40,7 +41,7 @@ function zeroDelta(tracker: { id: number; name: string; color: string | null }):
     downloadDelta: 0n,
     bufferDelta: 0n,
     ratioChange: 0,
-    seedbonusChange: 0,
+    seedbonusChange: null,
   }
 }
 
@@ -165,7 +166,8 @@ export async function computeTodayAtAGlance(): Promise<TodayAtAGlance> {
       // Only readings that carry a bonus count, so a tracker that starts
       // reporting one partway through the day does not book its whole balance.
       const bonuses = snaps.map((s) => s.seedbonus).filter((v): v is number => v != null)
-      const seedbonusChange = bonuses.length >= 2 ? bonuses[bonuses.length - 1] - bonuses[0] : 0
+      const seedbonusChange =
+        bonuses.length >= 2 ? bonuses[bonuses.length - 1] - bonuses[0] : null
 
       trackerDeltas.push({
         id: tracker.id,
@@ -188,7 +190,6 @@ export async function computeTodayAtAGlance(): Promise<TodayAtAGlance> {
   let fleetUploadDelta = 0n
   let fleetDownloadDelta = 0n
   let fleetBufferDelta = 0n
-  let fleetSeedbonusChange = 0
 
   // Weighted average of ratio change: sum(ratioChange * uploadDelta) / sum(uploadDelta)
   let weightedRatioSum = 0
@@ -198,7 +199,6 @@ export async function computeTodayAtAGlance(): Promise<TodayAtAGlance> {
     fleetUploadDelta += delta.uploadDelta
     fleetDownloadDelta += delta.downloadDelta
     fleetBufferDelta += delta.bufferDelta
-    fleetSeedbonusChange += delta.seedbonusChange
 
     // An account infinite at either end of the day has no finite ratio change,
     // and one NaN or Infinity would void the whole fleet figure.
@@ -335,7 +335,6 @@ export async function computeTodayAtAGlance(): Promise<TodayAtAGlance> {
       downloadDelta: fleetDownloadDelta.toString(),
       bufferDelta: fleetBufferDelta.toString(),
       ratioChange: fleetRatioChange,
-      seedbonusChange: fleetSeedbonusChange,
       uploadDeltaYesterday: yesterdayFleetUpload !== null ? yesterdayFleetUpload.toString() : null,
       downloadDeltaYesterday:
         yesterdayFleetDownload !== null ? yesterdayFleetDownload.toString() : null,
@@ -348,6 +347,7 @@ export async function computeTodayAtAGlance(): Promise<TodayAtAGlance> {
       uploadDelta: d.uploadDelta.toString(),
       downloadDelta: d.downloadDelta.toString(),
       bufferDelta: d.bufferDelta.toString(),
+      seedbonusChange: d.seedbonusChange,
     })),
     activity: {
       addedToday,

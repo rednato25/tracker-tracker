@@ -449,3 +449,45 @@ describe("adapterRequest - redirects", () => {
     vi.doUnmock("@/lib/tunnel")
   })
 })
+
+describe("adapterFetch - JSON body shape", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  // A 200 can still carry a JSON scalar, null or array. Without this guard an
+  // adapter dereferences it into a TypeError that sanitizeNetworkError cannot
+  // classify, so the tracker card says "Poll failed" instead of naming the shape.
+  it.each([
+    { label: "null", body: null, kind: "null" },
+    { label: "an array", body: [], kind: "array" },
+    { label: "a string", body: "not-an-object", kind: "string" },
+  ])("rejects $label with a classified shape error", async ({ body, kind }) => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => body,
+    } as Response)
+
+    const err = await adapterFetch("https://tracker.example/api", "tracker.example").catch(
+      (e: Error) => e
+    )
+
+    expect((err as Error).message).toBe(
+      `Unexpected response from tracker.example: expected a JSON object, got ${kind}`
+    )
+    expect(sanitizeNetworkError((err as Error).message)).toBe(
+      "Tracker returned an unexpected response"
+    )
+  })
+
+  it("still returns an object body", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ uploaded: 1 }),
+    } as Response)
+
+    await expect(
+      adapterFetch("https://tracker.example/api", "tracker.example")
+    ).resolves.toEqual({ uploaded: 1 })
+  })
+})

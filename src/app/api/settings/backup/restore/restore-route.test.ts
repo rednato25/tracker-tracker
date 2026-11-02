@@ -88,6 +88,22 @@ vi.mock("@/lib/restore-lock", async (importOriginal) => {
 // does not model.
 vi.mock("@/lib/db/backfill-registry-slug", () => ({ backfillRegistrySlugs: vi.fn() }))
 
+// The dry-run key-zeroing assertion needs the exact buffers the route derived,
+// so wrap deriveKey rather than stub it: the crypto round trip stays real.
+const derivedKeys = vi.hoisted(() => [] as Buffer[])
+
+vi.mock("@/lib/crypto", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/crypto")>()
+  return {
+    ...actual,
+    deriveKey: vi.fn(async (password: string, salt: string) => {
+      const key = await actual.deriveKey(password, salt)
+      derivedKeys.push(key)
+      return key
+    }),
+  }
+})
+
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const SALT_A = "a1b2c3d4".repeat(8) // 64 hex chars, the backup's salt
@@ -1286,6 +1302,23 @@ describe("POST /api/settings/backup/restore — dry run", () => {
     expect(recorder.deletes).toHaveLength(0)
     expect(recorder.inserts).toHaveLength(0)
     expect(recorder.settingsUpdate).toBeNull()
+  })
+
+  // The dry run returns before the finally that zeroes a real restore's keys.
+  // Without its own zeroing the derived key stays live until GC, which is the
+  // same exposure the finally exists to avoid.
+  it("zeroes the derived keys before returning", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_A })
+    derivedKeys.length = 0
+
+    const res = await POST(makeRequest(payload, PASSWORD, undefined, true))
+    expect(res.status).toBe(200)
+
+    // Matching salts mean backupKey and currentKey are one buffer, derived once.
+    expect(derivedKeys).toHaveLength(1)
+    expect(derivedKeys[0].every((byte) => byte === 0)).toBe(true)
   })
 
   it("reports every credential as recoverable when the password opens the backup", async () => {

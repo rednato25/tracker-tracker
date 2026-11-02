@@ -118,6 +118,17 @@ function firstBackupCiphertext(payload: BackupPayload): string | null {
   return backupCiphertexts(payload)[0] ?? null
 }
 
+/**
+ * Zero every derived key still in memory. The normal path runs this in a
+ * finally; the dry run returns before reaching that finally, so it calls this
+ * itself. When the backup and current salts matched, both names point at one
+ * buffer and it is zeroed once.
+ */
+function zeroDerivedKeys(backupKey: Buffer, currentKey: Buffer): void {
+  if (backupKey.length > 0) backupKey.fill(0)
+  if (currentKey !== backupKey && currentKey.length > 0) currentKey.fill(0)
+}
+
 // Attempt to decrypt a field with the backup key and re-encrypt with the current key.
 // Returns the re-encrypted ciphertext, or "" if the field is empty or re-encryption fails.
 function reencryptField(
@@ -356,14 +367,18 @@ export async function POST(request: Request) {
         // Counted as at-risk below; a failure here is the answer, not an error.
       }
     }
-    return NextResponse.json({
+    const body = {
       dryRun: true,
       sameSalt,
       canPassThrough,
       credentialsTotal: ciphertexts.length,
       credentialsRecoverable: recoverable,
       credentialsAtRisk: ciphertexts.length - recoverable,
-    })
+    }
+    // This return skips the finally that zeroes a real restore's keys. Leaving
+    // them live until GC is the same exposure, just harder to see.
+    zeroDerivedKeys(backupKey, currentKey)
+    return NextResponse.json(body)
   }
 
   // Step 7: Stop schedulers (key is zeroed inside stopScheduler)
@@ -1267,8 +1282,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: "Backup restore failed" }, { status: 500 })
   } finally {
-    if (backupKey.length > 0) backupKey.fill(0)
-    if (currentKey !== backupKey && currentKey.length > 0) currentKey.fill(0)
+    zeroDerivedKeys(backupKey, currentKey)
   }
 
   // The boot-time backfill ran long before these rows existed, so a tracker from

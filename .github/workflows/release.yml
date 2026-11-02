@@ -1,12 +1,24 @@
 # .github/workflows/release.yml
 #
 # Multi-arch release build.
+#
+# DISABLED IN THIS FORK (P61).
+#
+# Upstream's release pipeline publishes a multi-arch image to GHCR and to the
+# upstream Docker Hub image, docker.io/jordyjordy/tracker-tracker. This fork has
+# its own publisher, .github/workflows/ghcr.yml, which owns
+# ghcr.io/rednato25/tracker-tracker. Running both wrote :latest twice on every
+# push to main, and the Docker Hub half targets an image this fork does not own.
+#
+# The workflow is kept rather than deleted so it can be re-enabled if this fork
+# is ever merged back upstream. It no longer runs on push, and the gate job
+# refuses to run outside the upstream repository, so a manual dispatch is a
+# no-op here.
 
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -22,6 +34,10 @@ jobs:
   # ---------------------------------------------------------------------------
   gate:
     name: Check version
+    # See the header. Only the upstream repository owns the Docker Hub image
+    # this workflow publishes, so the fork skips the whole pipeline here; the
+    # build and release jobs both depend on this one.
+    if: ${{ github.repository == 'jordanlambrecht/tracker-tracker' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

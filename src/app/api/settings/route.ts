@@ -289,11 +289,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "storeUsernames must be a boolean" }, { status: 400 })
     }
     updates.storeUsernames = body.storeUsernames
-
-    // When disabling username storage, optionally scrub historical data
-    if (!body.storeUsernames && body.scrubExisting) {
-      await scrubSnapshotUsernames()
-    }
   }
 
   // --- Integration API identity disclosure ---
@@ -654,6 +649,20 @@ export async function PATCH(request: Request) {
 
   try {
     await db.update(appSettings).set(updates).where(eq(appSettings.id, settings.id))
+
+    // Scrubbing is an irreversible, database-wide UPDATE, so it runs only after
+    // every field validated and the settings row actually changed. Running it
+    // where the field is parsed let a later 400 (a bad digestTime, say) wipe
+    // history while storeUsernames stayed true. `scrubExisting` is opt-in and
+    // must be exactly true: a truthy string is not consent to delete data.
+    if (updates.storeUsernames === false && body.scrubExisting === true) {
+      const scrubbed = await scrubSnapshotUsernames()
+      log.info(
+        { route: "PATCH /api/settings", scrubbed },
+        "scrubbed stored snapshot usernames"
+      )
+    }
+
     log.info({ route: "PATCH /api/settings", fields: Object.keys(updates) }, "settings updated")
 
     // Re-fetch to return current state

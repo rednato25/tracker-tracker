@@ -27,16 +27,29 @@ export interface AdapterResponse {
  * sanitizeNetworkError reads as an unexpected response, and not the parser's
  * message, which can quote the body. Anything else is the body read breaking,
  * which only the direct path can raise, and is classified like a failed fetch.
+ *
+ * A 2xx with a JSON scalar, null or array is not a tracker payload either. Every
+ * adapter dereferences fields on it, which used to surface as a raw TypeError
+ * that sanitizeNetworkError cannot classify, so the card said "Poll failed"
+ * instead of naming the shape. Rejecting it here fixes all adapters at once.
  */
 async function readJson<T>(read: () => Promise<unknown>, hostname: string): Promise<T> {
+  let value: unknown
   try {
-    return (await read()) as T
+    value = await read()
   } catch (err) {
     if (err instanceof SyntaxError) {
       throw new Error(`Unexpected response from ${hostname}: body was not JSON`)
     }
     throw classifyFetchError(err, hostname)
   }
+
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    const kind = value === null ? "null" : Array.isArray(value) ? "array" : typeof value
+    throw new Error(`Unexpected response from ${hostname}: expected a JSON object, got ${kind}`)
+  }
+
+  return value as T
 }
 
 /**

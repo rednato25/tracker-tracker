@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { authenticate, parseJsonBody } from "@/lib/api-helpers"
 import { db } from "@/lib/db"
+import { scrubSnapshotUsernames } from "@/lib/privacy-db"
 import { PATCH } from "./route"
 
 vi.mock("@/lib/api-helpers", async (importOriginal) => {
@@ -292,5 +293,55 @@ describe("PATCH /api/settings route validation", () => {
     const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH" }))
 
     expect(response.status).toBe(401)
+  })
+
+  // Scrubbing is irreversible, so the opt-in must be evaluated only after the
+  // whole body validated. This route used to run it while parsing the field,
+  // ~350 lines before a bad digestTime could reject the request.
+  it("does not scrub when a later field fails validation", async () => {
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({
+      storeUsernames: false,
+      scrubExisting: true,
+      digestTime: "not-a-time",
+    })
+
+    const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH" }))
+
+    expect(response.status).toBe(400)
+    expect(scrubSnapshotUsernames).not.toHaveBeenCalled()
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
+  it("scrubs only after the settings update succeeds", async () => {
+    const where = vi.fn().mockResolvedValue([])
+    const set = vi.fn().mockReturnValue({ where })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set })
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({
+      storeUsernames: false,
+      scrubExisting: true,
+    })
+    const scrub = vi.mocked(scrubSnapshotUsernames)
+    scrub.mockResolvedValue(3)
+
+    const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH" }))
+
+    expect(response.status).toBe(200)
+    expect(set).toHaveBeenCalled()
+    expect(scrub).toHaveBeenCalledTimes(1)
+    expect(scrub.mock.invocationCallOrder[0]).toBeGreaterThan(set.mock.invocationCallOrder[0])
+  })
+
+  it("does not scrub for a truthy non-boolean scrubExisting", async () => {
+    const set = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set })
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({
+      storeUsernames: false,
+      scrubExisting: "yes",
+    })
+
+    const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH" }))
+
+    expect(response.status).toBe(200)
+    expect(scrubSnapshotUsernames).not.toHaveBeenCalled()
   })
 })

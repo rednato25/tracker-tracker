@@ -5,8 +5,15 @@ import { H3, Paragraph, Subtext } from "@typography"
 import dynamic from "next/dynamic"
 import { useCallback, useEffect, useState } from "react"
 import { Badge, Button, Checkbox, Input, Notice } from "@/components/ui"
+import { copyTextToClipboard } from "@/lib/clipboard"
 
 const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG), { ssr: false })
+
+// The helper reports "unavailable" for an insecure context, which is the
+// ordinary case for this app on a LAN (http://192.168.x.x:3000). Saying so is
+// load-bearing: these two buttons are the only way to save the TOTP secret.
+const CLIPBOARD_BLOCKED_MESSAGE =
+  "Could not copy: your browser blocked clipboard access. This usually means the app is served over plain HTTP. Select the text and copy it manually."
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,6 +61,8 @@ function TwoFactorSetup() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [copiedSecret, setCopiedSecret] = useState(false)
+  const [copySecretBlocked, setCopySecretBlocked] = useState(false)
+  const [copyAllBlocked, setCopyAllBlocked] = useState(false)
 
   // Check initial 2FA status
   useEffect(() => {
@@ -187,29 +196,21 @@ function TwoFactorSetup() {
     setBackupCodes([])
   }, [disableCode, disablePassword, useBackupCode])
 
-  function handleCopyAll() {
-    navigator.clipboard
-      .writeText(backupCodes.join("\n"))
-      .then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
-      .catch(() => {
-        setError("Copy failed. Select the text manually")
-      })
+  async function handleCopyAll() {
+    const outcome = await copyTextToClipboard(backupCodes.join("\n"))
+    setCopyAllBlocked(outcome === "unavailable")
+    if (outcome !== "copied") return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
-  function handleCopySecret() {
+  async function handleCopySecret() {
     if (!setupData) return
-    navigator.clipboard
-      .writeText(setupData.secret)
-      .then(() => {
-        setCopiedSecret(true)
-        setTimeout(() => setCopiedSecret(false), 2000)
-      })
-      .catch(() => {
-        setError("Copy failed. Select the text manually")
-      })
+    const outcome = await copyTextToClipboard(setupData.secret)
+    setCopySecretBlocked(outcome === "unavailable")
+    if (outcome !== "copied") return
+    setCopiedSecret(true)
+    setTimeout(() => setCopiedSecret(false), 2000)
   }
 
   function handleCancel() {
@@ -290,6 +291,11 @@ function TwoFactorSetup() {
                   {copiedSecret ? "Copied!" : "Copy secret"}
                 </Button>
               </div>
+              {copySecretBlocked && (
+                <p role="status" className="text-xs text-danger text-center">
+                  {CLIPBOARD_BLOCKED_MESSAGE}
+                </p>
+              )}
             </div>
           </div>
 
@@ -360,6 +366,12 @@ function TwoFactorSetup() {
               text={copied ? "Copied" : "Copy All"}
             />
           </div>
+
+          {copyAllBlocked && (
+            <p role="status" className="text-xs text-danger">
+              {CLIPBOARD_BLOCKED_MESSAGE}
+            </p>
+          )}
 
           <Notice
             variant="warn"

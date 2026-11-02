@@ -4,6 +4,7 @@
 import { useCallback, useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { CheckLargeIcon, CopyIcon, DownloadArrowIcon } from "@/components/ui/Icons"
+import { type ClipboardOutcome, copyTextToClipboard } from "@/lib/clipboard"
 import { downloadResponseBlob } from "@/lib/download"
 
 // ── CopyButton ───────────────────────────────────────────────────────────────
@@ -15,19 +16,21 @@ interface CopyButtonProps {
 }
 
 function CopyButton({ value, label, className }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false)
+  // "idle" is not a ClipboardOutcome; the helper only reports the two results
+  // that matter, and the button starts in neither of them.
+  const [state, setState] = useState<ClipboardOutcome | "idle">("idle")
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard
-      .writeText(value)
-      .then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
-      .catch(() => {
-        // clipboard unavailable. silently skip
-      })
+  const handleCopy = useCallback(async () => {
+    const outcome = await copyTextToClipboard(value)
+    setState(outcome)
+    if (outcome === "copied") {
+      setTimeout(() => setState("idle"), 2000)
+    }
+    // "unavailable" stays until the next attempt: the message is the point.
   }, [value])
+
+  const copied = state === "copied"
+  const unavailable = state === "unavailable"
 
   const icon = copied ? (
     <CheckLargeIcon width="12" height="12" className="text-success" />
@@ -35,18 +38,26 @@ function CopyButton({ value, label, className }: CopyButtonProps) {
     <CopyIcon width="12" height="12" />
   )
 
-  const text = label !== undefined ? (copied ? "Copied" : label) : undefined
+  // An icon-only button has no label to change when the copy fails, and a
+  // silent failure makes the user paste whatever the clipboard held before.
+  // Widening the button to say so is the only visible signal available here.
+  const text = copied ? "Copied" : unavailable ? "Copy unavailable" : label
 
   return (
-    <Button
-      variant="secondary"
-      size={text ? "sm" : "icon"}
-      onClick={handleCopy}
-      aria-label="Copy to clipboard"
-      leftIcon={icon}
-      text={text}
-      className={className}
-    />
+    <>
+      <Button
+        variant="secondary"
+        size={text ? "sm" : "icon"}
+        onClick={handleCopy}
+        aria-label={unavailable ? "Clipboard unavailable" : "Copy to clipboard"}
+        leftIcon={icon}
+        text={text}
+        className={className}
+      />
+      <span className="sr-only" role="status" aria-live="polite">
+        {copied ? "Copied to clipboard" : unavailable ? "Clipboard unavailable" : ""}
+      </span>
+    </>
   )
 }
 

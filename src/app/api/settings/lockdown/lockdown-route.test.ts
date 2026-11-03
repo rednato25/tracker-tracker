@@ -11,8 +11,8 @@ import { authenticate, parseJsonBody } from "@/lib/api-helpers"
 import { clearSession, verifyPassword } from "@/lib/auth"
 import { generateSalt } from "@/lib/crypto"
 import { db } from "@/lib/db"
-import { clearSchedulerKey } from "@/lib/scheduler-key-store"
 import { stopScheduler } from "@/lib/scheduler"
+import { clearSchedulerKey } from "@/lib/scheduler-key-store"
 import { POST } from "./route"
 
 vi.mock("@/lib/api-helpers", () => ({

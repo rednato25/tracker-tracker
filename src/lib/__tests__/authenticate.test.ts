@@ -9,6 +9,20 @@
 import { hkdfSync } from "node:crypto"
 import { EncryptJWT } from "jose"
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { masterKeyFingerprint } from "@/lib/crypto"
+
+// readSession compares each session's fingerprint with this app_settings row.
+const HASH = "$argon2id$v=19$m=65536,t=3,p=4$c2FsdHNhbHQ$aGFzaGhhc2g"
+const SALT = "5a".repeat(32)
+const FP = masterKeyFingerprint(HASH, SALT)
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    select: () => ({
+      from: () => ({ limit: async () => [{ passwordHash: HASH, encryptionSalt: SALT }] }),
+    }),
+  },
+}))
 
 // Stub SESSION_SECRET before any module that depends on it can be loaded
 const TEST_SECRET = "test-session-secret-at-least-32ch" // 34 chars
@@ -83,7 +97,7 @@ beforeEach(() => {
 
 /** Build a valid JWE exactly the way createSession does. */
 async function mintValidToken(encryptionKey: string, maxAgeSeconds = 604_800): Promise<string> {
-  return new EncryptJWT({ ek: encryptionKey })
+  return new EncryptJWT({ ek: encryptionKey, fp: FP })
     .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
     .setIssuedAt()
     .setExpirationTime(`${maxAgeSeconds}s`)
@@ -93,7 +107,7 @@ async function mintValidToken(encryptionKey: string, maxAgeSeconds = 604_800): P
 /** Build a JWE whose exp claim is already in the past. */
 async function mintExpiredToken(encryptionKey: string): Promise<string> {
   const pastEpoch = Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
-  return new EncryptJWT({ ek: encryptionKey })
+  return new EncryptJWT({ ek: encryptionKey, fp: FP })
     .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
     .setIssuedAt()
     .setExpirationTime(pastEpoch)
@@ -190,6 +204,22 @@ describe("authenticate() with real JWE crypto", () => {
       expect(bodyStr).not.toMatch(/compact/i)
       expect(bodyStr).not.toMatch(/invalid/i)
     }
+  })
+
+  it("should return 401 for a session minted before the current password or salt", async () => {
+    const stale = await new EncryptJWT({ ek: "ab".repeat(32), fp: "fingerprint-from-an-older-row" })
+      .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
+      .setIssuedAt()
+      .setExpirationTime("1h")
+      .encrypt(deriveKey(TEST_SECRET))
+    setCookie(SESSION_COOKIE, stale)
+
+    const result = await authenticate()
+
+    expect(result).toHaveProperty("status")
+    const { status, body } = await readResponse(result as Response)
+    expect(status).toBe(401)
+    expect(body).toEqual({ error: "Unauthorized" })
   })
 
   it("should return 401 when JWE was encrypted with a different secret", async () => {

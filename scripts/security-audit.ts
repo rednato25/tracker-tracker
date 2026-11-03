@@ -21,7 +21,7 @@
 //   checkClientEnvLeak, checkAdapterCookieInjection, checkAdapterCredentialLogging,
 //   runAudit
 //
-// The recognizers behind checks 17, 37 and 38 live in scripts/security-audit-lib.ts,
+// The recognizers behind checks 6, 12, 17, 29, 37 and 38 live in scripts/security-audit-lib.ts,
 // which has no CLI entry so a test can import them.
 //
 // Usage: npx tsx scripts/security-audit.ts [--changed-only file1 file2 ...]
@@ -35,7 +35,13 @@ import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { auditMigrationFiles } from "./db/migration-manifest.mjs"
-import { FETCH_RE, fetchWindowEnd, hasInjectionGuard, logsCredential } from "./security-audit-lib"
+import {
+  FETCH_RE,
+  fetchWindowEnd,
+  gatesAuthResult,
+  hasInjectionGuard,
+  logsCredential,
+} from "./security-audit-lib"
 
 const ROOT = path.resolve(__dirname, "..")
 const SRC_DIR = path.resolve(ROOT, "src")
@@ -84,8 +90,13 @@ const NO_AUTH_ROUTES = new Set([
 
 // Both patterns are valid auth mechanisms:
 // - authenticate() from api-helpers.ts (standard pattern)
-// - getSession() from auth.ts (used by logout)
-const AUTH_PATTERNS = [/\bauthenticate\s*\(/, /\bgetSession\s*\(/, /\brequireAuth\s*\(/]
+// - getSession() or readSession() from auth.ts (readSession is used by logout)
+const AUTH_PATTERNS = [
+  /\bauthenticate\s*\(/,
+  /\bgetSession\s*\(/,
+  /\breadSession\s*\(/,
+  /\brequireAuth\s*\(/,
+]
 
 const REQUIRED_HEADERS = [
   "X-Content-Type-Options",
@@ -370,7 +381,7 @@ function checkAuthEnforcement(): CheckResult {
         findings.push({
           file: relativePath(file),
           line: startLine,
-          detail: `${method} /${routePath} has no auth check in handler body (missing authenticate/getSession/requireAuth)`,
+          detail: `${method} /${routePath} has no auth check in handler body (missing authenticate/getSession/readSession/requireAuth)`,
         })
       }
     }
@@ -1959,28 +1970,11 @@ function checkAuthResultGating(): CheckResult {
       const hasAuth = AUTH_PATTERNS.some((re) => re.test(body))
       if (!hasAuth) continue
 
-      // Strip comment lines before checking for the gate,
-      // so a commented-out guard doesn't satisfy the check
-      const bodyNoComments = body
-        .split("\n")
-        .filter((l) => {
-          const t = l.trim()
-          return !t.startsWith("//") && !t.startsWith("*")
-        })
-        .join("\n")
-
-      // authenticate() returns NextResponse | { encryptionKey }, so gate with instanceof
-      // getSession() returns { encryptionKey } | null, so gate with !session or === null
-      const hasInstanceofGate =
-        /instanceof\s+NextResponse/.test(bodyNoComments) ||
-        /instanceof\s+Response/.test(bodyNoComments)
-      const hasNullGate = /!\s*session\b|session\s*===?\s*null/.test(bodyNoComments)
-
-      if (!hasInstanceofGate && !hasNullGate) {
+      if (!gatesAuthResult(routePath, body)) {
         findings.push({
           file: relativePath(file),
           line: startLine,
-          detail: `${method} /${routePath} calls auth function but never checks the result (missing instanceof NextResponse or null check)`,
+          detail: `${method} /${routePath} calls an auth function but never checks the result (authenticate() needs instanceof NextResponse, getSession() a null check, readSession() status === "valid")`,
         })
       }
     }

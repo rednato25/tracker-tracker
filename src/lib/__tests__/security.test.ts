@@ -45,6 +45,7 @@ vi.mock("@/lib/crypto", () => ({
   decrypt: vi.fn().mockReturnValue("decrypted"),
   deriveKey: vi.fn().mockResolvedValue(Buffer.from("a".repeat(32))),
   generateSalt: vi.fn().mockReturnValue("a".repeat(64)),
+  masterKeyFingerprint: vi.fn().mockReturnValue("fp-of-the-current-row"),
 }))
 
 vi.mock("@/lib/tracker-scheduler", () => ({
@@ -88,6 +89,9 @@ vi.mock("@/lib/auth", () => ({
   verifyPendingToken: vi.fn().mockResolvedValue(null),
   clearSession: vi.fn().mockResolvedValue(undefined),
   getSession: vi.fn().mockResolvedValue(null),
+  readSession: vi.fn().mockResolvedValue(null),
+  fingerprintMatches: vi.fn().mockReturnValue(true),
+  STALE_SESSION_MESSAGE: "Your session is out of date. Sign in again.",
 }))
 
 vi.mock("@/lib/totp", () => ({
@@ -1968,6 +1972,7 @@ describe("TOTP verify decrypt failure handling", () => {
 
     vi.mocked(verifyPendingToken).mockResolvedValue({
       encryptionKey: "a".repeat(64),
+      fingerprint: "fp-of-the-current-row",
     })
 
     vi.mocked(db.select).mockReturnValue({

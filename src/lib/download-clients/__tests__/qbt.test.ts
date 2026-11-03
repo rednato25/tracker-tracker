@@ -54,7 +54,7 @@ describe("login", () => {
       headers: new Headers({ "set-cookie": "SID=abc123xyz; Path=/; HttpOnly" }),
     } as Response)
 
-    const sid = await login("localhost", 8080, false, "admin", "password", "")
+    const sid = await login("localhost", 8080, false, "admin", "password", "", "test-cred")
     expect(sid).toEqual({ name: "SID", value: "abc123xyz" })
   })
 
@@ -66,7 +66,7 @@ describe("login", () => {
       headers: new Headers({ "set-cookie": "SID=abc123xyz; Path=/; HttpOnly" }),
     } as Response)
 
-    const sid = await login("localhost", 8080, false, "admin", "password", "")
+    const sid = await login("localhost", 8080, false, "admin", "password", "", "test-cred")
     expect(sid).toEqual({ name: "SID", value: "abc123xyz" })
   })
 
@@ -81,7 +81,7 @@ describe("login", () => {
       }),
     } as Response)
 
-    const sid = await login("localhost", 8080, false, "admin", "password", "")
+    const sid = await login("localhost", 8080, false, "admin", "password", "", "test-cred")
     expect(sid).toEqual({ name: "QBT_SID_8080", value: "YYhsGDAcg8mu89vWPnxXgkH1xkjVQK5h" })
   })
 
@@ -97,7 +97,7 @@ describe("login", () => {
       headers,
     } as Response)
 
-    const sid = await login("localhost", 8080, false, "admin", "password", "")
+    const sid = await login("localhost", 8080, false, "admin", "password", "", "test-cred")
     expect(sid).toEqual({ name: "QBT_SID_8080", value: "realvalue456" })
   })
 
@@ -113,7 +113,7 @@ describe("login", () => {
       headers,
     } as Response)
 
-    const sid = await login("localhost", 8080, false, "admin", "password", "")
+    const sid = await login("localhost", 8080, false, "admin", "password", "", "test-cred")
     expect(sid).toEqual({ name: "QBT_SID_8080", value: "realvalue456" })
   })
 
@@ -124,7 +124,7 @@ describe("login", () => {
       headers: new Headers({ "set-cookie": "SID=testsid; Path=/" }),
     } as Response)
 
-    await login("localhost", 8080, false, "admin", "secret", "")
+    await login("localhost", 8080, false, "admin", "secret", "", "test-cred")
 
     expect(fetchSpy.mock.calls[0][0]).toBe("http://localhost:8080/api/v2/auth/login")
     const init = fetchSpy.mock.calls[0][1] as RequestInit
@@ -143,7 +143,7 @@ describe("login", () => {
       headers: new Headers({}),
     } as Response)
 
-    await expect(login("localhost", 8080, false, "admin", "wrongpass", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "admin", "wrongpass", "", "test-cred")).rejects.toThrow(
       "Authentication failed"
     )
   })
@@ -155,7 +155,7 @@ describe("login", () => {
       headers: new Headers({}),
     } as Response)
 
-    await expect(login("localhost", 8080, false, "admin", "password", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "admin", "password", "", "test-cred")).rejects.toThrow(
       "Authentication failed"
     )
   })
@@ -169,7 +169,7 @@ describe("login", () => {
       headers: new Headers({}),
     } as Response)
 
-    await expect(login("localhost", 8080, false, "admin", "password", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "admin", "password", "", "test-cred")).rejects.toThrow(
       "qBittorrent API error: 403 Forbidden"
     )
   })
@@ -178,7 +178,7 @@ describe("login", () => {
     const timeoutError = new DOMException("signal timed out", "TimeoutError")
     vi.spyOn(global, "fetch").mockRejectedValueOnce(timeoutError)
 
-    await expect(login("localhost", 8080, false, "admin", "password", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "admin", "password", "", "test-cred")).rejects.toThrow(
       "Request to localhost timed out after 15s"
     )
   })
@@ -186,7 +186,7 @@ describe("login", () => {
   it("throws a connection error on network failure", async () => {
     vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("ECONNREFUSED"))
 
-    await expect(login("192.168.1.50", 8080, false, "admin", "pass", "")).rejects.toThrow(
+    await expect(login("192.168.1.50", 8080, false, "admin", "pass", "", "test-cred")).rejects.toThrow(
       "Failed to connect to http://192.168.1.50:8080: ECONNREFUSED"
     )
   })
@@ -198,7 +198,7 @@ describe("login", () => {
       headers: new Headers({ "set-cookie": "SID=x; Path=/" }),
     } as Response)
 
-    await login("localhost", 8080, false, "admin", "pass", "")
+    await login("localhost", 8080, false, "admin", "pass", "", "test-cred")
 
     const init = fetchSpy.mock.calls[0][1] as RequestInit
     expect(init.signal).toBeDefined()
@@ -242,7 +242,7 @@ describe("login auth-failure circuit breaker", () => {
 
     // Ten heartbeat cycles against a client saved with a bad password.
     for (let i = 0; i < 10; i++) {
-      await expect(getSession("localhost", 8080, false, "admin", "wrong", "")).rejects.toThrow(
+      await expect(getSession("localhost", 8080, false, "admin", "wrong", "", "test-cred")).rejects.toThrow(
         "Authentication failed"
       )
     }
@@ -259,7 +259,7 @@ describe("login auth-failure circuit breaker", () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockRejectedValue(refused)
 
     for (let i = 0; i < 3; i++) {
-      await expect(getSession("localhost", 8080, false, "admin", "password", "")).rejects.toThrow(
+      await expect(getSession("localhost", 8080, false, "admin", "password", "", "test-cred")).rejects.toThrow(
         "ECONNREFUSED"
       )
     }
@@ -271,14 +271,14 @@ describe("login auth-failure circuit breaker", () => {
   it("retries once the password is edited, so a user who fixes it is not stuck", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(unauthorized())
 
-    await expect(getSession("localhost", 8080, false, "admin", "wrong", "")).rejects.toThrow(
+    await expect(getSession("localhost", 8080, false, "admin", "wrong", "", "cred-wrong")).rejects.toThrow(
       "Authentication failed"
     )
     expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     // Same host, corrected password, a different key, so not blocked.
     fetchSpy.mockResolvedValueOnce(loggedIn())
-    const { sid } = await getSession("localhost", 8080, false, "admin", "correct", "")
+    const { sid } = await getSession("localhost", 8080, false, "admin", "correct", "", "cred-correct")
 
     expect(sid).toEqual({ name: "SID", value: "abc123xyz" })
     expect(fetchSpy).toHaveBeenCalledTimes(2)
@@ -292,13 +292,13 @@ describe("login auth-failure circuit breaker", () => {
   it("retries when the user replaces bad credentials with blank ones", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(unauthorized())
 
-    await expect(getSession("localhost", 8080, false, "admin", "wrongpass", "")).rejects.toThrow(
+    await expect(getSession("localhost", 8080, false, "admin", "wrongpass", "", "cred-wrongpass")).rejects.toThrow(
       "Authentication failed"
     )
     expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     // Still blocked while that pair is unchanged.
-    await expect(getSession("localhost", 8080, false, "admin", "wrongpass", "")).rejects.toThrow(
+    await expect(getSession("localhost", 8080, false, "admin", "wrongpass", "", "cred-wrongpass")).rejects.toThrow(
       "Authentication failed"
     )
     expect(fetchSpy).toHaveBeenCalledTimes(1)
@@ -311,7 +311,7 @@ describe("login auth-failure circuit breaker", () => {
       headers: new Headers({ "set-cookie": "SID=bypass-sid; Path=/; HttpOnly" }),
     } as Response)
 
-    const { sid } = await getSession("localhost", 8080, false, "", "", "")
+    const { sid } = await getSession("localhost", 8080, false, "", "", "", "cred-blank")
 
     expect(sid).toEqual({ name: "SID", value: "bypass-sid" })
     expect(fetchSpy).toHaveBeenCalledTimes(2)
@@ -320,10 +320,10 @@ describe("login auth-failure circuit breaker", () => {
   it("does not block a second client sharing the host with different credentials", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(unauthorized())
 
-    await expect(login("localhost", 8080, false, "alice", "a-pass", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "alice", "a-pass", "", "cred-alice")).rejects.toThrow(
       "Authentication failed"
     )
-    await expect(login("localhost", 8080, false, "bob", "b-pass", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "bob", "b-pass", "", "cred-bob")).rejects.toThrow(
       "Authentication failed"
     )
 
@@ -334,17 +334,17 @@ describe("login auth-failure circuit breaker", () => {
   it("clearAuthBlocks lets an explicit retry reach the network again", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(unauthorized())
 
-    await expect(login("localhost", 8080, false, "admin", "wrong", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "admin", "wrong", "", "test-cred")).rejects.toThrow(
       "Authentication failed"
     )
-    await expect(login("localhost", 8080, false, "admin", "wrong", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "admin", "wrong", "", "test-cred")).rejects.toThrow(
       "Authentication failed"
     )
     expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     clearAuthBlocks("http://localhost:8080")
 
-    await expect(login("localhost", 8080, false, "admin", "wrong", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "admin", "wrong", "", "test-cred")).rejects.toThrow(
       "Authentication failed"
     )
     expect(fetchSpy).toHaveBeenCalledTimes(2)
@@ -363,7 +363,7 @@ describe("login auth-failure circuit breaker", () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(banned())
 
     for (let i = 0; i < 3; i++) {
-      await expect(login("localhost", 8080, false, "admin", "password", "")).rejects.toThrow(
+      await expect(login("localhost", 8080, false, "admin", "password", "", "test-cred")).rejects.toThrow(
         "qBittorrent has temporarily banned this IP"
       )
     }
@@ -374,7 +374,7 @@ describe("login auth-failure circuit breaker", () => {
   it("tells a blank-credential user that bypass is required", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(unauthorized())
 
-    await expect(login("localhost", 8080, false, "", "", "")).rejects.toThrow(
+    await expect(login("localhost", 8080, false, "", "", "", "test-cred")).rejects.toThrow(
       /Bypass authentication for clients on localhost/
     )
   })
@@ -384,7 +384,7 @@ describe("login auth-failure circuit breaker", () => {
   it("tells a blank-credential user behind a URL path to check the path", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(unauthorized())
 
-    await expect(login("qui.lan", 7476, false, "", "", "/proxy/unknown-key")).rejects.toThrow(
+    await expect(login("qui.lan", 7476, false, "", "", "/proxy/unknown-key", "test-cred")).rejects.toThrow(
       /login through the URL path was refused/
     )
   })
@@ -397,7 +397,7 @@ describe("login auth-failure circuit breaker", () => {
       headers: new Headers({ "set-cookie": "SID=bypass-sid; Path=/; HttpOnly" }),
     } as Response)
 
-    const sid = await login("localhost", 8080, false, "", "", "")
+    const sid = await login("localhost", 8080, false, "", "", "", "test-cred")
     expect(sid).toEqual({ name: "SID", value: "bypass-sid" })
   })
 })
@@ -655,7 +655,7 @@ describe("getTransferInfo", () => {
 // ---------------------------------------------------------------------------
 
 describe("API-key auth", () => {
-  const auth: QbtAuth = { mode: "apikey", key: "qbt_testkey" }
+  const auth: QbtAuth = { mode: "apikey", key: "qbt_testkey", credentialKey: "test-cred" }
 
   // A 403 is inspected for a ban notice before it is treated as a rejected
   // key, so the fixture has to carry a body like a real Response does.
@@ -713,7 +713,7 @@ describe("API-key auth", () => {
     fetchSpy.mockResolvedValueOnce({ ok: true, json: async () => [] } as Response)
 
     await expect(
-      getTorrents("http://localhost:8080", { mode: "apikey", key: "qbt_corrected" })
+      getTorrents("http://localhost:8080", { mode: "apikey", key: "qbt_corrected", credentialKey: "cred-corrected" })
     ).resolves.toEqual([])
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })

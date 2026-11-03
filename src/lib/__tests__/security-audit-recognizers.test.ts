@@ -1,14 +1,15 @@
 // src/lib/__tests__/security-audit-recognizers.test.ts
 //
-// Tests the recognizers scripts/security-audit.ts uses for checks 12, 17, 29, 37
-// and 38. They live in scripts/security-audit-lib.ts so this suite can import
-// them without the audit script's CLI entry running.
+// Tests the recognizers scripts/security-audit.ts uses for checks 6, 12, 17,
+// 29, 37 and 38. They live in scripts/security-audit-lib.ts so this suite can
+// import them without the audit script's CLI entry running.
 //
 // Functions:
 //   - describe("fetch argument window")
 //   - describe("cookie injection guard recognizer")
 //   - describe("adapter credential logging detector")
 //   - describe("auth result gate recognizer")
+//   - describe("encrypt assignment recognizer")
 
 import fs from "node:fs"
 import path from "node:path"
@@ -19,6 +20,7 @@ import {
   gatesAuthResult,
   hasInjectionGuard,
   logsCredential,
+  stripEncryptAssignment,
 } from "../../../scripts/security-audit-lib"
 
 const REPO_ROOT = path.resolve(__dirname, "../../..")
@@ -177,5 +179,20 @@ describe("auth result gate recognizer", () => {
     const body = `const session = await readSession()\n// if (session?.status !== "valid") return unauthorized()\n`
 
     expect(gatesAuthResult("api/trackers", body)).toBe(false)
+  })
+})
+
+describe("encrypt assignment recognizer", () => {
+  it.each([
+    "    const encryptedConfig = encrypt(JSON.stringify(config), key)",
+    "    updates.encryptedConfig = encrypt(JSON.stringify(fields.config), getKey())",
+  ])("strips the storage prefix from %j", (line) => {
+    expect(stripEncryptAssignment(line)).not.toContain("JSON.stringify")
+  })
+
+  it("keeps a property line, since it can sit inside a multi-line NextResponse.json", () => {
+    const line = "      encryptedConfig: encrypt(JSON.stringify(config), key),"
+
+    expect(stripEncryptAssignment(line)).toBe(line)
   })
 })

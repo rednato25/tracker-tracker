@@ -94,6 +94,11 @@ describe("MamAdapter - parsing", () => {
     expect(stats.hitAndRuns).toBe(5)
     expect(stats.requiredRatio).toBeNull()
     expect(stats.warned).toBeNull()
+    const meta = stats.platformMeta as { uploads?: number; seedSizeBytes?: number }
+    // upAct 4 + upInact 0
+    expect(meta.uploads).toBe(4)
+    // Every seeding category reports null, so the size is unverified.
+    expect(meta.seedSizeBytes).toBeUndefined()
   })
 
   it("reports no class when the response carries none", async () => {
@@ -121,6 +126,52 @@ describe("MamAdapter - parsing", () => {
 
     // 10 + 1 + 3 + 4 = 18
     expect(stats.seedingCount).toBe(18)
+  })
+
+  it("sums the seeding category sizes only when every one reports a size", async () => {
+    mockFetch({
+      sSat: { name: "Seeding Satisfied", count: 10, red: false, size: 1_000 },
+      seedHnr: { name: "Seeding HnR", count: 1, red: true, size: 2_000 },
+      seedUnsat: { name: "Seeding Unsatisfied", count: 3, red: true, size: 3_000 },
+      upAct: { name: "Upload Active", count: 4, red: false, size: 4_000 },
+    })
+
+    const stats = await adapter.fetchStats(
+      "https://www.myanonamouse.net",
+      "a1b2c3a1b2c3a1b2c3a1b2c3a1b2c3a1",
+      "/jsonLoad.php"
+    )
+
+    expect((stats.platformMeta as { seedSizeBytes?: number }).seedSizeBytes).toBe(10_000)
+  })
+
+  it("leaves the seed size unknown when one seeding category has no size", async () => {
+    mockFetch({
+      sSat: { name: "Seeding Satisfied", count: 10, red: false, size: 1_000 },
+      seedHnr: { name: "Seeding HnR", count: 1, red: true, size: null },
+      seedUnsat: { name: "Seeding Unsatisfied", count: 3, red: true, size: 3_000 },
+      upAct: { name: "Upload Active", count: 4, red: false, size: 4_000 },
+    })
+
+    const stats = await adapter.fetchStats(
+      "https://www.myanonamouse.net",
+      "a1b2c3a1b2c3a1b2c3a1b2c3a1b2c3a1",
+      "/jsonLoad.php"
+    )
+
+    expect((stats.platformMeta as { seedSizeBytes?: number }).seedSizeBytes).toBeUndefined()
+  })
+
+  it("leaves the upload count unknown when one uploaded category has no count", async () => {
+    mockFetch({ upInact: { name: "Upload Inactive", red: false, size: null } })
+
+    const stats = await adapter.fetchStats(
+      "https://www.myanonamouse.net",
+      "a1b2c3a1b2c3a1b2c3a1b2c3a1b2c3a1",
+      "/jsonLoad.php"
+    )
+
+    expect((stats.platformMeta as { uploads?: number }).uploads).toBeUndefined()
   })
 
   it("reads the snatch categories MAM nests under snatch_summary", async () => {

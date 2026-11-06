@@ -61,11 +61,14 @@ describe("WhatsNext", () => {
     )
   })
 
-  it("renders nothing when there is no next item", () => {
+  it("shows a single empty line instead of the panel when there is no next item", () => {
     const { container } = render(
       <WhatsNext items={[]} expanded onToggleExpanded={() => {}} />
     )
-    expect(container).toBeEmptyDOMElement()
+    expect(screen.getByText("Nothing coming up in the next 14 days")).toBeInTheDocument()
+    expect(screen.getByText("Nothing coming up in the next 14 days").tagName).toBe("P")
+    expect(container.querySelector("[data-whats-next]")).toBeNull()
+    expect(container.querySelectorAll("[data-whats-next-row]")).toHaveLength(0)
   })
 
   it("collapses and expands its rows through the section toggle", async () => {

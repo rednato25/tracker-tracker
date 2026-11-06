@@ -218,8 +218,9 @@ the only violet used for controls.
 - Promotion rows use the exact registry threshold and `joinedAt`; never estimate
   an upload ETA. Ratio and login rows use the same rules and observation
   freshness as the register, so a stale row cannot claim urgency.
-- The panel disappears when there is nothing to show; it never prints a zero
-  state or a fabricated deadline.
+- With no items, the panel is replaced by the single line
+  `Nothing coming up in the next 14 days`; it never prints a zero state or a
+  fabricated deadline.
 
 ### Tracker card
 

@@ -25,7 +25,13 @@ function detailClass(kind: WhatsNextItem["kind"]): string {
 }
 
 export function WhatsNext({ items, expanded, onToggleExpanded }: WhatsNextProps) {
-  if (items.length === 0) return null
+  if (items.length === 0) {
+    return (
+      <p data-whats-next-empty className="text-xs text-tertiary">
+        Nothing coming up in the next 14 days
+      </p>
+    )
+  }
 
   return (
     <section aria-label="What's next" data-whats-next className="flex flex-col gap-2">

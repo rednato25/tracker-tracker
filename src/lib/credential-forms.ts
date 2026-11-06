@@ -125,6 +125,7 @@ export const CREDENTIAL_FORMS = {
   tr4ker: tokenForm("Your TR4KER API key"),
   c411: tokenForm("Your C411 API key, with the Profile (reading) scope"),
   mteam: tokenForm("Your M-Team API key"),
+  apime: tokenForm("Your API key from the tracker's settings page"),
 
   avistaz: {
     kind: "cookies-username",

@@ -48,6 +48,8 @@ You can check out a few other, longer, screenshots in the docs folder.
 | Racing4Everyone       | UNIT3D    | ✅ Verified            |                                                   |
 | Redacted (RED)        | Gazelle   | ✅ Verified            |                                                   |
 | ReelFlix              | UNIT3D    | ✅ Verified            |                                                   |
+| RetroFlix             | API /me   | ✅ Verified            | Raw `Authorization` key; polls `/api/me`          |
+| SpeedApp              | API /me   | ✅ Verified            | Same adapter as RetroFlix                         |
 | SkipTheCommercials    | UNIT3D    | ✅ Verified            |                                                   |
 | Seedpool              | UNIT3D    | ✅ Verified            |                                                   |
 | Upload.cx             | UNIT3D    | ✅ Verified            |                                                   |

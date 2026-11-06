@@ -42,6 +42,7 @@ const CREDENTIALS: Record<string, string> = {
   portugas: cookieBlob(),
   carpt: cookieBlob(),
   v3x: cookieBlob(),
+  apime: CANARY,
 }
 
 /**

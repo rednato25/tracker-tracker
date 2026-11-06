@@ -51,6 +51,7 @@ export * from "./privatehd"
 export * from "./racing4everyone"
 export * from "./redacted"
 export * from "./reelflix"
+export * from "./retroflix"
 export * from "./retromoviesclub"
 export * from "./retrotoon"
 export * from "./rockethd"
@@ -58,6 +59,7 @@ export * from "./secretcinema"
 export * from "./seedcore"
 export * from "./seedpool"
 export * from "./skipthecommercials"
+export * from "./speedapp"
 export * from "./sportscult"
 export * from "./torrentleech"
 export * from "./tr4ker"
@@ -117,6 +119,7 @@ import { privatehd } from "./privatehd"
 import { racing4everyone } from "./racing4everyone"
 import { redacted } from "./redacted"
 import { reelflix } from "./reelflix"
+import { retroflix } from "./retroflix"
 import { retromoviesclub } from "./retromoviesclub"
 import { retrotoon } from "./retrotoon"
 import { rockethd } from "./rockethd"
@@ -124,6 +127,7 @@ import { secretcinema } from "./secretcinema"
 import { seedcore } from "./seedcore"
 import { seedpool } from "./seedpool"
 import { skipthecommercials } from "./skipthecommercials"
+import { speedapp } from "./speedapp"
 import { sportscult } from "./sportscult"
 import { torrentleech } from "./torrentleech"
 import { tr4ker } from "./tr4ker"
@@ -184,6 +188,7 @@ export const ALL_TRACKERS: TrackerRegistryEntry[] = [
   racing4everyone,
   redacted,
   reelflix,
+  retroflix,
   retromoviesclub,
   retrotoon,
   rockethd,
@@ -191,6 +196,7 @@ export const ALL_TRACKERS: TrackerRegistryEntry[] = [
   seedcore,
   seedpool,
   skipthecommercials,
+  speedapp,
   sportscult,
   torrentleech,
   tr4ker,

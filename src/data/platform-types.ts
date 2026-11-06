@@ -21,6 +21,7 @@ export const VALID_PLATFORM_TYPES = [
   "portugas",
   "carpt",
   "v3x",
+  "apime",
 ] as const
 export type PlatformType = (typeof VALID_PLATFORM_TYPES)[number]
 
@@ -45,6 +46,7 @@ export const PLATFORM_LABELS: Record<PlatformType, string> = {
   portugas: "Portugas",
   carpt: "CarPT",
   v3x: "V3X",
+  apime: "API /me",
 }
 
 export function platformTypeLabel(type: string): string {
@@ -73,6 +75,7 @@ export const DEFAULT_API_PATHS: Record<string, string> = {
   portugas: "/",
   carpt: "/userdetails.php",
   v3x: "/auth/me",
+  apime: "/api/me",
 }
 
 /**
@@ -84,3 +87,5 @@ export const DEFAULT_API_PATHS: Record<string, string> = {
 export type GazelleAuthStyle = "token" | "raw"
 export type Unit3dAuthStyle = "bearer" | "query"
 export type NebulanceAuthParam = "api_key" | "apikey"
+/** How an APIME site spells the bare key in its Authorization header. */
+export type HeaderAuthStyle = "raw" | "bearer"

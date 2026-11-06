@@ -7,6 +7,7 @@
 import "server-only"
 import type { Agent as HttpAgent } from "node:http"
 import { registryEntryFor } from "@/data/tracker-registry"
+import { ApimeAdapter } from "./adapters/apime"
 import { AvistazAdapter } from "./adapters/avistaz"
 import { BtnAdapter } from "./adapters/btn"
 import { C411Adapter } from "./adapters/c411"
@@ -29,6 +30,7 @@ import { V3xAdapter } from "./adapters/v3x"
 import type { FetchOptions, TrackerAdapter } from "./contract"
 
 const adapters: Record<string, TrackerAdapter> = {
+  apime: new ApimeAdapter(),
   avistaz: new AvistazAdapter(),
   btn: new BtnAdapter(),
   c411: new C411Adapter(),
@@ -76,6 +78,8 @@ export function buildFetchOptions(opts?: {
   if (entry?.gazelleAuthStyle) fetchOptions.authStyle = entry.gazelleAuthStyle
   if (entry?.gazelleEnrich) fetchOptions.enrich = true
   if (entry?.unit3dAuthStyle) fetchOptions.unit3dAuthStyle = entry.unit3dAuthStyle
+  if (entry?.apimeAuthStyle) fetchOptions.headerAuthStyle = entry.apimeAuthStyle
+  if (entry?.apimeClassMap) fetchOptions.apimeClassMap = entry.apimeClassMap
   if (entry?.nebulanceAuthParam) fetchOptions.nebulanceAuthParam = entry.nebulanceAuthParam
 
   return fetchOptions

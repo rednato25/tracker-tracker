@@ -26,6 +26,16 @@ describe("buildFetchOptions registry lookup", () => {
     expect(buildFetchOptions({ registrySlug: "blutopia" }).unit3dAuthStyle).toBe("bearer")
   })
 
+  it("passes an APIME site's class map and auth spelling through the same lookup", () => {
+    const speedapp = buildFetchOptions({ registrySlug: "speedapp" })
+    expect(speedapp.apimeClassMap?.["2"]).toBe("Power User")
+    expect(speedapp.headerAuthStyle).toBe("bearer")
+
+    expect(buildFetchOptions({ registrySlug: "retroflix" }).apimeClassMap?.["4"]).toBe(
+      "Film Critic"
+    )
+  })
+
   it("keeps the caller's infrastructure options alongside the registry ones", () => {
     expect(buildFetchOptions({ registrySlug: "anthelion", remoteUserId: 7 })).toMatchObject({
       remoteUserId: 7,

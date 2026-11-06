@@ -4,7 +4,12 @@ import type { PlatformType } from "@/data/platform-types"
 import type { RankRequirementGroup } from "@/lib/rank-goals"
 import type { SatisfactionMode } from "@/lib/satisfaction"
 import type { TrackerCredentialFieldDefinition } from "@/lib/tracker-credentials/types"
-import type { GazelleAuthStyle, NebulanceAuthParam, Unit3dAuthStyle } from "./platform-types"
+import type {
+  GazelleAuthStyle,
+  HeaderAuthStyle,
+  NebulanceAuthParam,
+  Unit3dAuthStyle,
+} from "./platform-types"
 import { ALL_TRACKERS } from "./trackers"
 
 export interface ReleaseGroup {
@@ -196,6 +201,10 @@ export interface TrackerRegistryEntry {
   gazelleAuthStyle?: GazelleAuthStyle
   gazelleEnrich?: boolean
   unit3dAuthStyle?: Unit3dAuthStyle
+  /** APIME only. "raw" (the default) sends the key bare, "bearer" prefixes it. */
+  apimeAuthStyle?: HeaderAuthStyle
+  /** APIME only. Numeric class id the API reports -> the site's class name. */
+  apimeClassMap?: Record<string, string>
   /** Anthelion spells the key parameter without an underscore. Defaults to api_key. */
   nebulanceAuthParam?: NebulanceAuthParam
   /**

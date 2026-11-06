@@ -18,6 +18,7 @@ import { GazelleAdapter } from "./adapters/gazelle"
 import { GGnAdapter } from "./adapters/ggn"
 import { HawkeAdapter } from "./adapters/hawke"
 import { IptorrentsAdapter } from "./adapters/iptorrents"
+import { LuminanceAdapter } from "./adapters/luminance"
 import { MamAdapter } from "./adapters/mam"
 import { MteamAdapter } from "./adapters/mteam"
 import { NebulanceAdapter } from "./adapters/nebulance"
@@ -41,6 +42,7 @@ const adapters: Record<string, TrackerAdapter> = {
   ggn: new GGnAdapter(),
   hawke: new HawkeAdapter(),
   iptorrents: new IptorrentsAdapter(),
+  luminance: new LuminanceAdapter(),
   mam: new MamAdapter(),
   mteam: new MteamAdapter(),
   nebulance: new NebulanceAdapter(),

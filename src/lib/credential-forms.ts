@@ -12,7 +12,13 @@ import type { PlatformType } from "@/data/platform-types"
 import { validateCookieHeader } from "@/lib/tracker-credentials/cookie-header"
 import { validateHeaderToken } from "@/lib/tracker-credentials/header-token"
 
-export type CredentialKind = "token" | "cookies" | "cookies-username" | "uid-pass" | "login"
+export type CredentialKind =
+  | "token"
+  | "token-username"
+  | "cookies"
+  | "cookies-username"
+  | "uid-pass"
+  | "login"
 
 /**
  * A label may depend on the tracker's display name. The AvistaZ network is one
@@ -43,11 +49,19 @@ export interface CredentialSurfaceCopy {
   username?: CredentialFieldCopy
   password?: CredentialFieldCopy
   alt2FA?: CredentialFieldCopy
+  /** Optional pasted session for a login that cannot be completed here (2FA). */
+  sessionCookie?: CredentialFieldCopy
 }
 
 interface CredentialFormBase {
   /** Hides the manual Join Date field; the adapter reports the date itself. */
   hidesJoinDate: boolean
+  /** How a pasted session cookie is validated, for a login form that accepts one. */
+  sessionCookie?: {
+    example: string
+    extraCookieNames?: readonly string[]
+    requiredCookieNames?: readonly string[]
+  }
   dialog: CredentialSurfaceCopy
   sheet: CredentialSurfaceCopy
 }
@@ -375,6 +389,46 @@ export const CREDENTIAL_FORMS = {
       },
     },
   },
+
+  luminance: {
+    kind: "login",
+    hidesJoinDate: true,
+    sessionCookie: {
+      example: "sid=abc123",
+      extraCookieNames: ["sid"],
+      requiredCookieNames: ["sid"],
+    },
+    dialog: {
+      username: {
+        label: (trackerName: string) => `${trackerName} Username`,
+        placeholder: "Your username on this tracker",
+      },
+      password: {
+        label: (trackerName: string) => `${trackerName} Password`,
+        tooltip:
+          "Luminance has no stats API, so stats are read by logging in on your behalf. Your password is encrypted at rest with the same key as every other tracker credential.",
+        docs: true,
+        placeholder: "Your password on this tracker",
+      },
+      sessionCookie: {
+        label: "Session Cookie (2FA accounts)",
+        tooltip:
+          'Only for an account with 2FA, which this app cannot log in to. Leave the password empty. Log in on the site with "Lock this session to my IP address" unticked, since polls come from this server, then open DevTools (F12) → Network → any request to the site → copy the full Cookie header value.',
+        docs: true,
+        placeholder: "Only if 2FA is enabled on your account",
+        rows: 2,
+      },
+    },
+    sheet: {
+      username: { label: "Username" },
+      password: { label: "Password" },
+      sessionCookie: {
+        label: "Session Cookie (2FA accounts)",
+        placeholder: "Only if 2FA is enabled on your account",
+        rows: 2,
+      },
+    },
+  },
 } satisfies Record<PlatformType, CredentialForm>
 
 /**
@@ -451,6 +505,17 @@ export function validateCredentialValues(
         return error instanceof Error ? error.message : "API token doesn't look right"
       }
     }
+    case "token-username": {
+      if (!values.username.trim()) return "Username is required"
+      const token = values.token.trim()
+      if (!token) return "API token is required"
+      try {
+        validateHeaderToken(token)
+        return null
+      } catch (error) {
+        return error instanceof Error ? error.message : "API token doesn't look right"
+      }
+    }
     case "cookies":
       return checkCookies(form, values.cookies)
     case "cookies-username":
@@ -478,6 +543,16 @@ export function validateCredentialValues(
     }
     case "login":
       if (!values.username.trim()) return "Username is required"
+      // A pasted session replaces the password for an account this app cannot
+      // log in to itself.
+      if (form.sessionCookie && values.cookies.trim()) {
+        try {
+          validateCookieHeader(values.cookies, form.sessionCookie)
+          return null
+        } catch (error) {
+          return error instanceof Error ? error.message : "Cookie string doesn't look right"
+        }
+      }
       if (!values.password) return "Password is required"
       return null
   }
@@ -497,6 +572,8 @@ export function buildCredentialBlob(
   switch (form.kind) {
     case "token":
       return values.token.trim()
+    case "token-username":
+      return JSON.stringify({ token: values.token.trim(), username: values.username.trim() })
     case "cookies":
       return JSON.stringify({ cookies: cleanCookies(values.cookies), userAgent })
     case "cookies-username":
@@ -517,6 +594,13 @@ export function buildCredentialBlob(
       })
     }
     case "login": {
+      if (form.sessionCookie && values.cookies.trim()) {
+        return JSON.stringify({
+          username: values.username.trim(),
+          cookies: cleanCookies(values.cookies),
+          userAgent,
+        })
+      }
       const alt2FAToken = values.alt2FAToken.trim()
       return JSON.stringify({
         username: values.username.trim(),

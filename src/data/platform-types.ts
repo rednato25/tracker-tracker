@@ -22,6 +22,7 @@ export const VALID_PLATFORM_TYPES = [
   "carpt",
   "v3x",
   "apime",
+  "luminance",
 ] as const
 export type PlatformType = (typeof VALID_PLATFORM_TYPES)[number]
 
@@ -47,6 +48,7 @@ export const PLATFORM_LABELS: Record<PlatformType, string> = {
   carpt: "CarPT",
   v3x: "V3X",
   apime: "API /me",
+  luminance: "Luminance",
 }
 
 export function platformTypeLabel(type: string): string {
@@ -76,6 +78,7 @@ export const DEFAULT_API_PATHS: Record<string, string> = {
   carpt: "/userdetails.php",
   v3x: "/auth/me",
   apime: "/api/me",
+  luminance: "/user.php",
 }
 
 /**

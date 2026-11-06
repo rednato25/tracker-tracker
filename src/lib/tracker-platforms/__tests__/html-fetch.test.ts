@@ -1,6 +1,7 @@
 // src/lib/tracker-platforms/__tests__/html-fetch.test.ts
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { sanitizeNetworkError } from "@/lib/error-utils"
+import { DEFAULT_USER_AGENT } from "@/lib/user-agent"
 import { SessionExpiredError } from "../helpers/errors"
 import { fetchTrackerHtml } from "../helpers/html-fetch"
 
@@ -42,7 +43,8 @@ describe("fetchTrackerHtml - headers", () => {
     expect(headers?.DNT).toBe("1")
 
     await fetchTrackerHtml(BASE)
-    expect(headers?.["User-Agent"]).toBeUndefined()
+    // Our own session sends the app's User-Agent, but never navigation headers.
+    expect(headers?.["User-Agent"]).toBe(DEFAULT_USER_AGENT)
     expect(headers?.["Sec-Fetch-Mode"]).toBeUndefined()
     expect(headers?.DNT).toBeUndefined()
   })

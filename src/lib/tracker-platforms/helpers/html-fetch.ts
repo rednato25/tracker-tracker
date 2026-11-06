@@ -6,6 +6,7 @@
 import { classifyFetchError, classifyProxyFetchError } from "@/lib/error-utils"
 import { ADAPTER_FETCH_TIMEOUT_MS } from "@/lib/limits"
 import { isRedirect } from "@/lib/network"
+import { withDefaultUserAgent } from "@/lib/user-agent"
 import type { FetchOptions } from "../contract"
 import { SessionExpiredError } from "./errors"
 import { isCloudflareChallenge } from "./html-parse"
@@ -56,12 +57,10 @@ function buildHtmlHeaders(
   userAgent?: string,
   accept: string = ACCEPT_HTML
 ): Record<string, string> {
-  return {
-    Cookie: cookies,
-    Accept: accept,
-    "Accept-Language": "en-US,en;q=0.9",
-    ...(userAgent ? { "User-Agent": userAgent, ...NAVIGATION_HEADERS } : {}),
-  }
+  const headers = { Cookie: cookies, Accept: accept, "Accept-Language": "en-US,en;q=0.9" }
+  return userAgent
+    ? { ...headers, "User-Agent": userAgent, ...NAVIGATION_HEADERS }
+    : withDefaultUserAgent(headers)
 }
 
 /**

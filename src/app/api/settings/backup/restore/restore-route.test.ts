@@ -22,6 +22,7 @@ import { log } from "@/lib/logger"
 import { NOTIFY_TOGGLE_KEYS } from "@/lib/notifications/types"
 import { acquireRestoreLock, RestoreBusyError } from "@/lib/restore-lock"
 import { ensureSchedulerRunning, stopScheduler } from "@/lib/scheduler"
+import { UNLINKED_RESTORE_ERROR } from "@/lib/tracker-status"
 import { POST } from "./route"
 
 vi.mock("@/lib/api-helpers", () => ({
@@ -36,6 +37,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     select: vi.fn(),
     transaction: vi.fn(),
+    update: vi.fn(),
   },
 }))
 
@@ -518,6 +520,14 @@ function onlyInsert(recorder: TxRecorder, tableName: string): Record<string, unk
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
+// The route resumes the rows the post-commit registry backfill linked through a
+// global db.update, outside the transaction mock above.
+beforeEach(() => {
+  vi.mocked(db.update).mockReturnValue({
+    set: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })),
+  } as never)
+})
+
 describe("POST /api/settings/backup/restore — credential re-encryption", () => {
   let recorder: TxRecorder
 
@@ -644,8 +654,13 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     const restored = onlyInsert(recorder, "trackers")
     expect(expected.filter((key) => !(key in restored))).toEqual([])
     for (const key of expected) {
+      // An unknown slug is dropped (the row is paused instead); every other
+      // column still travels from the file.
+      if (key === "registrySlug") continue
       expect(serialize(restored[key]), key).toEqual(saved[key])
     }
+    expect(restored.registrySlug).toBeNull()
+    expect(restored.pausedAt).toBeInstanceOf(Date)
   })
 
   // Backups taken before the column existed carry no slug at all, and null is
@@ -1071,19 +1086,115 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     await expect(res.json()).resolves.toMatchObject({ mouseholeCleared: 0 })
   })
 
-  // ─── 6. Envelope trust: apiPath is written verbatim ──────────────────────────
-  it("writes apiPath verbatim from the backup with no validation", async () => {
+  // ─── 6. A restored token never points at an address the registry cannot name ──
+
+  // The token is sent wherever baseUrl, apiPath and platformType point. A file
+  // can edit all three, and a known slug must not be a voucher for them. The
+  // upstream fix is commit 6245e824.
+  it("restores a registry tracker from the registry's address, not the file's", async () => {
     const backupKey = await deriveKey(PASSWORD, SALT_A)
     const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
-    // An absolute URL here would make the tracker client call a foreign host.
+    Object.assign(payload.trackers[0], {
+      registrySlug: "redacted",
+      baseUrl: "https://attacker.example.net",
+      apiPath: "https://attacker.example.net/collect",
+      platformType: "unit3d",
+    })
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    expect(tracker).toMatchObject({
+      registrySlug: "redacted",
+      baseUrl: "https://redacted.sh",
+      apiPath: "/ajax.php",
+      platformType: "gazelle",
+    })
+    // A row the registry placed is not paused; it polls the registry address.
+    expect(tracker.pausedAt).toBeUndefined()
+    expect(tracker.lastError).toBeUndefined()
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
+  it("pauses and flags a restored tracker the registry cannot place", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    // The custom row keeps its own address so it stays importable, but nothing
+    // may send its token there until the user checks it and resumes.
+    expect(tracker.baseUrl).toBe("https://tracker.example.com")
+    expect(tracker.registrySlug).toBeNull()
+    expect(tracker.pausedAt).toBeInstanceOf(Date)
+    expect(tracker.lastErrorAt).toBeInstanceOf(Date)
+    expect(tracker.lastError).toBe(UNLINKED_RESTORE_ERROR)
+  })
+
+  it("drops an absolute apiPath from a custom row instead of pointing its token elsewhere", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
     payload.trackers[0].apiPath = "https://attacker.example.net/collect"
     mockCurrentSettings({ encryptionSalt: SALT_B })
 
     const res = await POST(makeRequest(payload, PASSWORD))
     expect(res.status).toBe(200)
 
-    // Pinned as-is: validateBackupJson checks baseUrl but never apiPath.
-    expect(onlyInsert(recorder, "trackers").apiPath).toBe("https://attacker.example.net/collect")
+    const tracker = onlyInsert(recorder, "trackers")
+    // The unit3d platform's default path on the row's own site, not the file's host.
+    expect(tracker.apiPath).toBe("/api/user")
+    expect(tracker.pausedAt).toBeInstanceOf(Date)
+  })
+
+  it("keeps a relative apiPath on a custom row's own site", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    payload.trackers[0].apiPath = "/api/v2/user"
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    expect(onlyInsert(recorder, "trackers").apiPath).toBe("/api/v2/user")
+  })
+
+  it("imports a backup written before platformType and apiPath existed", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    delete (payload.trackers[0] as Record<string, unknown>).apiPath
+    delete (payload.trackers[0] as Record<string, unknown>).platformType
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    // Undefined lets the column defaults apply, exactly as the old export did.
+    expect(tracker.apiPath).toBeUndefined()
+    expect(tracker.platformType).toBeUndefined()
+    expect(tracker.pausedAt).toBeInstanceOf(Date)
+  })
+
+  it("lifts the pause from the rows the post-commit backfill linked", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const where = vi.fn().mockResolvedValue([])
+    const set = vi.fn(() => ({ where }))
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    // Runs after the backfill, and its WHERE keeps the marker on rows still unlinked.
+    expect(set).toHaveBeenCalledWith({ pausedAt: null, lastError: null, lastErrorAt: null })
+    expect(where).toHaveBeenCalledTimes(1)
   })
 
   // ─── 7. Orphaned children are skipped, not written ───────────────────────────

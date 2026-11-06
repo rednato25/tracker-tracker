@@ -5,6 +5,7 @@
 import { unlink } from "node:fs/promises"
 import path from "node:path"
 import { desc, inArray, isNotNull } from "drizzle-orm"
+import { VALID_PLATFORM_TYPES } from "@/data/platform-types"
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto"
 import { db } from "@/lib/db"
 import {
@@ -791,6 +792,24 @@ export function validateBackupJson(payload: unknown): asserts payload is BackupP
       throw new Error(
         `Backup validation: ${prefix}.baseUrl must not target localhost or a private network address`
       )
+    }
+
+    // Only the type is checked: old BTN rows hold an absolute URL here, and the
+    // restore keeps an apiPath only as a path on the row's own site.
+    if (t.apiPath !== undefined) assertString(t.apiPath, `${prefix}.apiPath`)
+
+    // Absent, the column default applies.
+    if (t.platformType !== undefined) {
+      assertString(t.platformType, `${prefix}.platformType`)
+      if (
+        !VALID_PLATFORM_TYPES.includes(
+          t.platformType as (typeof VALID_PLATFORM_TYPES)[number]
+        )
+      ) {
+        throw new Error(
+          `Backup validation: ${prefix}.platformType must be one of: ${VALID_PLATFORM_TYPES.join(", ")}`
+        )
+      }
     }
 
     assertString(t.encryptedApiToken, `${prefix}.encryptedApiToken`)

@@ -43,7 +43,7 @@ import {
   nextFailureRetryAt,
   POLL_FAILURE_THRESHOLD,
 } from "@/lib/tracker-recovery"
-import { getPauseState, resolveRequiredRatio } from "@/lib/tracker-status"
+import { getPauseState, isRestorePaused, resolveRequiredRatio } from "@/lib/tracker-status"
 import { buildProxyAgentFromSettings } from "@/lib/tunnel"
 import type {
   AvistazPlatformMeta,
@@ -278,6 +278,13 @@ export async function pollTracker(
     .limit(1)
 
   if (!tracker?.isActive) return
+
+  // Its address came from a backup file and matches no registry entry, so only
+  // Resume, which clears this marker, may send the token there.
+  if (isRestorePaused(tracker)) {
+    log.info({ trackerId: tracker.id }, "Skipping a restored tracker that has not been resumed")
+    return
+  }
 
   const timestamp = batchTimestamp ?? new Date()
 
@@ -761,6 +768,15 @@ export async function pollAllTrackers(encryptionKey: Buffer): Promise<void> {
   }
 
   const overdue = allTrackers.filter((tracker) => {
+    // A restore marker is not a failure pause: it has no backoff retry, because
+    // the address it guards was never proved to be the tracker's own.
+    if (isRestorePaused(tracker)) {
+      log.debug(
+        { trackerId: tracker.id, tracker: tracker.name },
+        "skipping a restored tracker that has not been resumed"
+      )
+      return false
+    }
     const pause = getPauseState(tracker)
     if (pause.isPaused) {
       // Manual pauses stay put. Failure pauses retry on their backoff, and a

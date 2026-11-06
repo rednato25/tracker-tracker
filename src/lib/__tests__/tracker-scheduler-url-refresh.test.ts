@@ -36,7 +36,9 @@ vi.mock("@/lib/tracker-platforms", () => ({
 }))
 
 import { db } from "@/lib/db"
+import { log } from "@/lib/logger"
 import { pollTracker } from "@/lib/tracker-scheduler"
+import { UNLINKED_RESTORE_ERROR } from "@/lib/tracker-status"
 
 /** Drizzle-shaped chain: any method sequence resolves to `result`. */
 function chain(result: unknown): Record<string, unknown> {
@@ -167,5 +169,48 @@ describe("pollTracker keeps a slug row's URL in step with the registry", () => {
       expect.anything()
     )
     expect(setCalls.some((v) => "baseUrl" in v)).toBe(false)
+  })
+
+  it("does not poll a restored row the registry could not place", async () => {
+    mockRow(
+      row({
+        registrySlug: null,
+        baseUrl: "https://attacker.example.net",
+        pausedAt: new Date("2026-03-20T10:00:00Z"),
+        lastError: UNLINKED_RESTORE_ERROR,
+        lastErrorAt: new Date("2026-03-20T10:00:00Z"),
+      })
+    )
+
+    await pollTracker(42, KEY, false)
+
+    // The key stays sealed: no request, and therefore no token, reaches the
+    // file's address. Only Resume clears the marker.
+    expect(fetchStats).not.toHaveBeenCalled()
+    expect(log.info).toHaveBeenCalledWith(
+      { trackerId: 42 },
+      "Skipping a restored tracker that has not been resumed"
+    )
+  })
+
+  it("polls again once the backfill has linked the restored row", async () => {
+    mockRow(
+      row({
+        registrySlug: "anthelion",
+        pausedAt: new Date("2026-03-20T10:00:00Z"),
+        lastError: UNLINKED_RESTORE_ERROR,
+        lastErrorAt: new Date("2026-03-20T10:00:00Z"),
+      })
+    )
+
+    await pollTracker(42, KEY, false)
+
+    // The registry address is a known one, so the marker no longer applies.
+    expect(fetchStats).toHaveBeenCalledWith(
+      "https://anthelion.me",
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    )
   })
 })

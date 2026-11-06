@@ -2,7 +2,7 @@
 //
 // Functions: GET, PATCH, DELETE
 
-import { eq } from "drizzle-orm"
+import { and, eq, isNull, ne, or } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import {
   authenticate,
@@ -32,6 +32,7 @@ import { resetProfileReadGate } from "@/lib/profile-reading/meta"
 import { PROFILE_COOKIE_MAX } from "@/lib/profile-reading/support"
 import { getTrackerForClient } from "@/lib/server-data"
 import { validateCookieHeader } from "@/lib/tracker-credentials/cookie-header"
+import { UNLINKED_RESTORE_ERROR } from "@/lib/tracker-status"
 
 export async function GET(_request: Request, props: RouteContext) {
   const auth = await authenticate()
@@ -174,12 +175,6 @@ export async function PATCH(request: Request, props: RouteContext) {
   if (typeof body.isFavorite === "boolean") updates.isFavorite = body.isFavorite
   if (typeof body.pollingPaused === "boolean") {
     updates.userPausedAt = body.pollingPaused ? new Date() : null
-    if (!body.pollingPaused) {
-      updates.pausedAt = null
-      updates.consecutiveFailures = 0
-      updates.lastError = null
-      updates.lastErrorAt = null
-    }
     log.info(
       {
         route: "PATCH /api/trackers/[id]",
@@ -239,6 +234,19 @@ export async function PATCH(request: Request, props: RouteContext) {
 
   try {
     await db.update(trackers).set(updates).where(eq(trackers.id, trackerId))
+    if (body.pollingPaused === false) {
+      // A restore's marker survives the toggle, so that row stays paused until
+      // Resume Polling. A null lastError fails ne(), so isNull() matches it.
+      await db
+        .update(trackers)
+        .set({ pausedAt: null, consecutiveFailures: 0, lastError: null, lastErrorAt: null })
+        .where(
+          and(
+            eq(trackers.id, trackerId),
+            or(isNull(trackers.lastError), ne(trackers.lastError, UNLINKED_RESTORE_ERROR))
+          )
+        )
+    }
     const updated = await getTrackerForClient(trackerId)
     return NextResponse.json(updated ?? { success: true })
   } catch (err) {

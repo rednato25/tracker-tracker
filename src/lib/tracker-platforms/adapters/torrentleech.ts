@@ -1,7 +1,7 @@
 // src/lib/tracker-platforms/adapters/torrentleech.ts
 //
 // Functions: parseTlCredentials, sessionKey, getTlSession, withTlSession, login,
-//            textAfterNode, firstText, topBarCell, parenCount, trailingCount,
+//            textAfterNode, firstText, topBarCell, parenCount, parenSize, trailingCount,
 //            parseTlProfile, fetchHtml, TorrentleechAdapter
 
 import { randomBytes, scrypt } from "node:crypto"

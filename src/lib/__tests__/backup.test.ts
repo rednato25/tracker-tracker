@@ -319,6 +319,33 @@ describe("validateBackupJson", () => {
     expect(() => validateBackupJson(p)).not.toThrow()
   })
 
+  // A platform type chooses the adapter, so the restore must not seed a value
+  // the client routes would refuse.
+  it("rejects a tracker with an unknown platformType", () => {
+    const p = validPayload()
+    ;(p.trackers[0] as Record<string, unknown>).platformType = "not-a-platform"
+    expect(() => validateBackupJson(p)).toThrow("trackers[0].platformType must be one of")
+  })
+
+  it("rejects a non-string platformType", () => {
+    const p = validPayload()
+    ;(p.trackers[0] as Record<string, unknown>).platformType = 42
+    expect(() => validateBackupJson(p)).toThrow("trackers[0].platformType must be a string")
+  })
+
+  it("rejects a non-string apiPath", () => {
+    const p = validPayload()
+    ;(p.trackers[0] as Record<string, unknown>).apiPath = 42
+    expect(() => validateBackupJson(p)).toThrow("trackers[0].apiPath must be a string")
+  })
+
+  it("accepts a tracker without apiPath or platformType (older backups)", () => {
+    const p = validPayload()
+    delete (p.trackers[0] as Record<string, unknown>).apiPath
+    delete (p.trackers[0] as Record<string, unknown>).platformType
+    expect(() => validateBackupJson(p)).not.toThrow()
+  })
+
   it("rejects invalid hex color", () => {
     const p = validPayload()
     ;(p.trackers[0] as Record<string, unknown>).color = "red"

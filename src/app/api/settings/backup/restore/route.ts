@@ -4,8 +4,10 @@
 // reencryptField
 
 import { createHash } from "node:crypto"
-import { eq } from "drizzle-orm"
+import { and, eq, isNotNull } from "drizzle-orm"
 import { NextResponse } from "next/server"
+import { DEFAULT_API_PATHS } from "@/data/platform-types"
+import { registryEntryFor } from "@/data/tracker-registry"
 import { authenticate } from "@/lib/api-helpers"
 import { verifyPassword } from "@/lib/auth"
 import {
@@ -16,6 +18,7 @@ import {
   validateBackupJson,
 } from "@/lib/backup"
 import { decrypt, deriveKey, reencrypt } from "@/lib/crypto"
+import { remapAlertKey } from "@/lib/dashboard"
 import { stripTrailingSlash } from "@/lib/data-transforms"
 import { db } from "@/lib/db"
 import { backfillRegistrySlugs } from "@/lib/db/backfill-registry-slug"
@@ -58,6 +61,7 @@ import {
 } from "@/lib/recruitment-state"
 import { acquireRestoreLock, RestoreBusyError } from "@/lib/restore-lock"
 import { ensureSchedulerRunning, stopScheduler } from "@/lib/scheduler"
+import { UNLINKED_RESTORE_ERROR } from "@/lib/tracker-status"
 
 const BATCH_SIZE = 500
 
@@ -83,14 +87,17 @@ async function batchInsert<T extends Record<string, unknown>>(
 // Every non-empty encrypted value in the backup, in a stable order.
 // The probe below takes the first, and the dry run
 // counts how many of them the derived key can actually open.
-function backupCiphertexts(payload: BackupPayload): string[] {
+function backupCiphertexts(payload: BackupPayload, authenticated: boolean): string[] {
   const settings = payload.settings
   const candidates: unknown[] = [
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedApiToken),
     // Nullable, and absent entirely from backups written before the vault
     // existed. The typeof/length filter at the bottom drops both cases.
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedCredentials),
-    ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedMouseholeToken),
+    // A plain file restores no Mousehole token, so the preview leaves it out too.
+    ...(authenticated
+      ? payload.trackers.map((t) => (t as Record<string, unknown>).encryptedMouseholeToken)
+      : []),
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedProfileCookie),
     ...payload.downloadClients.flatMap((c) => [
       (c as Record<string, unknown>).encryptedUsername,
@@ -114,8 +121,8 @@ function backupCiphertexts(payload: BackupPayload): string[] {
 
 // The first non-empty encrypted value, or null if the backup holds none.
 // Used as a probe to prove a key actually opens this backup's ciphertext.
-function firstBackupCiphertext(payload: BackupPayload): string | null {
-  return backupCiphertexts(payload)[0] ?? null
+function firstBackupCiphertext(payload: BackupPayload, authenticated: boolean): string | null {
+  return backupCiphertexts(payload, authenticated)[0] ?? null
 }
 
 /**
@@ -159,6 +166,24 @@ function clientRestoreError(credentialsCleared: boolean, urlPathCleared: boolean
   if (credentialsCleared) return "Credentials cleared during restore. Re-enter and re-enable"
   if (urlPathCleared) return "URL path cleared during restore. Re-enter it and re-enable"
   return null
+}
+
+// Gazelle, MAM and GGn build the request with new URL(apiPath, baseUrl), so
+// anything but a path on the row's own site would send its token elsewhere.
+function restoredApiPath(
+  apiPath: string | undefined,
+  baseUrl: string,
+  platformType: string | undefined
+): string | undefined {
+  if (apiPath === undefined) return undefined
+  try {
+    if (apiPath.startsWith("/") && new URL(apiPath, baseUrl).origin === new URL(baseUrl).origin) {
+      return apiPath
+    }
+  } catch {
+    // security-audit-ignore: a path the URL parser refuses gets the platform default below.
+  }
+  return (platformType && DEFAULT_API_PATHS[platformType]) || "/"
 }
 
 export async function POST(request: Request) {
@@ -338,7 +363,7 @@ export async function POST(request: Request) {
   // only the dead fields are cleared and flagged. Do not "optimise" this probe away.
   let canPassThrough = sameSalt
   if (sameSalt) {
-    const probe = firstBackupCiphertext(payload)
+    const probe = firstBackupCiphertext(payload, isEncrypted)
     if (probe !== null) {
       try {
         decrypt(probe, backupKey)
@@ -357,7 +382,7 @@ export async function POST(request: Request) {
   // This must stay above stopScheduler(), the first side effect, so a dry run
   // touches nothing.
   if (dryRun) {
-    const ciphertexts = backupCiphertexts(payload)
+    const ciphertexts = backupCiphertexts(payload, isEncrypted)
     let recoverable = 0
     for (const ciphertext of ciphertexts) {
       try {
@@ -391,6 +416,8 @@ export async function POST(request: Request) {
   let clientCredentialsCleared = 0
   let totpDisabledOnRestore = false
   let orphanedRecordsSkipped = 0
+  let mouseholeCleared = 0
+  let trackersPausedOnRestore = 0
 
   try {
     await db.transaction(async (tx) => {
@@ -423,6 +450,7 @@ export async function POST(request: Request) {
 
       // Insert trackers with token re-encryption
       const trackerIdMap = new Map<number, number>()
+      const restoredAt = new Date()
       for (const t of payload.trackers) {
         const { id: oldId, ...fields } = t as Record<string, unknown> & { id: number }
 
@@ -478,6 +506,31 @@ export async function POST(request: Request) {
           mouseholeToken = null
         }
 
+        if (!isEncrypted && (fields.mouseholeUrl || fields.encryptedMouseholeToken)) {
+          mouseholeCleared++
+        }
+
+        // The token is sent wherever these three point, so a slug the registry
+        // knows takes them from its entry and never from the file.
+        const entry = registryEntryFor({
+          registrySlug: (fields.registrySlug as string | null) ?? null,
+        })
+        // Backups predate the write-time strip and carry whatever was stored
+        // then, so a restore is a write path like any other.
+        const fileBaseUrl = stripTrailingSlash((fields.baseUrl as string).trim())
+        const endpoint = entry
+          ? { baseUrl: entry.url, apiPath: entry.apiPath, platformType: entry.platform }
+          : {
+              baseUrl: fileBaseUrl,
+              apiPath: restoredApiPath(
+                fields.apiPath as string | undefined,
+                fileBaseUrl,
+                fields.platformType as string | undefined
+              ),
+              platformType: fields.platformType as string | undefined,
+            }
+        if (!entry) trackersPausedOnRestore++
+
         // The profile-reading session cookie, same null-or-ciphertext rule.
         let profileCookie: string | null
         if (canPassThrough) {
@@ -501,14 +554,19 @@ export async function POST(request: Request) {
           .insert(trackers)
           .values({
             name: fields.name as string,
-            // Backups predate the write-time strip and carry whatever was
-            // stored then, so a restore is a write path like any other.
-            baseUrl: stripTrailingSlash((fields.baseUrl as string).trim()),
-            apiPath: fields.apiPath as string,
-            platformType: fields.platformType as string,
-            // Absent from backups taken before the column existed. The restore
-            // does not derive it from baseUrl; the backfill after the commit does.
-            registrySlug: (fields.registrySlug as string | null) ?? null,
+            ...endpoint,
+            // Absent from backups taken before the column existed, and dropped
+            // when the registry does not know it. The backfill after the commit
+            // matches both by host.
+            registrySlug: entry?.slug ?? null,
+            // Until that backfill links it, the row would poll the file's address.
+            ...(entry
+              ? {}
+              : {
+                  pausedAt: restoredAt,
+                  lastError: UNLINKED_RESTORE_ERROR,
+                  lastErrorAt: restoredAt,
+                }),
             encryptedApiToken: apiToken,
             encryptedCredentials: credentials,
             isActive: fields.isActive as boolean,
@@ -520,8 +578,10 @@ export async function POST(request: Request) {
             qbtTag: (fields.qbtTag as string | null) ?? null,
             remoteUserId: (fields.remoteUserId as number | null) ?? null,
             platformMeta: (fields.platformMeta as string | null) ?? null,
-            mouseholeUrl: (fields.mouseholeUrl as string | null) ?? null,
-            encryptedMouseholeToken: mouseholeToken,
+            // A plain file can be edited, and no registry vouches for a Mousehole
+            // address, so only an authenticated file may pair it with the token.
+            mouseholeUrl: isEncrypted ? ((fields.mouseholeUrl as string | null) ?? null) : null,
+            encryptedMouseholeToken: isEncrypted ? mouseholeToken : null,
             profileReadingEnabled: Boolean(fields.profileReadingEnabled),
             encryptedProfileCookie: profileCookie,
             avatarData: (fields.avatarData as string | null) ?? null,
@@ -834,14 +894,23 @@ export async function POST(request: Request) {
         await batchInsert(tx, appCoverageGaps, gapRows)
       }
 
-      // Insert dismissedAlerts (optional, absent in older backups)
+      // Insert dismissedAlerts (optional, absent in older backups). A key naming a
+      // tracker or client moves to its new id, or is skipped when that row is gone.
       if (Array.isArray(payload.dismissedAlerts) && payload.dismissedAlerts.length > 0) {
         const alertRows: { alertKey: string; alertType: string; dismissedAt: Date }[] = []
         for (const a of payload.dismissedAlerts) {
           const fields = a as Record<string, unknown>
           if (typeof fields.alertKey !== "string" || typeof fields.alertType !== "string") continue
+          const alertKey = remapAlertKey(fields.alertKey, fields.alertType, {
+            tracker: trackerIdMap,
+            client: clientIdMap,
+          })
+          if (alertKey === null) {
+            orphanedRecordsSkipped++
+            continue
+          }
           alertRows.push({
-            alertKey: fields.alertKey,
+            alertKey,
             alertType: fields.alertType,
             dismissedAt: fields.dismissedAt ? new Date(fields.dismissedAt as string) : new Date(),
           })
@@ -1289,6 +1358,24 @@ export async function POST(request: Request) {
   // a backup older than registry_slug would poll without its registry options.
   await backfillRegistrySlugs({ force: true })
 
+  // A row the backfill linked now polls the registry's address, so the restore's
+  // pause comes off it. On failure every unlinked row simply stays paused.
+  if (trackersPausedOnRestore > 0) {
+    try {
+      await db
+        .update(trackers)
+        .set({ pausedAt: null, lastError: null, lastErrorAt: null })
+        .where(
+          and(isNotNull(trackers.registrySlug), eq(trackers.lastError, UNLINKED_RESTORE_ERROR))
+        )
+    } catch (err) {
+      log.warn(
+        { error: errMsg(err) },
+        "Could not resume the restored trackers the backfill linked, so they stay paused"
+      )
+    }
+  }
+
   // Restart the scheduler we stopped in Step 7, mirroring the failure path above.
   // Restarting here means a direct API caller does not depend on a page load to
   // revive polling.
@@ -1310,6 +1397,7 @@ export async function POST(request: Request) {
       tokensPreserved,
       tokensCleared,
       clientCredentialsCleared,
+      mouseholeCleared,
       totpDisabledOnRestore,
       orphanedRecordsSkipped,
       restored: {
@@ -1377,6 +1465,7 @@ export async function POST(request: Request) {
     tokensPreserved,
     tokensCleared,
     clientCredentialsCleared,
+    mouseholeCleared,
     totpDisabledOnRestore,
     orphanedRecordsSkipped,
     requiresRelogin: false,

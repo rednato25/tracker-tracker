@@ -87,6 +87,7 @@ describe("POST /api/settings/reset-stats", () => {
     // Mock the transaction to invoke the callback with a tx mock
     const txDeleteCalls: unknown[] = []
     const txSetCalls: unknown[] = []
+    const txWhereCalls: unknown[] = []
     const txMock = {
       delete: vi.fn().mockImplementation((table) => {
         txDeleteCalls.push(table)
@@ -95,7 +96,12 @@ describe("POST /api/settings/reset-stats", () => {
       update: vi.fn().mockReturnValue({
         set: vi.fn().mockImplementation((data) => {
           txSetCalls.push(data)
-          return Promise.resolve(undefined)
+          return {
+            where: vi.fn().mockImplementation((condition) => {
+              txWhereCalls.push(condition)
+              return Promise.resolve(undefined)
+            }),
+          }
         }),
       }),
     }
@@ -109,7 +115,11 @@ describe("POST /api/settings/reset-stats", () => {
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
     expect(txMock.delete).toHaveBeenCalledTimes(2)
-    expect(txMock.update).toHaveBeenCalledTimes(1)
-    expect(txSetCalls[0]).toEqual({ lastPolledAt: null, lastError: null })
+    expect(txMock.update).toHaveBeenCalledTimes(2)
+    // lastError is cleared in its own statement, guarded so a restore's pause
+    // marker survives the reset and the tracker stays unpolled until resumed.
+    expect(txSetCalls[0]).toEqual({ lastPolledAt: null })
+    expect(txSetCalls[1]).toEqual({ lastError: null })
+    expect(txWhereCalls).toHaveLength(1)
   })
 })

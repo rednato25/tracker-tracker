@@ -1,6 +1,6 @@
 // src/lib/tracker-status.ts
 //
-// Functions: getPauseState, resolveRequiredRatio, getTrackerHealth, getHealthBadgeVariant, getHealthLabel, getHealthDescription, getHealthPulseDot
+// Functions: getPauseState, isRestorePaused, resolveRequiredRatio, getTrackerHealth, getHealthBadgeVariant, getHealthLabel, getHealthDescription, getHealthPulseDot
 //
 // Single source of truth for tracker health status. Includes type, derivation
 // logic, and all visual mappings (PulseDot status, Badge variant, labels,
@@ -97,6 +97,24 @@ function getPauseState(tracker: {
   if (userPaused) return { isPaused: true, reason: "user", since: userPaused }
   if (autoPaused) return { isPaused: true, reason: "failure", since: autoPaused }
   return { isPaused: false }
+}
+
+// The lastError a backup restore pauses a tracker with when the registry cannot
+// place its address. Resume clears it, and until then not even a manual poll or
+// a debug fetch runs, because either would send the token to that address.
+const UNLINKED_RESTORE_ERROR =
+  "Restored from a backup, and its address could not be matched to a known tracker. Check it before resuming"
+
+function isRestorePaused(tracker: {
+  pausedAt: Date | string | null
+  registrySlug: string | null
+  lastError: string | null
+}): boolean {
+  return (
+    !!tracker.pausedAt &&
+    tracker.registrySlug === null &&
+    tracker.lastError === UNLINKED_RESTORE_ERROR
+  )
 }
 
 // The ratio a tracker actually holds this account to. Live requiredRatio wins
@@ -214,5 +232,7 @@ export {
   getHealthPulseDot,
   getPauseState,
   getTrackerHealth,
+  isRestorePaused,
   resolveRequiredRatio,
+  UNLINKED_RESTORE_ERROR,
 }

@@ -1,6 +1,6 @@
 // src/lib/__tests__/pause-state.test.ts
 import { describe, expect, it } from "vitest"
-import { getPauseState } from "@/lib/tracker-status"
+import { getPauseState, isRestorePaused, UNLINKED_RESTORE_ERROR } from "@/lib/tracker-status"
 
 describe("getPauseState", () => {
   it("returns not paused when both null", () => {
@@ -32,5 +32,35 @@ describe("getPauseState", () => {
 
   it("handles undefined fields", () => {
     expect(getPauseState({})).toEqual({ isPaused: false })
+  })
+})
+
+describe("isRestorePaused", () => {
+  const restored = {
+    pausedAt: new Date("2026-03-20T10:00:00Z"),
+    registrySlug: null,
+    lastError: UNLINKED_RESTORE_ERROR,
+  }
+
+  it("recognises the marker a restore writes on an unlinked row", () => {
+    expect(isRestorePaused(restored)).toBe(true)
+  })
+
+  it("does not treat an ordinary failure pause as a restore pause", () => {
+    expect(
+      isRestorePaused({ ...restored, lastError: "Connection refused" })
+    ).toBe(false)
+  })
+
+  it("does not treat a linked row as a restore pause, so the backfill can resume it", () => {
+    expect(isRestorePaused({ ...restored, registrySlug: "redacted" })).toBe(false)
+  })
+
+  it("does not treat a resumed row as a restore pause", () => {
+    expect(isRestorePaused({ ...restored, pausedAt: null })).toBe(false)
+  })
+
+  it("does not treat a user pause as a restore pause", () => {
+    expect(isRestorePaused({ ...restored, pausedAt: null, registrySlug: null })).toBe(false)
   })
 })

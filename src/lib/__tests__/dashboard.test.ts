@@ -19,6 +19,7 @@ import {
   detectRankChanges,
   fetchDismissedKeys,
   postDismissAlert,
+  remapAlertKey,
 } from "@/lib/dashboard"
 import { getTrackerHealth } from "@/lib/tracker-status"
 
@@ -1352,5 +1353,60 @@ describe("getTrackerHealth", () => {
       })
     )
     expect(health).toBe("critical")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// remapAlertKey
+// ---------------------------------------------------------------------------
+
+describe("remapAlertKey", () => {
+  const ids = {
+    tracker: new Map([
+      [1, 100],
+      [7, 107],
+    ]),
+    client: new Map([[3, 203]]),
+  }
+
+  it("moves a tracker id to the restored id and keeps the rest of the key", () => {
+    expect(remapAlertKey("error-1-Connection_refused", "error", ids)).toBe(
+      "error-100-Connection_refused"
+    )
+    expect(remapAlertKey("rank-change-7-Elite", "rank-change", ids)).toBe(
+      "rank-change-107-Elite"
+    )
+    expect(remapAlertKey("anniversary-1-1_year", "anniversary", ids)).toBe(
+      "anniversary-100-1_year"
+    )
+  })
+
+  it("moves a client id to the restored id", () => {
+    expect(remapAlertKey("client-error-3", "client-error", ids)).toBe("client-error-203")
+  })
+
+  it("drops a key whose tracker or client is not in the backup", () => {
+    expect(remapAlertKey("ratio-danger-999", "ratio-danger", ids)).toBeNull()
+    expect(remapAlertKey("client-error-999", "client-error", ids)).toBeNull()
+  })
+
+  it("leaves a type with no id in its key unchanged", () => {
+    expect(remapAlertKey("update-available-2.0.0", "update-available", ids)).toBe(
+      "update-available-2.0.0"
+    )
+    expect(remapAlertKey("retention-unconfigured", "retention-unconfigured", ids)).toBe(
+      "retention-unconfigured"
+    )
+  })
+
+  it("leaves a type this version does not know unchanged, including inherited names", () => {
+    // An older backup's spelling must keep importing, not fail the restore.
+    expect(remapAlertKey("tracker-down-1", "tracker_down", ids)).toBe("tracker-down-1")
+    expect(remapAlertKey("constructor-1", "constructor", ids)).toBe("constructor-1")
+  })
+
+  it("drops a keyed type whose key carries no id", () => {
+    expect(remapAlertKey("error", "error", ids)).toBeNull()
+    expect(remapAlertKey("error-oops", "error", ids)).toBeNull()
   })
 })

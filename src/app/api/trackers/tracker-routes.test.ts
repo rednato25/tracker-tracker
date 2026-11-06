@@ -834,7 +834,7 @@ describe("PATCH /api/trackers/[id]", () => {
     expect(updates.pausedAt).toBeUndefined()
   })
 
-  it("clears userPausedAt and auto-pause state when pollingPaused is false", async () => {
+  it("clears userPausedAt and resets auto-pause state when pollingPaused is false", async () => {
     ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue({
       pollingPaused: false,
     })
@@ -854,9 +854,18 @@ describe("PATCH /api/trackers/[id]", () => {
     expect(response.status).toBe(200)
     const updates = mockSet.mock.calls[0]?.[0]
     expect(updates.userPausedAt).toBeNull()
-    expect(updates.pausedAt).toBeNull()
-    expect(updates.consecutiveFailures).toBe(0)
-    expect(updates.lastError).toBeNull()
+    // The toggle itself must not clear lastError: a restore's marker lives there,
+    // and only Resume Polling may lift it. The reset runs as its own guarded
+    // statement, so it cannot match a restored row.
+    expect(updates.pausedAt).toBeUndefined()
+    expect(updates.lastError).toBeUndefined()
+    const reset = mockSet.mock.calls[1]?.[0]
+    expect(reset).toEqual({
+      pausedAt: null,
+      consecutiveFailures: 0,
+      lastError: null,
+      lastErrorAt: null,
+    })
   })
 
   it("ignores non-boolean pollingPaused values", async () => {

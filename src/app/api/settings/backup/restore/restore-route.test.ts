@@ -22,6 +22,7 @@ import { log } from "@/lib/logger"
 import { NOTIFY_TOGGLE_KEYS } from "@/lib/notifications/types"
 import { acquireRestoreLock, RestoreBusyError } from "@/lib/restore-lock"
 import { ensureSchedulerRunning, stopScheduler } from "@/lib/scheduler"
+import { UNLINKED_RESTORE_ERROR } from "@/lib/tracker-status"
 import { POST } from "./route"
 
 vi.mock("@/lib/api-helpers", () => ({
@@ -36,6 +37,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     select: vi.fn(),
     transaction: vi.fn(),
+    update: vi.fn(),
   },
 }))
 
@@ -518,6 +520,14 @@ function onlyInsert(recorder: TxRecorder, tableName: string): Record<string, unk
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
+// The route resumes the rows the post-commit registry backfill linked through a
+// global db.update, outside the transaction mock above.
+beforeEach(() => {
+  vi.mocked(db.update).mockReturnValue({
+    set: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })),
+  } as never)
+})
+
 describe("POST /api/settings/backup/restore — credential re-encryption", () => {
   let recorder: TxRecorder
 
@@ -632,14 +642,25 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
 
     payload.trackers = [saved]
     mockCurrentSettings({ encryptionSalt: SALT_A })
+    // An authenticated file is the only one that restores the Mousehole pair, so
+    // the column-drift fixture travels inside an envelope.
+    const envelope = await encryptBackupPayload(payload, ENVELOPE_PASSWORD)
 
-    expect(await POST(makeRequest(payload, PASSWORD))).toHaveProperty("status", 200)
+    expect(await POST(makeRequest(envelope, PASSWORD, ENVELOPE_PASSWORD))).toHaveProperty(
+      "status",
+      200
+    )
 
     const restored = onlyInsert(recorder, "trackers")
     expect(expected.filter((key) => !(key in restored))).toEqual([])
     for (const key of expected) {
+      // An unknown slug is dropped (the row is paused instead); every other
+      // column still travels from the file.
+      if (key === "registrySlug") continue
       expect(serialize(restored[key]), key).toEqual(saved[key])
     }
+    expect(restored.registrySlug).toBeNull()
+    expect(restored.pausedAt).toBeInstanceOf(Date)
   })
 
   // Backups taken before the column existed carry no slug at all, and null is
@@ -755,10 +776,10 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     expect(decrypt(tracker.encryptedApiToken as string, currentKey)).toBe(PLAIN.trackerToken)
     // Proves re-encryption actually happened rather than a pass-through.
     expect(tracker.encryptedApiToken).not.toBe(payload.trackers[0].encryptedApiToken)
-    expect(decrypt(tracker.encryptedMouseholeToken as string, currentKey)).toBe(
-      PLAIN.mouseholeToken
-    )
-    expect(tracker.encryptedMouseholeToken).not.toBe(payload.trackers[0].encryptedMouseholeToken)
+    // A plain file never restores the Mousehole pair, however readable its
+    // ciphertext is: the file is editable and no registry vouches for the host.
+    expect(tracker.mouseholeUrl).toBeNull()
+    expect(tracker.encryptedMouseholeToken).toBeNull()
 
     const client = onlyInsert(recorder, "download_clients")
     expect(decrypt(client.encryptedUsername as string, currentKey)).toBe(PLAIN.clientUsername)
@@ -788,6 +809,7 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     expect(body.tokensPreserved).toBe(1)
     expect(body.tokensCleared).toBe(0)
     expect(body.clientCredentialsCleared).toBe(0)
+    expect(body.mouseholeCleared).toBe(1)
     expect(body.totpDisabledOnRestore).toBe(false)
   })
 
@@ -804,7 +826,8 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     const tracker = onlyInsert(recorder, "trackers")
     expect(tracker.encryptedApiToken).toBe(payload.trackers[0].encryptedApiToken)
     expect(decrypt(tracker.encryptedApiToken as string, key)).toBe(PLAIN.trackerToken)
-    expect(tracker.encryptedMouseholeToken).toBe(payload.trackers[0].encryptedMouseholeToken)
+    expect(tracker.mouseholeUrl).toBeNull()
+    expect(tracker.encryptedMouseholeToken).toBeNull()
 
     const client = onlyInsert(recorder, "download_clients")
     expect(client.encryptedUsername).toBe(payload.downloadClients[0].encryptedUsername)
@@ -819,6 +842,7 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     const body = await res.json()
     expect(body.tokensPreserved).toBe(1)
     expect(body.tokensCleared).toBe(0)
+    expect(body.mouseholeCleared).toBe(1)
   })
 
   // ─── 3. The silent clear at reencryptField (route.ts:78-85) ──────────────────
@@ -1021,20 +1045,156 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     await expect(res.json()).resolves.toMatchObject({ tokensPreserved: 0, tokensCleared: 0 })
   })
 
-  // ─── 6. Envelope trust: apiPath is written verbatim ──────────────────────────
+  // ─── 5b. Mousehole travels only in an authenticated file ────────────────────
 
-  it("writes apiPath verbatim from the backup with no validation", async () => {
+  // A plain backup can be edited by anyone who can write the file, and no
+  // registry vouches for a Mousehole address. Restoring the pair would send a
+  // token to whatever host the file names. The upstream fix is commit 18f3932d.
+  it("does not restore Mousehole settings from an unencrypted backup", async () => {
     const backupKey = await deriveKey(PASSWORD, SALT_A)
     const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
-    // An absolute URL here would make the tracker client call a foreign host.
+    ;(payload.trackers[0] as Record<string, unknown>).mouseholeUrl =
+      "https://mousehole.example.com/u/test"
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    expect(tracker.mouseholeUrl).toBeNull()
+    expect(tracker.encryptedMouseholeToken).toBeNull()
+    await expect(res.json()).resolves.toMatchObject({ mouseholeCleared: 1 })
+  })
+
+  it("restores Mousehole settings from an encrypted backup", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    ;(payload.trackers[0] as Record<string, unknown>).mouseholeUrl =
+      "https://mousehole.example.com/u/test"
+    const envelope = await encryptBackupPayload(payload, ENVELOPE_PASSWORD)
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(envelope, PASSWORD, ENVELOPE_PASSWORD))
+    expect(res.status).toBe(200)
+
+    const currentKey = await deriveKey(PASSWORD, SALT_B)
+    const tracker = onlyInsert(recorder, "trackers")
+    expect(tracker.mouseholeUrl).toBe("https://mousehole.example.com/u/test")
+    expect(decrypt(tracker.encryptedMouseholeToken as string, currentKey)).toBe(
+      PLAIN.mouseholeToken
+    )
+    await expect(res.json()).resolves.toMatchObject({ mouseholeCleared: 0 })
+  })
+
+  // ─── 6. A restored token never points at an address the registry cannot name ──
+
+  // The token is sent wherever baseUrl, apiPath and platformType point. A file
+  // can edit all three, and a known slug must not be a voucher for them. The
+  // upstream fix is commit 6245e824.
+  it("restores a registry tracker from the registry's address, not the file's", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    Object.assign(payload.trackers[0], {
+      registrySlug: "redacted",
+      baseUrl: "https://attacker.example.net",
+      apiPath: "https://attacker.example.net/collect",
+      platformType: "unit3d",
+    })
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    expect(tracker).toMatchObject({
+      registrySlug: "redacted",
+      baseUrl: "https://redacted.sh",
+      apiPath: "/ajax.php",
+      platformType: "gazelle",
+    })
+    // A row the registry placed is not paused; it polls the registry address.
+    expect(tracker.pausedAt).toBeUndefined()
+    expect(tracker.lastError).toBeUndefined()
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
+  it("pauses and flags a restored tracker the registry cannot place", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    // The custom row keeps its own address so it stays importable, but nothing
+    // may send its token there until the user checks it and resumes.
+    expect(tracker.baseUrl).toBe("https://tracker.example.com")
+    expect(tracker.registrySlug).toBeNull()
+    expect(tracker.pausedAt).toBeInstanceOf(Date)
+    expect(tracker.lastErrorAt).toBeInstanceOf(Date)
+    expect(tracker.lastError).toBe(UNLINKED_RESTORE_ERROR)
+  })
+
+  it("drops an absolute apiPath from a custom row instead of pointing its token elsewhere", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
     payload.trackers[0].apiPath = "https://attacker.example.net/collect"
     mockCurrentSettings({ encryptionSalt: SALT_B })
 
     const res = await POST(makeRequest(payload, PASSWORD))
     expect(res.status).toBe(200)
 
-    // Pinned as-is: validateBackupJson checks baseUrl but never apiPath.
-    expect(onlyInsert(recorder, "trackers").apiPath).toBe("https://attacker.example.net/collect")
+    const tracker = onlyInsert(recorder, "trackers")
+    // The unit3d platform's default path on the row's own site, not the file's host.
+    expect(tracker.apiPath).toBe("/api/user")
+    expect(tracker.pausedAt).toBeInstanceOf(Date)
+  })
+
+  it("keeps a relative apiPath on a custom row's own site", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    payload.trackers[0].apiPath = "/api/v2/user"
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    expect(onlyInsert(recorder, "trackers").apiPath).toBe("/api/v2/user")
+  })
+
+  it("imports a backup written before platformType and apiPath existed", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    delete (payload.trackers[0] as Record<string, unknown>).apiPath
+    delete (payload.trackers[0] as Record<string, unknown>).platformType
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    // Undefined lets the column defaults apply, exactly as the old export did.
+    expect(tracker.apiPath).toBeUndefined()
+    expect(tracker.platformType).toBeUndefined()
+    expect(tracker.pausedAt).toBeInstanceOf(Date)
+  })
+
+  it("lifts the pause from the rows the post-commit backfill linked", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const where = vi.fn().mockResolvedValue([])
+    const set = vi.fn(() => ({ where }))
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    // Runs after the backfill, and its WHERE keeps the marker on rows still unlinked.
+    expect(set).toHaveBeenCalledWith({ pausedAt: null, lastError: null, lastErrorAt: null })
+    expect(where).toHaveBeenCalledTimes(1)
   })
 
   // ─── 7. Orphaned children are skipped, not written ───────────────────────────
@@ -1058,6 +1218,44 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     expect(recorder.inserts.filter((i) => i.values.trackerId === 999)).toHaveLength(0)
     const body = await res.json()
     expect(body.orphanedRecordsSkipped).toBe(2)
+  })
+
+  // ─── 7b. Dismissed alerts move to the restored rows' ids ────────────────────
+
+  // A dismissed alert names its tracker or client by id. Restored rows get new
+  // ids, so copying the key verbatim either dismisses an unrelated alert on the
+  // restoring instance or nothing at all, and the alert the user dismissed
+  // returns. The upstream fix is commit 3398ae90.
+  it("remaps dismissed alert keys onto the restored tracker and client ids", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    payload.dismissedAlerts = [
+      { id: 1, alertKey: "error-1-Connection_refused", alertType: "error", dismissedAt: ISO },
+      { id: 2, alertKey: "client-error-1", alertType: "client-error", dismissedAt: ISO },
+      // A tracker that is not in the backup: its alert cannot be carried over.
+      { id: 3, alertKey: "ratio-danger-999", alertType: "ratio-danger", dismissedAt: ISO },
+      // No id in the key, so these are restored unchanged.
+      { id: 4, alertKey: "update-available-2.0.0", alertType: "update-available", dismissedAt: ISO },
+      // A type this version does not know (an older backup's spelling).
+      { id: 5, alertKey: "tracker-down-1", alertType: "tracker_down", dismissedAt: ISO },
+    ]
+    payload.manifest.counts.dismissedAlerts = payload.dismissedAlerts.length
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const rows = recorder.inserts
+      .filter((i) => (i.table as { __table?: string }).__table === "dismissed_alerts")
+      .map((i) => i.values.alertKey)
+    // createTx hands out 100 to the tracker insert, then 101 to the client.
+    expect(rows).toEqual([
+      "error-100-Connection_refused",
+      "client-error-101",
+      "update-available-2.0.0",
+      "tracker-down-1",
+    ])
+    await expect(res.json()).resolves.toMatchObject({ orphanedRecordsSkipped: 1 })
   })
 
   // ─── 8. Scheduler lifecycle around the transaction ───────────────────────────
@@ -1341,8 +1539,9 @@ describe("POST /api/settings/backup/restore — dry run", () => {
   })
 
   // The probe list is hand-maintained, so a column left out of it is never
-  // counted and never proven recoverable.
-  it("counts the Mousehole API token among the credentials", async () => {
+  // counted and never proven recoverable. The Mousehole token is counted only
+  // when the restore can actually use it, which is an encrypted file.
+  it("leaves a plain backup's Mousehole token out of the credential count", async () => {
     const backupKey = await deriveKey(PASSWORD, SALT_A)
     const withToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
     const withoutToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
@@ -1354,6 +1553,39 @@ describe("POST /api/settings/backup/restore — dry run", () => {
     }
     const uncounted = (await (
       await POST(makeRequest(withoutToken, PASSWORD, undefined, true))
+    ).json()) as { credentialsTotal: number }
+
+    // The token is dropped on restore, so previewing it as recoverable would
+    // promise a credential the restore never writes.
+    expect(counted.credentialsTotal).toBe(uncounted.credentialsTotal)
+  })
+
+  it("counts an encrypted backup's Mousehole token among the credentials", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const withToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    const withoutToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    ;(withoutToken.trackers[0] as Record<string, unknown>).encryptedMouseholeToken = null
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const counted = (await (
+      await POST(
+        makeRequest(
+          await encryptBackupPayload(withToken, ENVELOPE_PASSWORD),
+          PASSWORD,
+          ENVELOPE_PASSWORD,
+          true
+        )
+      )
+    ).json()) as { credentialsTotal: number }
+    const uncounted = (await (
+      await POST(
+        makeRequest(
+          await encryptBackupPayload(withoutToken, ENVELOPE_PASSWORD),
+          PASSWORD,
+          ENVELOPE_PASSWORD,
+          true
+        )
+      )
     ).json()) as { credentialsTotal: number }
 
     expect(counted.credentialsTotal).toBe(uncounted.credentialsTotal + 1)

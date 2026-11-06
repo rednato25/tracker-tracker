@@ -44,6 +44,7 @@ const CREDENTIALS: Record<string, string> = {
   carpt: cookieBlob(),
   v3x: cookieBlob(),
   apime: CANARY,
+  animebytes: JSON.stringify({ token: CANARY, username: "someone" }),
 }
 
 /**

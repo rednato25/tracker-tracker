@@ -57,6 +57,7 @@ export const PLATFORM_CREDENTIAL_FIELDS: Partial<
   Record<PlatformType, readonly TrackerCredentialFieldDefinition[]>
 > = {
   unit3d: [{ id: "api_key", label: "API key" }, { id: "rss_key", label: "RSS key" }, PASSKEY_FIELD],
+  animebytes: [{ id: "api_key", label: "API key" }, PASSKEY_FIELD, ...IRC_FIELDS],
   gazelle: [{ id: "api_key", label: "API key" }, PASSKEY_FIELD, ...IRC_FIELDS],
   ggn: [{ id: "api_key", label: "API key" }, PASSKEY_FIELD, ...IRC_FIELDS],
   nebulance: [{ id: "api_key", label: "API key" }, PASSKEY_FIELD],

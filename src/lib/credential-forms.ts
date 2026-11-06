@@ -141,6 +141,23 @@ export const CREDENTIAL_FORMS = {
   mteam: tokenForm("Your M-Team API key"),
   apime: tokenForm("Your API key from the tracker's settings page"),
 
+  animebytes: {
+    kind: "token-username",
+    hidesJoinDate: false,
+    dialog: {
+      username: {
+        label: "AnimeBytes Username",
+        tooltip: "The AnimeBytes API does not report your username, so it is asked for here.",
+        placeholder: "Your AnimeBytes username",
+      },
+      secret: { label: "API Token", placeholder: "Your AnimeBytes API key" },
+    },
+    sheet: {
+      username: { label: "Username" },
+      secret: { label: "API Token", placeholder: "Paste API token" },
+    },
+  },
+
   avistaz: {
     kind: "cookies-username",
     example: "cf_clearance=abc123; session=xyz",

@@ -103,6 +103,23 @@ describe("buildCredentialBlob", () => {
     })
   })
 
+  it("pairs the AnimeBytes token with the username the API cannot report", () => {
+    expect(blob("animebytes", { token: "  abc123  ", username: "  bob  " })).toEqual({
+      token: "abc123",
+      username: "bob",
+    })
+  })
+
+  it("stores a Luminance pasted session with the browser it came from", () => {
+    expect(
+      blob("luminance", { username: "bob", cookies: "sid=abc; cid=def", password: "" })
+    ).toEqual({
+      username: "bob",
+      cookies: "sid=abc; cid=def",
+      userAgent: UA,
+    })
+  })
+
   it("strips a copied Cookie: prefix", () => {
     expect(blob("retrotoon", { cookies: "Cookie: PHPSESSID=abc123" }).cookies).toBe(
       "PHPSESSID=abc123"
@@ -189,6 +206,30 @@ describe("validateCredentialValues empty fields", () => {
     expect(
       validateCredentialValues(CREDENTIAL_FORMS.torrentleech, values({ username: "bob" }))
     ).toBe("Password is required")
+  })
+
+  it("asks for the AnimeBytes username before its token", () => {
+    expect(validateCredentialValues(CREDENTIAL_FORMS.animebytes, values())).toBe(
+      "Username is required"
+    )
+    expect(
+      validateCredentialValues(CREDENTIAL_FORMS.animebytes, values({ username: "bob" }))
+    ).toBe("API token is required")
+  })
+
+  it("accepts a Luminance pasted session in place of the password, but needs sid", () => {
+    expect(
+      validateCredentialValues(
+        CREDENTIAL_FORMS.luminance,
+        values({ username: "bob", cookies: "sid=abc; cid=def" })
+      )
+    ).toBeNull()
+    expect(
+      validateCredentialValues(
+        CREDENTIAL_FORMS.luminance,
+        values({ username: "bob", cookies: "cid=def" })
+      )
+    ).toBe("Cookie string has no sid cookie. Copy the entire value after \"Cookie:\" in DevTools.")
   })
 
   it("accepts a complete set", () => {

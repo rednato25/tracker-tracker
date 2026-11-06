@@ -8,6 +8,7 @@ import "server-only"
 import type { Agent as HttpAgent } from "node:http"
 import { registryEntryFor } from "@/data/tracker-registry"
 import { ApimeAdapter } from "./adapters/apime"
+import { AnimeBytesAdapter } from "./adapters/animebytes"
 import { AvistazAdapter } from "./adapters/avistaz"
 import { BtnAdapter } from "./adapters/btn"
 import { C411Adapter } from "./adapters/c411"
@@ -32,6 +33,7 @@ import type { FetchOptions, TrackerAdapter } from "./contract"
 
 const adapters: Record<string, TrackerAdapter> = {
   apime: new ApimeAdapter(),
+  animebytes: new AnimeBytesAdapter(),
   avistaz: new AvistazAdapter(),
   btn: new BtnAdapter(),
   c411: new C411Adapter(),

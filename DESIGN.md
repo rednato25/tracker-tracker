@@ -220,6 +220,10 @@ the only violet used for controls.
 - Promotion rows use the exact registry threshold and `joinedAt`; never estimate
   an upload ETA. Ratio and login rows use the same rules and observation
   freshness as the register, so a stale row cannot claim urgency.
+- An all-checks-met row for a dated off-ladder class says what it waits for. For
+  example, FileList's `VIP (Until: 2026-12-29)` reads
+  `All checks met · applies after VIP ends on 29 Dec 2026`, not `waiting for the
+  site`.
 - With no items, the panel is replaced by the single line
   `Nothing coming up in the next 14 days`; it never prints a zero state or a
   fabricated deadline.

@@ -6,8 +6,9 @@
 // join date and registry threshold make the date exact.
 
 import { registryEntryFor } from "@/data/tracker-registry"
-import { formatRatio } from "@/lib/formatters"
+import { formatMemberSinceDate, formatRatio } from "@/lib/formatters"
 import { readLoginDeadline } from "@/lib/login-deadline"
+import { offLadderEndDate } from "@/lib/rank-ladder"
 import type { RankManualValuesByTracker } from "@/lib/rank-manual-values"
 import { buildRankGoalSummaries } from "@/lib/rank-summary"
 import { resolveAccountRatio } from "@/lib/tracker-rules"
@@ -52,6 +53,7 @@ function promotionRows(
   now: Date
 ): WhatsNextItem[] {
   const rows: WhatsNextItem[] = []
+  const trackerById = new Map(trackers.map((tracker) => [tracker.id, tracker]))
 
   for (const summary of buildRankGoalSummaries(trackers, savedGoals, now, manualValues)) {
     if (summary.currentRankHidden) continue
@@ -93,6 +95,12 @@ function promotionRows(
       summary.unmetCount === 0 &&
       summary.unknownCount === 0
     if (allMet) {
+      const tracker = trackerById.get(summary.trackerId)
+      const classEnd = offLadderEndDate(
+        tracker ? (registryEntryFor(tracker)?.userClasses ?? []) : [],
+        summary.currentRank
+      )
+      const classEndText = classEnd ? formatMemberSinceDate(classEnd.endsOn) : null
       rows.push({
         id: `promotion-waiting:${summary.trackerId}`,
         kind: "promotion-waiting",
@@ -100,7 +108,10 @@ function promotionRows(
         trackerName: summary.trackerName,
         color: summary.color,
         title: `${summary.trackerName} \u2192 ${rank}`,
-        detail: "All checks met \u00b7 waiting for the site",
+        detail:
+          classEnd && classEndText
+            ? `All checks met \u00b7 applies after ${classEnd.className} ends on ${classEndText}`
+            : "All checks met \u00b7 waiting for the site",
         href: summary.linkHref,
         dueInDays: 0,
         margin: 0,

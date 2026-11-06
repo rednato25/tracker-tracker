@@ -3,7 +3,14 @@
 import { describe, expect, it } from "vitest"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { REDACTED_PREFIX } from "@/lib/privacy"
-import { buildRankForest, buildRankLadder, findClassIndex, hasAutomaticClassAbove, ladderPosition } from "@/lib/rank-ladder"
+import {
+  buildRankForest,
+  buildRankLadder,
+  findClassIndex,
+  hasAutomaticClassAbove,
+  ladderPosition,
+  offLadderEndDate,
+} from "@/lib/rank-ladder"
 
 const classes: TrackerUserClass[] = [
   { name: "Banned", requirements: "Broke the rules", outsideLadder: "below" },
@@ -36,6 +43,35 @@ describe("findClassIndex", () => {
     expect(findClassIndex(classes, undefined)).toBe(-1)
     expect(findClassIndex(classes, "Elite")).toBe(-1)
     expect(findClassIndex(classes, `${REDACTED_PREFIX}abc`)).toBe(-1)
+  })
+})
+
+describe("offLadderEndDate", () => {
+  it("reads a dated off-ladder class and returns the registry name", () => {
+    expect(offLadderEndDate(classes, "vip (until: 2026-12-29)")).toEqual({
+      className: "VIP",
+      endsOn: "2026-12-29",
+    })
+    expect(offLadderEndDate(classes, "  VIP (Until: 2026-12-29)  ")).toEqual({
+      className: "VIP",
+      endsOn: "2026-12-29",
+    })
+  })
+
+  it("also accepts a dated below-ladder state", () => {
+    expect(offLadderEndDate(classes, "Leech (Until: 2026-12-29)")).toEqual({
+      className: "Leech",
+      endsOn: "2026-12-29",
+    })
+  })
+
+  it("ignores earned classes, unlisted classes and unreadable dates", () => {
+    expect(offLadderEndDate(classes, "Power User (Until: 2026-12-29)")).toBeNull()
+    expect(offLadderEndDate(classes, "Elite (Until: 2026-12-29)")).toBeNull()
+    expect(offLadderEndDate(classes, "VIP (Until: 2026-02-30)")).toBeNull()
+    expect(offLadderEndDate(classes, "VIP (Until: nope)")).toBeNull()
+    expect(offLadderEndDate(classes, "VIP")).toBeNull()
+    expect(offLadderEndDate(classes, null)).toBeNull()
   })
 })
 

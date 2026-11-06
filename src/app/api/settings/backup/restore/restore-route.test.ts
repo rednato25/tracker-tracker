@@ -1060,6 +1060,44 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     expect(body.orphanedRecordsSkipped).toBe(2)
   })
 
+  // ─── 7b. Dismissed alerts move to the restored rows' ids ────────────────────
+
+  // A dismissed alert names its tracker or client by id. Restored rows get new
+  // ids, so copying the key verbatim either dismisses an unrelated alert on the
+  // restoring instance or nothing at all, and the alert the user dismissed
+  // returns. The upstream fix is commit 3398ae90.
+  it("remaps dismissed alert keys onto the restored tracker and client ids", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    payload.dismissedAlerts = [
+      { id: 1, alertKey: "error-1-Connection_refused", alertType: "error", dismissedAt: ISO },
+      { id: 2, alertKey: "client-error-1", alertType: "client-error", dismissedAt: ISO },
+      // A tracker that is not in the backup: its alert cannot be carried over.
+      { id: 3, alertKey: "ratio-danger-999", alertType: "ratio-danger", dismissedAt: ISO },
+      // No id in the key, so these are restored unchanged.
+      { id: 4, alertKey: "update-available-2.0.0", alertType: "update-available", dismissedAt: ISO },
+      // A type this version does not know (an older backup's spelling).
+      { id: 5, alertKey: "tracker-down-1", alertType: "tracker_down", dismissedAt: ISO },
+    ]
+    payload.manifest.counts.dismissedAlerts = payload.dismissedAlerts.length
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const rows = recorder.inserts
+      .filter((i) => (i.table as { __table?: string }).__table === "dismissed_alerts")
+      .map((i) => i.values.alertKey)
+    // createTx hands out 100 to the tracker insert, then 101 to the client.
+    expect(rows).toEqual([
+      "error-100-Connection_refused",
+      "client-error-101",
+      "update-available-2.0.0",
+      "tracker-down-1",
+    ])
+    await expect(res.json()).resolves.toMatchObject({ orphanedRecordsSkipped: 1 })
+  })
+
   // ─── 8. Scheduler lifecycle around the transaction ───────────────────────────
 
   it("restarts the scheduler it stopped once the restore succeeds", async () => {

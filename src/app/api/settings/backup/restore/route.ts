@@ -16,6 +16,7 @@ import {
   validateBackupJson,
 } from "@/lib/backup"
 import { decrypt, deriveKey, reencrypt } from "@/lib/crypto"
+import { remapAlertKey } from "@/lib/dashboard"
 import { stripTrailingSlash } from "@/lib/data-transforms"
 import { db } from "@/lib/db"
 import { backfillRegistrySlugs } from "@/lib/db/backfill-registry-slug"
@@ -834,14 +835,23 @@ export async function POST(request: Request) {
         await batchInsert(tx, appCoverageGaps, gapRows)
       }
 
-      // Insert dismissedAlerts (optional, absent in older backups)
+      // Insert dismissedAlerts (optional, absent in older backups). A key naming a
+      // tracker or client moves to its new id, or is skipped when that row is gone.
       if (Array.isArray(payload.dismissedAlerts) && payload.dismissedAlerts.length > 0) {
         const alertRows: { alertKey: string; alertType: string; dismissedAt: Date }[] = []
         for (const a of payload.dismissedAlerts) {
           const fields = a as Record<string, unknown>
           if (typeof fields.alertKey !== "string" || typeof fields.alertType !== "string") continue
+          const alertKey = remapAlertKey(fields.alertKey, fields.alertType, {
+            tracker: trackerIdMap,
+            client: clientIdMap,
+          })
+          if (alertKey === null) {
+            orphanedRecordsSkipped++
+            continue
+          }
           alertRows.push({
-            alertKey: fields.alertKey,
+            alertKey,
             alertType: fields.alertType,
             dismissedAt: fields.dismissedAt ? new Date(fields.dismissedAt as string) : new Date(),
           })

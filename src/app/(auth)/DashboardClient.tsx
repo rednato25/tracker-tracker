@@ -188,6 +188,7 @@ export function DashboardClient({
   }
 
   const todayAtAGlanceExpanded = isExpanded("today-at-a-glance")
+  const whatsNextExpanded = isExpanded("whats-next")
   const leaderboardExpanded = isExpanded("leaderboard")
   const ecosystemStatsExpanded = isExpanded("ecosystem-stats")
   const loginTimersExpanded = isExpanded("login-timers")
@@ -262,7 +263,11 @@ export function DashboardClient({
           now={new Date(now)}
         />
 
-        <WhatsNext items={whatsNext} />
+        <WhatsNext
+          items={whatsNext}
+          expanded={whatsNextExpanded}
+          onToggleExpanded={() => sectionCollapse.toggle("whats-next")}
+        />
 
         {dashboardView === "grid" ? (
           <TrackerGrid

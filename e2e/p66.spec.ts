@@ -179,4 +179,33 @@ test.describe("P66 what's next", () => {
       if (totalsBox && panelBox) expect(totalsBox.y).toBeLessThan(panelBox.y)
     }
   })
+
+  test("collapses What's next with the shared section toggle and remembers it", async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 1440, height: 1200 })
+    await page.goto("/")
+
+    const panel = page.locator("[data-whats-next]")
+    const toggle = page.getByRole("button", { name: "What's next" })
+    await expect(panel).toBeVisible({ timeout: 20_000 })
+    await expect(toggle).toHaveAttribute("aria-expanded", "true")
+    await expect(panel.locator("[data-whats-next-row]")).toHaveCount(3)
+
+    await toggle.click()
+    await expect(toggle).toHaveAttribute("aria-expanded", "false")
+    await expect(panel.locator("[data-whats-next-row]")).toHaveCount(0)
+
+    const stored = await page.evaluate(() =>
+      localStorage.getItem("tracker-tracker:section-collapse")
+    )
+    expect(JSON.parse(stored ?? "[]")).toContain("whats-next")
+
+    await page.reload()
+    await expect(page.getByRole("button", { name: "What's next" })).toHaveAttribute(
+      "aria-expanded",
+      "false"
+    )
+    await page.getByRole("button", { name: "What's next" }).click()
+    await expect(page.locator("[data-whats-next-row]")).toHaveCount(3)
+  })
 })

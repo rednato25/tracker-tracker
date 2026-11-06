@@ -632,8 +632,14 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
 
     payload.trackers = [saved]
     mockCurrentSettings({ encryptionSalt: SALT_A })
+    // An authenticated file is the only one that restores the Mousehole pair, so
+    // the column-drift fixture travels inside an envelope.
+    const envelope = await encryptBackupPayload(payload, ENVELOPE_PASSWORD)
 
-    expect(await POST(makeRequest(payload, PASSWORD))).toHaveProperty("status", 200)
+    expect(await POST(makeRequest(envelope, PASSWORD, ENVELOPE_PASSWORD))).toHaveProperty(
+      "status",
+      200
+    )
 
     const restored = onlyInsert(recorder, "trackers")
     expect(expected.filter((key) => !(key in restored))).toEqual([])
@@ -755,10 +761,10 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     expect(decrypt(tracker.encryptedApiToken as string, currentKey)).toBe(PLAIN.trackerToken)
     // Proves re-encryption actually happened rather than a pass-through.
     expect(tracker.encryptedApiToken).not.toBe(payload.trackers[0].encryptedApiToken)
-    expect(decrypt(tracker.encryptedMouseholeToken as string, currentKey)).toBe(
-      PLAIN.mouseholeToken
-    )
-    expect(tracker.encryptedMouseholeToken).not.toBe(payload.trackers[0].encryptedMouseholeToken)
+    // A plain file never restores the Mousehole pair, however readable its
+    // ciphertext is: the file is editable and no registry vouches for the host.
+    expect(tracker.mouseholeUrl).toBeNull()
+    expect(tracker.encryptedMouseholeToken).toBeNull()
 
     const client = onlyInsert(recorder, "download_clients")
     expect(decrypt(client.encryptedUsername as string, currentKey)).toBe(PLAIN.clientUsername)
@@ -788,6 +794,7 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     expect(body.tokensPreserved).toBe(1)
     expect(body.tokensCleared).toBe(0)
     expect(body.clientCredentialsCleared).toBe(0)
+    expect(body.mouseholeCleared).toBe(1)
     expect(body.totpDisabledOnRestore).toBe(false)
   })
 
@@ -804,7 +811,8 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     const tracker = onlyInsert(recorder, "trackers")
     expect(tracker.encryptedApiToken).toBe(payload.trackers[0].encryptedApiToken)
     expect(decrypt(tracker.encryptedApiToken as string, key)).toBe(PLAIN.trackerToken)
-    expect(tracker.encryptedMouseholeToken).toBe(payload.trackers[0].encryptedMouseholeToken)
+    expect(tracker.mouseholeUrl).toBeNull()
+    expect(tracker.encryptedMouseholeToken).toBeNull()
 
     const client = onlyInsert(recorder, "download_clients")
     expect(client.encryptedUsername).toBe(payload.downloadClients[0].encryptedUsername)
@@ -819,6 +827,7 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     const body = await res.json()
     expect(body.tokensPreserved).toBe(1)
     expect(body.tokensCleared).toBe(0)
+    expect(body.mouseholeCleared).toBe(1)
   })
 
   // ─── 3. The silent clear at reencryptField (route.ts:78-85) ──────────────────
@@ -1021,8 +1030,48 @@ describe("POST /api/settings/backup/restore — credential re-encryption", () =>
     await expect(res.json()).resolves.toMatchObject({ tokensPreserved: 0, tokensCleared: 0 })
   })
 
-  // ─── 6. Envelope trust: apiPath is written verbatim ──────────────────────────
+  // ─── 5b. Mousehole travels only in an authenticated file ────────────────────
 
+  // A plain backup can be edited by anyone who can write the file, and no
+  // registry vouches for a Mousehole address. Restoring the pair would send a
+  // token to whatever host the file names. The upstream fix is commit 18f3932d.
+  it("does not restore Mousehole settings from an unencrypted backup", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    ;(payload.trackers[0] as Record<string, unknown>).mouseholeUrl =
+      "https://mousehole.example.com/u/test"
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(payload, PASSWORD))
+    expect(res.status).toBe(200)
+
+    const tracker = onlyInsert(recorder, "trackers")
+    expect(tracker.mouseholeUrl).toBeNull()
+    expect(tracker.encryptedMouseholeToken).toBeNull()
+    await expect(res.json()).resolves.toMatchObject({ mouseholeCleared: 1 })
+  })
+
+  it("restores Mousehole settings from an encrypted backup", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    ;(payload.trackers[0] as Record<string, unknown>).mouseholeUrl =
+      "https://mousehole.example.com/u/test"
+    const envelope = await encryptBackupPayload(payload, ENVELOPE_PASSWORD)
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const res = await POST(makeRequest(envelope, PASSWORD, ENVELOPE_PASSWORD))
+    expect(res.status).toBe(200)
+
+    const currentKey = await deriveKey(PASSWORD, SALT_B)
+    const tracker = onlyInsert(recorder, "trackers")
+    expect(tracker.mouseholeUrl).toBe("https://mousehole.example.com/u/test")
+    expect(decrypt(tracker.encryptedMouseholeToken as string, currentKey)).toBe(
+      PLAIN.mouseholeToken
+    )
+    await expect(res.json()).resolves.toMatchObject({ mouseholeCleared: 0 })
+  })
+
+  // ─── 6. Envelope trust: apiPath is written verbatim ──────────────────────────
   it("writes apiPath verbatim from the backup with no validation", async () => {
     const backupKey = await deriveKey(PASSWORD, SALT_A)
     const payload = makeBackupPayload(SALT_A, encryptAll(backupKey))
@@ -1379,8 +1428,9 @@ describe("POST /api/settings/backup/restore — dry run", () => {
   })
 
   // The probe list is hand-maintained, so a column left out of it is never
-  // counted and never proven recoverable.
-  it("counts the Mousehole API token among the credentials", async () => {
+  // counted and never proven recoverable. The Mousehole token is counted only
+  // when the restore can actually use it, which is an encrypted file.
+  it("leaves a plain backup's Mousehole token out of the credential count", async () => {
     const backupKey = await deriveKey(PASSWORD, SALT_A)
     const withToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
     const withoutToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
@@ -1392,6 +1442,39 @@ describe("POST /api/settings/backup/restore — dry run", () => {
     }
     const uncounted = (await (
       await POST(makeRequest(withoutToken, PASSWORD, undefined, true))
+    ).json()) as { credentialsTotal: number }
+
+    // The token is dropped on restore, so previewing it as recoverable would
+    // promise a credential the restore never writes.
+    expect(counted.credentialsTotal).toBe(uncounted.credentialsTotal)
+  })
+
+  it("counts an encrypted backup's Mousehole token among the credentials", async () => {
+    const backupKey = await deriveKey(PASSWORD, SALT_A)
+    const withToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    const withoutToken = makeBackupPayload(SALT_A, encryptAll(backupKey))
+    ;(withoutToken.trackers[0] as Record<string, unknown>).encryptedMouseholeToken = null
+    mockCurrentSettings({ encryptionSalt: SALT_B })
+
+    const counted = (await (
+      await POST(
+        makeRequest(
+          await encryptBackupPayload(withToken, ENVELOPE_PASSWORD),
+          PASSWORD,
+          ENVELOPE_PASSWORD,
+          true
+        )
+      )
+    ).json()) as { credentialsTotal: number }
+    const uncounted = (await (
+      await POST(
+        makeRequest(
+          await encryptBackupPayload(withoutToken, ENVELOPE_PASSWORD),
+          PASSWORD,
+          ENVELOPE_PASSWORD,
+          true
+        )
+      )
     ).json()) as { credentialsTotal: number }
 
     expect(counted.credentialsTotal).toBe(uncounted.credentialsTotal + 1)

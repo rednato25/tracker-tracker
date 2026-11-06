@@ -84,14 +84,17 @@ async function batchInsert<T extends Record<string, unknown>>(
 // Every non-empty encrypted value in the backup, in a stable order.
 // The probe below takes the first, and the dry run
 // counts how many of them the derived key can actually open.
-function backupCiphertexts(payload: BackupPayload): string[] {
+function backupCiphertexts(payload: BackupPayload, authenticated: boolean): string[] {
   const settings = payload.settings
   const candidates: unknown[] = [
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedApiToken),
     // Nullable, and absent entirely from backups written before the vault
     // existed. The typeof/length filter at the bottom drops both cases.
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedCredentials),
-    ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedMouseholeToken),
+    // A plain file restores no Mousehole token, so the preview leaves it out too.
+    ...(authenticated
+      ? payload.trackers.map((t) => (t as Record<string, unknown>).encryptedMouseholeToken)
+      : []),
     ...payload.trackers.map((t) => (t as Record<string, unknown>).encryptedProfileCookie),
     ...payload.downloadClients.flatMap((c) => [
       (c as Record<string, unknown>).encryptedUsername,
@@ -115,8 +118,8 @@ function backupCiphertexts(payload: BackupPayload): string[] {
 
 // The first non-empty encrypted value, or null if the backup holds none.
 // Used as a probe to prove a key actually opens this backup's ciphertext.
-function firstBackupCiphertext(payload: BackupPayload): string | null {
-  return backupCiphertexts(payload)[0] ?? null
+function firstBackupCiphertext(payload: BackupPayload, authenticated: boolean): string | null {
+  return backupCiphertexts(payload, authenticated)[0] ?? null
 }
 
 /**
@@ -339,7 +342,7 @@ export async function POST(request: Request) {
   // only the dead fields are cleared and flagged. Do not "optimise" this probe away.
   let canPassThrough = sameSalt
   if (sameSalt) {
-    const probe = firstBackupCiphertext(payload)
+    const probe = firstBackupCiphertext(payload, isEncrypted)
     if (probe !== null) {
       try {
         decrypt(probe, backupKey)
@@ -358,7 +361,7 @@ export async function POST(request: Request) {
   // This must stay above stopScheduler(), the first side effect, so a dry run
   // touches nothing.
   if (dryRun) {
-    const ciphertexts = backupCiphertexts(payload)
+    const ciphertexts = backupCiphertexts(payload, isEncrypted)
     let recoverable = 0
     for (const ciphertext of ciphertexts) {
       try {
@@ -392,6 +395,7 @@ export async function POST(request: Request) {
   let clientCredentialsCleared = 0
   let totpDisabledOnRestore = false
   let orphanedRecordsSkipped = 0
+  let mouseholeCleared = 0
 
   try {
     await db.transaction(async (tx) => {
@@ -479,6 +483,10 @@ export async function POST(request: Request) {
           mouseholeToken = null
         }
 
+        if (!isEncrypted && (fields.mouseholeUrl || fields.encryptedMouseholeToken)) {
+          mouseholeCleared++
+        }
+
         // The profile-reading session cookie, same null-or-ciphertext rule.
         let profileCookie: string | null
         if (canPassThrough) {
@@ -521,8 +529,10 @@ export async function POST(request: Request) {
             qbtTag: (fields.qbtTag as string | null) ?? null,
             remoteUserId: (fields.remoteUserId as number | null) ?? null,
             platformMeta: (fields.platformMeta as string | null) ?? null,
-            mouseholeUrl: (fields.mouseholeUrl as string | null) ?? null,
-            encryptedMouseholeToken: mouseholeToken,
+            // A plain file can be edited, and no registry vouches for a Mousehole
+            // address, so only an authenticated file may pair it with the token.
+            mouseholeUrl: isEncrypted ? ((fields.mouseholeUrl as string | null) ?? null) : null,
+            encryptedMouseholeToken: isEncrypted ? mouseholeToken : null,
             profileReadingEnabled: Boolean(fields.profileReadingEnabled),
             encryptedProfileCookie: profileCookie,
             avatarData: (fields.avatarData as string | null) ?? null,
@@ -1320,6 +1330,7 @@ export async function POST(request: Request) {
       tokensPreserved,
       tokensCleared,
       clientCredentialsCleared,
+      mouseholeCleared,
       totpDisabledOnRestore,
       orphanedRecordsSkipped,
       restored: {
@@ -1387,6 +1398,7 @@ export async function POST(request: Request) {
     tokensPreserved,
     tokensCleared,
     clientCredentialsCleared,
+    mouseholeCleared,
     totpDisabledOnRestore,
     orphanedRecordsSkipped,
     requiresRelogin: false,

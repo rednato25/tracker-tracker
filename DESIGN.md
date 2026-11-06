@@ -206,7 +206,12 @@ the only violet used for controls.
 
 ### What's next
 
-- One panel at the top of the dashboard, at most five rows, soonest first.
+- One panel directly below the totals row, at most five rows, soonest first. The
+  totals stay first so the 3-second read is unchanged.
+- The panel uses the dashboard's shared section toggle, and the collapsed or
+  expanded choice is remembered per browser like the other dashboard sections.
+- The dashboard settings sheet has a `Show What's next` switch, on by default.
+  Turning it off removes the panel and its empty line from the dashboard.
 - Rows are: an account-age-only promotion wait, an all-met promotion waiting
   for the site, a login deadline inside 14 days, and a ratio within 10% above
   the tracker's demotion threshold.
@@ -215,8 +220,13 @@ the only violet used for controls.
 - Promotion rows use the exact registry threshold and `joinedAt`; never estimate
   an upload ETA. Ratio and login rows use the same rules and observation
   freshness as the register, so a stale row cannot claim urgency.
-- The panel disappears when there is nothing to show; it never prints a zero
-  state or a fabricated deadline.
+- An all-checks-met row for a dated off-ladder class says what it waits for. For
+  example, FileList's `VIP (Until: 2026-12-29)` reads
+  `All checks met · applies after VIP ends on 29 Dec 2026`, not `waiting for the
+  site`.
+- With no items, the panel is replaced by the single line
+  `Nothing coming up in the next 14 days`; it never prints a zero state or a
+  fabricated deadline.
 
 ### Tracker card
 

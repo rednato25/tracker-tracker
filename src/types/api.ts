@@ -138,6 +138,8 @@ export interface DashboardSettings {
   showHealthIndicators: boolean
   showLoginTimers: boolean
   showTodayAtAGlance: boolean
+  /** P66: show the What's next panel below the fleet totals. */
+  showWhatsNext: boolean
   /**
    * For trackers whose adapter cannot detect a login, opening the site from a
    * card records today's login. The 10-second Undo stays available on the card.
@@ -223,6 +225,7 @@ export const DASHBOARD_SETTINGS_DEFAULTS: DashboardSettings = {
   showHealthIndicators: true,
   showLoginTimers: true,
   showTodayAtAGlance: true,
+  showWhatsNext: true,
   markLoginOnSiteOpen: true,
   enable3DCharts: true,
   showOutageBands: true,

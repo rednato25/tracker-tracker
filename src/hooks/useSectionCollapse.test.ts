@@ -16,6 +16,7 @@ describe("useSectionCollapse", () => {
 
     expect(result.current.hydrated).toBe(true)
     expect(result.current.isCollapsed("trackers")).toBe(false)
+    expect(result.current.isCollapsed("whats-next")).toBe(false)
   })
 
   it("round-trips a toggle: collapses then expands the same id", async () => {

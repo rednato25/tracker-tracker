@@ -17,6 +17,16 @@ export interface RankRung {
   requirements?: string
 }
 
+/** A dated off-ladder class, e.g. FileList's "VIP (Until: 2026-12-29)". */
+export interface OffLadderEndDate {
+  /** The registry's canonical name for the class. */
+  className: string
+  /** Calendar date the class ends, as YYYY-MM-DD. */
+  endsOn: string
+}
+
+const OFF_LADDER_END_DATE = /^(.+?)\s*\(\s*until:\s*(\d{4})-(\d{2})-(\d{2})\s*\)$/i
+
 export interface RankLadder {
   /** Earned classes only, lowest first. */
   rungs: RankRung[]
@@ -100,6 +110,39 @@ export function ladderPosition(
   const rungs = classes.filter((c) => !c.outsideLadder)
   if (cls.outsideLadder === "above") return rungs.length
   return findClassIndex(rungs, cls.name)
+}
+
+/**
+ * Reads a dated off-ladder class. Some trackers put the fixed end date of a
+ * granted class inside the reported class name, e.g. FileList's
+ * "VIP (Until: 2026-12-29)". Returns null unless the base class is a registry
+ * class marked outside the earned ladder and the date is a real calendar day,
+ * so an earned class with a similar suffix cannot claim an end date.
+ */
+export function offLadderEndDate(
+  classes: TrackerUserClass[],
+  className: string | null | undefined
+): OffLadderEndDate | null {
+  if (!className) return null
+  const match = OFF_LADDER_END_DATE.exec(className.trim())
+  if (!match) return null
+
+  const baseName = match[1].trim()
+  const year = Number(match[2])
+  const month = Number(match[3])
+  const day = Number(match[4])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  const index = findClassIndex(classes, baseName)
+  if (index === -1 || !classes[index].outsideLadder) return null
+  return { className: classes[index].name, endsOn: `${match[2]}-${match[3]}-${match[4]}` }
 }
 
 /**

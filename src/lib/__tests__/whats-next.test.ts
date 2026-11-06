@@ -95,6 +95,28 @@ describe("buildWhatsNext", () => {
     expect(items[1].detail).toBe("in 14 days of account age")
   })
 
+  it("says a dated off-ladder promotion applies after the class ends", () => {
+    const items = buildWhatsNext({
+      trackers: [
+        tracker({
+          id: 1,
+          name: "FileList",
+          registrySlug: "filelist",
+          joinedAt: daysAgo(100),
+          latestStats: stats({ group: "VIP (Until: 2026-12-29)" }),
+        }),
+      ],
+      savedRankGoals: { "1": { targetRank: "Power User" } },
+      now: NOW,
+    })
+
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({ kind: "promotion-waiting", trackerName: "FileList" })
+    expect(items[0].detail).toBe(
+      "All checks met \u00b7 applies after VIP ends on 29 Dec 2026"
+    )
+  })
+
   it("includes a login deadline within 14 days and a ratio within 10% of the threshold", () => {
     const items = buildWhatsNext({
       trackers: [

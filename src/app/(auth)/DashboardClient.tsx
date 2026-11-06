@@ -188,6 +188,7 @@ export function DashboardClient({
   }
 
   const todayAtAGlanceExpanded = isExpanded("today-at-a-glance")
+  const whatsNextExpanded = isExpanded("whats-next")
   const leaderboardExpanded = isExpanded("leaderboard")
   const ecosystemStatsExpanded = isExpanded("ecosystem-stats")
   const loginTimersExpanded = isExpanded("login-timers")
@@ -253,8 +254,6 @@ export function DashboardClient({
       </div>
 
       <div className="flex flex-col gap-6 pb-12" data-dashboard-view={dashboardView}>
-        <WhatsNext items={whatsNext} />
-
         <DashboardTotals
           trackers={data.trackers}
           aggregateStats={aggregateStats}
@@ -263,6 +262,14 @@ export function DashboardClient({
           snapshotMap={data.snapshotMap}
           now={new Date(now)}
         />
+
+        {dashSettings.settings.showWhatsNext && (
+          <WhatsNext
+            items={whatsNext}
+            expanded={whatsNextExpanded}
+            onToggleExpanded={() => sectionCollapse.toggle("whats-next")}
+          />
+        )}
 
         {dashboardView === "grid" ? (
           <TrackerGrid

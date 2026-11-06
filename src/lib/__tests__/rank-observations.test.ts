@@ -174,6 +174,38 @@ describe("buildRankObservations", () => {
       now: NOW,
     })
     expect(digitalcore.seedSizeBytes?.value).toBe(3 * 1024 ** 3)
+
+    for (const [platformType, value] of [
+      ["mteam", 6 * 1024 ** 4],
+      ["mam", 7 * 1024 ** 4],
+      ["torrentleech", 8 * 1024 ** 4],
+    ] as const) {
+      const result = buildRankObservations({
+        latestStats: stats(),
+        lastPolledAt: "2026-10-28T11:00:00.000Z",
+        platformType,
+        platformMeta: { seedSizeBytes: value },
+        now: NOW,
+      })
+      expect(result.seedSizeBytes?.value, platformType).toBe(value)
+    }
+  })
+
+  it("reads M-Team and MAM upload counts from platformMeta", () => {
+    for (const [platformType, uploads] of [
+      ["mteam", 42],
+      ["mam", 4],
+    ] as const) {
+      const result = buildRankObservations({
+        latestStats: stats(),
+        lastPolledAt: "2026-10-28T11:00:00.000Z",
+        platformType,
+        platformMeta: { uploads },
+        now: NOW,
+      })
+      expect(result.uploads?.value, platformType).toBe(uploads)
+      expect(result.uploads?.source).toBe("api")
+    }
   })
 
   it("reads CarPT seeding points and leaves average seed time uncollected", () => {

@@ -17,7 +17,8 @@ Only run this workflow when a task asks for design work. Feature and fix tasks f
 
 - Unit tests: `pnpm test:run`. Never plain `pnpm test`; Vitest watch mode never exits.
 - Local Node 26 hides `localStorage` in jsdom, which causes about 25 false test failures. Locally, run tests with the `--localstorage-file` flag (as used in PR #51) or Node 24. CI on Node 24 is the gate.
-- Never start `pnpm dev` or `pnpm start` in the foreground. For screenshots, rely on Playwright's webServer config. If Postgres or the e2e database is not running, stop and report instead of waiting.
+- Never start `pnpm dev` or `pnpm start` in the foreground. For screenshots, rely on Playwright's webServer config.
+- When local e2e cannot run (no local Postgres or Docker), CI is the gate. Run everything else locally, push, and merge once all CI checks are green.
 - Give any command that could run longer than 10 minutes a timeout, and report if it times out.
 - Never stash, move, commit or delete `docs/TRACKER_TRACKER_KILO_PLAN.md`.
 - Commit and push after each numbered step. One PR per task.

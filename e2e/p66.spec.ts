@@ -157,8 +157,8 @@ test.describe("P66 what's next", () => {
       await page.setViewportSize({ width, height: 1200 })
       await page.goto("/")
 
-      const totals = page.locator("[data-dashboard-totals]")
-      const panel = page.locator("[data-whats-next]")
+      const totals = page.locator("#main-content [data-dashboard-totals]").first()
+      const panel = page.locator("#main-content [data-whats-next]").first()
       await expect(totals).toBeVisible({ timeout: 20_000 })
       await expect(panel).toBeVisible()
 
@@ -169,8 +169,8 @@ test.describe("P66 what's next", () => {
       )
 
       const panelFollowsTotals = await page.evaluate(() => {
-        const totalsElement = document.querySelector("[data-dashboard-totals]")
-        const panelElement = document.querySelector("[data-whats-next]")
+        const totalsElement = document.querySelector("#main-content [data-dashboard-totals]")
+        const panelElement = document.querySelector("#main-content [data-whats-next]")
         if (!totalsElement || !panelElement) return null
         return Boolean(
           totalsElement.compareDocumentPosition(panelElement) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -186,12 +186,45 @@ test.describe("P66 what's next", () => {
     }
   })
 
+  test("captures What's next at 1440 and 390 in both themes", async ({ page }) => {
+    test.setTimeout(180_000)
+    for (const width of [1440, 390] as const) {
+      await page.setViewportSize({ width, height: 1600 })
+      await page.goto("/")
+
+      const totals = page.locator("#main-content [data-dashboard-totals]").first()
+      const panel = page.locator("#main-content [data-whats-next]").first()
+      await expect(totals).toBeVisible({ timeout: 20_000 })
+      await expect(panel).toBeVisible()
+      await expect(panel.locator("[data-whats-next-row]")).toHaveCount(3)
+
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((next) => {
+          document.documentElement.dataset.theme = next
+        }, theme)
+        await page.waitForTimeout(150)
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+        expect(overflow, `what's next overflows at ${width}px`).toBeLessThanOrEqual(1)
+        await page.screenshot({
+          path: `docs/screenshots/p66/dashboard-whats-next-${width}-${theme}.png`,
+          animations: "disabled",
+        })
+        await panel.screenshot({
+          path: `docs/screenshots/p66/whats-next-${width}-${theme}.png`,
+          animations: "disabled",
+        })
+      }
+    }
+  })
+
   test("collapses What's next with the shared section toggle and remembers it", async ({ page }) => {
     test.setTimeout(120_000)
     await page.setViewportSize({ width: 1440, height: 1200 })
     await page.goto("/")
 
-    const panel = page.locator("[data-whats-next]")
+    const panel = page.locator("#main-content [data-whats-next]").first()
     const toggle = page.getByRole("button", { name: "What's next" })
     await expect(panel).toBeVisible({ timeout: 20_000 })
     await expect(toggle).toHaveAttribute("aria-expanded", "true")
@@ -219,7 +252,7 @@ test.describe("P66 what's next", () => {
     test.setTimeout(120_000)
     await page.setViewportSize({ width: 1440, height: 1200 })
     await page.goto("/")
-    await expect(page.locator("[data-whats-next]")).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator("#main-content [data-whats-next]").first()).toBeVisible({ timeout: 20_000 })
 
     await page.getByRole("button", { name: "Dashboard settings" }).click()
     const dialog = page.getByRole("dialog", { name: "Dashboard Settings" })
@@ -231,13 +264,13 @@ test.describe("P66 what's next", () => {
     await expect(toggle).toHaveAttribute("aria-checked", "false")
     await dialog.getByRole("button", { name: "Close panel" }).click()
     await expect(dialog).toBeHidden()
-    await expect(page.locator("[data-whats-next]")).toHaveCount(0)
-    await expect(page.locator("[data-whats-next-empty]")).toHaveCount(0)
+    await expect(page.locator("#main-content [data-whats-next]").first()).toHaveCount(0)
+    await expect(page.locator("#main-content [data-whats-next-empty]")).toHaveCount(0)
 
     // The setting lives on the server, so a reload proves it was saved.
     await page.reload()
-    await expect(page.locator("[data-whats-next]")).toHaveCount(0)
-    await expect(page.locator("[data-whats-next-empty]")).toHaveCount(0)
+    await expect(page.locator("#main-content [data-whats-next]").first()).toHaveCount(0)
+    await expect(page.locator("#main-content [data-whats-next-empty]")).toHaveCount(0)
 
     await page.getByRole("button", { name: "Dashboard settings" }).click()
     const reopened = page.getByRole("dialog", { name: "Dashboard Settings" })
@@ -245,6 +278,7 @@ test.describe("P66 what's next", () => {
     await expect(reopenToggle).toHaveAttribute("aria-checked", "false")
     await reopenToggle.click()
     await reopened.getByRole("button", { name: "Close panel" }).click()
-    await expect(page.locator("[data-whats-next]")).toBeVisible()
+    await expect(page.locator("#main-content [data-whats-next]").first()).toBeVisible()
   })
 })
+

@@ -253,8 +253,6 @@ export function DashboardClient({
       </div>
 
       <div className="flex flex-col gap-6 pb-12" data-dashboard-view={dashboardView}>
-        <WhatsNext items={whatsNext} />
-
         <DashboardTotals
           trackers={data.trackers}
           aggregateStats={aggregateStats}
@@ -263,6 +261,8 @@ export function DashboardClient({
           snapshotMap={data.snapshotMap}
           now={new Date(now)}
         />
+
+        <WhatsNext items={whatsNext} />
 
         {dashboardView === "grid" ? (
           <TrackerGrid

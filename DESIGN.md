@@ -206,7 +206,8 @@ the only violet used for controls.
 
 ### What's next
 
-- One panel at the top of the dashboard, at most five rows, soonest first.
+- One panel directly below the totals row, at most five rows, soonest first. The
+  totals stay first so the 3-second read is unchanged.
 - Rows are: an account-age-only promotion wait, an all-met promotion waiting
   for the site, a login deadline inside 14 days, and a ratio within 10% above
   the tracker's demotion threshold.

@@ -4,8 +4,8 @@
 // Used by both the CI script and the test suite.
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
-import { trackerHostKey } from "@/lib/tracker-matching"
 import { isRankMetric, type RankConditionNode } from "@/lib/rank-goals"
+import { trackerHostKey } from "@/lib/tracker-matching"
 
 export const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const LOGO_NAME_RE = /^\/tracker-logos\/[a-z0-9_]+_logo\.(svg|png)$/

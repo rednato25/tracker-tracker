@@ -210,6 +210,8 @@ the only violet used for controls.
   totals stay first so the 3-second read is unchanged.
 - The panel uses the dashboard's shared section toggle, and the collapsed or
   expanded choice is remembered per browser like the other dashboard sections.
+- The dashboard settings sheet has a `Show What's next` switch, on by default.
+  Turning it off removes the panel and its empty line from the dashboard.
 - Rows are: an account-age-only promotion wait, an all-met promotion waiting
   for the site, a login deadline inside 14 days, and a ratio within 10% above
   the tracker's demotion threshold.

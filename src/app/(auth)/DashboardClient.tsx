@@ -263,11 +263,13 @@ export function DashboardClient({
           now={new Date(now)}
         />
 
-        <WhatsNext
-          items={whatsNext}
-          expanded={whatsNextExpanded}
-          onToggleExpanded={() => sectionCollapse.toggle("whats-next")}
-        />
+        {dashSettings.settings.showWhatsNext && (
+          <WhatsNext
+            items={whatsNext}
+            expanded={whatsNextExpanded}
+            onToggleExpanded={() => sectionCollapse.toggle("whats-next")}
+          />
+        )}
 
         {dashboardView === "grid" ? (
           <TrackerGrid

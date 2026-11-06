@@ -208,4 +208,37 @@ test.describe("P66 what's next", () => {
     await page.getByRole("button", { name: "What's next" }).click()
     await expect(page.locator("[data-whats-next-row]")).toHaveCount(3)
   })
+
+  test("hides and restores the panel from dashboard settings", async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 1440, height: 1200 })
+    await page.goto("/")
+    await expect(page.locator("[data-whats-next]")).toBeVisible({ timeout: 20_000 })
+
+    await page.getByRole("button", { name: "Dashboard settings" }).click()
+    const dialog = page.getByRole("dialog", { name: "Dashboard Settings" })
+    await expect(dialog).toBeVisible()
+    const toggle = dialog.getByRole("switch", { name: "Show What's next" })
+    await expect(toggle).toHaveAttribute("aria-checked", "true")
+
+    await toggle.click()
+    await expect(toggle).toHaveAttribute("aria-checked", "false")
+    await dialog.getByRole("button", { name: "Close panel" }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page.locator("[data-whats-next]")).toHaveCount(0)
+    await expect(page.locator("[data-whats-next-empty]")).toHaveCount(0)
+
+    // The setting lives on the server, so a reload proves it was saved.
+    await page.reload()
+    await expect(page.locator("[data-whats-next]")).toHaveCount(0)
+    await expect(page.locator("[data-whats-next-empty]")).toHaveCount(0)
+
+    await page.getByRole("button", { name: "Dashboard settings" }).click()
+    const reopened = page.getByRole("dialog", { name: "Dashboard Settings" })
+    const reopenToggle = reopened.getByRole("switch", { name: "Show What's next" })
+    await expect(reopenToggle).toHaveAttribute("aria-checked", "false")
+    await reopenToggle.click()
+    await reopened.getByRole("button", { name: "Close panel" }).click()
+    await expect(page.locator("[data-whats-next]")).toBeVisible()
+  })
 })

@@ -106,6 +106,13 @@ function DashboardSettingsSheet({
             disabled={!dashSettings.loaded}
           />
           <Toggle
+            label="Show What's next"
+            description="Show the What's next panel below the fleet totals, with promotion, login and ratio items for the next 14 days."
+            checked={dashSettings.settings.showWhatsNext}
+            onChange={(checked) => dashSettings.update("showWhatsNext", checked)}
+            disabled={!dashSettings.loaded}
+          />
+          <Toggle
             label="Show health indicators"
             description="Display the breathing pulse dot on each tracker card showing connection status."
             checked={dashSettings.settings.showHealthIndicators}

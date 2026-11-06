@@ -62,6 +62,7 @@ describe("credentialFormFor", () => {
       [
         "avistaz",
         "carpt",
+        "c411",
         "digitalcore",
         "filelist",
         "ggn",

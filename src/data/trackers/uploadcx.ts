@@ -32,6 +32,7 @@ export const uploadcx: TrackerRegistryEntry = {
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "",
   statusPageUrl: "",
+  announceHosts: ["upload.cx"],
 
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",

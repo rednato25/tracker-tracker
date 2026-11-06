@@ -19,6 +19,7 @@ import {
   PLACEHOLDER_RE,
   SLUG_RE,
   VALID_CONTENT_CATEGORIES,
+  validateAnnounceHosts,
   validateDefunct,
   validateRankPaths,
 } from "@/data/tracker-validation-rules"
@@ -247,6 +248,9 @@ function validate(slugFilter?: string[]): TrackerResult[] {
     const defunct = validateDefunct(tracker)
     errors.push(...defunct.errors)
     warnings.push(...defunct.warnings)
+
+    // ── Announce hosts ────────────────────────────────────────────────
+    errors.push(...validateAnnounceHosts(tracker))
 
     // ── Rank path validation ──────────────────────────────────────────
     const rankPaths = validateRankPaths(tracker)

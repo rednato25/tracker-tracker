@@ -67,6 +67,7 @@ export const mytracker: TrackerRegistryEntry = {
 
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "", // slug on trackerhub.xyz, if listed. "" if none
+  // announceHosts: ["flacsfor.me"], // optional. Domains torrents announce on, checked in your client. Omit if unchecked. Registrable domains only, never a URL or subdomain
   statusPageUrl: "", // external status page URL. "" if none
 
   // ── Community ───────────────────────────────────────────────────────

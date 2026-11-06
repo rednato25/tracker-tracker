@@ -39,6 +39,7 @@ export const seedpool: TrackerRegistryEntry = {
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "",
   statusPageUrl: "https://status.seedpool.org/",
+  announceHosts: ["seedpool.org"],
 
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",

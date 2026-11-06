@@ -41,6 +41,7 @@ export const filelist: TrackerRegistryEntry = {
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "",
   statusPageUrl: "",
+  announceHosts: ["filelist.io", "thefl.org"],
 
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",

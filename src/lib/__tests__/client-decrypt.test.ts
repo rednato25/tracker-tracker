@@ -29,6 +29,7 @@ describe("decryptClientCredentials", () => {
       username: "decrypted:enc-user",
       password: "decrypted:enc-pass",
       urlPath: "decrypted:enc-path",
+      credentialKey: "password:enc-user\u0000enc-pass",
     })
   })
 
@@ -42,7 +43,35 @@ describe("decryptClientCredentials", () => {
       encryptedUrlPath: "",
     }
     const result = decryptClientCredentials(client, Buffer.alloc(32))
-    expect(result).toEqual({ authMethod: "apikey", apiKey: "decrypted:enc-key", urlPath: "" })
+    expect(result).toEqual({
+      authMethod: "apikey",
+      apiKey: "decrypted:enc-key",
+      urlPath: "",
+      credentialKey: "apikey:enc-key",
+    })
+  })
+
+  it("keys the credential by the stored ciphertext, so saving it again changes the key", () => {
+    const client = {
+      name: "Test",
+      authMethod: "password",
+      encryptedUsername: "enc-user",
+      encryptedPassword: "enc-pass",
+      encryptedApiKey: "",
+      encryptedUrlPath: "",
+    }
+    const key = Buffer.alloc(32)
+
+    const saved = decryptClientCredentials(client, key)
+    const resaved = decryptClientCredentials(
+      { ...client, encryptedPassword: "enc-pass-resaved" },
+      key
+    )
+
+    // The auth blocks and qBittorrent's session cache are keyed on this value,
+    // so a re-saved credential must not inherit the old one's block.
+    expect(saved.credentialKey).not.toBe(resaved.credentialKey)
+    expect(saved.credentialKey).not.toContain("decrypted:enc-pass")
   })
 
   it("rejects an unrecognised auth method without disguising it as a decryption failure", () => {

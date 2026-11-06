@@ -2,8 +2,7 @@
 //
 // Available functions:
 //   buildBaseUrl          - Construct base URL from host/port/ssl/URL path
-//   credentialFingerprint - Non-reversible hash identifying some secret material
-//   blockKeyFor           - Compose the auth-block map key from baseUrl + fingerprint
+//   blockKeyFor           - Compose the auth-block map key from baseUrl + credentialKey
 //   clearAuthBlocks       - Drop auth blocks for one baseUrl (explicit user retry)
 //   login                 - Authenticate with qBittorrent Web API, returns SID cookie
 //   getSession            - Return cached SID or perform a fresh login
@@ -21,7 +20,6 @@
 //   getTransferInfo       - Fetch global transfer stats from qBittorrent
 //   syncMaindata          - Fetch delta sync data from qBittorrent (maindata endpoint)
 
-import { createHash } from "node:crypto"
 import { sanitizeHost } from "@/lib/data-transforms"
 import { ADAPTER_FETCH_TIMEOUT_MS, QBT_RESPONSE_MAX_BYTES } from "@/lib/limits"
 import { log } from "@/lib/logger"
@@ -93,7 +91,9 @@ export type SidCookie = { name: string; value: string }
  * the endpoints never branch on a mode, and session-only operations such as
  * invalidateSession are unreachable from the key path by construction.
  */
-export type QbtAuth = { mode: "session"; sid: SidCookie } | { mode: "apikey"; key: string }
+export type QbtAuth =
+  | { mode: "session"; sid: SidCookie }
+  | { mode: "apikey"; key: string; credentialKey: string }
 
 const gSid = globalThis as typeof globalThis & {
   __qbtSidCache?: Map<string, SidCookie>
@@ -109,17 +109,18 @@ export async function getSession(
   username: string,
   password: string,
   urlPath: string,
+  credentialKey: string,
   signal?: AbortSignal
 ): Promise<{ baseUrl: string; sid: SidCookie }> {
   const baseUrl = buildBaseUrl(host, port, ssl, urlPath)
-  // Keyed by credentials as well as origin, the same way authBlocks is. Keyed
-  // by baseUrl alone, a second client row on the same host would ride the first
-  // row's session, and a row with a revoked password would still poll green.
-  const cacheKey = blockKeyFor(baseUrl, username, password)
+  // Keyed by the credential as well as origin, the same way authBlocks is.
+  // Keyed by baseUrl alone, a second client row on the same host would ride the
+  // first row's session, and a row with a revoked password would still poll green.
+  const cacheKey = blockKeyFor(baseUrl, credentialKey)
   const cached = sidCache.get(cacheKey)
   if (cached) return { baseUrl, sid: cached }
 
-  const sid = await login(host, port, ssl, username, password, urlPath, signal)
+  const sid = await login(host, port, ssl, username, password, urlPath, credentialKey, signal)
   sidCache.set(cacheKey, sid)
   return { baseUrl, sid }
 }
@@ -152,8 +153,8 @@ export function clearAllSessions(): void {
 // the password is fixed. The 5s heartbeat would get there in about 25 seconds,
 // so a rejected login is not retried.
 //
-// The block is keyed by baseUrl and a credential fingerprint, so an edited
-// credential is not blocked. It also clears on restart and on Test Connection.
+// The block is keyed by baseUrl and the saved credential's key, so a credential
+// saved again is not blocked. It also clears on restart and on Test Connection.
 //
 // The 403 ban response is not blocked. Retrying during a ban cannot extend it,
 // and leaving it unblocked lets a fixed password recover once the ban expires.
@@ -163,26 +164,16 @@ const gBlocks = globalThis as typeof globalThis & {
   __qbtAuthBlocks?: Map<string, string>
 }
 if (!gBlocks.__qbtAuthBlocks) gBlocks.__qbtAuthBlocks = new Map()
-/** Maps `${baseUrl}\u0000${credentialFingerprint}` to the error message to replay. */
+/** Maps `${baseUrl}\u0000${credentialKey}` to the error message to replay. */
 const authBlocks = gBlocks.__qbtAuthBlocks
 
 /**
- * Non-reversible identifier for a credential pair. Only ever compared, never
- * logged or persisted, it exists so a credential edit is detectable without
- * holding the plaintext.
- *
- * SHA-256 is deliberate. Do not swap in a slow KDF. The digest keys an
- * in-memory Map in a process that already holds the plaintext, and blockKeyFor
- * runs on the request path, so a slow KDF adds per-request cost and protects
- * nothing. The CodeQL insufficient-effort alert on this was reviewed and
- * dismissed as a false positive.
+ * The client's base URL and its credentialKey (see ClientCredentials), which
+ * changes whenever the credential is saved, so an edit is never held by an old
+ * block. Never logged or persisted.
  */
-function credentialFingerprint(username: string, password: string): string {
-  return createHash("sha256").update(`${username}\u0000${password}`).digest("hex")
-}
-
-function blockKeyFor(baseUrl: string, username: string, password: string): string {
-  return `${baseUrl}\u0000${credentialFingerprint(username, password)}`
+function blockKeyFor(baseUrl: string, credentialKey: string): string {
+  return `${baseUrl}\u0000${credentialKey}`
 }
 
 /**
@@ -217,16 +208,19 @@ export async function withSessionRetry<T>(
   username: string,
   password: string,
   urlPath: string,
+  credentialKey: string,
   op: (baseUrl: string, sid: SidCookie) => Promise<T>,
   signal?: AbortSignal
 ): Promise<T> {
-  const { baseUrl, sid } = await getSession(host, port, ssl, username, password, urlPath, signal)
+  const session = () =>
+    getSession(host, port, ssl, username, password, urlPath, credentialKey, signal)
+  const { baseUrl, sid } = await session()
   try {
     return await op(baseUrl, sid)
   } catch (err) {
     if (err instanceof Error && err.message === "Session expired") {
       invalidateSession(baseUrl)
-      const fresh = await getSession(host, port, ssl, username, password, urlPath, signal)
+      const fresh = await session()
       return await op(baseUrl, fresh.sid)
     }
     throw err
@@ -276,6 +270,7 @@ export async function login(
   username: string,
   password: string,
   urlPath: string,
+  credentialKey: string,
   signal?: AbortSignal
 ): Promise<SidCookie> {
   const baseUrl = buildBaseUrl(host, port, ssl, urlPath)
@@ -284,9 +279,9 @@ export async function login(
   const body = new URLSearchParams({ username, password }).toString()
 
   // Replay a previous rejection instead of asking again. See the auth-failure
-  // circuit breaker above. Editing either credential changes the key, so a user
-  // who fixes their password is never held here.
-  const blockKey = blockKeyFor(baseUrl, username, password)
+  // circuit breaker above. Saving the credential again changes the key, so a
+  // user who fixes their password is never held here.
+  const blockKey = blockKeyFor(baseUrl, credentialKey)
   const blocked = authBlocks.get(blockKey)
   if (blocked) throw new Error(blocked)
 
@@ -394,10 +389,8 @@ async function qbtFetch(
   // password auth has to be applied here instead. Without it a rotated key
   // would be retried by every heartbeat forever, the same runaway the
   // password breaker exists to stop. Keyed through blockKeyFor so it shares
-  // the per-baseUrl namespace clearAuthBlocks sweeps, with "apikey" in the
-  // username slot keeping keys out of the fingerprint space ordinary
-  // credentials occupy.
-  const blockKey = auth.mode === "apikey" ? blockKeyFor(baseUrl, "apikey", auth.key) : null
+  // the per-baseUrl namespace clearAuthBlocks sweeps.
+  const blockKey = auth.mode === "apikey" ? blockKeyFor(baseUrl, auth.credentialKey) : null
   if (blockKey) {
     const blocked = authBlocks.get(blockKey)
     if (blocked) throw new Error(blocked)
@@ -425,7 +418,7 @@ async function qbtFetch(
   }
 
   // A rejected key is definitive, unlike a session cookie there is nothing to
-  // refresh, so record it and stop asking. Editing the key changes the block
+  // refresh, so record it and stop asking. Saving a new key changes the block
   // key, and Test Connection clears the whole baseUrl, so the user is never
   // stuck. Both 401 and 403 count, because qBittorrent has used each for an
   // unauthenticated WebAPI request across 5.x.
@@ -480,7 +473,12 @@ export function parseCachedTorrents(raw: unknown): SlimTorrent[] {
       }
       arr = parsed
     } catch (err) {
-      log.warn({ err }, "parseCachedTorrents: JSON parse failed")
+      // The name, never the message. V8 quotes the input in it, and the cache
+      // holds torrent names and announce hosts.
+      log.warn(
+        { error: err instanceof Error ? err.name : typeof err },
+        "parseCachedTorrents: JSON parse failed"
+      )
       return []
     }
   } else if (Array.isArray(raw)) {
@@ -489,8 +487,15 @@ export function parseCachedTorrents(raw: unknown): SlimTorrent[] {
     return []
   }
   if (arr.length === 0) return arr as SlimTorrent[]
-  if (!isQbtTorrent(arr[0])) {
-    log.warn({ sample: arr[0] }, "parseCachedTorrents: first element failed isQbtTorrent check")
+  const first = arr[0]
+  if (!isQbtTorrent(first)) {
+    // Field names and the type, never the values. A cached torrent's name, tags
+    // and announce host would put the library in the log.
+    const keys = first && typeof first === "object" ? Object.keys(first) : []
+    log.warn(
+      { type: typeof first, keys },
+      "parseCachedTorrents: first element failed isQbtTorrent check"
+    )
     return []
   }
   return arr as SlimTorrent[]

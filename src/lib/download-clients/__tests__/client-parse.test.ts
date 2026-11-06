@@ -1,6 +1,7 @@
 // src/lib/download-clients/__tests__/client-parse.test.ts
 
 import { describe, expect, it, vi } from "vitest"
+import { log } from "@/lib/logger"
 import { parseCachedTorrents } from "../qbt/transport"
 
 // Silence the warn calls that parseCachedTorrents makes on failure paths
@@ -161,6 +162,20 @@ describe("parseCachedTorrents", () => {
       expect(parseCachedTorrents("{not valid json}")).toEqual([])
     })
 
+    it("logs the parse error's name, never its message", () => {
+      const warn = vi.mocked(log.warn)
+      warn.mockClear()
+      const raw = "must-not-be-logged"
+      // V8 quotes a short input in full in the message.
+      expect(() => JSON.parse(raw)).toThrow(raw)
+
+      expect(parseCachedTorrents(raw)).toEqual([])
+
+      expect(warn).toHaveBeenCalledOnce()
+      const [payload] = warn.mock.calls[0]
+      expect(payload).toEqual({ error: "SyntaxError" })
+    })
+
     it("returns [] for a JSON string of a plain number", () => {
       expect(parseCachedTorrents("42")).toEqual([])
     })
@@ -175,6 +190,22 @@ describe("parseCachedTorrents", () => {
     it("returns [] when first element is missing hash field", () => {
       const bad = { name: "Test", state: "uploading", size: 100, ratio: 1.0 }
       expect(parseCachedTorrents([bad])).toEqual([])
+    })
+
+    it("logs the failed element's type and field names, never its values", () => {
+      const warn = vi.mocked(log.warn)
+      warn.mockClear()
+      const bad = { name: "Secret.Torrent", state: "uploading", size: 100, ratio: 1.0 }
+
+      expect(parseCachedTorrents([bad])).toEqual([])
+
+      const [payload] = warn.mock.calls[0]
+      expect(payload).not.toHaveProperty("sample")
+      expect(payload).toMatchObject({
+        type: "object",
+        keys: ["name", "state", "size", "ratio"],
+      })
+      expect(JSON.stringify(payload)).not.toContain("Secret.Torrent")
     })
 
     it("returns [] when first element is missing name field", () => {

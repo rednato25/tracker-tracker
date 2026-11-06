@@ -24,6 +24,9 @@ const PROFILE_PATH = "/api/member/profile"
 // but it requires a uid and reports zeros without one; myPeerStatus needs no
 // parameters and returns { seeder, leecher } for the API key's account.
 const PEER_STATUS_PATH = "/api/tracker/myPeerStatus"
+// uploadCount and seederSize are not on the profile or myPeerStatus. The
+// statistics endpoint needs no uid and reports the API key's account.
+const PEER_STATISTICS_PATH = "/api/tracker/myPeerStatistics"
 
 interface MteamEnvelope<T> {
   code?: string | number
@@ -57,6 +60,16 @@ interface MteamPeerStatus {
 interface MteamPeerReadout {
   seedingCount: number | null
   leechingCount: number | null
+}
+
+interface MteamPeerStatistics {
+  uploadCount?: string | number
+  seederSize?: string | number
+}
+
+interface MteamPeerStatisticsReadout {
+  uploads: number | null
+  seedSizeBytes: number | null
 }
 
 // M-Team returns the role as an id, not a name. The registry ladder uses the
@@ -156,6 +169,21 @@ function readPeerStatus(body: MteamEnvelope<MteamPeerStatus>, hostname: string):
   }
 }
 
+/**
+ * The uploaded-torrent count and seeded bytes. Both are byte/count figures, so
+ * a value outside the safe-integer range is dropped rather than rounded.
+ */
+function readPeerStatistics(
+  body: MteamEnvelope<MteamPeerStatistics>,
+  hostname: string
+): MteamPeerStatisticsReadout {
+  const data = unwrap(body, hostname)
+  return {
+    uploads: integer(data.uploadCount),
+    seedSizeBytes: integer(data.seederSize),
+  }
+}
+
 function readProfile(body: MteamEnvelope<MteamProfile>, hostname: string): TrackerStats {
   const data = unwrap(body, hostname)
   const uploadedBytes = rawBytes(data.memberCount?.uploaded, "uploaded", hostname)
@@ -248,6 +276,24 @@ export class MteamAdapter implements TrackerAdapter {
     profile.seedingCount = peer?.seedingCount ?? null
     profile.leechingCount = peer?.leechingCount ?? null
 
+    // Rank inputs are enrichment too: a statistics failure leaves them unknown
+    // rather than discarding the profile totals that already passed.
+    try {
+      const statistics = readPeerStatistics(
+        await request<MteamPeerStatistics>(PEER_STATISTICS_PATH, token, hostname, options),
+        hostname
+      )
+      if (statistics.uploads !== null || statistics.seedSizeBytes !== null) {
+        profile.platformMeta = {
+          ...(profile.platformMeta as MteamPlatformMeta | undefined),
+          ...(statistics.uploads !== null ? { uploads: statistics.uploads } : {}),
+          ...(statistics.seedSizeBytes !== null ? { seedSizeBytes: statistics.seedSizeBytes } : {}),
+        }
+      }
+    } catch {
+      // The existing profile/peer values stay as they were.
+    }
+
     return profile
   }
 
@@ -286,6 +332,23 @@ export class MteamAdapter implements TrackerAdapter {
       calls.push({
         label: "Peer Status",
         endpoint: PEER_STATUS_PATH,
+        data: null,
+        error: errorMessage(err),
+      })
+    }
+
+    try {
+      const body = await request<MteamPeerStatistics>(PEER_STATISTICS_PATH, token, hostname, options)
+      calls.push({
+        label: "Peer Statistics",
+        endpoint: PEER_STATISTICS_PATH,
+        data: body,
+        error: pollError(() => readPeerStatistics(body, hostname)),
+      })
+    } catch (err) {
+      calls.push({
+        label: "Peer Statistics",
+        endpoint: PEER_STATISTICS_PATH,
         data: null,
         error: errorMessage(err),
       })

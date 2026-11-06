@@ -127,6 +127,10 @@ export interface MamPlatformMeta {
   openTickets?: number
   pendingRequests?: number
   unreadTopics?: number
+  /** `snatch_summary.upAct.count + upInact.count`. */
+  uploads?: number
+  /** Sum of the seeding categories, only when every included category reported a size. */
+  seedSizeBytes?: number
 }
 
 export interface DigitalCorePlatformMeta {
@@ -252,6 +256,15 @@ export interface C411PlatformMeta {
  */
 export interface MteamPlatformMeta {
   vip?: boolean
+  /** `uploadCount` from `/api/tracker/myPeerStatistics`. */
+  uploads?: number
+  /** `seederSize` from `/api/tracker/myPeerStatistics`, in bytes. */
+  seedSizeBytes?: number
+}
+
+/** TorrentLeech's top bar carries the seeded size beside the count. */
+export interface TorrentleechPlatformMeta {
+  seedSizeBytes?: number
 }
 
 /**
@@ -365,6 +378,7 @@ export type PlatformMeta =
   | RetrotoonPlatformMeta
   | C411PlatformMeta
   | MteamPlatformMeta
+  | TorrentleechPlatformMeta
   | PortugasPlatformMeta
   | CarptPlatformMeta
   | V3xPlatformMeta
@@ -385,6 +399,7 @@ export interface PlatformMetaMap {
   retrotoon: RetrotoonPlatformMeta
   c411: C411PlatformMeta
   mteam: MteamPlatformMeta
+  torrentleech: TorrentleechPlatformMeta
   portugas: PortugasPlatformMeta
   carpt: CarptPlatformMeta
   v3x: V3xPlatformMeta

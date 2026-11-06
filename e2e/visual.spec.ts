@@ -1621,8 +1621,8 @@ test.describe.serial("P48 login deadline visual evidence", () => {
         },
         {
           name: "TEST P48 No Rule",
-          slug: "torrentleech",
-          platform: "torrentleech",
+          slug: "hawkeuno",
+          platform: "hawke",
           group: "Power User",
           target: "Power User",
           lastAccessAt: new Date(Date.now() - 10 * day),

@@ -316,6 +316,15 @@ describe("parseFilelistProfile", () => {
     expect(parseFilelistProfile(EMPTY_CLASS_PAGE, HOST).group).toBeNull() // synthetic-fixture
   })
 
+  it("strips the VIP expiry suffix from the class", () => {
+    const page = FULL_PAGE.replace(
+      /(<td class="colhead">Class<\/td><td[^>]*>)[\s\S]*?(<\/td>)/,
+      '$1VIP (Until: 2026-11-28 17:44:57)$2'
+    )
+    // synthetic-fixture: the rank ladder matches the bare class name.
+    expect(parseFilelistProfile(page, HOST).group).toBe("VIP")
+  })
+
   it("returns ratio 0 and a zero buffer when both totals are zero", () => {
     const stats = parseFilelistProfile(FULL_PAGE, HOST)
     expect(stats.ratio).toBe(0)

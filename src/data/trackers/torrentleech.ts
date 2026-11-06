@@ -31,6 +31,7 @@ export const torrentleech: TrackerRegistryEntry = {
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "torrent-leech",
   statusPageUrl: "",
+  announceHosts: ["tleechreload.org", "torrentleech.org"],
 
   // ── Community ───────────────────────────────────────────────────────
   // wiki.torrentleech.org/doku.php/user_classes. Staff roles (Uploader, FLS,
@@ -124,7 +125,7 @@ export const torrentleech: TrackerRegistryEntry = {
     // is the safe direction to be wrong in.
     seedTimeHours: 240,
     satisfactionMode: "any",
-    loginIntervalDays: 0,
+    loginIntervalDays: 120,
   },
 
   // ── Status ──────────────────────────────────────────────────────────

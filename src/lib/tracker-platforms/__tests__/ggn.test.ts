@@ -87,6 +87,22 @@ describe("GGnAdapter", () => {
     }
   })
 
+  it("reads a null downloaded total as zero when the ratio agrees", async () => {
+    mockBothCalls({ stats: { downloaded: null, ratio: "â" } })
+
+    const stats = await adapter.fetchStats("https://gazellegames.net", "fake-key", "/api.php")
+
+    expect(stats.downloadedBytes).toBe(0n)
+  })
+
+  it("still rejects a null downloaded total when the ratio says otherwise", async () => {
+    mockBothCalls({ stats: { downloaded: null, ratio: "0.99" } })
+
+    await expect(
+      adapter.fetchStats("https://gazellegames.net", "fake-key", "/api.php")
+    ).rejects.toThrow("Unexpected response from gazellegames.net: missing downloaded")
+  })
+
   it("parses a valid two-step GGn response into TrackerStats", async () => {
     mockBothCalls()
 

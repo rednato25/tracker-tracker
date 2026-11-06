@@ -7,6 +7,7 @@
 import "server-only"
 import type { Agent as HttpAgent } from "node:http"
 import { registryEntryFor } from "@/data/tracker-registry"
+import { AnimeBytesAdapter } from "./adapters/animebytes"
 import { ApimeAdapter } from "./adapters/apime"
 import { AvistazAdapter } from "./adapters/avistaz"
 import { BtnAdapter } from "./adapters/btn"
@@ -18,6 +19,7 @@ import { GazelleAdapter } from "./adapters/gazelle"
 import { GGnAdapter } from "./adapters/ggn"
 import { HawkeAdapter } from "./adapters/hawke"
 import { IptorrentsAdapter } from "./adapters/iptorrents"
+import { LuminanceAdapter } from "./adapters/luminance"
 import { MamAdapter } from "./adapters/mam"
 import { MteamAdapter } from "./adapters/mteam"
 import { NebulanceAdapter } from "./adapters/nebulance"
@@ -31,6 +33,7 @@ import type { FetchOptions, TrackerAdapter } from "./contract"
 
 const adapters: Record<string, TrackerAdapter> = {
   apime: new ApimeAdapter(),
+  animebytes: new AnimeBytesAdapter(),
   avistaz: new AvistazAdapter(),
   btn: new BtnAdapter(),
   c411: new C411Adapter(),
@@ -41,6 +44,7 @@ const adapters: Record<string, TrackerAdapter> = {
   ggn: new GGnAdapter(),
   hawke: new HawkeAdapter(),
   iptorrents: new IptorrentsAdapter(),
+  luminance: new LuminanceAdapter(),
   mam: new MamAdapter(),
   mteam: new MteamAdapter(),
   nebulance: new NebulanceAdapter(),

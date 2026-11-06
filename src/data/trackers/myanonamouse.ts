@@ -25,6 +25,7 @@ export const myanonamouse: TrackerRegistryEntry = {
   // ── Visual ──────────────────────────────────────────────────────────
   color: "#ec407a",
   logo: "/tracker-logos/myanonamouse_logo.png",
+  bonusName: "Bonus",
 
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "my-anona-mouse",

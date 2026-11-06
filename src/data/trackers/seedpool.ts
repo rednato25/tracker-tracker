@@ -39,6 +39,7 @@ export const seedpool: TrackerRegistryEntry = {
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "",
   statusPageUrl: "https://status.seedpool.org/",
+  announceHosts: ["seedpool.org"],
 
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",
@@ -60,6 +61,10 @@ export const seedpool: TrackerRegistryEntry = {
     {
       name: "User",
       requirements: "Ratio ≥ 1.00 — DL Slots: ∞, Unsatisfied Slots: 20",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "custom", label: "Unsatisfied Slots: 20" },
+      ],
       structured: {
         mode: "all",
         conditions: [
@@ -71,6 +76,12 @@ export const seedpool: TrackerRegistryEntry = {
       name: "Pool",
       requirements:
         "Ratio ≥ 1.00; Seedsize ≥ 256 GiB; Age ≥ 1 month — Can Request, Send Invite, Unsatisfied Slots: 30",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "invite", label: "Send Invite" },
+        { type: "custom", label: "Can Request" },
+        { type: "custom", label: "Unsatisfied Slots: 30" },
+      ],
       structured: {
         mode: "all",
         conditions: [
@@ -84,6 +95,13 @@ export const seedpool: TrackerRegistryEntry = {
       name: "PowerPool",
       requirements:
         "Ratio ≥ 1.00; Seedsize ≥ 512 GiB; Age ≥ 3 months — Can Fill Requests, Unsatisfied Slots: 50",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "invite", label: "Send Invite" },
+        { type: "custom", label: "Can Request" },
+        { type: "custom", label: "Can Fill Requests" },
+        { type: "custom", label: "Unsatisfied Slots: 50" },
+      ],
       structured: {
         mode: "all",
         conditions: [
@@ -97,6 +115,13 @@ export const seedpool: TrackerRegistryEntry = {
       name: "SuperPool",
       requirements:
         "Ratio ≥ 1.00; Seedsize ≥ 1 TiB; Age ≥ 6 months — Invite Forums, Freeleech, Unsatisfied Slots: 75",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "custom", label: "Invite Forums" },
+        { type: "custom", label: "Unsatisfied Slots: 75" },
+      ],
       structured: {
         mode: "all",
         conditions: [
@@ -110,6 +135,13 @@ export const seedpool: TrackerRegistryEntry = {
       name: "UberPool",
       requirements:
         "Ratio ≥ 1.00; Seedsize ≥ 5 TiB; Age ≥ 9 months — Freeleech, Unsatisfied Slots: 100",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "custom", label: "Invite Forums" },
+        { type: "custom", label: "Unsatisfied Slots: 100" },
+      ],
       structured: {
         mode: "all",
         conditions: [
@@ -123,6 +155,15 @@ export const seedpool: TrackerRegistryEntry = {
       name: "MegaPool",
       requirements:
         "Ratio ≥ 1.00; Seedsize ≥ 25 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 125",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "upload", label: "Upload Torrents" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "double-upload", label: "Double Upload" },
+        { type: "custom", label: "Invite Forums" },
+        { type: "custom", label: "Unsatisfied Slots: 125" },
+      ],
       structured: {
         mode: "all",
         conditions: [
@@ -136,6 +177,15 @@ export const seedpool: TrackerRegistryEntry = {
       name: "GodPool",
       requirements:
         "Ratio ≥ 1.00; Seedsize ≥ 100 TiB; Age ≥ 12 months — Upload Torrents, Freeleech, Double Upload, Unsatisfied Slots: 150",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "upload", label: "Upload Torrents" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "double-upload", label: "Double Upload" },
+        { type: "custom", label: "Invite Forums" },
+        { type: "custom", label: "Unsatisfied Slots: 150" },
+      ],
       structured: {
         mode: "all",
         conditions: [
@@ -152,23 +202,56 @@ export const seedpool: TrackerRegistryEntry = {
       name: "ProPool",
       requirements:
         "Can be bought or gifted with buffer in IRC — Freeleech, Double Upload, Unsatisfied Slots: 50",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "double-upload", label: "Double Upload" },
+        { type: "custom", label: "Unsatisfied Slots: 50" },
+      ],
       outsideLadder: "above",
     },
     {
       name: "FoundingPool",
       requirements: "Staff — founding members of Seed Pool. Freeleech, Unsatisfied Slots: 75",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "custom", label: "Invite Forums" },
+        { type: "custom", label: "Unsatisfied Slots: 75" },
+      ],
       outsideLadder: "above",
     },
     {
       name: "SpecialPool",
       requirements:
         "Staff — outstanding members. Upload Torrents, Freeleech, Double Upload, Torrent Mod bypass, Unsatisfied Slots: 100",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "upload", label: "Upload Torrents" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "double-upload", label: "Double Upload" },
+        { type: "mod-bypass", label: "Torrent Mod Bypass" },
+        { type: "custom", label: "Invite Forums" },
+        { type: "custom", label: "Unsatisfied Slots: 100" },
+      ],
       outsideLadder: "above",
     },
     {
       name: "External",
       requirements:
         "Staff — recognized release groups and respected tracker staff. Upload Torrents, Freeleech, Torrent Mod bypass, Unsatisfied Slots: 100",
+      perks: [
+        { type: "download-slots", label: "DL Slots: ∞" },
+        { type: "upload", label: "Upload Torrents" },
+        { type: "invite", label: "Send Invite" },
+        { type: "freeleech", label: "Freeleech" },
+        { type: "mod-bypass", label: "Torrent Mod Bypass" },
+        { type: "custom", label: "Invite Forums" },
+        { type: "custom", label: "Unsatisfied Slots: 100" },
+      ],
       outsideLadder: "above",
     },
   ],
@@ -180,7 +263,49 @@ export const seedpool: TrackerRegistryEntry = {
   rules: {
     minimumRatio: 1,
     seedTimeHours: 240,
-    loginIntervalDays: 0,
+    loginIntervalDays: 120,
+    fullRulesMarkdown: [
+      "## Ratio",
+      "",
+      "- The overall ratio must be at least 1:1",
+      "- There is no required ratio for individual torrents",
+      "",
+      "## Freeleech",
+      "",
+      "- Individual TV episodes, anime episodes, remuxes and music packs are freeleech",
+      "- Hover the star icon to check a specific torrent",
+      "- Freeleech does not remove the minimum seed time",
+      "",
+      "## Minimum seed time",
+      "",
+      "- Seed every release for 10 days, freeleech or not, or it becomes Unsatisfied",
+      "- Torrents with less than 10% downloaded are exempt",
+      "- A torrent is marked Unsatisfied after 72 hours offline",
+      "- Unsatisfied torrents reduce download slots; too many leave you with one slot",
+      "- Clear an Unsatisfied by completing the seed time or paying the fine",
+      "",
+      "## Usergroups",
+      "",
+      "- SuperPool and above with a seedpool above 1 TiB get site-wide freeleech",
+      "- Group changes can take up to 24 hours; log out and back in to sync forums and IRC",
+      "",
+      "## Clients",
+      "",
+      "- Open-source clients are allowed (qBittorrent, Deluge, rTorrent)",
+      "- All versions of uTorrent are banned",
+      "",
+      "## Uploading",
+      "",
+      "- Follow the Upload Guide",
+      "- Uploading is limited to trusted community members and known rippers and remuxers",
+      "- Upload privileges can be earned through quality request fills and community participation",
+      "",
+      "## IRC & chat",
+      "",
+      "- Site chat: chat.seedpool.org",
+      "- IRC: irc.seedpool.org:6697 (SSL), username as nick and passkey as password",
+      "- Join #lobby and type !help; channels include #seedpool, #announce and #music",
+    ],
   },
 
   // ── Status ──────────────────────────────────────────────────────────

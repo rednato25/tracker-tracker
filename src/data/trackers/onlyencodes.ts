@@ -31,6 +31,7 @@ export const onlyencodes: TrackerRegistryEntry = {
   // ── External Links ──────────────────────────────────────────────────
   trackerHubSlug: "only-encodes",
   statusPageUrl: "",
+  announceHosts: ["onlyencodes.cc"],
 
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",

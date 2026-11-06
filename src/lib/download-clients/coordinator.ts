@@ -1,4 +1,4 @@
-﻿// src/lib/download-clients/coordinator.ts
+// src/lib/download-clients/coordinator.ts
 //
 // Functions: fetchFleetTorrents, fetchTrackerTorrents,
 //            fetchFleetAggregation, fetchTrackerTorrentsCached,
@@ -17,8 +17,10 @@ import { parseTorrentTags } from "@/lib/fleet"
 import { computeFleetAggregation, type FleetAggregation } from "@/lib/fleet-aggregation"
 import { log } from "@/lib/logger"
 import {
+  announceHostKeySet,
   createTrackedTorrentPredicate,
   resolveTorrentTracker,
+  trackerAnnounceKeys,
   trackerHostKey,
 } from "@/lib/tracker-matching"
 import type { TagGroup } from "@/types/api"
@@ -74,9 +76,15 @@ const TRACKER_MATCH_COLUMNS = {
   id: trackers.id,
   qbtTag: trackers.qbtTag,
   baseUrl: trackers.baseUrl,
+  registrySlug: trackers.registrySlug,
 } as const
 
-type TrackerMatchRow = { id: number; qbtTag: string | null; baseUrl: string }
+type TrackerMatchRow = {
+  id: number
+  qbtTag: string | null
+  baseUrl: string
+  registrySlug: string | null
+}
 
 /** The two fields matching reads off a torrent, on both the live and cached shapes. */
 interface MatchableTorrent {
@@ -109,7 +117,7 @@ function trackerTorrentMatcher(
   allTrackers: TrackerMatchRow[]
 ): (torrent: MatchableTorrent) => boolean {
   const ownTag = target.qbtTag?.trim().toLowerCase() || null
-  const targetHost = trackerHostKey(target.baseUrl)
+  const targetHosts = new Set(trackerAnnounceKeys(target))
 
   return (torrent) => {
     if (ownTag && parseTorrentTags(torrent.tags ?? "").includes(ownTag)) return true
@@ -128,7 +136,7 @@ function trackerTorrentMatcher(
     // that to 31ms, and the expensive path then runs only for the handful of
     // torrents that really do announce to this tracker.
     const host = trackerHostKey(torrent.tracker)
-    if (host === null || host !== targetHost) return false
+    if (host === null || !targetHosts.has(host)) return false
 
     return resolveTorrentTracker(torrent, allTrackers)?.tracker.id === target.id
   }
@@ -234,6 +242,7 @@ export async function fetchFleetAggregation(
       name: trackers.name,
       color: trackers.color,
       baseUrl: trackers.baseUrl,
+      registrySlug: trackers.registrySlug,
     })
     .from(trackers)
 
@@ -253,6 +262,7 @@ export async function fetchFleetAggregation(
         name: r.name,
         color: r.color ?? "#9e3f1f",
         baseUrl: r.baseUrl,
+        registrySlug: r.registrySlug,
       }
     })
     .filter((t): t is NonNullable<typeof t> => t !== null)
@@ -264,9 +274,7 @@ export async function fetchFleetAggregation(
   const tagSet = new Set(allTags.map((t) => t.toLowerCase()))
   // Announce hosts of every tracker we know about, so a torrent from a tracked
   // site is kept even when it carries no recognised tag.
-  const knownAnnounceHosts = new Set(
-    trackerTagRows.map((r) => trackerHostKey(r.baseUrl)).filter((h): h is string => h !== null)
-  )
+  const knownAnnounceHosts = announceHostKeySet(trackerTagRows)
   const tagPredicate = createTrackedTorrentPredicate(tagSet, knownAnnounceHosts)
 
   const clientTorrents: { clientName: string; torrents: (TorrentRecord | SlimTorrent)[] }[] = []

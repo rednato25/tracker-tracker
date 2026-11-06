@@ -464,7 +464,13 @@ describe("TrackerGrid", () => {
   })
 
   it("keeps the button for a detecting adapter that has no value yet", () => {
-    render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
+    render(
+      <TrackerGrid
+        trackers={[tracker({ registrySlug: "hawkeuno" })]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
     expect(screen.getByRole("button", { name: "Logged in today" })).toBeInTheDocument()
     expect(screen.getByText("No login rule")).toBeInTheDocument()
     expect(document.querySelector("[data-login-ring]")).toBeNull()
@@ -557,6 +563,7 @@ describe("TrackerGrid", () => {
       <TrackerGrid
         trackers={[
           tracker({
+            registrySlug: "hawkeuno",
             lastAccessAt: "2026-10-25",
             lastAccessSource: "manual",
           }),
@@ -594,7 +601,7 @@ describe("TrackerGrid", () => {
   it("shows no ring for a tracker without a login rule, only muted text", () => {
     const { container } = render(
       <TrackerGrid
-        trackers={[tracker({ lastAccessAt: "2026-10-20" })]}
+        trackers={[tracker({ registrySlug: "hawkeuno", lastAccessAt: "2026-10-20" })]}
         summaries={[summary()]}
         now={NOW}
       />

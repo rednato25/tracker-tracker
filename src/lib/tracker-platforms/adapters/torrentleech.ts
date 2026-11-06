@@ -16,7 +16,7 @@ import type { DebugApiCall, FetchOptions, TrackerAdapter, TrackerStats } from ".
 import { parseCredentialJson } from "../helpers/cookie-credentials"
 import { SessionExpiredError } from "../helpers/errors"
 import { fetchTrackerHtml } from "../helpers/html-fetch"
-import { tryParseSiteBytes } from "../helpers/html-parse"
+import { isCloudflareChallenge, isCloudflareInterstitial, tryParseSiteBytes } from "../helpers/html-parse"
 
 // ---------------------------------------------------------------------------
 // Credential handling
@@ -203,7 +203,7 @@ async function login(
     // reach the cookie check below. The challenge is matched before the status,
     // since one can come with a 503, and only on its own markers, because a
     // login form can embed the Turnstile script that parseTlProfile also matches.
-    if (html.includes("<title>Just a moment...</title>") || html.includes("cf_chl_opt")) {
+    if (isCloudflareInterstitial(html)) {
       throw new Error("Cloudflare challenge detected on the TorrentLeech login page")
     }
     // Same wording adapterFetch throws, which sanitizeNetworkError matches on. A
@@ -291,11 +291,7 @@ export function parseTlProfile(html: string, username: string, hostname: string)
     throw new SessionExpiredError("Session expired. TorrentLeech cookies need to be refreshed")
   }
 
-  if (
-    html.includes("<title>Just a moment...</title>") ||
-    html.includes("cf_chl_opt") ||
-    html.includes("challenges.cloudflare.com/turnstile")
-  ) {
+  if (isCloudflareChallenge(html)) {
     throw new Error("Cloudflare challenge detected. The TorrentLeech session needs refreshing")
   }
 

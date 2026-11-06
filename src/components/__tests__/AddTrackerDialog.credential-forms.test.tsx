@@ -75,6 +75,7 @@ describe("AddTrackerDialog join date visibility", () => {
     ["avistaz", "AvistaZ"],
     ["digitalcore", "DigitalCore.Club"],
     ["filelist", "FileList"],
+    ["iptorrents", "IPTorrents"],
     ["retrotoon", "RetroToon World"],
     ["ggn", "GazelleGames"],
     ["gazelle with enrichment", "Orpheus"],
@@ -89,10 +90,7 @@ describe("AddTrackerDialog join date visibility", () => {
     expect(screen.queryByLabelText(JOIN_DATE)).not.toBeInTheDocument()
   })
 
-  const SHOWN = [
-    ["iptorrents", "IPTorrents"],
-    ["hawke", "HAWKE-UNO"],
-  ] as const
+  const SHOWN = [["hawke", "HAWKE-UNO"]] as const
 
   it.each(SHOWN)("shows it for %s", async (_platform, trackerName) => {
     const user = userEvent.setup()

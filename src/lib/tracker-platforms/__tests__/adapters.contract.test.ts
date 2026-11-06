@@ -37,12 +37,14 @@ const CREDENTIALS: Record<string, string> = {
   iptorrents: cookieBlob(),
   retrotoon: cookieBlob(),
   torrentleech: JSON.stringify({ username: "someone", password: CANARY }),
+  luminance: JSON.stringify({ username: "someone", password: CANARY }),
   digitalcore: JSON.stringify({ uid: "54321", pass: CANARY }),
   mteam: CANARY,
   portugas: cookieBlob(),
   carpt: cookieBlob(),
   v3x: cookieBlob(),
   apime: CANARY,
+  animebytes: JSON.stringify({ token: CANARY, username: "someone" }),
 }
 
 /**

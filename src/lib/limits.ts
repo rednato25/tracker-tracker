@@ -46,6 +46,7 @@ export const PORT_MAX = 65535
 
 // ─── Tracker ──────────────────────────────────────────────────────────────────
 export const TRACKER_NAME_MAX = 100
+export const TRACKER_USERNAME_MAX = 100
 export const TRACKER_URL_MAX = 500
 export const TRACKER_TOKEN_MAX = 500
 /** Cap for platforms whose "token" is a JSON credential blob (cookies, UA, etc). */
@@ -58,11 +59,13 @@ export const LARGE_TOKEN_MAX = 5000
  * it up.
  */
 const LARGE_TOKEN_PLATFORMS: ReadonlySet<string> = new Set([
+  "animebytes",
   "avistaz",
   "carpt",
   "digitalcore",
   "filelist",
   "iptorrents",
+  "luminance",
   "portugas",
   "retrotoon",
   "torrentleech",

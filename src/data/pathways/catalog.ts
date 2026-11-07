@@ -3,12 +3,12 @@
 // Build-time view of the raw trackerpathways snapshot. The JSON below is
 // vendored unchanged; this module only adapts it to the P17/P30 format.
 
-import metadata from "@/data/pathways/metadata.json"
-import raw from "@/data/pathways/trackers.json"
 import {
   PATHWAYS_TRACKER_ALIASES,
   PATHWAYS_UNMATCHED_REGISTRY_SLUGS,
 } from "@/data/pathways/aliases"
+import metadata from "@/data/pathways/metadata.json"
+import raw from "@/data/pathways/trackers.json"
 import { RECRUITMENT_ROUTE_OVERRIDES } from "@/data/recruitment-overrides"
 import { getTrackerBySlug } from "@/data/tracker-registry"
 import type {

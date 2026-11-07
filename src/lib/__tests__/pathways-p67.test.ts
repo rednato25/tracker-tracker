@@ -6,7 +6,6 @@
 // real registry names, not fixtures.
 
 import { describe, expect, it } from "vitest"
-import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import {
   PATHWAYS_TRACKER_ALIASES,
   PATHWAYS_UNMATCHED_REGISTRY_SLUGS,
@@ -15,6 +14,7 @@ import {
   pathwaysTrackerIdForRegistrySlug,
   registryNameForPathwaysTracker,
 } from "@/data/pathways/catalog"
+import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import { TRACKER_REGISTRY } from "@/data/tracker-registry"
 import { buildOwnedTrackerCards } from "@/lib/recruitment-pathways"
 import type { TrackerSummary } from "@/types/api"

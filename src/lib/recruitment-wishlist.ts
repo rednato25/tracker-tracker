@@ -553,6 +553,9 @@ export function buildWishlistPaths(input: WishlistPathsInput): WishlistPathsResu
         steps.push(step)
       }
       if (steps.length !== path.routeIds.length) continue
+      // A path that passes through a tracker the user already owns duplicates
+      // the shorter path starting from that tracker. Drop the longer one.
+      if (steps.slice(1).some((step) => step.ownedTrackerId !== null)) continue
       const summary = summarizePath(steps)
       let minimumDays: number | null = 0
       for (const step of steps) {

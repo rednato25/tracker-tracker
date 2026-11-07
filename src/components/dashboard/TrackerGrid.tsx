@@ -77,12 +77,14 @@ function cardStatusLabel(
   if (isLoginExpiredMessage(tracker.lastError)) return "Login expired"
   if (getPauseState(tracker).isPaused) return "Paused"
   if (snapshotState === "stale") return "Stale"
-  return health === "healthy" ? null : getHealthLabel(health)
+  if (health === "healthy") return null
+  const label = getHealthLabel(health)
+  return label === "Above Min" ? "Above minimum" : label === "No Seeds" ? "No seeds" : label
 }
 
 function statusTone(label: string | null): string {
   if (label === "Login expired" || label === "Paused") return "text-danger"
-  if (label === "Stale" || label === "Above Min" || label === "No Seeds") return "text-warn"
+  if (label === "Stale" || label === "Above minimum" || label === "No seeds") return "text-warn"
   return "text-secondary"
 }
 
@@ -251,7 +253,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
   const requirementText = geometry.atStrictThreshold
     ? strictThresholdRequirement(bar.comparison, bar.current, bar.required)
     : null
-  const stateLabel = bar.status === "met" ? "Met" : bar.status === "unmet" ? "Unmet" : "Unknown"
+  const stateLabel = bar.status === "met" ? "Met" : bar.status === "unmet" ? "Not met" : "Unknown"
   const stateTone =
     bar.status === "met" ? "text-success" : bar.status === "unmet" ? "text-danger" : "text-warn"
   return (
@@ -259,7 +261,7 @@ function RankBar({ bar }: { bar: RankSummaryBar }) {
       <div className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-xs text-secondary">{bar.label}</span>
         <span className="flex shrink-0 items-baseline gap-2">
-          <span className={clsx("font-cond text-2xs font-semibold uppercase tracking-[0.1em]", stateTone)}>
+          <span className={clsx("font-cond text-2xs font-semibold", stateTone)}>
             {stateLabel}
           </span>
           <span className="font-mono text-xs tabular-nums text-tertiary">
@@ -500,16 +502,13 @@ function TrackerCard({
             </p>
             <p className="truncate text-xs text-tertiary">{hostOf(tracker)}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
-              <span>Member since {memberSince(tracker)}</span>
-              <span className="text-tertiary">{"\u00b7"}</span>
-              <span>{accountAge(tracker, now)}</span>
+              <span>
+                Joined {memberSince(tracker)} ({accountAge(tracker, now)})
+              </span>
               {statusLabel && (
-                <>
-                  <span className="text-tertiary">{"\u00b7"}</span>
-                  <span className={statusTone(statusLabel)} data-card-status>
-                    {statusLabel}
-                  </span>
-                </>
+                <span className={statusTone(statusLabel)} data-card-status>
+                  {statusLabel}
+                </span>
               )}
             </p>
           </div>
@@ -519,11 +518,11 @@ function TrackerCard({
         <div data-failed-poll-pause className="border-t border-border pt-3 text-xs">
           <p className="text-danger">
             Paused after <span className="font-mono">{tracker.consecutiveFailures}</span> failed{" "}
-            {tracker.consecutiveFailures === 1 ? "poll" : "polls"}
+            {tracker.consecutiveFailures === 1 ? "poll" : "polls"}.
             {retryAt && (
               <>
                 {" "}
-                · next retry <span className="font-mono">{formatClockTime(retryAt)}</span>
+                Next retry <span className="font-mono">{formatClockTime(retryAt)}</span>.
               </>
             )}
           </p>
@@ -599,9 +598,8 @@ function TrackerCard({
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           {topOfLadder ? (
             <p className="min-w-0 break-words font-mono text-xs text-primary">
-              <span className="font-medium">{currentRankLabel}</span>
-              <span className="mx-1.5 text-tertiary">{"\u00b7"}</span>
-              <span className="text-secondary">Highest automatic class reached</span>
+              <span className="font-medium">{currentRankLabel}</span>{" "}
+              <span className="text-secondary">highest automatic class reached</span>
             </p>
           ) : (
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-mono text-xs">
@@ -611,17 +609,15 @@ function TrackerCard({
               </span>
               <span className="font-medium text-primary">{targetRank}</span>
               {isAutomaticTarget && (
-                <span className="font-cond text-2xs font-semibold uppercase tracking-[0.1em] text-tertiary">
-                  Automatic
-                </span>
+                <span className="font-cond text-2xs font-semibold text-tertiary">Next class</span>
               )}
             </p>
           )}
           <p className="flex shrink-0 flex-wrap items-baseline gap-x-1.5 font-mono text-xs text-tertiary">
             {summary?.targetReached && summary.targetRank && (
               <>
-                <span className="text-success">Target reached: {summary.targetRank}</span>
-                {summary.totalChecks > 0 && <span>{"\u00b7"}</span>}
+                <span className="text-success">{summary.targetRank} reached</span>
+                {summary.totalChecks > 0 && <span className="text-tertiary">,</span>}
               </>
             )}
             {summary && summary.totalChecks > 0 && (
@@ -759,7 +755,7 @@ export function TrackerGrid({
           Trackers
         </h2>
         <p className="font-mono text-xs text-tertiary">
-          {trackers.length} {trackers.length === 1 ? "account" : "accounts"} · as of{" "}
+          {trackers.length} {trackers.length === 1 ? "account" : "accounts"} as of{" "}
           {formatDate(now)}
         </p>
       </div>

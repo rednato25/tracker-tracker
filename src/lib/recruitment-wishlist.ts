@@ -148,7 +148,7 @@ export function stepRequirementText(step: WishlistStepView): string | null {
   const notes = step.evaluation.eligibility.requirementNotes
     .map((note) => note.trim())
     .filter((note) => note && !NO_REQUIREMENT.test(note))
-  if (notes.length > 0) return notes.join(" · ")
+  if (notes.length > 0) return notes.join("; ")
 
   const gate = step.evaluation.eligibility.sourceRequirements.inviteGate
   if (!gate) return null
@@ -198,10 +198,10 @@ export function stepWaitLabel(step: WishlistStepView): string {
 
   const status = stepWaitStatus(step)
   if (state === "unknown") {
-    return requirement ? `Wait unknown · needs ${requirement}` : "Wait unknown"
+    return requirement ? `Wait unknown, needs ${requirement}` : "Wait unknown"
   }
-  if (requirement) return `${status} · needs ${requirement}`
-  return stepHasUncheckedRequirements(step) ? `${status} · needs checking` : status
+  if (requirement) return `${status}, needs ${requirement}`
+  return stepHasUncheckedRequirements(step) ? `${status}, needs checking` : status
 }
 
 export function pathHasUncheckedRequirements(path: WishlistPathView): boolean {
@@ -219,14 +219,14 @@ export function pathWaitValue(path: WishlistPathView): string {
 export function pathWaitLabel(path: WishlistPathView): string {
   const days = path.totalDaysRemaining
   const unchecked = pathHasUncheckedRequirements(path)
-  if (days === null) return unchecked ? "Wait unknown · needs checking" : "Wait unknown"
+  if (days === null) return unchecked ? "Wait unknown, needs checking" : "Wait unknown"
   if (days === 0) {
     if (!unchecked) return "Ready now"
     if (path.steps.length === 1) return stepWaitLabel(path.steps[0])
-    return "Wait done · needs checking"
+    return "Wait done, needs checking"
   }
   const left = `${days} day${days === 1 ? "" : "s"} left`
-  return unchecked ? `${left} · needs checking` : left
+  return unchecked ? `${left}, needs checking` : left
 }
 
 function observationMap(tracker: TrackerSummary, now: Date): RankObservationMap {

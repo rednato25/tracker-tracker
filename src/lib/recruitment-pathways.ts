@@ -543,6 +543,42 @@ export interface PathwayRouteChoicesResult {
   pinnedFilteredOut: boolean
 }
 
+export interface PathwayRouteGroupView {
+  key: string
+  header: string
+  /** True when more than one route shares this tail. */
+  grouped: boolean
+  choices: PathwayRouteChoiceView[]
+}
+
+/**
+ * Groups routes by the hops after the first one, so two starting trackers that
+ * both reach the target through LST -> Aither sit under one "via LST -> Aither"
+ * header. Direct routes keep a "Direct to <target>" header.
+ */
+export function buildRouteGroups(
+  choices: PathwayRouteChoiceView[],
+  targetName: string
+): PathwayRouteGroupView[] {
+  const groups = new Map<string, PathwayRouteGroupView>()
+  for (const choice of choices) {
+    const steps = choice.path.steps
+    const direct = steps.length <= 1
+    const tailNames = direct
+      ? []
+      : [steps[0]?.destinationName, ...steps.slice(1).map((step) => step.destinationName)].filter(
+          (name): name is string => Boolean(name)
+        )
+    const key = direct ? "direct" : tailNames.join(">")
+    const header = direct ? `Direct to ${targetName}` : `via ${tailNames.join(" → ")}`
+    const group = groups.get(key) ?? { key, header, grouped: false, choices: [] }
+    group.choices.push(choice)
+    groups.set(key, group)
+  }
+  for (const group of groups.values()) group.grouped = group.choices.length > 1
+  return [...groups.values()]
+}
+
 function compareKnownWait(a: WishlistPathView, b: WishlistPathView): number {
   const aDays = a.totalDaysRemaining
   const bDays = b.totalDaysRemaining

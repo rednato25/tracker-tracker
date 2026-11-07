@@ -129,6 +129,7 @@ test.describe.serial("tracker pathways visual evidence", () => {
     ).toBeVisible()
     await expect(pathwaysPage.locator("[data-owned-card]").first()).toBeVisible()
     await expect(pathwaysPage.getByText(/Your trackers \(/)).toHaveCount(0)
+    await pathwaysPage.getByRole("tab", { name: "To a tracker" }).click()
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
     await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("Aither")
     await pathwaysPage.getByRole("option", { name: "Aither" }).click()
@@ -806,7 +807,7 @@ test.describe.serial("P32a foundation visual evidence", () => {
         expect(Math.abs(controlsBox.x - routeBox.x)).toBeLessThanOrEqual(2)
       }
       const sourceLine = page.getByText(/Source: Route data derived/).first()
-      await expect(sourceLine).toContainText(/accessed [A-Z][a-z]{2} \d{1,2}, \d{4}/)
+      await expect(sourceLine).toContainText(/Accessed [A-Z][a-z]{2} \d{1,2}, \d{4}/)
 
       for (const theme of ["light", "dark"] as const) {
         await page.evaluate((nextTheme) => {
@@ -1122,17 +1123,17 @@ test.describe.serial("P39 rank and pause card states", () => {
     }
 
     const top = cardFor(topId as number)
-    await expect(top).toContainText("Highest automatic class reached")
+    await expect(top).toContainText("highest automatic class reached")
 
     const reached = cardFor(reachedId as number)
-    await expect(reached).toContainText("Target reached: Power User")
+    await expect(reached).toContainText("Power User reached")
     await expect(reached).toContainText("Extreme User")
-    await expect(reached).toContainText("Automatic")
+    await expect(reached).toContainText("Next class")
 
     const paused = cardFor(pausedId as number)
     const pauseBlock = paused.locator("[data-failed-poll-pause]")
     await expect(pauseBlock).toContainText("Paused after 5 failed polls")
-    await expect(pauseBlock).toContainText(/next retry \d{2}:\d{2}/)
+    await expect(pauseBlock).toContainText(/Next retry \d{2}:\d{2}/)
     await expect(pauseBlock).toContainText("Timeout")
   })
 })
@@ -1227,22 +1228,21 @@ test.describe.serial("P40 pathway route choices", () => {
 
     const pinRow = pathwaysPage.locator('[data-route-choice][data-fastest="false"]').first()
     await expect(pinRow).toBeVisible()
-    const pinText = (await pinRow.textContent()) ?? ""
-    const pinnedHops = pinText.match(/(\d+) hops?/)?.[1] ?? ""
-    const pinnedWait = pinText.match(/(Ready now|\d+ days? left)/)?.[1] ?? ""
-    await pinRow.getByRole("button", { name: "Pin" }).click()
+    await pinRow.getByRole("button", { name: "Pin route" }).click()
     await expect(rows.first()).toHaveAttribute("data-pinned", "true")
     await expect(rows.nth(1)).toHaveAttribute("data-fastest", "true")
 
     await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
     await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("Anthelion")
     await pathwaysPage.getByRole("option", { name: "Anthelion" }).click()
-    const aitherChip = pathwaysPage.getByRole("button", { name: /Aither · .* hops ·/ })
-    await expect(aitherChip).toBeVisible()
-    await expect(aitherChip).toContainText(`${pinnedHops} hop`)
-    if (pinnedWait) await expect(aitherChip).toContainText(pinnedWait)
+    await expect(pathwaysPage.getByText("Other targets")).toHaveCount(0)
+    await expect(
+      pathwaysPage.locator('[data-pinned-route="Aither"]')
+    ).toBeVisible()
 
-    await aitherChip.click()
+    await pathwaysPage.getByRole("button", { name: "Choose a tracker" }).click()
+    await pathwaysPage.getByRole("combobox", { name: "Search trackerpathways" }).fill("Aither")
+    await pathwaysPage.getByRole("option", { name: "Aither" }).click()
     await page.reload()
     await expect(rows.first()).toHaveAttribute("data-pinned", "true")
 
@@ -1274,6 +1274,53 @@ test.describe.serial("P40 pathway route choices", () => {
       document.documentElement.dataset.theme = "dark"
     })
     await page.screenshot({ path: "test-results/p40-routes-390-dark.png" })
+
+    // P68: both tabs at both widths and themes, then a dashboard card.
+    for (const viewport of [
+      { width: 1440, height: 1400, suffix: "1440" },
+      { width: 390, height: 1200, suffix: "390" },
+    ]) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await pathwaysPage.getByRole("tab", { name: "From my trackers" }).click()
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        await page.waitForTimeout(150)
+        await page.screenshot({
+          path: `test-results/p68-from-${viewport.suffix}-${theme}.png`,
+        })
+      }
+      await pathwaysPage.getByRole("tab", { name: "To a tracker" }).click()
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        await page.waitForTimeout(150)
+        await page.screenshot({
+          path: `test-results/p68-to-${viewport.suffix}-${theme}.png`,
+        })
+      }
+    }
+
+    await page.goto("/")
+    const card = page.locator(`[data-tracker-card="${trackerId}"]`).first()
+    await expect(card).toBeVisible()
+    for (const viewport of [
+      { width: 1440, height: 1400 },
+      { width: 390, height: 1200 },
+    ]) {
+      await page.setViewportSize(viewport)
+      for (const theme of ["light", "dark"] as const) {
+        await page.evaluate((nextTheme) => {
+          document.documentElement.dataset.theme = nextTheme
+        }, theme)
+        await page.waitForTimeout(150)
+        await card.screenshot({
+          path: `test-results/p68-dashboard-card-${viewport.width}-${theme}.png`,
+        })
+      }
+    }
   })
 })
 

@@ -286,7 +286,7 @@ export function buildProofApplicationSummary(rows: ProofAccountRow[]): string {
         `ratio ${proofRatioLabel(account)}`,
       ]
       if (account.profileUrl) facts.push(account.profileUrl)
-      return `- **${oneLine(account.trackerName)}** — ${facts.join(" · ")}`
+      return `- **${oneLine(account.trackerName)}** — ${facts.join(", ")}`
     })
     .join("\n")
 }

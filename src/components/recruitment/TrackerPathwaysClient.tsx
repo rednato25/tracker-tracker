@@ -3,10 +3,10 @@
 "use client"
 
 import { H1, H2, H3, Paragraph, Subtext } from "@typography"
-import { useId, useMemo, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { ProofAccountsPanel } from "@/components/recruitment/ProofAccountsPanel"
 import { Badge, Button, Card, Input, Notice, Select } from "@/components/ui"
-import { ChevronDownSmallIcon, PinIcon, XIcon } from "@/components/ui/Icons"
+import { ChevronDownSmallIcon, InfoIcon, PinIcon, XIcon } from "@/components/ui/Icons"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
@@ -16,6 +16,7 @@ import type { ClassGateComparison } from "@/lib/rank-class-gate"
 import {
   buildOwnedTrackerCards,
   buildRouteChoices,
+  buildRouteGroups,
   buildTrackerProfile,
   type NoRouteView,
   type OwnedTrackerCardView,
@@ -40,7 +41,8 @@ import {
   buildWishlistPaths,
   hopWaitDays,
   pathWaitLabel,
-  pathWaitValue,
+  stepHasUncheckedRequirements,
+  stepRequirementText,
   type WishlistPathView,
 } from "@/lib/recruitment-wishlist"
 import type { TrackerSummary } from "@/types/api"
@@ -54,6 +56,19 @@ interface TrackerPathwaysClientProps {
 
 const TRACKERPATHWAYS_URL = "https://github.com/handokota/trackerpathways"
 const DESTINATION_LIMIT = 6
+const PATHWAYS_TAB_STORAGE_KEY = "tracker-tracker:pathways-tab"
+
+type PathwaysTab = "from" | "to"
+
+function readSavedTab(): PathwaysTab | null {
+  if (typeof window === "undefined") return null
+  try {
+    const saved = window.localStorage.getItem(PATHWAYS_TAB_STORAGE_KEY)
+    return saved === "from" || saved === "to" ? saved : null
+  } catch {
+    return null
+  }
+}
 
 function dateOnly(value: string | null): string {
   return value ? formatDate(value) : "unknown"
@@ -74,13 +89,13 @@ function RouteChips({ path }: { path: WishlistPathView }) {
       {names.map((name, index) => (
         <li key={`${name}-${index}`} className="flex items-center gap-1">
           <span
-            className="rounded-nm-sm border border-border bg-elevated px-2 py-1 font-mono text-xs text-primary"
+            className="rounded-nm-sm border border-border bg-elevated px-1.5 py-0.5 font-mono text-2xs text-primary"
             data-route-chip
           >
             {name}
           </span>
           {index < names.length - 1 && (
-            <span className="font-mono text-xs text-tertiary" aria-hidden="true">
+            <span className="font-mono text-2xs text-tertiary" aria-hidden="true">
               →
             </span>
           )}
@@ -105,23 +120,53 @@ function inviteTimingLabel(card: OwnedTrackerCardView) {
   )
 }
 
+function classGateLabel(gate: ClassGateComparison): string {
+  return gate.status === "met"
+    ? `${gate.currentClass ?? gate.written[0]} reached`
+    : gate.status === "not-yet"
+      ? `Needs ${gate.written.join(" or ")}`
+      : "Class unknown"
+}
+
 function ClassGateBadge({ gate }: { gate: ClassGateComparison }) {
-  const label = `${gate.status === "met" ? "Met" : gate.status === "not-yet" ? "Not yet" : "Class unknown"}: ${gate.written.join(" or ")}`
+  const label = classGateLabel(gate)
   return (
     <span
       data-class-gate={gate.status}
       title={gate.detail}
       className={
         gate.status === "met"
-          ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-success"
+          ? "text-2xs font-semibold text-success"
           : gate.status === "not-yet"
-            ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-warn"
-            : "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-tertiary"
+            ? "text-2xs font-semibold text-warn"
+            : "text-2xs font-semibold text-tertiary"
       }
     >
       {label}
     </span>
   )
+}
+
+function destinationStatus(
+  destination: OwnedTrackerCardView["destinations"][number],
+  sharedGate: ClassGateComparison | null
+): { label: string; tone: string; gateStatus: string | null } {
+  if (destination.closed) {
+    return { label: "Closed", tone: "text-tertiary", gateStatus: null }
+  }
+  if (destination.classGate && !sharedGate) {
+    return {
+      label: classGateLabel(destination.classGate),
+      tone:
+        destination.classGate.status === "met"
+          ? "text-success"
+          : destination.classGate.status === "not-yet"
+            ? "text-warn"
+            : "text-tertiary",
+      gateStatus: destination.classGate.status,
+    }
+  }
+  return { label: "Open", tone: "text-success", gateStatus: null }
 }
 
 function sharedGateLabel(card: OwnedTrackerCardView): string | null {
@@ -166,7 +211,6 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
           </p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
             <span>{tracker.latestStats?.group ?? "Unknown class"}</span>
-            <span className="text-tertiary">·</span>
             <span>{accountAge}</span>
           </p>
         </div>
@@ -194,42 +238,63 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
         </p>
       ) : (
         <>
-          <ul className="flex flex-col border-t border-border">
-            {destinations.map((destination) => (
-              <li
-                key={destination.routeId}
-                data-destination-row={destination.destinationTrackerId}
-                data-closed={destination.closed ? "true" : undefined}
-                className="flex items-baseline justify-between gap-3 border-b border-border/60 py-1.5 last:border-b-0"
-              >
-                <span
-                  className={`min-w-0 break-words text-xs ${
-                    destination.closed ? "text-tertiary" : "text-primary"
-                  }`}
-                >
-                  {destination.destinationName}
-                </span>
-                <div className="flex max-w-[58%] flex-col items-end gap-0.5 text-right">
-                  <span
-                    className={`line-clamp-2 text-xs ${
-                      destination.closed ? "text-tertiary" : "text-secondary"
-                    }`}
-                    title={destination.requirementText ?? undefined}
+          <table className="w-full table-fixed border-t border-border text-xs">
+            <colgroup>
+              <col className="w-[36%]" />
+              <col />
+              <col className="w-[32%]" />
+            </colgroup>
+            <thead>
+              <tr className="font-cond text-2xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+                <th className="py-1.5 pr-2 text-left font-semibold">Destination</th>
+                <th className="py-1.5 pr-2 text-left font-semibold">Requirement</th>
+                <th className="py-1.5 text-right font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {destinations.map((destination) => {
+                const status = destinationStatus(destination, card.sharedGate)
+                const requirement = destination.requirementText ?? "No requirement listed"
+                return (
+                  <tr
+                    key={destination.routeId}
+                    data-destination-row={destination.destinationTrackerId}
+                    data-closed={destination.closed ? "true" : undefined}
+                    className="border-t border-border/60"
                   >
-                    {destination.closed && (
-                      <span className="mr-1 font-cond text-2xs font-semibold uppercase tracking-[0.1em]">
-                        Closed
+                    <td
+                      className={`truncate py-1.5 pr-2 ${
+                        destination.closed ? "text-tertiary" : "text-primary"
+                      }`}
+                    >
+                      {destination.destinationName}
+                    </td>
+                    <td className="min-w-0 py-1.5 pr-2">
+                      <Tooltip content={requirement} interactive={false}>
+                        <span
+                          className={`block truncate ${
+                            destination.closed ? "text-tertiary" : "text-secondary"
+                          }`}
+                          title={requirement}
+                        >
+                          {requirement}
+                        </span>
+                      </Tooltip>
+                    </td>
+                    <td className="py-1.5 text-right">
+                      <span
+                        className={`block truncate font-semibold ${status.tone}`}
+                        data-gate-status={status.gateStatus ?? undefined}
+                        title={destination.classGate?.detail}
+                      >
+                        {status.label}
                       </span>
-                    )}
-                    {destination.requirementText ?? "No requirement text"}
-                  </span>
-                  {destination.classGate && !card.sharedGate && (
-                    <ClassGateBadge gate={destination.classGate} />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
           <div className="flex flex-wrap gap-3">
             {moreCount > 0 && (
               <button
@@ -299,7 +364,7 @@ function ProfileRouteList({
                 </span>
                 <span className="shrink-0 font-mono text-2xs text-tertiary">
                   {route.days === null ? "No wait" : `${route.days} days`}
-                  {route.closed ? " · Closed" : ""}
+                  {route.closed ? ", closed" : ""}
                 </span>
               </div>
               <p
@@ -393,7 +458,7 @@ function TargetProfile({
             </h4>
             {profile.invitedFrom.length > 0 && (
               <span className="font-mono text-2xs text-tertiary">
-                {profile.invitedOpenCount} open · {profile.invitedClosedCount} closed
+                {profile.invitedOpenCount} open, {profile.invitedClosedCount} closed
               </span>
             )}
           </div>
@@ -461,7 +526,7 @@ function NoRouteSource({ source }: { source: ReachableSourceView }) {
         <p className="text-xs text-secondary">You are on this tracker.</p>
       ) : source.path ? (
         <p className="break-words font-mono text-xs text-secondary">
-          {routeChain(source.path)} · {pathWaitLabel(source.path)}
+          {routeChain(source.path)}, {pathWaitLabel(source.path)}
         </p>
       ) : (
         <p className="text-xs text-secondary">No path from your trackers.</p>
@@ -551,6 +616,36 @@ function RouteControls({
   )
 }
 
+function unverifiedSummary(path: WishlistPathView): string {
+  const details = path.steps
+    .filter(stepHasUncheckedRequirements)
+    .map((step) => {
+      const requirement = stepRequirementText(step)
+      return requirement ? `${step.destinationName}: ${requirement}` : step.destinationName
+    })
+  if (details.length === 0) {
+    return "Some requirements on this route are unverified. Check the tracker before applying."
+  }
+  return `Unverified on this route: ${details.join("; ")}. Check the tracker before applying.`
+}
+
+function CheckingStatus({ path, needsChecking }: { path: WishlistPathView; needsChecking: boolean }) {
+  if (!needsChecking) {
+    return <span className="text-success">Checked</span>
+  }
+  return (
+    <Tooltip content={unverifiedSummary(path)} interactive={false}>
+      <button
+        type="button"
+        aria-label="Needs checking"
+        className="inline-flex text-warn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)]"
+      >
+        <InfoIcon width="13" height="13" aria-hidden="true" />
+      </button>
+    </Tooltip>
+  )
+}
+
 function RouteChoiceRow({
   choice,
   onTogglePin,
@@ -564,35 +659,50 @@ function RouteChoiceRow({
       data-pinned={choice.pinned}
       data-fastest={choice.fastest}
       data-needs-checking={choice.needsChecking}
-      className="flex flex-col gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0"
+      className={`flex flex-col gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0 ${
+        choice.fastest ? "border border-success/40 bg-success/5 px-2 pb-2" : ""
+      }`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            {choice.pinned && <Badge variant="accent">Pinned</Badge>}
-            {choice.fastest && <Badge variant="success">Fastest</Badge>}
+            {choice.fastest && (
+              <span className="text-2xs font-semibold text-success" data-fastest-label>
+                Fastest
+              </span>
+            )}
+            <RouteChips path={choice.path} />
           </div>
-          <RouteChips path={choice.path} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-2xs">
+            <span className="text-tertiary">
+              {choice.hops} {choice.hops === 1 ? "hop" : "hops"}
+            </span>
+            <span className="text-secondary">{choice.waitLabel}</span>
+            {choice.classGate && <ClassGateBadge gate={choice.classGate} />}
+            <CheckingStatus path={choice.path} needsChecking={choice.needsChecking} />
+          </div>
         </div>
-        <Button
-          size="sm"
-          variant={choice.pinned ? "primary" : "secondary"}
-          aria-pressed={choice.pinned}
-          className="min-h-11"
-          text={choice.pinned ? "Unpin" : "Pin"}
-          onClick={() => onTogglePin(choice.path.key)}
-        />
+        <Tooltip content={choice.pinned ? "Unpin this route" : "Pin this route"} interactive={false}>
+          <button
+            type="button"
+            aria-label={choice.pinned ? "Unpin route" : "Pin route"}
+            aria-pressed={choice.pinned}
+            onClick={() => onTogglePin(choice.path.key)}
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center border text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] ${
+              choice.pinned
+                ? "border-accent bg-accent-dim text-accent"
+                : "border-border bg-raised text-secondary hover:text-primary"
+            }`}
+          >
+            <PinIcon
+              width="14"
+              height="14"
+              aria-hidden="true"
+              fill={choice.pinned ? "currentColor" : "none"}
+            />
+          </button>
+        </Tooltip>
       </div>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-2xs">
-        <span className="text-tertiary">
-          {choice.hops} {choice.hops === 1 ? "hop" : "hops"}
-        </span>
-        <span className="text-secondary">{choice.waitLabel}</span>
-        <span className={choice.needsChecking ? "text-warn" : "text-success"}>
-          {choice.needsChecking ? "Needs checking" : "No checks pending"}
-        </span>
-      </div>
-      {choice.classGate && <ClassGateBadge gate={choice.classGate} />}
     </li>
   )
 }
@@ -853,13 +963,7 @@ export function TrackerPathwaysClient({
   catalog = RECRUITMENT_CATALOG,
 }: TrackerPathwaysClientProps) {
   const [state, setState] = useState(initialState)
-  const [targets, setTargets] = useState<string[]>(() => {
-    const initial = initialState.desiredTrackerSlug ? [initialState.desiredTrackerSlug] : []
-    for (const target of Object.keys(initialState.pinnedRoutes)) {
-      if (!initial.includes(target)) initial.push(target)
-    }
-    return initial
-  })
+  const [tab, setTab] = useState<PathwaysTab>(initialState.desiredTrackerSlug ? "to" : "from")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [now] = useState(() => new Date())
@@ -867,6 +971,20 @@ export function TrackerPathwaysClient({
   const [maxHops, setMaxHops] = useState(3)
   const [startFrom, setStartFrom] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
+
+  useEffect(() => {
+    const saved = readSavedTab()
+    if (saved) setTab(saved)
+  }, [])
+
+  function chooseTab(next: PathwaysTab) {
+    setTab(next)
+    try {
+      window.localStorage.setItem(PATHWAYS_TAB_STORAGE_KEY, next)
+    } catch {
+      // A blocked storage API must not stop the tab from switching.
+    }
+  }
 
   const result = useMemo(
     () =>
@@ -899,7 +1017,6 @@ export function TrackerPathwaysClient({
   const activeTarget = state.desiredTrackerSlug
   const activeTargetName = activeTarget ? pathwaysTrackerName(activeTarget) : null
   const activeTargetOwned = activeTarget ? ownedIds.has(activeTarget) : false
-  const chips = targets.filter((target) => target !== activeTarget)
 
   const profile = useMemo(
     () =>
@@ -938,35 +1055,6 @@ export function TrackerPathwaysClient({
         .sort((a, b) => a.name.localeCompare(b.name)),
     [ownedIds]
   )
-
-  const chipLabels = useMemo(() => {
-    const labels: Record<string, string> = {}
-    for (const target of targets) {
-      if (target === activeTarget) continue
-      const name = pathwaysTrackerName(target)
-      const pinnedKey = state.pinnedRoutes[target]
-      if (!pinnedKey) {
-        labels[target] = name
-        continue
-      }
-      const result = buildWishlistPaths({
-        catalog,
-        desiredTrackerSlug: target,
-        trackers,
-        savedRankGoals: {},
-        state,
-        now,
-        maxHops: 3,
-        maxPathsPerSource: 200,
-        maxTotal: 500,
-      })
-      const pinned = result.paths.find((path) => path.key === pinnedKey)
-      labels[target] = pinned
-        ? `${name} · ${pinned.routeIds.length} ${pinned.routeIds.length === 1 ? "hop" : "hops"} · ${pathWaitValue(pinned)}`
-        : name
-    }
-    return labels
-  }, [activeTarget, catalog, now, state, targets, trackers])
 
   // Every target keeps its own pin. This list reads them all, including targets
   // that are not the active one, so switching targets never hides a pin.
@@ -1052,11 +1140,8 @@ export function TrackerPathwaysClient({
 
   async function chooseTarget(nextTarget: string) {
     if (!nextTarget || nextTarget === activeTarget) return
-    const previousTargets = targets
-    if (!targets.includes(nextTarget)) setTargets([...targets, nextTarget])
     setShowAll(false)
-    const saved = await persistState({ ...state, desiredTrackerSlug: nextTarget }, state)
-    if (!saved) setTargets(previousTargets)
+    await persistState({ ...state, desiredTrackerSlug: nextTarget }, state)
   }
 
   async function togglePin(key: string) {
@@ -1080,6 +1165,10 @@ export function TrackerPathwaysClient({
   }
 
   const visibleChoices = routeChoices?.choices.slice(0, showAll ? undefined : 10) ?? []
+  const routeGroups = useMemo(
+    () => buildRouteGroups(visibleChoices, activeTargetName ?? ""),
+    [activeTargetName, visibleChoices]
+  )
 
   return (
     <div className="flex flex-col gap-6 pb-12" data-pathways-page data-page-frame>
@@ -1093,6 +1182,41 @@ export function TrackerPathwaysClient({
         </Paragraph>
       </div>
 
+      <div
+        role="tablist"
+        aria-label="Pathways view"
+        className="inline-flex w-full max-w-md border border-border bg-raised p-1 sm:w-auto"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="pathways-tab-from"
+          aria-selected={tab === "from"}
+          aria-controls="pathways-panel-from"
+          onClick={() => chooseTab("from")}
+          className={`min-h-11 flex-1 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] ${
+            tab === "from" ? "bg-elevated text-primary" : "text-secondary hover:text-primary"
+          }`}
+        >
+          From my trackers
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="pathways-tab-to"
+          aria-selected={tab === "to"}
+          aria-controls="pathways-panel-to"
+          onClick={() => chooseTab("to")}
+          className={`min-h-11 flex-1 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] ${
+            tab === "to" ? "bg-elevated text-primary" : "text-secondary hover:text-primary"
+          }`}
+        >
+          To a tracker
+        </button>
+      </div>
+
+      {tab === "to" && (
+        <>
       <section
         className="flex flex-col gap-3"
         aria-labelledby="my-pinned-routes-heading"
@@ -1163,8 +1287,16 @@ export function TrackerPathwaysClient({
           </div>
         )}
       </section>
+        </>
+      )}
 
-      <section className="flex flex-col gap-3" aria-labelledby="where-your-trackers-heading">
+      {tab === "from" && (
+        <section
+          className="flex flex-col gap-3"
+          id="pathways-panel-from"
+          role="tabpanel"
+          aria-labelledby="pathways-tab-from"
+        >
         <div className="flex flex-col gap-1">
           <H2 id="where-your-trackers-heading">Where your trackers can take you</H2>
           <Paragraph>
@@ -1208,8 +1340,15 @@ export function TrackerPathwaysClient({
           </p>
         )}
       </section>
+      )}
 
-      <section className="flex flex-col gap-3" aria-labelledby="get-to-tracker-heading">
+      {tab === "to" && (
+        <section
+          className="flex flex-col gap-3"
+          id="pathways-panel-to"
+          role="tabpanel"
+          aria-labelledby="pathways-tab-to"
+        >
         <div className="flex flex-col gap-1">
           <H2 id="get-to-tracker-heading">Get to a tracker</H2>
           <Paragraph>
@@ -1222,24 +1361,6 @@ export function TrackerPathwaysClient({
           <TrackerPicker value={activeTarget} options={pickerOptions} onChoose={chooseTarget} />
           {saving && <span className="text-2xs text-tertiary">Saving…</span>}
         </div>
-
-        {chips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
-              Other targets
-            </span>
-            {chips.map((target) => (
-              <Button
-                key={target}
-                size="sm"
-                variant="secondary"
-                className="max-w-full whitespace-normal text-left"
-                text={chipLabels[target] ?? pathwaysTrackerName(target)}
-                onClick={() => chooseTarget(target)}
-              />
-            ))}
-          </div>
-        )}
 
         <p className="text-xs text-secondary">
           <a
@@ -1295,12 +1416,30 @@ export function TrackerPathwaysClient({
                 {routeChoices && routeChoices.total > 0 ? (
                   <>
                     <ul className="flex flex-col gap-3" data-route-list>
-                      {visibleChoices.map((choice) => (
-                        <RouteChoiceRow
-                          key={choice.path.key}
-                          choice={choice}
-                          onTogglePin={togglePin}
-                        />
+                      {routeGroups.map((group) => (
+                        <li
+                          key={group.key}
+                          data-route-group={group.key}
+                          className="flex flex-col gap-2"
+                        >
+                          {group.grouped && (
+                            <h3
+                              data-route-group-header
+                              className="font-cond text-2xs font-semibold text-tertiary"
+                            >
+                              {group.header}
+                            </h3>
+                          )}
+                          <ul className="flex flex-col gap-3">
+                            {group.choices.map((choice) => (
+                              <RouteChoiceRow
+                                key={choice.path.key}
+                                choice={choice}
+                                onTogglePin={togglePin}
+                              />
+                            ))}
+                          </ul>
+                        </li>
                       ))}
                     </ul>
                     {routeChoices.total > 10 && (
@@ -1328,6 +1467,7 @@ export function TrackerPathwaysClient({
           </div>
         ) : null}
       </section>
+      )}
 
       <Subtext className="text-2xs">
         Source: {catalog.source.attribution}{" "}
@@ -1338,8 +1478,8 @@ export function TrackerPathwaysClient({
           rel="noopener noreferrer"
         >
           {catalog.source.name}
-        </a>{" "}
-        · {catalog.source.license} · accessed {dateOnly(catalog.source.accessedAt)}.
+        </a>
+        . {catalog.source.license}. Accessed {dateOnly(catalog.source.accessedAt)}.
       </Subtext>
     </div>
   )

@@ -140,8 +140,8 @@ describe("P36 wait and requirement labels", () => {
       joinedAt: JUST_JOINED,
     })
     expect(stepWaitState(path.steps[0])).toBe("waiting")
-    expect(stepWaitLabel(path.steps[0])).toBe("30 days left · needs 3TB upload")
-    expect(pathWaitLabel(path)).toBe("30 days left · needs checking")
+    expect(stepWaitLabel(path.steps[0])).toBe("30 days left, needs 3TB upload")
+    expect(pathWaitLabel(path)).toBe("30 days left, needs checking")
   })
 
   it("uses the source invite class when the route has no prose", () => {
@@ -191,6 +191,6 @@ describe("P36 wait and requirement labels", () => {
       ],
     })
     expect(path.steps).toHaveLength(2)
-    expect(pathWaitLabel(path)).toBe("Wait done · needs checking")
+    expect(pathWaitLabel(path)).toBe("Wait done, needs checking")
   })
 })

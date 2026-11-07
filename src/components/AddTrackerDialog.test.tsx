@@ -257,3 +257,20 @@ describe("AddTrackerDialog request bodies", () => {
     expect(saved).not.toHaveProperty("platformType")
   })
 })
+
+describe("AddTrackerDialog existing trackers", () => {
+  // Two rows for one site split its stats and rank across trackers that can never
+  // be merged, so a tracker already in the vault is not offered at all. The caller
+  // supplies the list from the shared ["trackers"] query.
+  it("does not offer a tracker the vault already holds", async () => {
+    const user = userEvent.setup()
+    render(
+      <AddTrackerDialog open onClose={vi.fn()} onAdded={vi.fn()} existingSlugs={["aither"]} />
+    )
+
+    await user.click(screen.getByPlaceholderText("Search trackers..."))
+
+    expect(screen.queryByRole("option", { name: /^Aither/ })).not.toBeInTheDocument()
+    expect(screen.getByRole("option", { name: /^Blutopia/ })).toBeInTheDocument()
+  })
+})

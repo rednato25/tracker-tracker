@@ -1172,6 +1172,13 @@ describe("Input validation: POST /api/trackers", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     mockAuthSuccess()
+    // The duplicate guard reads the vault before inserting. No row carries the
+    // slug under test, so these cases still reach the insert.
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
+      }),
+    } as unknown as ReturnType<typeof db.select>)
   })
 
   // "rejects missing required fields", "rejects oversized name", and

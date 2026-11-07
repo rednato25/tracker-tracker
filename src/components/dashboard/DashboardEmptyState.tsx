@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { AddTrackerDialog } from "@/components/AddTrackerDialog"
 import { Button, PlusIcon } from "@/components/ui"
+import { useExistingTrackerSlugs } from "@/hooks/useExistingTrackerSlugs"
 
 interface DashboardEmptyStateProps {
   /** Refetches the dashboard queries once the first tracker exists. */
@@ -21,6 +22,9 @@ interface DashboardEmptyStateProps {
 function DashboardEmptyState({ onAdded }: DashboardEmptyStateProps) {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const router = useRouter()
+  // The empty state appears when no tracker is active, which a vault of only
+  // archived trackers also reaches. Those rows would otherwise be offered again.
+  const existingSlugs = useExistingTrackerSlugs()
 
   return (
     <div className="mx-auto max-w-2xl pt-12 pb-12">
@@ -55,6 +59,7 @@ function DashboardEmptyState({ onAdded }: DashboardEmptyStateProps) {
           void onAdded()
           router.push(`/trackers/${id}`)
         }}
+        existingSlugs={existingSlugs}
       />
     </div>
   )

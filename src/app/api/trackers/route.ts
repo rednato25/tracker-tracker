@@ -2,6 +2,7 @@
 //
 // Functions: GET, POST
 
+import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { getTrackerBySlug } from "@/data/tracker-registry"
 import {
@@ -121,6 +122,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    // One row per registry entry. The dialog hides what the vault already holds,
+    // but a stale tab, a slow list fetch, or a hand-rolled request can still get
+    // here, and a second row for the same site splits its stats and rank across
+    // two trackers that can never be merged. Refuse at the point of writing.
+    const [alreadyTracked] = await db
+      .select({ id: trackers.id })
+      .from(trackers)
+      .where(eq(trackers.registrySlug, entry.slug))
+      .limit(1)
+
+    if (alreadyTracked) {
+      return NextResponse.json({ error: `${entry.name} is already in your vault` }, { status: 409 })
+    }
+
     const key = decodeKey(auth)
     const encryptedApiToken = encrypt(trimmedApiToken, key)
 

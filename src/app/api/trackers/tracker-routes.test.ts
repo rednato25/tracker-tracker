@@ -239,8 +239,19 @@ describe("GET /api/trackers", () => {
 })
 
 describe("POST /api/trackers", () => {
+  /** No row holds the slug under test, so the duplicate guard finds nothing. */
+  function mockNoExistingTracker() {
+    const mockLimit = vi.fn().mockResolvedValue([])
+    ;(db.select as ReturnType<typeof vi.fn>).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({ limit: mockLimit }),
+      }),
+    })
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
+    mockNoExistingTracker()
     ;(authenticate as ReturnType<typeof vi.fn>).mockResolvedValue({
       encryptionKey: VALID_KEY,
     })
@@ -448,6 +459,25 @@ describe("POST /api/trackers", () => {
 
     expect(response.status).toBe(400)
     expect(data.error).toMatch(/color/i)
+  })
+
+  it("returns 409 when the vault already holds that registry entry", async () => {
+    const body = { name: "Aither", slug: "aither", apiToken: "mytoken" }
+    ;(parseJsonBody as ReturnType<typeof vi.fn>).mockResolvedValue(body)
+
+    const mockLimit = vi.fn().mockResolvedValue([{ id: 1 }])
+    ;(db.select as ReturnType<typeof vi.fn>).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({ limit: mockLimit }),
+      }),
+    })
+
+    const response = await POST(makeRequest("http://localhost/api/trackers", body, "POST"))
+    const data = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(data.error).toBe("Aither is already in your vault")
+    expect(db.insert).not.toHaveBeenCalled()
   })
 
   it("returns 401 when unauthenticated", async () => {

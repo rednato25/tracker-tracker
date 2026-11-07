@@ -3,6 +3,7 @@
 "use client"
 
 import { BookIcon, GitHubIcon, HamburgerIcon, PlusIcon, PowerIcon, XIcon } from "@icons"
+import { useQueryClient } from "@tanstack/react-query"
 import clsx from "clsx"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -11,8 +12,10 @@ import { AddTrackerDialog } from "@/components/AddTrackerDialog"
 import { ChangelogDialog } from "@/components/layout/ChangelogDialog"
 import { ThemeToggle } from "@/components/layout/ThemeToggle"
 import { Button } from "@/components/ui"
+import { useExistingTrackerSlugs } from "@/hooks/useExistingTrackerSlugs"
 import { useUpdateCheck } from "@/hooks/useUpdateCheck"
 import { DOCS_URL } from "@/lib/constants"
+import { trackerQueryOptions } from "@/lib/query-options"
 
 const REPO_URL = "https://github.com/jordanlambrecht/tracker-tracker"
 const NAV_ITEMS = [
@@ -24,10 +27,12 @@ const NAV_ITEMS = [
 function AppHeader() {
   const pathname = usePathname()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [changelogOpen, setChangelogOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const { latestVersion, updateAvailable } = useUpdateCheck()
+  const existingSlugs = useExistingTrackerSlugs()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger, so we intentionally close on route change
   useEffect(() => {
@@ -180,8 +185,13 @@ function AppHeader() {
         onClose={() => setAddOpen(false)}
         onAdded={(id) => {
           setAddOpen(false)
+          // The dialog filters its list on this cache. Without the refetch it
+          // keeps offering the tracker just created until the 2-minute stale
+          // window expires, which is exactly how a duplicate gets offered twice.
+          queryClient.invalidateQueries({ queryKey: trackerQueryOptions.queryKey })
           router.push(`/trackers/${id}`)
         }}
+        existingSlugs={existingSlugs}
       />
       <ChangelogDialog open={changelogOpen} onClose={() => setChangelogOpen(false)} />
     </>

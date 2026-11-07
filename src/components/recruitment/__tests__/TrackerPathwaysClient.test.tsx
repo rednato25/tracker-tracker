@@ -484,7 +484,30 @@ describe("TrackerPathwaysClient", () => {
     expect(screen.getByRole("button", { name: "Show first 10" })).toBeInTheDocument()
   })
 
-  it("pins a route first and keeps the pin after a remount", async () => {
+  it("explains unverified route requirements from an info icon", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={P38_CATALOG}
+      />
+    )
+    await openToTab(user)
+
+    const row = container.querySelector(
+      '[data-route-choice][data-needs-checking="true"]'
+    ) as HTMLElement
+    const info = within(row).getByRole("button", { name: "Needs checking" })
+    expect(row).not.toHaveTextContent("Needs checking")
+    await user.hover(info)
+
+    const tooltip = await screen.findByRole("tooltip")
+    expect(tooltip).toHaveTextContent("Unverified on this route:")
+    expect(tooltip).toHaveTextContent("Check the tracker before applying.")
+  })
+
+  it("keeps the pinned route first and shows the fastest row highlight", async () => {
     const user = userEvent.setup()
     const first = render(
       <TrackerPathwaysClient

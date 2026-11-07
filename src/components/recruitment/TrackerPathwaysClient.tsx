@@ -40,7 +40,6 @@ import {
   buildWishlistPaths,
   hopWaitDays,
   pathWaitLabel,
-  pathWaitValue,
   type WishlistPathView,
 } from "@/lib/recruitment-wishlist"
 import type { TrackerSummary } from "@/types/api"
@@ -867,13 +866,6 @@ export function TrackerPathwaysClient({
 }: TrackerPathwaysClientProps) {
   const [state, setState] = useState(initialState)
   const [tab, setTab] = useState<PathwaysTab>(initialState.desiredTrackerSlug ? "to" : "from")
-  const [targets, setTargets] = useState<string[]>(() => {
-    const initial = initialState.desiredTrackerSlug ? [initialState.desiredTrackerSlug] : []
-    for (const target of Object.keys(initialState.pinnedRoutes)) {
-      if (!initial.includes(target)) initial.push(target)
-    }
-    return initial
-  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [now] = useState(() => new Date())
@@ -927,7 +919,6 @@ export function TrackerPathwaysClient({
   const activeTarget = state.desiredTrackerSlug
   const activeTargetName = activeTarget ? pathwaysTrackerName(activeTarget) : null
   const activeTargetOwned = activeTarget ? ownedIds.has(activeTarget) : false
-  const chips = targets.filter((target) => target !== activeTarget)
 
   const profile = useMemo(
     () =>
@@ -966,35 +957,6 @@ export function TrackerPathwaysClient({
         .sort((a, b) => a.name.localeCompare(b.name)),
     [ownedIds]
   )
-
-  const chipLabels = useMemo(() => {
-    const labels: Record<string, string> = {}
-    for (const target of targets) {
-      if (target === activeTarget) continue
-      const name = pathwaysTrackerName(target)
-      const pinnedKey = state.pinnedRoutes[target]
-      if (!pinnedKey) {
-        labels[target] = name
-        continue
-      }
-      const result = buildWishlistPaths({
-        catalog,
-        desiredTrackerSlug: target,
-        trackers,
-        savedRankGoals: {},
-        state,
-        now,
-        maxHops: 3,
-        maxPathsPerSource: 200,
-        maxTotal: 500,
-      })
-      const pinned = result.paths.find((path) => path.key === pinnedKey)
-      labels[target] = pinned
-        ? `${name} · ${pinned.routeIds.length} ${pinned.routeIds.length === 1 ? "hop" : "hops"} · ${pathWaitValue(pinned)}`
-        : name
-    }
-    return labels
-  }, [activeTarget, catalog, now, state, targets, trackers])
 
   // Every target keeps its own pin. This list reads them all, including targets
   // that are not the active one, so switching targets never hides a pin.
@@ -1080,11 +1042,8 @@ export function TrackerPathwaysClient({
 
   async function chooseTarget(nextTarget: string) {
     if (!nextTarget || nextTarget === activeTarget) return
-    const previousTargets = targets
-    if (!targets.includes(nextTarget)) setTargets([...targets, nextTarget])
     setShowAll(false)
-    const saved = await persistState({ ...state, desiredTrackerSlug: nextTarget }, state)
-    if (!saved) setTargets(previousTargets)
+    await persistState({ ...state, desiredTrackerSlug: nextTarget }, state)
   }
 
   async function togglePin(key: string) {
@@ -1300,24 +1259,6 @@ export function TrackerPathwaysClient({
           <TrackerPicker value={activeTarget} options={pickerOptions} onChoose={chooseTarget} />
           {saving && <span className="text-2xs text-tertiary">Saving…</span>}
         </div>
-
-        {chips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-2xs uppercase tracking-[0.12em] text-tertiary">
-              Other targets
-            </span>
-            {chips.map((target) => (
-              <Button
-                key={target}
-                size="sm"
-                variant="secondary"
-                className="max-w-full whitespace-normal text-left"
-                text={chipLabels[target] ?? pathwaysTrackerName(target)}
-                onClick={() => chooseTarget(target)}
-              />
-            ))}
-          </div>
-        )}
 
         <p className="text-xs text-secondary">
           <a

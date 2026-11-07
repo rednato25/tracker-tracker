@@ -465,7 +465,7 @@ describe("TrackerPathwaysClient", () => {
     expect(remountedRows[1]).toHaveTextContent("Fastest")
   })
 
-  it("shows the pinned route on the other-target chip", async () => {
+  it("keeps a pinned target in the tree after switching through the picker", async () => {
     const user = userEvent.setup()
     const { container } = render(
       <TrackerPathwaysClient
@@ -491,8 +491,10 @@ describe("TrackerPathwaysClient", () => {
     await user.type(screen.getByRole("combobox", { name: "Search trackerpathways" }), "Aither")
     await user.click(screen.getByRole("option", { name: "Aither" }))
 
-    const chip = screen.getByRole("button", { name: /BroadcasTheNet · 3 hops/ })
-    expect(chip).toHaveTextContent("1 day left")
+    expect(screen.queryByText("Other targets")).toBeNull()
+    expect(
+      container.querySelector('[data-pinned-route="BroadcasTheNet"]')
+    ).not.toBeNull()
   })
 
   it("shows the no-route profile and the trackerpathways link", async () => {
@@ -539,7 +541,7 @@ describe("TrackerPathwaysClient", () => {
     ).toBeInTheDocument()
   })
 
-  it("saves a target and exposes the previous target as a switchable chip", async () => {
+  it("saves the chosen target and replaces the picker label", async () => {
     const user = userEvent.setup()
     render(
       <TrackerPathwaysClient
@@ -561,15 +563,9 @@ describe("TrackerPathwaysClient", () => {
       })
     })
 
-    const chip = screen.getByRole("button", { name: "BroadcasTheNet" })
-    expect(chip).toBeInTheDocument()
-    await user.click(chip)
-    await waitFor(() => {
-      const puts = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT")
-      expect(JSON.parse(String(puts.at(-1)?.[1]?.body))).toMatchObject({
-        state: { desiredTrackerSlug: "BroadcasTheNet" },
-      })
-    })
+    const picker = screen.getByRole("button", { name: "Choose a tracker" })
+    expect(within(picker).getByText("Aither")).toBeInTheDocument()
+    expect(screen.queryByText("Other targets")).toBeNull()
   })
 
   it("compares a named gate class with the current class", () => {
@@ -812,7 +808,12 @@ describe("TrackerPathwaysClient", () => {
     })
     expect(container.querySelector('[data-pinned-route="BroadcasTheNet"]')).not.toBeNull()
 
-    await user.click(screen.getByRole("button", { name: /^BroadcasTheNet/ }))
+    await user.click(screen.getByRole("button", { name: "Choose a tracker" }))
+    await user.type(
+      screen.getByRole("combobox", { name: "Search trackerpathways" }),
+      "BroadcasTheNet"
+    )
+    await user.click(screen.getByRole("option", { name: "BroadcasTheNet" }))
     await waitFor(() => {
       const firstChoice = container.querySelector("[data-route-choice]") as HTMLElement
       expect(firstChoice).toHaveAttribute("data-pinned", "true")

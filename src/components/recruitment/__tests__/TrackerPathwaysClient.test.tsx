@@ -207,6 +207,25 @@ describe("TrackerPathwaysClient", () => {
     )
   })
 
+  it("keeps pathways copy free of middle-dot separators in both tabs", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={P38_CATALOG}
+      />
+    )
+    const page = container.querySelector("[data-pathways-page]") as HTMLElement
+
+    await user.click(screen.getByRole("tab", { name: "From my trackers" }))
+    expect(page).not.toHaveTextContent("·")
+    expect(page).toHaveTextContent("Invites open now")
+
+    await openToTab(user)
+    expect(page).not.toHaveTextContent("·")
+  })
+
   it("uses the Tracker pathways name and the dashboard header row", async () => {
     const user = userEvent.setup()
     render(

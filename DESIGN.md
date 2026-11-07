@@ -275,29 +275,42 @@ the only violet used for controls.
 
 - The page uses the dashboard frame: the same H1 rule row, 24px major gaps, flat
   raised cards, and Geist Mono for numbers, days and dates.
-- "Where your trackers can take you" comes first: one card per owned tracker that
-  has routes, not one row per route. The card header names the tracker and shows
-  when its invites open: `Invites open now` or `Invites open in N days`. Use the
-  source `unlockInviteClass` gate for this timing, including MAM's gate.
+- Split the page into two tabs: **From my trackers** (source cards) and **To a
+  tracker** (picker, pinned tree, route list). Remember the last tab per browser;
+  a saved target opens **To a tracker** on a first visit.
+- **From my trackers** comes first: one card per owned tracker that has routes,
+  not one row per route. The card header names the tracker and shows when its
+  invites open: `Invites open now` or `Invites open in N days`. Use the source
+  `unlockInviteClass` gate for this timing, including MAM's gate.
 - Sort the owned-tracker cards by soonest invite: open now first, then the
   smallest remaining days, then unknown.
-- Inside each card, destinations are compact rows of name plus requirement.
-  Show the first six, then a `+N more` control that reveals the rest.
-- Closed routes stay visible but greyed with a written `Closed` label. They are
-  never part of a best path.
+- Each card is a compact table with three aligned columns: **Destination**,
+  **Requirement**, **Status**. One line per row. Long requirements truncate with
+  the full text in a tooltip. Status is short sentence case (`Open`, `Closed`,
+  `Needs Super User`, `Power User reached`) and color carries the state.
+- Show the first six open destinations, then a `+N more` control. Closed routes
+  stay hidden behind `Show N closed`; they are never part of a best path.
+- A source-wide invite class is stated once in the card header
+  (`Invites from Super User, you are PowerUser, 27 days`), never repeated on
+  every row. Rows keep only destination-specific requirements.
+- Destinations the user already owns never appear as destinations. Name them at
+  most in one muted `Already a member: …` line above the cards.
+- **To a tracker** holds the picker, the pinned tree and the route list. Do not
+  add a separate "Other targets" chip row; the picker and pinned tree cover it.
 - The target picker opens a tracker profile. List every known route from owned
   trackers within the current max-hop limit, up to 10, then `Show all (N)`.
 - Controls above the list: sort by `Fastest` (days left) or `Fewest hops`; max
   hops `1`, `2`, `3` (default `3`); `Start from` all owned trackers or one.
-- Each route row shows its chain, hop count, total wait (`Ready now`,
-  `N days left` or `Unknown`) and `Needs checking` or `No checks pending`.
+- Group routes that share their last hops under one header
+  (`via LST → Aither`); list the starting options below, each with its wait.
+  One row per route: chain as small chips, hop count, wait, gate status and a
+  pin icon toggle with a tooltip. The fastest row gets a subtle highlight and a
+  small `Fastest` label, not a separate badge row.
+- "Needs checking" is a small info icon with a tooltip naming what is
+  unverified. Do not spend row space on a text status.
 - Unknown waits always sort after known waits in both sort orders.
 - Pin one route per target. The pinned route comes first; when it differs, the
-  `Fastest` route sits directly below it. The fastest route always keeps its
-  `Fastest` label.
-- A pinned route's hops and wait appear on that target's chip under
-  `Other targets`. The pin lives in the recruitment-state JSON, so it needs no
-  migration and survives reloads.
+  fastest route sits directly below it.
 - The profile card shows the target, the class needed on that tracker to send
   invites, its recruiting status and checked date, `Invited from` and
   `Can invite to`. Both lists mark closed routes.
@@ -321,6 +334,19 @@ the only violet used for controls.
 - Tabs and segmented controls: a single bordered track with the active segment on
   surface; no sliding pill animation.
 - Status dots: 8px, semantic color, always paired with a written label.
+
+## Copy
+
+- No ` · ` separators. Use columns, a sentence, or natural text:
+  `Joined 2 Oct 2026 (1 month)`, `3 open, 2 closed`, `12 days, closed`.
+- Sentence case for statuses: `Needs Trailblazer`, `Power User reached`,
+  `Invites open now`. Never set a status in all caps.
+- Color carries the state; words stay short. A written word always accompanies
+  the color, but it does not need to repeat the whole rule.
+- Use the names the registry uses. Trackerpathways spellings are data labels,
+  not display names.
+- Do not stack two facts with a middle dot when a column, a line break, or a
+  comma reads naturally.
 
 ## Truth and status language
 

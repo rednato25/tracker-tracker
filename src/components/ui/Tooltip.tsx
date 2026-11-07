@@ -11,9 +11,11 @@ interface TooltipProps {
   children: ReactNode
   className?: string
   docs?: DocsEntry
+  /** False for passive text tooltips that must never block a click. */
+  interactive?: boolean
 }
 
-function Tooltip({ content, children, className, docs }: TooltipProps) {
+function Tooltip({ content, children, className, docs, interactive = true }: TooltipProps) {
   const [visible, setVisible] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLSpanElement>(null)
@@ -74,7 +76,9 @@ function Tooltip({ content, children, className, docs }: TooltipProps) {
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="fixed z-50 px-3 py-2 text-2xs font-sans font-normal normal-case tracking-normal text-secondary leading-relaxed whitespace-normal bg-overlay nm-raised-sm rounded-nm-sm max-w-xs"
+            className={`fixed z-50 px-3 py-2 text-2xs font-sans font-normal normal-case tracking-normal text-secondary leading-relaxed whitespace-normal bg-overlay nm-raised-sm rounded-nm-sm max-w-xs ${
+              interactive ? "" : "pointer-events-none"
+            }`}
             style={{ top: pos.top, left: pos.left }}
             onMouseEnter={show}
             onMouseLeave={hide}

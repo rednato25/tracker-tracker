@@ -114,7 +114,7 @@ describe("TrackerGrid", () => {
     render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
     expect(screen.getByRole("heading", { name: "Trackers" })).toBeInTheDocument()
     expect(screen.getByText("TorrentLeech")).toBeInTheDocument()
-    expect(screen.getByText("Member since 1 Jan 2025")).toBeInTheDocument()
+    expect(screen.getByText(/Joined 1 Jan 2025/)).toBeInTheDocument()
     expect(screen.getByText(/as of Oct 28, 2026/)).toBeInTheDocument()
     expect(screen.getByText("Power User")).toBeInTheDocument()
     expect(screen.getByText("Elite")).toBeInTheDocument()
@@ -127,10 +127,10 @@ describe("TrackerGrid", () => {
     expect(screen.getByText("1,234")).toBeInTheDocument()
     expect(screen.getByText("2.00 TiB / 3.00 TiB")).toBeInTheDocument()
     expect(screen.getByText("300 days / 30 days")).toBeInTheDocument()
-    expect(screen.getAllByText("Unmet").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Not met").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Met").length).toBeGreaterThan(0)
     expect(document.querySelectorAll("[data-threshold-tick]").length).toBeGreaterThan(0)
-    expect(screen.getByRole("link", { name: /Member since 1 Jan 2025/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Joined 1 Jan 2025/ })).toHaveAttribute(
       "href",
       "/trackers/1"
     )
@@ -144,10 +144,11 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("Member since 2 Oct 2026")).toBeInTheDocument()
-    expect(screen.getByText("26 days")).toBeInTheDocument()
+    expect(screen.getByText(/Joined 2 Oct 2026/)).toBeInTheDocument()
+    expect(screen.getByText(/\(26 days\)/)).toBeInTheDocument()
     expect(screen.queryByText("Healthy")).not.toBeInTheDocument()
     expect(document.querySelector("[data-card-status]")).toBeNull()
+    expect(document.querySelector("[data-tracker-card]")).not.toHaveTextContent("·")
   })
 
   it("shows years and calendar months once the account is older than a year", () => {
@@ -158,8 +159,26 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("Member since 1 Aug 2021")).toBeInTheDocument()
-    expect(screen.getByText("5 years, 2 months")).toBeInTheDocument()
+    expect(screen.getByText(/Joined 1 Aug 2021/)).toBeInTheDocument()
+    expect(screen.getByText(/\(5 years, 2 months\)/)).toBeInTheDocument()
+  })
+
+  it("writes card statuses in sentence case", () => {
+    render(
+      <TrackerGrid
+        trackers={[
+          tracker({
+            latestStats: tracker().latestStats
+              ? { ...tracker().latestStats!, ratio: 1.2, requiredRatio: 1 }
+              : null,
+          }),
+        ]}
+        summaries={[summary()]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText("Above minimum")).toBeInTheDocument()
+    expect(document.querySelector("[data-tracker-card]")).not.toHaveTextContent("·")
   })
 
   it("marks a stale card with the register's star and a written status", () => {
@@ -253,7 +272,7 @@ describe("TrackerGrid", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("Highest automatic class reached")).toBeInTheDocument()
+    expect(screen.getByText("highest automatic class reached")).toBeInTheDocument()
     expect(screen.queryByText("No structured requirement to show.")).not.toBeInTheDocument()
   })
 
@@ -275,8 +294,8 @@ describe("TrackerGrid", () => {
     )
     expect(screen.getByText("Super User")).toBeInTheDocument()
     expect(screen.getByText("Extreme User")).toBeInTheDocument()
-    expect(screen.getByText("Automatic")).toBeInTheDocument()
-    expect(screen.getByText("Target reached: Power User")).toBeInTheDocument()
+    expect(screen.getByText("Next class")).toBeInTheDocument()
+    expect(screen.getByText("Power User reached")).toBeInTheDocument()
   })
 
   it("marks an unsaved automatic next class as automatic", () => {
@@ -295,7 +314,7 @@ describe("TrackerGrid", () => {
     )
     expect(screen.getByText("Power User")).toBeInTheDocument()
     expect(screen.getByText("Elite")).toBeInTheDocument()
-    expect(screen.getByText("Automatic")).toBeInTheDocument()
+    expect(screen.getByText("Next class")).toBeInTheDocument()
     expect(screen.getByText("1 of 2 met")).toBeInTheDocument()
     expect(screen.queryByText(/upload left/)).not.toBeInTheDocument()
   })
@@ -341,7 +360,7 @@ describe("TrackerGrid", () => {
     )
     const block = container.querySelector("[data-failed-poll-pause]") as HTMLElement
     expect(block).toHaveTextContent("Paused after 5 failed polls")
-    expect(block).toHaveTextContent(/next retry \d{2}:\d{2}/)
+    expect(block).toHaveTextContent(/Next retry \d{2}:\d{2}/)
     expect(block).toHaveTextContent("Timeout")
   })
 
@@ -875,3 +894,5 @@ describe("TrackerGrid", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
   })
 })
+
+

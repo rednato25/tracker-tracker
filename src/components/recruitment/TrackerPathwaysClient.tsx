@@ -211,7 +211,6 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
           </p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
             <span>{tracker.latestStats?.group ?? "Unknown class"}</span>
-            <span className="text-tertiary">·</span>
             <span>{accountAge}</span>
           </p>
         </div>
@@ -271,7 +270,7 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
                       {destination.destinationName}
                     </td>
                     <td className="min-w-0 py-1.5 pr-2">
-                      <Tooltip content={requirement}>
+                      <Tooltip content={requirement} interactive={false}>
                         <span
                           className={`block truncate ${
                             destination.closed ? "text-tertiary" : "text-secondary"
@@ -365,7 +364,7 @@ function ProfileRouteList({
                 </span>
                 <span className="shrink-0 font-mono text-2xs text-tertiary">
                   {route.days === null ? "No wait" : `${route.days} days`}
-                  {route.closed ? " · Closed" : ""}
+                  {route.closed ? ", closed" : ""}
                 </span>
               </div>
               <p
@@ -459,7 +458,7 @@ function TargetProfile({
             </h4>
             {profile.invitedFrom.length > 0 && (
               <span className="font-mono text-2xs text-tertiary">
-                {profile.invitedOpenCount} open · {profile.invitedClosedCount} closed
+                {profile.invitedOpenCount} open, {profile.invitedClosedCount} closed
               </span>
             )}
           </div>
@@ -527,7 +526,7 @@ function NoRouteSource({ source }: { source: ReachableSourceView }) {
         <p className="text-xs text-secondary">You are on this tracker.</p>
       ) : source.path ? (
         <p className="break-words font-mono text-xs text-secondary">
-          {routeChain(source.path)} · {pathWaitLabel(source.path)}
+          {routeChain(source.path)}, {pathWaitLabel(source.path)}
         </p>
       ) : (
         <p className="text-xs text-secondary">No path from your trackers.</p>
@@ -635,7 +634,7 @@ function CheckingStatus({ path, needsChecking }: { path: WishlistPathView; needs
     return <span className="text-success">Checked</span>
   }
   return (
-    <Tooltip content={unverifiedSummary(path)}>
+    <Tooltip content={unverifiedSummary(path)} interactive={false}>
       <button
         type="button"
         aria-label="Needs checking"
@@ -683,7 +682,7 @@ function RouteChoiceRow({
             <CheckingStatus path={choice.path} needsChecking={choice.needsChecking} />
           </div>
         </div>
-        <Tooltip content={choice.pinned ? "Unpin this route" : "Pin this route"}>
+        <Tooltip content={choice.pinned ? "Unpin this route" : "Pin this route"} interactive={false}>
           <button
             type="button"
             aria-label={choice.pinned ? "Unpin route" : "Pin route"}
@@ -1479,8 +1478,8 @@ export function TrackerPathwaysClient({
           rel="noopener noreferrer"
         >
           {catalog.source.name}
-        </a>{" "}
-        · {catalog.source.license} · accessed {dateOnly(catalog.source.accessedAt)}.
+        </a>
+        . {catalog.source.license}. Accessed {dateOnly(catalog.source.accessedAt)}.
       </Subtext>
     </div>
   )

@@ -75,14 +75,12 @@ function ProofAccountRowView({ row, now, minRatio }: { row: ProofAccountRow; now
         </div>
         <Badge variant={row.qualifies ? "success" : "warn"}>
           {label}
-          {!row.qualifies && row.qualifiesOn ? ` · ${formatDate(row.qualifiesOn)}` : ""}
+          {!row.qualifies && row.qualifiesOn ? `, ${formatDate(row.qualifiesOn)}` : ""}
         </Badge>
       </div>
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-secondary">
         <span>{age ? `${age} old` : "Account age unknown"}</span>
-        <span className="text-tertiary">·</span>
-        <span>member since {memberSince}</span>
-        <span className="text-tertiary">·</span>
+        <span>Member since {memberSince}</span>
         <span className="font-mono">ratio {proofRatioLabel(account)}</span>
       </p>
     </li>
@@ -171,12 +169,10 @@ export function ProofAccountsPanel({ trackers, now, requirementTexts }: ProofAcc
       {requirement && (
         <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-secondary" data-proof-requirement>
           <span className="font-mono text-primary">{requirement.count} needed</span>
-          <span aria-hidden="true">·</span>
           <span>
             <span className="font-mono text-primary">{qualifyingCount}</span>{" "}
             {qualifyingCount === 1 ? "qualifies" : "qualify"} now
           </span>
-          <span aria-hidden="true">·</span>
           <span>
             {next ? (
               <>

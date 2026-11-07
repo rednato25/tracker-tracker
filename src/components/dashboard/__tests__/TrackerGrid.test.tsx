@@ -894,5 +894,3 @@ describe("TrackerGrid", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
   })
 })
-
-

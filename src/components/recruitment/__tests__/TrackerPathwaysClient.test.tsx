@@ -952,4 +952,3 @@ describe("TrackerPathwaysClient", () => {
     expect(note).not.toHaveTextContent("TorrentLeech")
   })
 })
-

@@ -194,4 +194,3 @@ describe("P36 wait and requirement labels", () => {
     expect(pathWaitLabel(path)).toBe("Wait done, needs checking")
   })
 })
-

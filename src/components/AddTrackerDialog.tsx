@@ -224,6 +224,11 @@ interface AddTrackerDialogProps {
   open: boolean
   onClose: () => void
   onAdded: (trackerId: number) => void
+  /**
+   * Registry slugs already in the vault, from useExistingTrackerSlugs(). Offering
+   * one again creates a second row for a site whose stats and rank can never be
+   * merged, so every mount of this dialog has to pass it.
+   */
   existingSlugs?: string[]
 }
 

@@ -240,23 +240,52 @@ describe("TrackerPathwaysClient", () => {
     ])
 
     const alpha = container.querySelector('[data-owned-card="AlphaRatio"]') as HTMLElement
-    expect(within(alpha).getAllByRole("listitem")).toHaveLength(2)
+    expect(alpha.querySelectorAll("[data-destination-row]")).toHaveLength(2)
+    expect(within(alpha).getByRole("columnheader", { name: "Destination" })).toBeInTheDocument()
+    expect(within(alpha).getByRole("columnheader", { name: "Requirement" })).toBeInTheDocument()
+    expect(within(alpha).getByRole("columnheader", { name: "Status" })).toBeInTheDocument()
     expect(alpha).toHaveTextContent("Invites open now")
 
     const tl = container.querySelector('[data-owned-card="TorrentLeech"]') as HTMLElement
-    expect(within(tl).getAllByRole("listitem")).toHaveLength(6)
+    expect(tl.querySelectorAll("[data-destination-row]")).toHaveLength(6)
     expect(tl).toHaveTextContent("Invites open in")
     expect(tl).toHaveTextContent("25 days")
 
     await user.click(within(tl).getByRole("button", { name: "+2 more" }))
-    expect(within(tl).getAllByRole("listitem")).toHaveLength(8)
+    expect(tl.querySelectorAll("[data-destination-row]")).toHaveLength(8)
     expect(tl.querySelector('[data-destination-row="ClosedDest"]')).toBeNull()
 
     await user.click(within(tl).getByRole("button", { name: "Show 1 closed" }))
-    expect(within(tl).getAllByRole("listitem")).toHaveLength(9)
+    expect(tl.querySelectorAll("[data-destination-row]")).toHaveLength(9)
     const closed = tl.querySelector('[data-destination-row="ClosedDest"]')
     expect(closed).toHaveAttribute("data-closed", "true")
     expect(closed).toHaveTextContent("Closed")
+  })
+
+  it("keeps a long requirement to one truncated line with the full text in a tooltip", () => {
+    const longRequirement =
+      "Super User: two months, ratio at least 0.70, uploaded at least 5 TiB, plus a working invite forum account"
+    const catalog: RecruitmentCatalog = {
+      ...P38_CATALOG,
+      routes: P38_CATALOG.routes.map((item) =>
+        item.sourceTrackerId === "AlphaRatio" && item.destinationTrackerId === "SecondDest"
+          ? { ...item, requirementNotes: [longRequirement] }
+          : item
+      ),
+    }
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={stateFor(null)}
+        catalog={catalog}
+      />
+    )
+    const row = container.querySelector('[data-destination-row="SecondDest"]') as HTMLElement
+    const requirement = row.querySelector("td:nth-child(2) [title]") as HTMLElement
+
+    expect(requirement).toHaveClass("truncate")
+    expect(requirement).toHaveAttribute("title", longRequirement)
+    expect(requirement).toHaveTextContent(longRequirement)
   })
 
   it("shows a card-wide invite class once in the header, not on every destination", () => {

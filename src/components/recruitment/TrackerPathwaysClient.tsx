@@ -120,13 +120,16 @@ function inviteTimingLabel(card: OwnedTrackerCardView) {
   )
 }
 
+function classGateLabel(gate: ClassGateComparison): string {
+  return gate.status === "met"
+    ? `${gate.currentClass ?? gate.written[0]} reached`
+    : gate.status === "not-yet"
+      ? `Needs ${gate.written.join(" or ")}`
+      : "Class unknown"
+}
+
 function ClassGateBadge({ gate }: { gate: ClassGateComparison }) {
-  const label =
-    gate.status === "met"
-      ? `${gate.currentClass ?? gate.written[0]} reached`
-      : gate.status === "not-yet"
-        ? `Needs ${gate.written.join(" or ")}`
-        : "Class unknown"
+  const label = classGateLabel(gate)
   return (
     <span
       data-class-gate={gate.status}
@@ -142,6 +145,28 @@ function ClassGateBadge({ gate }: { gate: ClassGateComparison }) {
       {label}
     </span>
   )
+}
+
+function destinationStatus(
+  destination: OwnedTrackerCardView["destinations"][number],
+  sharedGate: ClassGateComparison | null
+): { label: string; tone: string; gateStatus: string | null } {
+  if (destination.closed) {
+    return { label: "Closed", tone: "text-tertiary", gateStatus: null }
+  }
+  if (destination.classGate && !sharedGate) {
+    return {
+      label: classGateLabel(destination.classGate),
+      tone:
+        destination.classGate.status === "met"
+          ? "text-success"
+          : destination.classGate.status === "not-yet"
+            ? "text-warn"
+            : "text-tertiary",
+      gateStatus: destination.classGate.status,
+    }
+  }
+  return { label: "Open", tone: "text-success", gateStatus: null }
 }
 
 function sharedGateLabel(card: OwnedTrackerCardView): string | null {
@@ -214,42 +239,63 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
         </p>
       ) : (
         <>
-          <ul className="flex flex-col border-t border-border">
-            {destinations.map((destination) => (
-              <li
-                key={destination.routeId}
-                data-destination-row={destination.destinationTrackerId}
-                data-closed={destination.closed ? "true" : undefined}
-                className="flex items-baseline justify-between gap-3 border-b border-border/60 py-1.5 last:border-b-0"
-              >
-                <span
-                  className={`min-w-0 break-words text-xs ${
-                    destination.closed ? "text-tertiary" : "text-primary"
-                  }`}
-                >
-                  {destination.destinationName}
-                </span>
-                <div className="flex max-w-[58%] flex-col items-end gap-0.5 text-right">
-                  <span
-                    className={`line-clamp-2 text-xs ${
-                      destination.closed ? "text-tertiary" : "text-secondary"
-                    }`}
-                    title={destination.requirementText ?? undefined}
+          <table className="w-full table-fixed border-t border-border text-xs">
+            <colgroup>
+              <col className="w-[36%]" />
+              <col />
+              <col className="w-[32%]" />
+            </colgroup>
+            <thead>
+              <tr className="font-cond text-2xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+                <th className="py-1.5 pr-2 text-left font-semibold">Destination</th>
+                <th className="py-1.5 pr-2 text-left font-semibold">Requirement</th>
+                <th className="py-1.5 text-right font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {destinations.map((destination) => {
+                const status = destinationStatus(destination, card.sharedGate)
+                const requirement = destination.requirementText ?? "No requirement listed"
+                return (
+                  <tr
+                    key={destination.routeId}
+                    data-destination-row={destination.destinationTrackerId}
+                    data-closed={destination.closed ? "true" : undefined}
+                    className="border-t border-border/60"
                   >
-                    {destination.closed && (
-                      <span className="mr-1 font-cond text-2xs font-semibold uppercase tracking-[0.1em]">
-                        Closed
+                    <td
+                      className={`truncate py-1.5 pr-2 ${
+                        destination.closed ? "text-tertiary" : "text-primary"
+                      }`}
+                    >
+                      {destination.destinationName}
+                    </td>
+                    <td className="min-w-0 py-1.5 pr-2">
+                      <Tooltip content={requirement}>
+                        <span
+                          className={`block truncate ${
+                            destination.closed ? "text-tertiary" : "text-secondary"
+                          }`}
+                          title={requirement}
+                        >
+                          {requirement}
+                        </span>
+                      </Tooltip>
+                    </td>
+                    <td className="py-1.5 text-right">
+                      <span
+                        className={`block truncate font-semibold ${status.tone}`}
+                        data-gate-status={status.gateStatus ?? undefined}
+                        title={destination.classGate?.detail}
+                      >
+                        {status.label}
                       </span>
-                    )}
-                    {destination.requirementText ?? "No requirement text"}
-                  </span>
-                  {destination.classGate && !card.sharedGate && (
-                    <ClassGateBadge gate={destination.classGate} />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
           <div className="flex flex-wrap gap-3">
             {moreCount > 0 && (
               <button

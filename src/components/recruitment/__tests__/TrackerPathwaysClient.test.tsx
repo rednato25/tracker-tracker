@@ -155,7 +155,7 @@ const bothTrackers = [
 ]
 
 beforeEach(() => {
-  window.localStorage.clear()
+  window.localStorage.removeItem("tracker-tracker:pathways-tab")
   fetchMock.mockReset()
   vi.stubGlobal("fetch", fetchMock)
   fetchMock.mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {

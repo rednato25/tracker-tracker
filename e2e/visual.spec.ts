@@ -1216,9 +1216,9 @@ test.describe.serial("P40 pathway route choices", () => {
       pathwaysPage.locator('[data-route-choice][data-fastest="true"]')
     ).toHaveCount(1)
 
-    await pathwaysPage.getByRole("button", { name: "1" }).click()
+    await pathwaysPage.getByRole("button", { name: "1", exact: true }).click()
     await expect(rows).toHaveCount(1)
-    await pathwaysPage.getByRole("button", { name: "3" }).click()
+    await pathwaysPage.getByRole("button", { name: "3", exact: true }).click()
     await expect(rows).toHaveCount(routeCount)
 
     await pathwaysPage.getByRole("button", { name: "Start from" }).click()

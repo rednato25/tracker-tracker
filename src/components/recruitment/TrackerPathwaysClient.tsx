@@ -124,10 +124,32 @@ function ClassGateBadge({ gate }: { gate: ClassGateComparison }) {
   )
 }
 
+function sharedGateLabel(card: OwnedTrackerCardView): string | null {
+  const gate = card.sharedGate
+  if (!gate) return null
+  const you = gate.currentClass ? `, you are ${gate.currentClass}` : ""
+  const days = card.inviteDaysRemaining
+  const wait =
+    days === null
+      ? ""
+      : days === 0
+        ? ", invites open now"
+        : `, ${days} day${days === 1 ? "" : "s"}`
+  return `Invites from ${gate.written.join(" or ")}${you}${wait}`
+}
+
 function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
   const [expanded, setExpanded] = useState(false)
-  const destinations = expanded ? card.destinations : card.destinations.slice(0, DESTINATION_LIMIT)
-  const moreCount = Math.max(0, card.destinations.length - DESTINATION_LIMIT)
+  const [showClosed, setShowClosed] = useState(false)
+  const openDestinations = card.destinations.filter((destination) => !destination.closed)
+  const closedDestinations = card.destinations.filter((destination) => destination.closed)
+  const visibleDestinations = showClosed
+    ? [...openDestinations, ...closedDestinations]
+    : openDestinations
+  const destinations = expanded
+    ? visibleDestinations
+    : visibleDestinations.slice(0, DESTINATION_LIMIT)
+  const moreCount = Math.max(0, visibleDestinations.length - DESTINATION_LIMIT)
   const tracker = card.sourceTracker
   const accountAge = formatAccountAge(tracker.joinedAt) ?? "Unknown"
 
@@ -156,6 +178,15 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
           {inviteTimingLabel(card)}
         </p>
       </div>
+
+      {sharedGateLabel(card) && (
+        <p
+          data-card-gate={card.sharedGate?.status}
+          className="border-t border-border pt-2 text-xs text-secondary"
+        >
+          {sharedGateLabel(card)}
+        </p>
+      )}
 
       {card.destinations.length === 0 ? (
         <p className="border-t border-border pt-3 text-xs text-secondary">
@@ -192,21 +223,37 @@ function OwnedTrackerCard({ card }: { card: OwnedTrackerCardView }) {
                     )}
                     {destination.requirementText ?? "No requirement text"}
                   </span>
-                  {destination.classGate && <ClassGateBadge gate={destination.classGate} />}
+                  {destination.classGate && !card.sharedGate && (
+                    <ClassGateBadge gate={destination.classGate} />
+                  )}
                 </div>
               </li>
             ))}
           </ul>
-          {moreCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setExpanded((current) => !current)}
-              aria-expanded={expanded}
-              className="min-h-11 self-start text-xs text-accent underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
-            >
-              {expanded ? "Show less" : `+${moreCount} more`}
-            </button>
-          )}
+          <div className="flex flex-wrap gap-3">
+            {moreCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpanded((current) => !current)}
+                aria-expanded={expanded}
+                className="min-h-11 self-start text-xs text-accent underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+              >
+                {expanded ? "Show less" : `+${moreCount} more`}
+              </button>
+            )}
+            {closedDestinations.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowClosed((current) => !current)}
+                aria-expanded={showClosed}
+                className="min-h-11 self-start text-xs text-tertiary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+              >
+                {showClosed
+                  ? "Hide closed"
+                  : `Show ${closedDestinations.length} closed`}
+              </button>
+            )}
+          </div>
         </>
       )}
     </article>
@@ -222,42 +269,63 @@ function ProfileRouteList({
   direction: "incoming" | "outgoing"
   empty: string
 }) {
+  const [showClosed, setShowClosed] = useState(false)
   if (routes.length === 0) {
     return <p className="mt-2 text-xs text-secondary">{empty}</p>
   }
 
+  const openRoutes = routes.filter((route) => !route.closed)
+  const closedRoutes = routes.filter((route) => route.closed)
+  const visibleRoutes = showClosed ? [...openRoutes, ...closedRoutes] : openRoutes
+
   return (
-    <ul className="mt-2 flex flex-col" data-profile-route-list={direction}>
-      {routes.map((route) => (
-        <li
-          key={route.routeId}
-          data-profile-route={route.routeId}
-          data-closed={route.closed ? "true" : undefined}
-          className="flex flex-col gap-1 border-t border-border py-1.5 first:border-t-0 first:pt-0"
-        >
-          <div className="flex items-baseline justify-between gap-3">
-            <span
-              className={`min-w-0 break-words text-xs ${
-                route.closed ? "text-tertiary" : "text-primary"
-              }`}
+    <>
+      {visibleRoutes.length > 0 ? (
+        <ul className="mt-2 flex flex-col" data-profile-route-list={direction}>
+          {visibleRoutes.map((route) => (
+            <li
+              key={route.routeId}
+              data-profile-route={route.routeId}
+              data-closed={route.closed ? "true" : undefined}
+              className="flex flex-col gap-1 border-t border-border py-1.5 first:border-t-0 first:pt-0"
             >
-              {route.trackerName}
-            </span>
-            <span className="shrink-0 font-mono text-2xs text-tertiary">
-              {route.days === null ? "No wait" : `${route.days} days`}
-              {route.closed ? " · Closed" : ""}
-            </span>
-          </div>
-          <p
-            className={`break-words text-xs ${
-              route.closed ? "text-tertiary" : "text-secondary"
-            }`}
-          >
-            {route.requirementText ?? "No requirement text"}
-          </p>
-        </li>
-      ))}
-    </ul>
+              <div className="flex items-baseline justify-between gap-3">
+                <span
+                  className={`min-w-0 break-words text-xs ${
+                    route.closed ? "text-tertiary" : "text-primary"
+                  }`}
+                >
+                  {route.trackerName}
+                </span>
+                <span className="shrink-0 font-mono text-2xs text-tertiary">
+                  {route.days === null ? "No wait" : `${route.days} days`}
+                  {route.closed ? " · Closed" : ""}
+                </span>
+              </div>
+              <p
+                className={`break-words text-xs ${
+                  route.closed ? "text-tertiary" : "text-secondary"
+                }`}
+              >
+                {route.requirementText ?? "No requirement text"}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs text-secondary">No open routes in the data.</p>
+      )}
+      {closedRoutes.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowClosed((current) => !current)}
+          aria-expanded={showClosed}
+          className="mt-1 min-h-11 self-start text-xs text-tertiary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-1"
+        >
+          {showClosed ? "Hide closed" : `Show ${closedRoutes.length} closed`}
+        </button>
+      )}
+    </>
   )
 }
 
@@ -1104,6 +1172,12 @@ export function TrackerPathwaysClient({
             invites come first.
           </Paragraph>
         </div>
+
+        {ownedCards.alreadyMemberNames.length > 0 && (
+          <p className="text-xs text-tertiary" data-already-member>
+            Already a member: {ownedCards.alreadyMemberNames.join(", ")}
+          </p>
+        )}
 
         {ownedCards.cards.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

@@ -3,7 +3,7 @@
 "use client"
 
 import { H1, H2, H3, Paragraph, Subtext } from "@typography"
-import { useId, useMemo, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { ProofAccountsPanel } from "@/components/recruitment/ProofAccountsPanel"
 import { Badge, Button, Card, Input, Notice, Select } from "@/components/ui"
 import { ChevronDownSmallIcon, PinIcon, XIcon } from "@/components/ui/Icons"
@@ -54,6 +54,19 @@ interface TrackerPathwaysClientProps {
 
 const TRACKERPATHWAYS_URL = "https://github.com/handokota/trackerpathways"
 const DESTINATION_LIMIT = 6
+const PATHWAYS_TAB_STORAGE_KEY = "tracker-tracker:pathways-tab"
+
+type PathwaysTab = "from" | "to"
+
+function readSavedTab(): PathwaysTab | null {
+  if (typeof window === "undefined") return null
+  try {
+    const saved = window.localStorage.getItem(PATHWAYS_TAB_STORAGE_KEY)
+    return saved === "from" || saved === "to" ? saved : null
+  } catch {
+    return null
+  }
+}
 
 function dateOnly(value: string | null): string {
   return value ? formatDate(value) : "unknown"
@@ -853,6 +866,7 @@ export function TrackerPathwaysClient({
   catalog = RECRUITMENT_CATALOG,
 }: TrackerPathwaysClientProps) {
   const [state, setState] = useState(initialState)
+  const [tab, setTab] = useState<PathwaysTab>(initialState.desiredTrackerSlug ? "to" : "from")
   const [targets, setTargets] = useState<string[]>(() => {
     const initial = initialState.desiredTrackerSlug ? [initialState.desiredTrackerSlug] : []
     for (const target of Object.keys(initialState.pinnedRoutes)) {
@@ -867,6 +881,20 @@ export function TrackerPathwaysClient({
   const [maxHops, setMaxHops] = useState(3)
   const [startFrom, setStartFrom] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
+
+  useEffect(() => {
+    const saved = readSavedTab()
+    if (saved) setTab(saved)
+  }, [])
+
+  function chooseTab(next: PathwaysTab) {
+    setTab(next)
+    try {
+      window.localStorage.setItem(PATHWAYS_TAB_STORAGE_KEY, next)
+    } catch {
+      // A blocked storage API must not stop the tab from switching.
+    }
+  }
 
   const result = useMemo(
     () =>
@@ -1093,6 +1121,41 @@ export function TrackerPathwaysClient({
         </Paragraph>
       </div>
 
+      <div
+        role="tablist"
+        aria-label="Pathways view"
+        className="inline-flex w-full max-w-md border border-border bg-raised p-1 sm:w-auto"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="pathways-tab-from"
+          aria-selected={tab === "from"}
+          aria-controls="pathways-panel-from"
+          onClick={() => chooseTab("from")}
+          className={`min-h-11 flex-1 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] ${
+            tab === "from" ? "bg-elevated text-primary" : "text-secondary hover:text-primary"
+          }`}
+        >
+          From my trackers
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="pathways-tab-to"
+          aria-selected={tab === "to"}
+          aria-controls="pathways-panel-to"
+          onClick={() => chooseTab("to")}
+          className={`min-h-11 flex-1 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] ${
+            tab === "to" ? "bg-elevated text-primary" : "text-secondary hover:text-primary"
+          }`}
+        >
+          To a tracker
+        </button>
+      </div>
+
+      {tab === "to" && (
+        <>
       <section
         className="flex flex-col gap-3"
         aria-labelledby="my-pinned-routes-heading"
@@ -1163,8 +1226,16 @@ export function TrackerPathwaysClient({
           </div>
         )}
       </section>
+        </>
+      )}
 
-      <section className="flex flex-col gap-3" aria-labelledby="where-your-trackers-heading">
+      {tab === "from" && (
+        <section
+          className="flex flex-col gap-3"
+          id="pathways-panel-from"
+          role="tabpanel"
+          aria-labelledby="pathways-tab-from"
+        >
         <div className="flex flex-col gap-1">
           <H2 id="where-your-trackers-heading">Where your trackers can take you</H2>
           <Paragraph>
@@ -1208,8 +1279,15 @@ export function TrackerPathwaysClient({
           </p>
         )}
       </section>
+      )}
 
-      <section className="flex flex-col gap-3" aria-labelledby="get-to-tracker-heading">
+      {tab === "to" && (
+        <section
+          className="flex flex-col gap-3"
+          id="pathways-panel-to"
+          role="tabpanel"
+          aria-labelledby="pathways-tab-to"
+        >
         <div className="flex flex-col gap-1">
           <H2 id="get-to-tracker-heading">Get to a tracker</H2>
           <Paragraph>
@@ -1328,6 +1406,7 @@ export function TrackerPathwaysClient({
           </div>
         ) : null}
       </section>
+      )}
 
       <Subtext className="text-2xs">
         Source: {catalog.source.attribution}{" "}

@@ -145,12 +145,17 @@ function stateFor(desiredTrackerSlug: string | null) {
   return { ...emptyRecruitmentState(), desiredTrackerSlug }
 }
 
+async function openToTab(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("tab", { name: "To a tracker" }))
+}
+
 const bothTrackers = [
   tracker({ id: 1, name: "TorrentLeech", joinedAt: recentJoin }),
   tracker({ id: 2, name: "AlphaRatio", registrySlug: "alpharatio" }),
 ]
 
 beforeEach(() => {
+  window.localStorage.clear()
   fetchMock.mockReset()
   vi.stubGlobal("fetch", fetchMock)
   fetchMock.mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -163,7 +168,30 @@ beforeEach(() => {
 })
 
 describe("TrackerPathwaysClient", () => {
-  it("uses the Tracker pathways name and the dashboard header row", () => {
+  it("switches between the two tabs and remembers the last one", async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(
+      <TrackerPathwaysClient
+        trackers={[tracker()]}
+        initialState={stateFor(null)}
+        catalog={P38_CATALOG}
+      />
+    )
+
+    const fromTab = screen.getByRole("tab", { name: "From my trackers" })
+    const toTab = screen.getByRole("tab", { name: "To a tracker" })
+    expect(fromTab).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByRole("heading", { name: "Where your trackers can take you" })).toBeVisible()
+    expect(screen.queryByRole("combobox", { name: "Search trackerpathways" })).toBeNull()
+
+    await user.click(toTab)
+
+    expect(toTab).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByRole("button", { name: "Choose a tracker" })).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Where your trackers can take you" })).toBeNull()
+    expect(window.localStorage.getItem("tracker-tracker:pathways-tab")).toBe("to")
+
+    unmount()
     render(
       <TrackerPathwaysClient
         trackers={[tracker()]}
@@ -171,14 +199,27 @@ describe("TrackerPathwaysClient", () => {
         catalog={P38_CATALOG}
       />
     )
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "To a tracker" })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      )
+    )
+  })
+
+  it("uses the Tracker pathways name and the dashboard header row", async () => {
+    const user = userEvent.setup()
+    render(
+      <TrackerPathwaysClient
+        trackers={[tracker()]}
+        initialState={stateFor(null)}
+        catalog={P38_CATALOG}
+      />
+    )
+    await openToTab(user)
     expect(screen.getByRole("heading", { name: "Tracker pathways" })).toBeInTheDocument()
-    const directHeading = screen.getByRole("heading", {
-      name: "Where your trackers can take you",
-    })
-    const getTo = screen.getByText("Get to a tracker")
-    expect(
-      directHeading.compareDocumentPosition(getTo) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy()
+    expect(screen.getByRole("tab", { name: "From my trackers" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "To a tracker" })).toBeInTheDocument()
     expect(screen.queryByText(/Your trackers \(/)).not.toBeInTheDocument()
   })
 
@@ -271,6 +312,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={P38_CATALOG}
       />
     )
+    await openToTab(user)
 
     const profile = container.querySelector(
       '[data-target-profile="BroadcasTheNet"]'
@@ -306,6 +348,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={ROUTE_CATALOG}
       />
     )
+    await openToTab(user)
     expect(container.querySelector("[data-route-controls]")).not.toBeNull()
 
     let rows = [...container.querySelectorAll("[data-route-choice]")]
@@ -371,6 +414,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={manyRoutes}
       />
     )
+    await openToTab(user)
     let rows = [...container.querySelectorAll("[data-route-choice]")]
     expect(rows).toHaveLength(10)
     await user.click(screen.getByRole("button", { name: "Show all (12)" }))
@@ -388,6 +432,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={ROUTE_CATALOG}
       />
     )
+    await openToTab(user)
     const pinnedKey = "tp:AlphaRatio:Mid2>tp:Mid2:Third>tp:Third:BroadcasTheNet"
     const pinnedRow = first.container.querySelector(
       `[data-route-choice="${pinnedKey}"]`
@@ -412,6 +457,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={ROUTE_CATALOG}
       />
     )
+    await openToTab(user)
     const remountedRows = [...second.container.querySelectorAll("[data-route-choice]")]
     expect(remountedRows[0]).toHaveAttribute("data-route-choice", pinnedKey)
     expect(remountedRows[0]).toHaveAttribute("data-pinned", "true")
@@ -428,6 +474,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={ROUTE_CATALOG}
       />
     )
+    await openToTab(user)
     const pinnedKey = "tp:AlphaRatio:Mid2>tp:Mid2:Third>tp:Third:BroadcasTheNet"
     const pinnedRow = container.querySelector(
       `[data-route-choice="${pinnedKey}"]`
@@ -448,7 +495,8 @@ describe("TrackerPathwaysClient", () => {
     expect(chip).toHaveTextContent("1 day left")
   })
 
-  it("shows the no-route profile and the trackerpathways link", () => {
+  it("shows the no-route profile and the trackerpathways link", async () => {
+    const user = userEvent.setup()
     const target = PATHWAYS_TRACKERS.find((item) => item.name === "Aither")
     expect(target).toBeDefined()
     render(
@@ -458,6 +506,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={P38_CATALOG}
       />
     )
+    await openToTab(user)
     expect(
       screen.getByText(
         "Nobody in the data invites to Aither. It may recruit through open signups or interviews."
@@ -739,13 +788,10 @@ describe("TrackerPathwaysClient", () => {
       />
     )
 
+    await openToTab(user)
     const pinnedHeading = screen.getByRole("heading", { name: "My pinned routes" })
-    const ownedHeading = screen.getByRole("heading", {
-      name: "Where your trackers can take you",
-    })
-    expect(
-      pinnedHeading.compareDocumentPosition(ownedHeading) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy()
+    expect(pinnedHeading).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "From my trackers" })).toBeInTheDocument()
 
     await user.click(screen.getAllByRole("button", { name: "Pin" })[0])
     await waitFor(() => {
@@ -782,7 +828,8 @@ describe("TrackerPathwaysClient", () => {
     expect(container.querySelectorAll("[data-pinned-tree]").length).toBeGreaterThanOrEqual(1)
   })
 
-  it("lists owned trackers whose account age is missing", () => {
+  it("lists owned trackers whose account age is missing", async () => {
+    const user = userEvent.setup()
     const { container } = render(
       <TrackerPathwaysClient
         trackers={[
@@ -793,6 +840,7 @@ describe("TrackerPathwaysClient", () => {
         catalog={P38_CATALOG}
       />
     )
+    await user.click(screen.getByRole("tab", { name: "From my trackers" }))
 
     const note = container.querySelector("[data-missing-account-age]")
     expect(note).not.toBeNull()

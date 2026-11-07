@@ -5,8 +5,12 @@
 
 import metadata from "@/data/pathways/metadata.json"
 import raw from "@/data/pathways/trackers.json"
+import {
+  PATHWAYS_TRACKER_ALIASES,
+  PATHWAYS_UNMATCHED_REGISTRY_SLUGS,
+} from "@/data/pathways/aliases"
 import { RECRUITMENT_ROUTE_OVERRIDES } from "@/data/recruitment-overrides"
-import { TRACKER_REGISTRY } from "@/data/tracker-registry"
+import { getTrackerBySlug } from "@/data/tracker-registry"
 import type {
   RecruitmentCatalog,
   RecruitmentRouteRecord,
@@ -48,21 +52,12 @@ const MONTHS: Record<string, string> = {
 
 const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "")
 
-const registryByKey = new Map<string, Set<string>>()
-for (const tracker of TRACKER_REGISTRY) {
-  for (const candidate of [tracker.name, tracker.slug, tracker.abbreviation]) {
-    if (!candidate) continue
-    const key = normalize(candidate)
-    const slugs = registryByKey.get(key) ?? new Set<string>()
-    slugs.add(tracker.slug)
-    registryByKey.set(key, slugs)
-  }
+export function registrySlugForPathwaysTracker(name: string): string | null {
+  return PATHWAYS_TRACKER_ALIASES[name] ?? null
 }
 
-function registrySlugFor(name: string): string | null {
-  const slugs = registryByKey.get(normalize(name))
-  return slugs?.size === 1 ? ([...slugs][0] ?? null) : null
-}
+export const PATHWAYS_UNSUPPORTED_REGISTRY_SLUGS: readonly string[] =
+  PATHWAYS_UNMATCHED_REGISTRY_SLUGS
 
 // trackerpathways stores `routeInfo[source][destination]`: the outer key is the
 // tracker you are on, and its reqs/days apply to that source. Upstream walks
@@ -76,41 +71,42 @@ for (const [source, destinations] of Object.entries(data.routeInfo)) {
 
 export const PATHWAYS_TRACKERS = [...allNames]
   .sort((a, b) => a.localeCompare(b))
-  .map((id) => ({ id, name: id, registrySlug: registrySlugFor(id) }))
+  .map((id) => ({ id, name: id, registrySlug: registrySlugForPathwaysTracker(id) }))
 
-// The reverse map picks one upstream name per registry slug. Names and slugs
-// can collide (for example "DigitalCore" and "DigitalCore.Club"); the exact
-// registry name wins, then the slug, then the abbreviation. A tie stays
-// unresolved rather than guessing.
-const pathwaysByRegistry = new Map<string, string | null>()
-const registryCandidates = new Map<string, { id: string; score: number }[]>()
-for (const name of allNames) {
-  const key = normalize(name)
-  for (const tracker of TRACKER_REGISTRY) {
-    let score = 0
-    if (normalize(tracker.name) === key) score = 3
-    else if (normalize(tracker.slug) === key) score = 2
-    else if (tracker.abbreviation && normalize(tracker.abbreviation) === key) score = 1
-    if (score === 0) continue
-    const candidates = registryCandidates.get(tracker.slug) ?? []
-    candidates.push({ id: name, score })
-    registryCandidates.set(tracker.slug, candidates)
-  }
+// One canonical trackerpathways id per registry slug. When the dataset spells
+// a tracker more than once (DigitalCore and DigitalCore.Club), prefer the
+// spelling that appears as a route source, since that is the one an owned card
+// and its destinations are keyed by.
+const aliasIdsBySlug = new Map<string, string[]>()
+for (const [name, slug] of Object.entries(PATHWAYS_TRACKER_ALIASES)) {
+  if (!allNames.has(name)) continue
+  const ids = aliasIdsBySlug.get(slug) ?? []
+  ids.push(name)
+  aliasIdsBySlug.set(slug, ids)
 }
-for (const [slug, candidates] of registryCandidates) {
-  const best = Math.max(...candidates.map((candidate) => candidate.score))
-  const winners = candidates.filter((candidate) => candidate.score === best)
-  pathwaysByRegistry.set(slug, winners.length === 1 ? (winners[0]?.id ?? null) : null)
+const canonicalIdBySlug = new Map<string, string>()
+for (const [slug, ids] of aliasIdsBySlug) {
+  const sourceIds = ids.filter((id) => Object.hasOwn(data.routeInfo, id)).sort()
+  canonicalIdBySlug.set(slug, sourceIds[0] ?? [...ids].sort()[0] ?? "")
+}
+for (const slug of PATHWAYS_UNMATCHED_REGISTRY_SLUGS) {
+  canonicalIdBySlug.delete(slug)
 }
 
 export function pathwaysTrackerIdForRegistrySlug(slug: string | null | undefined): string | null {
-  return slug ? (pathwaysByRegistry.get(slug) ?? null) : null
+  return slug ? (canonicalIdBySlug.get(slug) ?? null) : null
+}
+
+/** The registry display name for a matched trackerpathways id, or null. */
+export function registryNameForPathwaysTracker(id: string): string | null {
+  const slug = registrySlugForPathwaysTracker(id)
+  return slug ? (getTrackerBySlug(slug)?.name ?? null) : null
 }
 
 export function normalizePathwaysTarget(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null
   if (allNames.has(value)) return value
-  return pathwaysByRegistry.get(value) ?? null
+  return pathwaysTrackerIdForRegistrySlug(value)
 }
 
 export function pathwaysTrackerName(id: string): string {
@@ -164,8 +160,8 @@ for (const [sourceName, destinations] of Object.entries(data.routeInfo)) {
       id: routeId(sourceName, destinationName),
       sourceTrackerId: sourceName,
       destinationTrackerId: destinationName,
-      sourceRegistrySlug: registrySlugFor(sourceName),
-      destinationRegistrySlug: registrySlugFor(destinationName),
+      sourceRegistrySlug: registrySlugForPathwaysTracker(sourceName),
+      destinationRegistrySlug: registrySlugForPathwaysTracker(destinationName),
       requirements: null,
       requirementNotes: route.reqs.trim() ? [route.reqs.trim()] : [],
       minimumDays:

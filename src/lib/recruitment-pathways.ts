@@ -3,7 +3,12 @@
 // truth; these helpers group routes by owned tracker and build the target
 // profile. They do not change data, invent thresholds, or touch the database.
 
-import { pathwaysTrackerIdForRegistrySlug, pathwaysTrackerName } from "@/data/pathways/catalog"
+import {
+  pathwaysTrackerIdForRegistrySlug,
+  pathwaysTrackerName,
+  registryNameForPathwaysTracker,
+  registrySlugForPathwaysTracker,
+} from "@/data/pathways/catalog"
 import { getTrackerBySlug } from "@/data/tracker-registry"
 import { type ClassGateComparison, compareClassGate } from "@/lib/rank-class-gate"
 import type {
@@ -45,6 +50,8 @@ export interface OwnedTrackerCardView {
   sourceName: string
   sourceTracker: TrackerSummary
   gate: RecruitmentSourceGate | null
+  /** Shared invite class shown once in the card header. */
+  sharedGate: ClassGateComparison | null
   invitesOpen: boolean
   inviteDaysRemaining: number | null
   invitesLabel: string
@@ -55,6 +62,8 @@ export interface OwnedTrackerCardView {
 export interface OwnedTrackerCardsResult {
   cards: OwnedTrackerCardView[]
   unsupportedOwnedTrackers: TrackerSummary[]
+  /** Owned trackers that appeared as destinations and were removed. */
+  alreadyMemberNames: string[]
   /** Owned accounts whose join date is missing, so the first-hop wait is unknown. */
   missingAccountAgeTrackers: TrackerSummary[]
 }
@@ -154,6 +163,17 @@ function compareOpenThenName(
   return a.name.localeCompare(b.name)
 }
 
+function sameClassGate(a: ClassGateComparison, b: ClassGateComparison): boolean {
+  return (
+    a.status === b.status &&
+    a.currentClass === b.currentClass &&
+    a.requiredClasses.length === b.requiredClasses.length &&
+    a.requiredClasses.every((name) => b.requiredClasses.includes(name)) &&
+    a.written.length === b.written.length &&
+    a.written.every((name) => b.written.includes(name))
+  )
+}
+
 function groupOwnedTrackers(trackers: TrackerSummary[]): {
   ownedBySlug: Map<string, TrackerSummary>
   unsupportedOwnedTrackers: TrackerSummary[]
@@ -177,6 +197,12 @@ export function buildOwnedTrackerCards(input: {
   now: Date
 }): OwnedTrackerCardsResult {
   const { ownedBySlug, unsupportedOwnedTrackers } = groupOwnedTrackers(input.trackers)
+  const ownedSlugs = new Set(
+    input.trackers
+      .map((tracker) => tracker.registrySlug)
+      .filter((slug): slug is string => Boolean(slug))
+  )
+  const alreadyMembers = new Map<string, string>()
   const cards: OwnedTrackerCardView[] = []
 
   for (const [sourceTrackerId, sourceTracker] of ownedBySlug) {
@@ -185,8 +211,26 @@ export function buildOwnedTrackerCards(input: {
     const registryEntry = sourceTracker.registrySlug
       ? getTrackerBySlug(sourceTracker.registrySlug)
       : undefined
+    const sourceGate = registryEntry
+      ? compareClassGate({
+          texts: [gate?.text],
+          classes: registryEntry.userClasses,
+          currentClass: sourceTracker.latestStats?.group ?? null,
+        })
+      : null
     const destinations = input.catalog.routes
       .filter((route) => route.sourceTrackerId === sourceTrackerId)
+      .filter((route) => {
+        const destinationSlug = registrySlugForPathwaysTracker(route.destinationTrackerId)
+        if (!destinationSlug || !ownedSlugs.has(destinationSlug)) return true
+        alreadyMembers.set(
+          destinationSlug,
+          getTrackerBySlug(destinationSlug)?.name ??
+            registryNameForPathwaysTracker(route.destinationTrackerId) ??
+            route.destinationTrackerId
+        )
+        return false
+      })
       .map<OwnedTrackerDestinationView>((route) => {
         const requirementText = routeRequirementText(route)
         return {
@@ -214,12 +258,25 @@ export function buildOwnedTrackerCards(input: {
 
     if (destinations.length === 0 && gate === null) continue
 
+    const sharedGate =
+      sourceGate &&
+      destinations.length > 0 &&
+      destinations.every(
+        (destination) => destination.classGate && sameClassGate(destination.classGate, sourceGate)
+      )
+        ? sourceGate
+        : null
+
     const timing = inviteTiming(gate, sourceTracker, input.now)
     cards.push({
       sourceTrackerId,
-      sourceName: pathwaysTrackerName(sourceTrackerId),
+      // The registry name is the only name the user knows for an account they
+      // hold; trackerpathways spellings like "YuScene" and "OnlyEncodes+" are
+      // dataset labels, not the trackers' own names.
+      sourceName: sourceTracker.name || pathwaysTrackerName(sourceTrackerId),
       sourceTracker,
       gate,
+      sharedGate,
       invitesOpen: timing.open,
       inviteDaysRemaining: timing.daysRemaining,
       invitesLabel: timing.label,
@@ -239,7 +296,12 @@ export function buildOwnedTrackerCards(input: {
     .filter((tracker) => !tracker.joinedAt)
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  return { cards, unsupportedOwnedTrackers, missingAccountAgeTrackers }
+  return {
+    cards,
+    unsupportedOwnedTrackers,
+    alreadyMemberNames: [...alreadyMembers.values()].sort((a, b) => a.localeCompare(b)),
+    missingAccountAgeTrackers,
+  }
 }
 
 function profileRoute(

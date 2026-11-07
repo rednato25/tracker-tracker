@@ -50,8 +50,9 @@ describe("P38 pathways view models", () => {
     expect(cards.map((card) => card.sourceTrackerId)).toEqual(
       expect.arrayContaining(["AlphaRatio", "Aither", "MyAnonamouse"])
     )
+    // One destination is another owned tracker, so P67 removes it.
     expect(cards.find((card) => card.sourceTrackerId === "AlphaRatio")?.destinations).toHaveLength(
-      10
+      9
     )
     expect(cards.find((card) => card.sourceTrackerId === "Aither")?.destinations).toHaveLength(
       21

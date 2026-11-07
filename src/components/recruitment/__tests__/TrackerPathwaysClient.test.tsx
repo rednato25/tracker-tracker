@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TrackerPathwaysClient } from "@/components/recruitment/TrackerPathwaysClient"
 import { PATHWAYS_TRACKERS } from "@/data/pathways/catalog"
+import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
 import type { RecruitmentCatalog, RecruitmentRouteRecord } from "@/lib/recruitment-routes"
 import { RECRUITMENT_ROUTE_FORMAT_VERSION } from "@/lib/recruitment-routes"
 import { emptyRecruitmentState } from "@/lib/recruitment-state"
@@ -206,14 +207,63 @@ describe("TrackerPathwaysClient", () => {
     expect(tl).toHaveTextContent("Invites open in")
     expect(tl).toHaveTextContent("25 days")
 
-    await user.click(within(tl).getByRole("button", { name: "+3 more" }))
+    await user.click(within(tl).getByRole("button", { name: "+2 more" }))
+    expect(within(tl).getAllByRole("listitem")).toHaveLength(8)
+    expect(tl.querySelector('[data-destination-row="ClosedDest"]')).toBeNull()
+
+    await user.click(within(tl).getByRole("button", { name: "Show 1 closed" }))
     expect(within(tl).getAllByRole("listitem")).toHaveLength(9)
     const closed = tl.querySelector('[data-destination-row="ClosedDest"]')
     expect(closed).toHaveAttribute("data-closed", "true")
     expect(closed).toHaveTextContent("Closed")
   })
 
-  it("opens a target profile with invite class, invited-from and can-invite-to", () => {
+  it("shows a card-wide invite class once in the header, not on every destination", () => {
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={[
+          tracker({
+            name: "Yu-Scene",
+            registrySlug: "yuscene",
+            latestStats: { group: "PowerUser" } as TrackerSummary["latestStats"],
+          }),
+        ]}
+        initialState={stateFor(null)}
+        catalog={RECRUITMENT_CATALOG}
+      />
+    )
+
+    const card = container.querySelector('[data-owned-card="YuScene"]') as HTMLElement
+    expect(card).toHaveTextContent("Yu-Scene")
+    expect(card).toHaveTextContent("Invites from Super User")
+    expect(card).toHaveTextContent("you are PowerUser")
+    expect(card.querySelectorAll("[data-class-gate]")).toHaveLength(0)
+  })
+
+  it("lists owned destinations only as an already-a-member line", () => {
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={[
+          tracker({ name: "Yu-Scene", registrySlug: "yuscene" }),
+          tracker({ id: 2, name: "seedpool", registrySlug: "seedpool" }),
+        ]}
+        initialState={stateFor(null)}
+        catalog={RECRUITMENT_CATALOG}
+      />
+    )
+
+    const line = container.querySelector("[data-already-member]")
+    expect(line).toHaveTextContent("Already a member:")
+    expect(line).toHaveTextContent("Yu-Scene")
+    expect(line).toHaveTextContent("seedpool")
+    for (const card of container.querySelectorAll("[data-owned-card]")) {
+      expect(card.querySelector('[data-destination-row="YuScene"]')).toBeNull()
+      expect(card.querySelector('[data-destination-row="seedpool"]')).toBeNull()
+    }
+  })
+
+  it("opens a target profile with invite class, invited-from and can-invite-to", async () => {
+    const user = userEvent.setup()
     const { container } = render(
       <TrackerPathwaysClient
         trackers={bothTrackers}
@@ -238,6 +288,10 @@ describe("TrackerPathwaysClient", () => {
       .getByText("Can invite to")
       .closest("section") as HTMLElement
     expect(within(canInviteTo).getByText("Dest1")).toBeInTheDocument()
+    expect(
+      canInviteTo.querySelector('[data-profile-route="tp:BroadcasTheNet:ClosedDest"]')
+    ).toBeNull()
+    await user.click(within(canInviteTo).getByRole("button", { name: "Show 1 closed" }))
     expect(
       canInviteTo.querySelector('[data-profile-route="tp:BroadcasTheNet:ClosedDest"]')
     ).toHaveAttribute("data-closed", "true")

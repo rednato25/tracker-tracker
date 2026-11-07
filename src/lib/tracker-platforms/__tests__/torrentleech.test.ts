@@ -385,6 +385,9 @@ describe("TorrentleechAdapter.fetchStats", () => {
 
     expect(stats.username).toBe("testuser")
     expect(stats.uploadedBytes).toBe(parseBytes("10.5 GiB"))
+    expect(
+      (stats.platformMeta as { seedSizeBytes?: number } | undefined)?.seedSizeBytes
+    ).toBe(Number(parseBytes("10.5 GiB")))
     expect(fetchSpy).toHaveBeenCalledTimes(2)
 
     const loginCall = fetchSpy.mock.calls[0]

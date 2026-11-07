@@ -163,6 +163,24 @@ export class MamAdapter implements TrackerAdapter {
       ? seedingCategories.reduce((sum: number, c) => sum + (c ?? 0), 0)
       : null
 
+    // Uploaded torrents are the active and inactive uploaded categories. Both
+    // must be present, or the total is unknown rather than a partial sum.
+    const uploadCounts = [snatch.upAct?.count, snatch.upInact?.count]
+    const uploads =
+      typeof uploadCounts[0] === "number" && typeof uploadCounts[1] === "number"
+        ? uploadCounts[0] + uploadCounts[1]
+        : undefined
+
+    // The seeded size is the sum of the four seeding categories' sizes. MAM
+    // sends null for a category it cannot measure, so one missing size makes
+    // the whole sum unverified and it is left out.
+    const seedingSizes = [snatch.sSat?.size, snatch.seedHnr?.size, snatch.seedUnsat?.size, snatch.upAct?.size]
+    const seedSizeBytes = seedingSizes.every(
+      (size): size is number => typeof size === "number" && Number.isFinite(size) && size >= 0
+    )
+      ? seedingSizes.reduce((sum, size) => sum + size, 0)
+      : undefined
+
     const platformMeta: MamPlatformMeta = {
       vipUntil: data.vip_until ?? undefined,
       connectable: snatch.connectable ?? undefined,
@@ -177,6 +195,8 @@ export class MamAdapter implements TrackerAdapter {
       openTickets: data.notifs?.tickets ?? undefined,
       pendingRequests: data.notifs?.requests ?? undefined,
       unreadTopics: data.notifs?.topics ?? undefined,
+      ...(uploads !== undefined ? { uploads } : {}),
+      ...(seedSizeBytes !== undefined ? { seedSizeBytes } : {}),
     }
 
     return {

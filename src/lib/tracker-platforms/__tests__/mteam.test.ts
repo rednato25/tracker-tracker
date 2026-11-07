@@ -40,6 +40,15 @@ const PEER_RESPONSE = {
   },
 }
 
+const PEER_STATISTICS_RESPONSE = {
+  code: "0",
+  message: "SUCCESS",
+  data: {
+    uploadCount: "42",
+    seederSize: "1099511627776",
+  },
+}
+
 const okResponse = (body: unknown) =>
   ({ ok: true, status: 200, statusText: "OK", json: async () => body }) as Response
 
@@ -57,6 +66,7 @@ describe("MteamAdapter", () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce(okResponse(PROFILE_RESPONSE))
       .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const stats = await adapter.fetchStats(HOST, "api-key", PATH)
     const meta = stats.platformMeta as MteamPlatformMeta
@@ -74,6 +84,8 @@ describe("MteamAdapter", () => {
     expect(stats.joinedDate).toBe("2020-05-17")
     expect(stats.lastAccessDate).toBe("2026-10-21")
     expect(meta.vip).toBe(false)
+    expect(meta.uploads).toBe(42)
+    expect(meta.seedSizeBytes).toBe(1099511627776)
   })
 
   it("fails when a byte total is missing", async () => {
@@ -96,12 +108,28 @@ describe("MteamAdapter", () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce(okResponse(PROFILE_RESPONSE))
       .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const stats = await adapter.fetchStats(HOST, "api-key", PATH)
 
     expect(stats.uploadedBytes).toBe(5020000000000n)
     expect(stats.seedingCount).toBeNull()
     expect(stats.leechingCount).toBeNull()
+    expect((stats.platformMeta as MteamPlatformMeta).uploads).toBe(42)
+  })
+
+  it("leaves the rank inputs unknown when the peer statistics request fails", async () => {
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce(okResponse(PROFILE_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+
+    const stats = await adapter.fetchStats(HOST, "api-key", PATH)
+    const meta = stats.platformMeta as MteamPlatformMeta
+
+    expect(stats.uploadedBytes).toBe(5020000000000n)
+    expect(meta.uploads).toBeUndefined()
+    expect(meta.seedSizeBytes).toBeUndefined()
   })
 
   it("reports an unknown role as no class", async () => {
@@ -113,6 +141,7 @@ describe("MteamAdapter", () => {
         })
       )
       .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const stats = await adapter.fetchStats(HOST, "api-key", PATH)
 
@@ -128,6 +157,7 @@ describe("MteamAdapter", () => {
         })
       )
       .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const stats = await adapter.fetchStats(HOST, "api-key", PATH)
 
@@ -143,6 +173,7 @@ describe("MteamAdapter", () => {
         })
       )
       .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const stats = await adapter.fetchStats(HOST, "api-key", PATH)
 
@@ -169,6 +200,7 @@ describe("MteamAdapter", () => {
         })
       )
       .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const stats = await adapter.fetchStats(HOST, "api-key", PATH)
 
@@ -188,6 +220,10 @@ describe("MteamAdapter", () => {
         urls.push(String(url))
         return Promise.resolve(okResponse(PEER_RESPONSE))
       })
+      .mockImplementationOnce((url) => {
+        urls.push(String(url))
+        return Promise.resolve(okResponse(PEER_STATISTICS_RESPONSE))
+      })
 
     await adapter.fetchStats(HOST, "secret-key", PATH)
 
@@ -197,6 +233,7 @@ describe("MteamAdapter", () => {
     expect(capturedInit?.method).toBe("POST")
     expect(urls[0]).toBe("https://api.m-team.cc/api/member/profile")
     expect(urls[1]).toBe("https://api.m-team.cc/api/tracker/myPeerStatus")
+    expect(urls[2]).toBe("https://api.m-team.cc/api/tracker/myPeerStatistics")
     expect(urls.join(" ")).not.toContain("secret-key")
   })
 })
@@ -208,14 +245,15 @@ describe("MteamAdapter - fetchRaw", () => {
     vi.restoreAllMocks()
   })
 
-  it("returns both raw calls for the debug view", async () => {
+  it("returns every raw call for the debug view", async () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce(okResponse(PROFILE_RESPONSE))
       .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const calls = await adapter.fetchRaw(HOST, "api-key", PATH)
 
-    expect(calls).toHaveLength(2)
+    expect(calls).toHaveLength(3)
     expect(calls[0].label).toBe("Profile")
     expect(calls[0].endpoint).toBe(PATH)
     expect(calls[0].error).toBeNull()
@@ -224,12 +262,17 @@ describe("MteamAdapter - fetchRaw", () => {
     expect(calls[1].endpoint).toBe("/api/tracker/myPeerStatus")
     expect(calls[1].error).toBeNull()
     expect(calls[1].data).toEqual(PEER_RESPONSE)
+    expect(calls[2].label).toBe("Peer Statistics")
+    expect(calls[2].endpoint).toBe("/api/tracker/myPeerStatistics")
+    expect(calls[2].error).toBeNull()
+    expect(calls[2].data).toEqual(PEER_STATISTICS_RESPONSE)
   })
 
   it("reports a peer status failure without hiding the profile", async () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce(okResponse(PROFILE_RESPONSE))
       .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
 
     const calls = await adapter.fetchRaw(HOST, "api-key", PATH)
 

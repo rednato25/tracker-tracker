@@ -1,7 +1,7 @@
 // src/lib/tracker-platforms/adapters/torrentleech.ts
 //
 // Functions: parseTlCredentials, sessionKey, getTlSession, withTlSession, login,
-//            textAfterNode, firstText, topBarCell, parenCount, trailingCount,
+//            textAfterNode, firstText, topBarCell, parenCount, parenSize, trailingCount,
 //            parseTlProfile, fetchHtml, TorrentleechAdapter
 
 import { randomBytes, scrypt } from "node:crypto"
@@ -12,7 +12,13 @@ import { ADAPTER_FETCH_TIMEOUT_MS } from "@/lib/limits"
 import { log } from "@/lib/logger"
 import { isRedirect } from "@/lib/network"
 import { proxyFetch } from "@/lib/tunnel"
-import type { DebugApiCall, FetchOptions, TrackerAdapter, TrackerStats } from "../contract"
+import type {
+  DebugApiCall,
+  FetchOptions,
+  TorrentleechPlatformMeta,
+  TrackerAdapter,
+  TrackerStats,
+} from "../contract"
 import { parseCredentialJson } from "../helpers/cookie-credentials"
 import { SessionExpiredError } from "../helpers/errors"
 import { fetchTrackerHtml } from "../helpers/html-fetch"
@@ -279,6 +285,14 @@ function parenCount(text: string): number | null {
   return match ? parseInt(match[1].replace(/,/g, ""), 10) : null
 }
 
+/** The size that precedes the parenthesised count in a top-bar cell. */
+function parenSize(text: string): number | null {
+  const size = text.replace(/\s*\([^)]*\)\s*$/, "").trim()
+  if (!size) return null
+  const bytes = tryParseSiteBytes(size)
+  return bytes === undefined ? null : Number(bytes)
+}
+
 /** The last standalone integer in a cell, for cells that carry only a count. */
 function trailingCount(text: string): number | null {
   const matches = text.match(/\d[\d,]*/g)
@@ -337,8 +351,10 @@ export function parseTlProfile(html: string, username: string, hostname: string)
 
   // Active seeding/leeching counts appear only in the top bar, alongside the
   // size totals they are parenthesised after.
-  const seedingCount = parenCount(topBarCell(doc, /seeding/i))
+  const seedingCell = topBarCell(doc, /seeding/i)
+  const seedingCount = parenCount(seedingCell)
   const leechingCount = parenCount(topBarCell(doc, /leeching/i))
+  const seedSizeBytes = parenSize(seedingCell)
 
   // Hit and runs have their own top-bar cell.
   const hitAndRuns = trailingCount(topBarCell(doc, /hit and run/i))
@@ -384,6 +400,8 @@ export function parseTlProfile(html: string, username: string, hostname: string)
     requiredRatio: null,
     warned: null,
     freeleechTokens: null,
+    platformMeta:
+      seedSizeBytes !== null ? ({ seedSizeBytes } satisfies TorrentleechPlatformMeta) : undefined,
   }
 }
 

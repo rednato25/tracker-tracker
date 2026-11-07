@@ -10,7 +10,10 @@ import type {
   CarptPlatformMeta,
   DigitalCorePlatformMeta,
   FileListPlatformMeta,
+  MamPlatformMeta,
+  MteamPlatformMeta,
   PortugasPlatformMeta,
+  TorrentleechPlatformMeta,
 } from "@/types/tracker-stats"
 
 export const RANK_OBSERVATION_STALE_MS = 24 * 60 * 60 * 1000
@@ -75,14 +78,28 @@ export function buildRankObservations(input: RankObservationSource): RankObserva
   // Seed size and seeding points live in platformMeta, which is overwritten on
   // every poll. A missing or null figure stays absent so the rank layer reports
   // it as not collected instead of treating it as a measured zero.
-  const seedSizeBytes =
-    input.platformType === "filelist"
-      ? metaNumber((input.platformMeta as FileListPlatformMeta | null)?.totalSeedSizeBytes)
-      : input.platformType === "portugas"
-        ? metaNumber((input.platformMeta as PortugasPlatformMeta | null)?.seedSizeBytes)
-        : input.platformType === "digitalcore"
-          ? metaNumber((input.platformMeta as DigitalCorePlatformMeta | null)?.seedSizeBytes)
-          : null
+  const meta = input.platformMeta
+  let seedSizeBytes: number | null = null
+  switch (input.platformType) {
+    case "filelist":
+      seedSizeBytes = metaNumber((meta as FileListPlatformMeta | null)?.totalSeedSizeBytes)
+      break
+    case "portugas":
+      seedSizeBytes = metaNumber((meta as PortugasPlatformMeta | null)?.seedSizeBytes)
+      break
+    case "digitalcore":
+      seedSizeBytes = metaNumber((meta as DigitalCorePlatformMeta | null)?.seedSizeBytes)
+      break
+    case "mteam":
+      seedSizeBytes = metaNumber((meta as MteamPlatformMeta | null)?.seedSizeBytes)
+      break
+    case "mam":
+      seedSizeBytes = metaNumber((meta as MamPlatformMeta | null)?.seedSizeBytes)
+      break
+    case "torrentleech":
+      seedSizeBytes = metaNumber((meta as TorrentleechPlatformMeta | null)?.seedSizeBytes)
+      break
+  }
   if (seedSizeBytes !== null) {
     observations.seedSizeBytes = { value: seedSizeBytes, freshness, source, observedAt }
   }
@@ -97,14 +114,20 @@ export function buildRankObservations(input: RankObservationSource): RankObserva
   }
 
   // Gazelle's community.uploaded is the upload count. ranks.uploads is a
-  // percentile and must never be used as a count.
+  // percentile and must never be used as a count. M-Team and MAM report their
+  // own uploaded-torrent counts in platformMeta.
   if (input.platformType === "gazelle") {
-    const community = (input.platformMeta as { community?: { uploaded?: unknown } } | null)
-      ?.community
+    const community = (meta as { community?: { uploaded?: unknown } } | null)?.community
     const uploaded = community?.uploaded
     if (typeof uploaded === "number" && Number.isSafeInteger(uploaded) && uploaded >= 0) {
       observations.uploads = { value: uploaded, freshness, source, observedAt }
     }
+  } else if (input.platformType === "mteam") {
+    const uploads = metaNumber((meta as MteamPlatformMeta | null)?.uploads)
+    if (uploads !== null) observations.uploads = { value: uploads, freshness, source, observedAt }
+  } else if (input.platformType === "mam") {
+    const uploads = metaNumber((meta as MamPlatformMeta | null)?.uploads)
+    if (uploads !== null) observations.uploads = { value: uploads, freshness, source, observedAt }
   }
 
   // P49: a daily profile read is an observation in its own right. It fills a

@@ -6,7 +6,7 @@ import { H1, H2, H3, Paragraph, Subtext } from "@typography"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { ProofAccountsPanel } from "@/components/recruitment/ProofAccountsPanel"
 import { Badge, Button, Card, Input, Notice, Select } from "@/components/ui"
-import { ChevronDownSmallIcon, PinIcon, XIcon } from "@/components/ui/Icons"
+import { ChevronDownSmallIcon, InfoIcon, PinIcon, XIcon } from "@/components/ui/Icons"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { PATHWAYS_TRACKERS, pathwaysTrackerName } from "@/data/pathways/catalog"
 import { RECRUITMENT_CATALOG } from "@/data/recruitment-catalog"
@@ -16,6 +16,7 @@ import type { ClassGateComparison } from "@/lib/rank-class-gate"
 import {
   buildOwnedTrackerCards,
   buildRouteChoices,
+  buildRouteGroups,
   buildTrackerProfile,
   type NoRouteView,
   type OwnedTrackerCardView,
@@ -40,6 +41,8 @@ import {
   buildWishlistPaths,
   hopWaitDays,
   pathWaitLabel,
+  stepHasUncheckedRequirements,
+  stepRequirementText,
   type WishlistPathView,
 } from "@/lib/recruitment-wishlist"
 import type { TrackerSummary } from "@/types/api"
@@ -86,13 +89,13 @@ function RouteChips({ path }: { path: WishlistPathView }) {
       {names.map((name, index) => (
         <li key={`${name}-${index}`} className="flex items-center gap-1">
           <span
-            className="rounded-nm-sm border border-border bg-elevated px-2 py-1 font-mono text-xs text-primary"
+            className="rounded-nm-sm border border-border bg-elevated px-1.5 py-0.5 font-mono text-2xs text-primary"
             data-route-chip
           >
             {name}
           </span>
           {index < names.length - 1 && (
-            <span className="font-mono text-xs text-tertiary" aria-hidden="true">
+            <span className="font-mono text-2xs text-tertiary" aria-hidden="true">
               →
             </span>
           )}
@@ -118,17 +121,22 @@ function inviteTimingLabel(card: OwnedTrackerCardView) {
 }
 
 function ClassGateBadge({ gate }: { gate: ClassGateComparison }) {
-  const label = `${gate.status === "met" ? "Met" : gate.status === "not-yet" ? "Not yet" : "Class unknown"}: ${gate.written.join(" or ")}`
+  const label =
+    gate.status === "met"
+      ? `${gate.currentClass ?? gate.written[0]} reached`
+      : gate.status === "not-yet"
+        ? `Needs ${gate.written.join(" or ")}`
+        : "Class unknown"
   return (
     <span
       data-class-gate={gate.status}
       title={gate.detail}
       className={
         gate.status === "met"
-          ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-success"
+          ? "text-2xs font-semibold text-success"
           : gate.status === "not-yet"
-            ? "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-warn"
-            : "text-2xs font-cond font-semibold uppercase tracking-[0.08em] text-tertiary"
+            ? "text-2xs font-semibold text-warn"
+            : "text-2xs font-semibold text-tertiary"
       }
     >
       {label}
@@ -563,6 +571,36 @@ function RouteControls({
   )
 }
 
+function unverifiedSummary(path: WishlistPathView): string {
+  const details = path.steps
+    .filter(stepHasUncheckedRequirements)
+    .map((step) => {
+      const requirement = stepRequirementText(step)
+      return requirement ? `${step.destinationName}: ${requirement}` : step.destinationName
+    })
+  if (details.length === 0) {
+    return "Some requirements on this route are unverified. Check the tracker before applying."
+  }
+  return `Unverified on this route: ${details.join("; ")}. Check the tracker before applying.`
+}
+
+function CheckingStatus({ path, needsChecking }: { path: WishlistPathView; needsChecking: boolean }) {
+  if (!needsChecking) {
+    return <span className="text-success">Checked</span>
+  }
+  return (
+    <Tooltip content={unverifiedSummary(path)}>
+      <button
+        type="button"
+        aria-label="Needs checking"
+        className="inline-flex text-warn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)]"
+      >
+        <InfoIcon width="13" height="13" aria-hidden="true" />
+      </button>
+    </Tooltip>
+  )
+}
+
 function RouteChoiceRow({
   choice,
   onTogglePin,
@@ -576,35 +614,50 @@ function RouteChoiceRow({
       data-pinned={choice.pinned}
       data-fastest={choice.fastest}
       data-needs-checking={choice.needsChecking}
-      className="flex flex-col gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0"
+      className={`flex flex-col gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0 ${
+        choice.fastest ? "border border-success/40 bg-success/5 px-2 pb-2" : ""
+      }`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            {choice.pinned && <Badge variant="accent">Pinned</Badge>}
-            {choice.fastest && <Badge variant="success">Fastest</Badge>}
+            {choice.fastest && (
+              <span className="text-2xs font-semibold text-success" data-fastest-label>
+                Fastest
+              </span>
+            )}
+            <RouteChips path={choice.path} />
           </div>
-          <RouteChips path={choice.path} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-2xs">
+            <span className="text-tertiary">
+              {choice.hops} {choice.hops === 1 ? "hop" : "hops"}
+            </span>
+            <span className="text-secondary">{choice.waitLabel}</span>
+            {choice.classGate && <ClassGateBadge gate={choice.classGate} />}
+            <CheckingStatus path={choice.path} needsChecking={choice.needsChecking} />
+          </div>
         </div>
-        <Button
-          size="sm"
-          variant={choice.pinned ? "primary" : "secondary"}
-          aria-pressed={choice.pinned}
-          className="min-h-11"
-          text={choice.pinned ? "Unpin" : "Pin"}
-          onClick={() => onTogglePin(choice.path.key)}
-        />
+        <Tooltip content={choice.pinned ? "Unpin this route" : "Pin this route"}>
+          <button
+            type="button"
+            aria-label={choice.pinned ? "Unpin route" : "Pin route"}
+            aria-pressed={choice.pinned}
+            onClick={() => onTogglePin(choice.path.key)}
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center border text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-focus)] ${
+              choice.pinned
+                ? "border-accent bg-accent-dim text-accent"
+                : "border-border bg-raised text-secondary hover:text-primary"
+            }`}
+          >
+            <PinIcon
+              width="14"
+              height="14"
+              aria-hidden="true"
+              fill={choice.pinned ? "currentColor" : "none"}
+            />
+          </button>
+        </Tooltip>
       </div>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-2xs">
-        <span className="text-tertiary">
-          {choice.hops} {choice.hops === 1 ? "hop" : "hops"}
-        </span>
-        <span className="text-secondary">{choice.waitLabel}</span>
-        <span className={choice.needsChecking ? "text-warn" : "text-success"}>
-          {choice.needsChecking ? "Needs checking" : "No checks pending"}
-        </span>
-      </div>
-      {choice.classGate && <ClassGateBadge gate={choice.classGate} />}
     </li>
   )
 }
@@ -1067,6 +1120,10 @@ export function TrackerPathwaysClient({
   }
 
   const visibleChoices = routeChoices?.choices.slice(0, showAll ? undefined : 10) ?? []
+  const routeGroups = useMemo(
+    () => buildRouteGroups(visibleChoices, activeTargetName ?? ""),
+    [activeTargetName, visibleChoices]
+  )
 
   return (
     <div className="flex flex-col gap-6 pb-12" data-pathways-page data-page-frame>
@@ -1314,12 +1371,30 @@ export function TrackerPathwaysClient({
                 {routeChoices && routeChoices.total > 0 ? (
                   <>
                     <ul className="flex flex-col gap-3" data-route-list>
-                      {visibleChoices.map((choice) => (
-                        <RouteChoiceRow
-                          key={choice.path.key}
-                          choice={choice}
-                          onTogglePin={togglePin}
-                        />
+                      {routeGroups.map((group) => (
+                        <li
+                          key={group.key}
+                          data-route-group={group.key}
+                          className="flex flex-col gap-2"
+                        >
+                          {group.grouped && (
+                            <h3
+                              data-route-group-header
+                              className="font-cond text-2xs font-semibold text-tertiary"
+                            >
+                              {group.header}
+                            </h3>
+                          )}
+                          <ul className="flex flex-col gap-3">
+                            {group.choices.map((choice) => (
+                              <RouteChoiceRow
+                                key={choice.path.key}
+                                choice={choice}
+                                onTogglePin={togglePin}
+                              />
+                            ))}
+                          </ul>
+                        </li>
                       ))}
                     </ul>
                     {routeChoices.total > 10 && (

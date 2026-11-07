@@ -356,6 +356,9 @@ describe("TrackerPathwaysClient", () => {
     expect(rows[0]).toHaveAttribute("data-route-choice", "tp:AlphaRatio:BroadcasTheNet")
     expect(rows[0]).toHaveAttribute("data-fastest", "true")
     expect(rows[0]).toHaveTextContent("Fastest")
+    expect(rows[0].querySelector("[data-fastest-label]")).not.toBeNull()
+    await user.hover(within(rows[0] as HTMLElement).getByRole("button", { name: "Pin route" }))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Pin this route")
     expect(rows[1]).toHaveAttribute("data-route-choice", "tp:TorrentLeech:BroadcasTheNet")
     expect(rows[2]).toHaveAttribute(
       "data-route-choice",
@@ -392,6 +395,35 @@ describe("TrackerPathwaysClient", () => {
     rows = [...container.querySelectorAll("[data-route-choice]")]
     expect(rows).toHaveLength(1)
     expect(rows[0]).toHaveAttribute("data-route-choice", "tp:TorrentLeech:BroadcasTheNet")
+  })
+
+  it("groups routes that share their last hops under one header", async () => {
+    const user = userEvent.setup()
+    const groupedCatalog: RecruitmentCatalog = {
+      ...ROUTE_CATALOG,
+      routes: [
+        ...ROUTE_CATALOG.routes,
+        route("TorrentLeech", "Mid", { minimumDays: 1 }),
+        route("Mid", "BroadcasTheNet", { minimumDays: 2 }),
+      ],
+    }
+    const { container } = render(
+      <TrackerPathwaysClient
+        trackers={bothTrackers}
+        initialState={stateFor("BroadcasTheNet")}
+        catalog={groupedCatalog}
+      />
+    )
+    await openToTab(user)
+
+    const headers = [...container.querySelectorAll("[data-route-group-header]")].map(
+      (header) => header.textContent
+    )
+    expect(headers).toContain("via Mid → BroadcasTheNet")
+    const group = [...container.querySelectorAll("[data-route-group]")].find((candidate) =>
+      candidate.querySelector("[data-route-group-header]")?.textContent?.includes("via Mid")
+    ) as HTMLElement
+    expect(group.querySelectorAll("[data-route-choice]").length).toBeGreaterThanOrEqual(2)
   })
 
   it("shows the first 10 routes and then Show all", async () => {
@@ -438,7 +470,7 @@ describe("TrackerPathwaysClient", () => {
       `[data-route-choice="${pinnedKey}"]`
     ) as HTMLElement
     expect(pinnedRow).not.toBeNull()
-    await user.click(within(pinnedRow).getByRole("button", { name: "Pin" }))
+    await user.click(within(pinnedRow).getByRole("button", { name: "Pin route" }))
 
     await waitFor(() => {
       const put = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT").at(-1)
@@ -479,7 +511,7 @@ describe("TrackerPathwaysClient", () => {
     const pinnedRow = container.querySelector(
       `[data-route-choice="${pinnedKey}"]`
     ) as HTMLElement
-    await user.click(within(pinnedRow).getByRole("button", { name: "Pin" }))
+    await user.click(within(pinnedRow).getByRole("button", { name: "Pin route" }))
     await waitFor(() => {
       const put = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT").at(-1)
       expect(JSON.parse(String(put?.[1]?.body)).state.pinnedRoutes.BroadcasTheNet).toBe(
@@ -588,7 +620,7 @@ describe("TrackerPathwaysClient", () => {
       />
     )
     expect(met.container.querySelector('[data-class-gate="met"]')).not.toBeNull()
-    expect(met.container).toHaveTextContent("Met: Power User+")
+    expect(met.container).toHaveTextContent("Power User reached")
     met.unmount()
 
     const current = tracker().latestStats
@@ -604,7 +636,7 @@ describe("TrackerPathwaysClient", () => {
       />
     )
     expect(notYet.container.querySelector('[data-class-gate="not-yet"]')).not.toBeNull()
-    expect(notYet.container).toHaveTextContent("Not yet: Power User+")
+    expect(notYet.container).toHaveTextContent("Needs Power User+")
   })
 
   it("shows waits, pin markers, and unlock counts on tree nodes", () => {
@@ -789,7 +821,7 @@ describe("TrackerPathwaysClient", () => {
     expect(pinnedHeading).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "From my trackers" })).toBeInTheDocument()
 
-    await user.click(screen.getAllByRole("button", { name: "Pin" })[0])
+    await user.click(screen.getAllByRole("button", { name: "Pin route" })[0])
     await waitFor(() => {
       expect(container.querySelector('[data-pinned-route="BroadcasTheNet"]')).not.toBeNull()
     })
@@ -802,7 +834,7 @@ describe("TrackerPathwaysClient", () => {
       expect(container.querySelector('[data-route-choice]')).not.toBeNull()
     })
 
-    await user.click(screen.getAllByRole("button", { name: "Pin" })[0])
+    await user.click(screen.getAllByRole("button", { name: "Pin route" })[0])
     await waitFor(() => {
       expect(container.querySelector('[data-pinned-route="Aither"]')).not.toBeNull()
     })
@@ -849,3 +881,4 @@ describe("TrackerPathwaysClient", () => {
     expect(note).not.toHaveTextContent("TorrentLeech")
   })
 })
+

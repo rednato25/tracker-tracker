@@ -1,21 +1,22 @@
 // src/lib/tracker-platforms/adapters/teamhd.ts
 //
 // Functions: parseTeamhdCredentials, assertAuthenticated, valueAfterGlyph,
-//            parseTeamhdHomepage, parseRussianDate, parseTeamhdProfile,
-//            parseTeamhdRates, mergeMeta, errorMessage, TeamhdAdapter
+//            countAfterImage, countWithGroupingSpaces, parseRussianDate,
+//            parseDottedDate, readHeadRows, parseTeamhdHomepage,
+//            parseTeamhdProfile, parseTeamhdRates, mergeMeta, errorMessage,
+//            TeamhdAdapter
 //
 // TeamHD is a custom NexusPHP fork with no user API and a reCAPTCHA on its
 // login page (Jackett's teamhd.yml uses the cookie method for the same reason),
 // so this adapter reads the logged-in pages:
 //
-//   /index.php  the welcome block: upload, download, ratio, bonus
-//   /user/      the account's own profile: join date and class
-//   /bprate.php seeding count and seeding size
+//   /index.php  the welcome block: totals, bonus, seeding and leeching counts
+//   /user/      the profile: registration date, last activity and class
+//   /bprate.php the seeding size, which no other page prints
 //
-// The selectors follow PT-depiler's teamhd.ts, which documents this site's
-// markup. They have NOT been checked against a live logged-in page here, so
-// each page's figures are enrichment: a page that does not parse leaves its
-// fields unknown rather than failing the poll.
+// The welcome block marks each figure with a coloured glyph and leaves the
+// number in the following text node, which is why the values are read by
+// walking past the <font> rather than by label.
 
 import { parse as parseHtml } from "node-html-parser"
 import { computeBufferBytes, computeRatio } from "@/lib/data-transforms"
@@ -30,11 +31,7 @@ import type {
 import { parseCredentialJson } from "../helpers/cookie-credentials"
 import { SessionExpiredError } from "../helpers/errors"
 import { fetchTrackerHtml } from "../helpers/html-fetch"
-import {
-  normalizeWhitespace,
-  tryParseCount,
-  tryParseSiteBytes,
-} from "../helpers/html-parse"
+import { normalizeWhitespace, tryParseCount, tryParseSiteBytes } from "../helpers/html-parse"
 
 const LABEL = "TeamHD"
 const SESSION_EXPIRED = "Session expired. Browser cookies need to be refreshed"
@@ -82,8 +79,8 @@ function assertAuthenticated(html: string): void {
 
 /**
  * The number the welcome block prints after a coloured glyph. The site marks
- * upload green, download dark red and ratio blue, with the figure as a sibling
- * text node rather than inside the <font> element.
+ * upload green, download dark red, ratio and torrent counts blue, each with the
+ * figure as a sibling text node rather than inside the <font> element.
  */
 function valueAfterGlyph(root: HtmlNode, colors: readonly string[]): string | undefined {
   for (const font of root.querySelectorAll("font")) {
@@ -99,70 +96,24 @@ const UPLOAD_GLYPHS = ["green", "#008000", "#00b300"]
 const DOWNLOAD_GLYPHS = ["darkred", "#8b0000", "#b30000"]
 const RATIO_GLYPHS = ["#1900d1", "blue", "#0000ff"]
 
-export interface TeamhdHomeReadout {
-  stats: TrackerStats
-  /** The profile path segment ("id7279"), not an integer. */
-  profileId?: string
-  profileName?: string
+/** The count printed after an icon, as in `<img alt="Раздаёт">&nbsp;1`. */
+function countAfterImage(root: HtmlNode, alt: string): number | undefined {
+  const image = root.querySelector(`img[alt="${alt}"]`)
+  return tryParseCount(image?.nextSibling?.textContent)
 }
 
-export function parseTeamhdHomepage(html: string, hostname: string): TeamhdHomeReadout {
-  assertAuthenticated(html)
-  const doc = parseHtml(html)
-
-  // The header block, when the theme still uses the documented one.
-  const block = doc.querySelector("div.col-8.mb-4") ?? doc
-
-  const profileLink = doc.querySelector("a[href*='/user/']")
-  const profileHref = profileLink?.getAttribute("href") ?? ""
-  const profileName = normalizeWhitespace(profileLink?.textContent ?? "")
-  const profileId = profileHref.split("/").filter(Boolean).at(-1)
-
-  const uploadedBytes = tryParseSiteBytes(valueAfterGlyph(block, UPLOAD_GLYPHS) ?? "")
-  const downloadedBytes = tryParseSiteBytes(valueAfterGlyph(block, DOWNLOAD_GLYPHS) ?? "")
-  const ratio = tryParseCount(valueAfterGlyph(block, RATIO_GLYPHS))
-
-  if (uploadedBytes === undefined) {
-    throw new Error(`Unexpected response from ${hostname}: missing uploaded total`)
-  }
-  if (downloadedBytes === undefined) {
-    throw new Error(`Unexpected response from ${hostname}: missing downloaded total`)
-  }
-
-  const seedbonus = tryParseCount(
-    doc.querySelector("a.online[href='/mybonus.php']")?.textContent ??
-      doc.querySelector("a[href*='mybonus.php']")?.textContent
-  )
-  const unreadMessages = tryParseCount(
-    doc.querySelector("#message_box a font")?.textContent ?? undefined
-  )
-
-  const meta: TeamhdPlatformMeta = {}
-  if (unreadMessages !== undefined) meta.unreadMessages = unreadMessages
-
-  return {
-    profileId,
-    profileName,
-    stats: {
-      username: profileName,
-      group: null,
-      uploadedBytes,
-      downloadedBytes,
-      ratio: ratio ?? computeRatio(uploadedBytes, downloadedBytes),
-      bufferBytes: computeBufferBytes(uploadedBytes, downloadedBytes),
-      seedingCount: null,
-      leechingCount: null,
-      seedbonus: seedbonus ?? null,
-      hitAndRuns: null,
-      requiredRatio: null,
-      warned: null,
-      freeleechTokens: null,
-      platformMeta: Object.keys(meta).length > 0 ? meta : undefined,
-    },
-  }
+/**
+ * `29 686` -> 29686. The bonus field groups thousands with a space, where the
+ * shared count reader stops at the first group.
+ */
+function countWithGroupingSpaces(value: string | undefined): number | undefined {
+  const match = value?.match(/\d{1,3}(?:[\s\u00a0]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?/)
+  if (!match) return undefined
+  const parsed = Number.parseFloat(match[0].replace(/[\s\u00a0]/g, ""))
+  return Number.isFinite(parsed) ? parsed : undefined
 }
 
-/** Russian month names as the profile prints them, in the nominative case. */
+/** Russian month names as the profile prints them, in the genitive case. */
 const RU_MONTHS: Record<string, string> = {
   января: "01",
   февраля: "02",
@@ -178,7 +129,7 @@ const RU_MONTHS: Record<string, string> = {
   декабря: "12",
 }
 
-/** `14 марта 2021` -> `2021-03-14`. Undefined when the shape is not that one. */
+/** `29 сентября 2026 (6 недель назад)` -> `2026-09-29`. */
 export function parseRussianDate(value: string): string | undefined {
   const text = normalizeWhitespace(value).split("(")[0] ?? ""
   const match = text.match(/^(\d{1,2})\s+([А-Яа-яЁё]+)\s+(\d{4})/)
@@ -188,36 +139,130 @@ export function parseRussianDate(value: string): string | undefined {
   return `${match[3]}-${month}-${match[1].padStart(2, "0")}`
 }
 
-/** The account's own profile page: join date and class. */
-export function parseTeamhdProfile(html: string): Partial<TrackerStats> {
+/** `10-11-2026 23:51:07` -> `2026-11-10`. Undefined for any other shape. */
+export function parseDottedDate(value: string | undefined): string | undefined {
+  const match = value?.match(/(\d{1,2})-(\d{1,2})-(\d{4})/)
+  if (!match) return undefined
+  return `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`
+}
+
+/**
+ * The profile's label/value table. A row is a `<td class="rowhead">` with its
+ * value in the next cell; the label is matched rather than the row position,
+ * since TeamHD has moved these rows between releases.
+ */
+function readHeadRows(doc: HtmlNode): Map<string, string> {
+  const rows = new Map<string, string>()
+  for (const row of doc.querySelectorAll("tr")) {
+    const cells = row.querySelectorAll("td")
+    if (cells.length < 2) continue
+    const key = normalizeWhitespace(cells[0]?.textContent ?? "")
+      .toLowerCase()
+      .replace(/\s*:\s*$/, "")
+    if (!key || rows.has(key)) continue
+    rows.set(key, normalizeWhitespace(cells[1]?.textContent ?? ""))
+  }
+  return rows
+}
+
+export interface TeamhdHomeReadout {
+  stats: TrackerStats
+  /** The profile path segment ("id7279"), not an integer. */
+  profileId?: string
+  profileName?: string
+}
+
+export function parseTeamhdHomepage(html: string, hostname: string): TeamhdHomeReadout {
   assertAuthenticated(html)
   const doc = parseHtml(html)
 
-  const joinedCell = doc.querySelector(
-    "#profile_right table.inlay tbody tr:nth-child(1) td:nth-child(2)"
-  )
-  // The theme has moved these rows between releases, so the label is matched in
-  // the page text when the documented selector no longer fires. The marker is
-  // either the site's own Russian label or the English one.
-  const joinedMarker = normalizeWhitespace(doc.textContent).match(
-    /(?:Присоединил\w*|Зарегистрирован\w*|Дата регистрации|Joined|Join date|Registered on)\W*(\d{1,2}\s+[А-Яа-яЁё]+\s+\d{4})/
-  )
-  const joinedDate =
-    (joinedCell ? parseRussianDate(joinedCell.textContent) : undefined) ??
-    parseRussianDate(joinedMarker?.[1] ?? "")
+  // The welcome block, when the theme still uses the documented one.
+  const block = doc.querySelector("div.col-8.mb-4") ?? doc
 
-  const classCell = doc.querySelector(
-    "#profile_left table tr td:nth-child(2) p:nth-child(1) u span"
+  const profileLink = doc.querySelector("a[href*='/user/']")
+  const profileHref = profileLink?.getAttribute("href") ?? ""
+  const profileName = normalizeWhitespace(profileLink?.textContent ?? "")
+  const profileId = profileHref.split("/").filter(Boolean).at(-1)
+  // The site keeps the class in the username link's title: title="720p".
+  const group = normalizeWhitespace(profileLink?.querySelector("span")?.getAttribute("title") ?? "")
+
+  const uploadedBytes = tryParseSiteBytes(valueAfterGlyph(block, UPLOAD_GLYPHS) ?? "")
+  const downloadedBytes = tryParseSiteBytes(valueAfterGlyph(block, DOWNLOAD_GLYPHS) ?? "")
+  const ratio = tryParseCount(valueAfterGlyph(block, RATIO_GLYPHS))
+
+  if (uploadedBytes === undefined) {
+    throw new Error(`Unexpected response from ${hostname}: missing uploaded total`)
+  }
+  if (downloadedBytes === undefined) {
+    throw new Error(`Unexpected response from ${hostname}: missing downloaded total`)
+  }
+
+  const seedbonus = countWithGroupingSpaces(
+    doc.querySelector("a.online[href='/mybonus.php']")?.textContent ??
+      doc.querySelector("a[href*='mybonus.php']")?.textContent
   )
-  const group = classCell ? normalizeWhitespace(classCell.textContent).split("(")[0]?.trim() : null
+  const unreadMessages = tryParseCount(
+    doc.querySelector("#message_box a font")?.textContent ?? undefined
+  )
+  // The tracker prints its torrent counts after two icons rather than labels.
+  const seedingCount = countAfterImage(block, "Раздаёт")
+  const leechingCount = countAfterImage(block, "Качает")
+
+  const meta: TeamhdPlatformMeta = {}
+  if (unreadMessages !== undefined) meta.unreadMessages = unreadMessages
 
   return {
-    group: group || null,
-    joinedDate,
+    profileId,
+    profileName,
+    stats: {
+      username: profileName,
+      group: group || null,
+      uploadedBytes,
+      downloadedBytes,
+      ratio: ratio ?? computeRatio(uploadedBytes, downloadedBytes),
+      bufferBytes: computeBufferBytes(uploadedBytes, downloadedBytes),
+      seedingCount: seedingCount ?? null,
+      leechingCount: leechingCount ?? null,
+      seedbonus: seedbonus ?? null,
+      hitAndRuns: null,
+      requiredRatio: null,
+      warned: null,
+      freeleechTokens: null,
+      platformMeta: Object.keys(meta).length > 0 ? meta : undefined,
+    },
   }
 }
 
-/** bprate.php: the seeding totals the welcome block does not print. */
+/** The account's own profile page: registration date, last activity and class. */
+export function parseTeamhdProfile(html: string): Partial<TrackerStats> {
+  assertAuthenticated(html)
+  const doc = parseHtml(html)
+  const rows = readHeadRows(doc)
+
+  const joinedDate =
+    parseRussianDate(rows.get("регистрация") ?? "") ??
+    parseRussianDate(
+      doc.querySelector("#profile_right table.inlay tr td:nth-child(2)")?.textContent ?? ""
+    )
+
+  const lastAccessDate = parseDottedDate(rows.get("активность"))
+
+  // The class is the title on the username span ("720p"), with the same value
+  // repeated as the first small line under the avatar.
+  const group =
+    normalizeWhitespace(doc.querySelector("#profile_left h4 span")?.getAttribute("title") ?? "") ||
+    normalizeWhitespace(doc.querySelector("#profile_left p.small")?.textContent ?? "") ||
+    null
+
+  return {
+    group,
+    joinedDate,
+    lastAccessDate,
+    lastAccessField: lastAccessDate ? "Активность" : undefined,
+  }
+}
+
+/** bprate.php: the seeding size the welcome block does not print. */
 export function parseTeamhdRates(html: string): Partial<TrackerStats> {
   assertAuthenticated(html)
   const doc = parseHtml(html)
@@ -275,19 +320,25 @@ export class TeamhdAdapter implements TrackerAdapter {
     const home = parseTeamhdHomepage(await fetchPage(`${baseUrl}/index.php`), hostname)
     const stats = home.stats
 
-    // Join date, class and seeding totals are enrichment. A page that fails
-    // leaves those fields unknown rather than discarding the totals.
+    // Registration date, class and seeding size are enrichment. A page that
+    // fails leaves those fields unknown rather than discarding the totals.
     try {
       const profile = parseTeamhdProfile(await fetchPage(`${baseUrl}/user/`))
       if (profile.group) stats.group = profile.group
       if (profile.joinedDate) stats.joinedDate = profile.joinedDate
+      if (profile.lastAccessDate) {
+        stats.lastAccessDate = profile.lastAccessDate
+        stats.lastAccessField = profile.lastAccessField
+      }
     } catch {
       // Keep the welcome-block figures.
     }
 
     try {
       const rates = parseTeamhdRates(await fetchPage(`${baseUrl}/bprate.php`))
-      if (rates.seedingCount !== undefined && rates.seedingCount !== null) {
+      // The welcome block already prints the seed count; bprate is only a
+      // fallback for it and the sole source of the seeding size.
+      if (stats.seedingCount === null && typeof rates.seedingCount === "number") {
         stats.seedingCount = rates.seedingCount
       }
       stats.platformMeta = mergeMeta(stats.platformMeta, rates.platformMeta)
@@ -330,7 +381,12 @@ export class TeamhdAdapter implements TrackerAdapter {
       ["Seeding rates", "/bprate.php", parseTeamhdRates],
     ] as const) {
       try {
-        calls.push({ label, endpoint, data: parse(await fetchPage(`${baseUrl}${endpoint}`)), error: null })
+        calls.push({
+          label,
+          endpoint,
+          data: parse(await fetchPage(`${baseUrl}${endpoint}`)),
+          error: null,
+        })
       } catch (err) {
         calls.push({ label, endpoint, data: null, error: errorMessage(err) })
       }

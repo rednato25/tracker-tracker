@@ -6,9 +6,11 @@ describe("maxTokenLengthFor", () => {
   it.each([
     "avistaz",
     "carpt",
+    "czteam",
     "digitalcore",
     "iptorrents",
     "portugas",
+    "teamhd",
     "torrentleech",
     "v3x",
   ])(

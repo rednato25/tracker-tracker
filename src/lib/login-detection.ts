@@ -12,6 +12,7 @@ import { platformTypeLabel } from "@/data/platform-types"
 export const LOGIN_DETECTING_PLATFORMS = [
   "avistaz",
   "carpt",
+  "czteam",
   "digitalcore",
   "filelist",
   "gazelle",

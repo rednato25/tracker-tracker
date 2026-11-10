@@ -21,6 +21,7 @@ export * from "./cathoderaytube"
 export * from "./cinemageddon"
 export * from "./cinemaz"
 export * from "./concertos"
+export * from "./czteam"
 export * from "./darkpeers"
 export * from "./digitalcore"
 export * from "./dreadvault"
@@ -35,12 +36,14 @@ export * from "./hdbits"
 export * from "./hdtorrents"
 export * from "./infinityhd"
 export * from "./iptorrents"
+export * from "./latteam"
 export * from "./lst"
 export * from "./luminarr"
 export * from "./morethantv"
 export * from "./mteam"
 export * from "./myanonamouse"
 export * from "./nebulance"
+export * from "./nordicq"
 export * from "./oldtoons"
 export * from "./onlyencodes"
 export * from "./orpheus"
@@ -61,6 +64,7 @@ export * from "./seedpool"
 export * from "./skipthecommercials"
 export * from "./speedapp"
 export * from "./sportscult"
+export * from "./teamhd"
 export * from "./torrentleech"
 export * from "./tr4ker"
 export * from "./tvvault"
@@ -89,6 +93,7 @@ import { cathoderaytube } from "./cathoderaytube"
 import { cinemageddon } from "./cinemageddon"
 import { cinemaz } from "./cinemaz"
 import { concertos } from "./concertos"
+import { czteam } from "./czteam"
 import { darkpeers } from "./darkpeers"
 import { digitalcore } from "./digitalcore"
 import { dreadvault } from "./dreadvault"
@@ -103,12 +108,14 @@ import { hdbits } from "./hdbits"
 import { hdtorrents } from "./hdtorrents"
 import { infinityhd } from "./infinityhd"
 import { iptorrents } from "./iptorrents"
+import { latteam } from "./latteam"
 import { lst } from "./lst"
 import { luminarr } from "./luminarr"
 import { morethantv } from "./morethantv"
 import { mteam } from "./mteam"
 import { myanonamouse } from "./myanonamouse"
 import { nebulance } from "./nebulance"
+import { nordicq } from "./nordicq"
 import { oldtoons } from "./oldtoons"
 import { onlyencodes } from "./onlyencodes"
 import { orpheus } from "./orpheus"
@@ -129,6 +136,7 @@ import { seedpool } from "./seedpool"
 import { skipthecommercials } from "./skipthecommercials"
 import { speedapp } from "./speedapp"
 import { sportscult } from "./sportscult"
+import { teamhd } from "./teamhd"
 import { torrentleech } from "./torrentleech"
 import { tr4ker } from "./tr4ker"
 import { tvvault } from "./tvvault"
@@ -158,6 +166,7 @@ export const ALL_TRACKERS: TrackerRegistryEntry[] = [
   carpt,
   cinemaz,
   concertos,
+  czteam,
   darkpeers,
   digitalcore,
   dreadvault,
@@ -172,12 +181,14 @@ export const ALL_TRACKERS: TrackerRegistryEntry[] = [
   hdtorrents,
   infinityhd,
   iptorrents,
+  latteam,
   lst,
   luminarr,
   morethantv,
   mteam,
   myanonamouse,
   nebulance,
+  nordicq,
   oldtoons,
   onlyencodes,
   orpheus,
@@ -198,6 +209,7 @@ export const ALL_TRACKERS: TrackerRegistryEntry[] = [
   skipthecommercials,
   speedapp,
   sportscult,
+  teamhd,
   torrentleech,
   tr4ker,
   tvvault,

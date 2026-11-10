@@ -16,6 +16,7 @@ describe("canDetectLogin", () => {
       "carpt",
       "retrotoon",
       "tr4ker",
+      "czteam",
     ]) {
       expect(canDetectLogin(platform)).toBe(true)
     }
@@ -58,6 +59,7 @@ describe("loginDetectingPlatformLabels", () => {
     expect(loginDetectingPlatformLabels()).toEqual([
       "AvistaZ",
       "CarPT",
+      "CZTeam",
       "DigitalCore",
       "FileList",
       "Gazelle",

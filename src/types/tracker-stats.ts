@@ -357,6 +357,32 @@ export interface AnimeBytesPlatformMeta {
 }
 
 /**
+ * CZTeam is a customised NexusPHP build whose header carries the class goal and
+ * a couple of chips the profile table repeats.
+ */
+export interface CzteamPlatformMeta {
+  /** Seeding size from the profile, in bytes. */
+  seedSizeBytes?: number
+  /** Active Hit & Run count the header chip reports. */
+  hnrActive?: number
+  /** Freeleech tokens the header chip reports. */
+  freeleechTokens?: number
+  /** The class the header names as the next promotion target. */
+  nextClass?: string
+}
+
+/**
+ * TeamHD is a NexusPHP fork with no user API; seeding totals come from
+ * bprate.php, which the welcome block does not carry.
+ */
+export interface TeamhdPlatformMeta {
+  /** Seeding size from bprate.php, in bytes. */
+  seedSizeBytes?: number
+  /** Unread private messages the header counter reports. */
+  unreadMessages?: number
+}
+
+/**
  * P49 daily profile read. Platform-agnostic: every supported tracker stores the
  * same latest-only record beside whatever its adapter wrote.
  */
@@ -383,6 +409,8 @@ export type PlatformMeta =
   | CarptPlatformMeta
   | V3xPlatformMeta
   | AnimeBytesPlatformMeta
+  | CzteamPlatformMeta
+  | TeamhdPlatformMeta
   | ProfileReadPlatformMeta
 
 /** Maps platformType string → the corresponding PlatformMeta variant */
@@ -404,6 +432,8 @@ export interface PlatformMetaMap {
   carpt: CarptPlatformMeta
   v3x: V3xPlatformMeta
   animebytes: AnimeBytesPlatformMeta
+  czteam: CzteamPlatformMeta
+  teamhd: TeamhdPlatformMeta
 }
 
 /**

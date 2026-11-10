@@ -1,21 +1,27 @@
 // src/lib/tracker-platforms/adapters/czteam.ts
 //
-// Functions: parseCzteamCredentials, assertAuthenticated, canonicalLabel,
-//            labelGroup, readLabelValues, escapeRegExp, readInlineValues,
-//            parseCzteamHeader, parseCzteamProfile, mergeMeta, errorMessage,
+// Functions: parseCzteamCredentials, assertAuthenticated, headerNumber,
+//            czSize, firstSize, durationSeconds, parseCzteamHeader,
+//            readSideStats, parseCzteamProfile, mergeMeta, errorMessage,
 //            CzteamAdapter
 //
-// CZTeam runs a customised NexusPHP build. Its api.php is torrent search only
-// (Prowlarr's czteam-api.yml documents latest-torrents, search-torrents and
-// download, no user action), so the account totals come from the logged-in
-// pages the way carpt.ts reads them: the welcome block on index.php and the
-// userdetails.php profile table.
+// CZTeam runs a heavily customised NexusPHP build. Its api.php is torrent
+// search only (Prowlarr's czteam-api.yml documents latest-torrents,
+// search-torrents and download, no user action), so the account figures come
+// from the logged-in pages:
 //
-// The selectors are taken from the site's own public markup (the header CSS in
-// login.php names every class used below) and from stock NexusPHP profile
-// tables. They have NOT been checked against a live logged-in page, which is
-// why the two readers overlap: the header fills what the profile omits and the
-// profile fills what the header omits.
+//   index.php         the .cz-userinfo block: chips and the Up/Down line
+//   userdetails.php   the .ud-side-stat rows: dates, totals, seedtime
+//
+// Two traps this reader is built around, both confirmed against a live page:
+//
+//  - The home page also prints site-wide traffic ("Uploaded 79,84 PB" in its
+//    Tracker statistics card). Reading labels from the whole document picks
+//    that up as the account's own total, so every figure here is read from
+//    inside the account header only.
+//  - Sizes use the Romanian decimal comma ("1,26 TB", "0,000 KB"). Stripping
+//    the comma as a grouping separator multiplies the value by ten per digit,
+//    so sizes go through tryParseCommaDecimalBytes.
 
 import { parse as parseHtml } from "node-html-parser"
 import { computeBufferBytes, computeRatio } from "@/lib/data-transforms"
@@ -34,8 +40,8 @@ import {
   datePrefix,
   isCloudflareChallenge,
   normalizeWhitespace,
+  tryParseCommaDecimalBytes,
   tryParseCount,
-  tryParseSiteBytes,
 } from "../helpers/html-parse"
 
 const LABEL = "CZTeam"
@@ -71,150 +77,56 @@ export function parseCzteamCredentials(apiToken: string): CzteamCredentials {
 }
 
 /**
- * A logged-in CZTeam page either carries the sign-out link or names the account
- * in its header. The login page is served with a 200, so a status check alone
- * would parse it as an empty account.
+ * The signed-out pages ship the header's CSS but not the header itself, so the
+ * login page is detected by the markup of the account block rather than by the
+ * share of the stylesheet it also carries.
  */
 function assertAuthenticated(html: string): void {
   if (isCloudflareChallenge(html)) {
     throw new Error("Cloudflare challenge detected. Cookies need refreshing")
   }
-  if (!html.includes("logout.php") && !html.includes("userdetails.php?id=")) {
+  if (!html.includes('class="cz-userinfo"') && !html.includes("logout.php")) {
     throw new SessionExpiredError(SESSION_EXPIRED)
   }
 }
 
-// ---------------------------------------------------------------------------
-// Label lookup
-//
-// NexusPHP labels are translated per site and the theme is bilingual (English
-// and Romanian), so each figure is matched against a short list rather than one
-// exact string. Labels are compared lowercased with the trailing colon dropped.
-// ---------------------------------------------------------------------------
-
-const LABELS = {
-  uploaded: ["uploaded", "upload", "total uploaded", "încărcat", "incarcat"],
-  downloaded: ["downloaded", "download", "total downloaded", "descărcat", "descarcat"],
-  ratio: ["ratio", "rată", "rata", "share ratio"],
-  bonus: ["bonus", "bonus points", "points", "puncte", "seedbonus"],
-  className: ["class", "user class", "clasă", "clasa", "rank"],
-  joined: ["joined", "join date", "registered", "registered on", "înregistrat", "inregistrat"],
-  lastAccess: [
-    "last seen",
-    "last visit",
-    "last activity",
-    "ultima vizită",
-    "ultima vizita",
-    "ultima activitate",
-  ],
-  seeding: ["seeding", "seeding torrents", "seeds", "seeding count"],
-  leeching: ["leeching", "leeching torrents", "leeches"],
-  seedingSize: ["seeding size", "seed size", "total size", "seed size total"],
-  invites: ["invites", "invitations", "invitații", "invitatii"],
-} as const
-
-function canonicalLabel(text: string): string {
-  return normalizeWhitespace(text)
-    .toLowerCase()
-    .replace(/\s*:\s*$/, "")
-    .trim()
+/** The number inside a chip such as `<a class="cz-sl-up"><b>161</b></a>`. */
+function headerNumber(root: HtmlNode, selector: string): number | undefined {
+  return tryParseCount(root.querySelector(selector)?.textContent)
 }
 
-/** The first label group the text belongs to, or null. */
-function labelGroup(text: string): keyof typeof LABELS | null {
-  const label = canonicalLabel(text)
-  if (!label) return null
-  for (const group of Object.keys(LABELS) as (keyof typeof LABELS)[]) {
-    if (LABELS[group].some((candidate) => label === candidate)) return group
-  }
-  return null
+/** `1,26 TB` -> bytes, with the comma read as a decimal separator. */
+function czSize(value: string | undefined): bigint | undefined {
+  if (!value) return undefined
+  return tryParseCommaDecimalBytes(normalizeWhitespace(value))
 }
 
-interface LabelValues {
-  values: Map<keyof typeof LABELS, string>
+/** The first size-looking token in a row that also carries a rate and notes. */
+function firstSize(value: string | undefined): bigint | undefined {
+  if (!value) return undefined
+  const match = normalizeWhitespace(value).match(/([\d.,]+\s*(?:B|KB|MB|GB|TB|PB))/i)
+  return match ? czSize(match[1]) : undefined
 }
 
-/**
- * Every label/value pair on the page, from any of the three shapes this build
- * uses: a table row of `<td>Label</td><td>Value</td>`, a definition list of
- * `dt`/`dd`, or one cell printing `Label: Value | Label: Value`. The first
- * occurrence of a label wins, since the header repeats what the profile table
- * states.
- */
-function readLabelValues(doc: HtmlNode): LabelValues {
-  const values = new Map<keyof typeof LABELS, string>()
-
-  const record = (labelText: string, valueText: string) => {
-    const group = labelGroup(labelText)
-    if (!group) return
-    const value = normalizeWhitespace(valueText)
-    if (!value || values.has(group)) return
-    values.set(group, value)
+/** `37 days 16 hours 58 minutes` -> seconds. Undefined when no part matches. */
+export function durationSeconds(value: string | undefined): number | undefined {
+  if (!value) return undefined
+  const text = normalizeWhitespace(value).toLowerCase()
+  const parts: [RegExp, number][] = [
+    [/(\d+)\s*days?/, 86_400],
+    [/(\d+)\s*hours?/, 3_600],
+    [/(\d+)\s*minutes?/, 60],
+    [/(\d+)\s*seconds?/, 1],
+  ]
+  let total = 0
+  let matched = false
+  for (const [pattern, seconds] of parts) {
+    const match = text.match(pattern)
+    if (!match) continue
+    total += Number.parseInt(match[1], 10) * seconds
+    matched = true
   }
-
-  // Inline pairs first: a cell that prints several of them would otherwise lose
-  // all but its first to the cell-pair pass below.
-  for (const [group, value] of readInlineValues(doc.textContent)) values.set(group, value)
-
-  for (const row of doc.querySelectorAll("tr")) {
-    const cells = row.querySelectorAll("td")
-    for (let i = 0; i < cells.length - 1; i++) {
-      record(cells[i]?.textContent ?? "", cells[i + 1]?.textContent ?? "")
-    }
-  }
-
-  for (const term of doc.querySelectorAll("dt")) {
-    const definition = term.nextElementSibling
-    if (!definition) continue
-    record(term.textContent, definition.textContent)
-  }
-
-  return { values }
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
-
-/**
- * The groups whose value always starts with a digit. Restricting the inline
- * pass to them keeps it from reading a class name as a total.
- */
-const INLINE_GROUPS = [
-  "uploaded",
-  "downloaded",
-  "ratio",
-  "bonus",
-  "seeding",
-  "seedingSize",
-  "leeching",
-  "invites",
-] as const
-
-/**
- * `Label: 1.2 TB` pairs inside running text, where splitting on a delimiter
- * would also cut through the words before the first label.
- */
-function readInlineValues(text: string): Map<keyof typeof LABELS, string> {
-  const values = new Map<keyof typeof LABELS, string>()
-  const flat = normalizeWhitespace(text)
-
-  for (const group of INLINE_GROUPS) {
-    for (const alias of LABELS[group]) {
-      // The boundary keeps "upload" from matching inside "uploaded" and
-      // "bonus" from matching inside "seedbonus".
-      const pattern = new RegExp(
-        `(?:^|[\\s|>\\u2022])\\s*${escapeRegExp(alias)}\\s*:?\\s*([0-9][0-9.,]*(?:\\s*[A-Za-z]{1,3})?)`,
-        "i"
-      )
-      const match = flat.match(pattern)
-      if (!match?.[1]) continue
-      values.set(group, normalizeWhitespace(match[1]))
-      break
-    }
-  }
-
-  return values
+  return matched ? total : undefined
 }
 
 interface CzteamHeader {
@@ -222,48 +134,38 @@ interface CzteamHeader {
   uid?: string
 }
 
-/** The account block every logged-in page repeats. */
+/**
+ * The account block every logged-in page repeats.
+ *
+ * `cz-stats` prints "Ratio: Inf. · Up: 1,26 TB · Down: 0,00 KB · <bonus>", with
+ * the labels shortened to Up and Down rather than spelled out.
+ */
 export function parseCzteamHeader(html: string, hostname: string): CzteamHeader {
   assertAuthenticated(html)
   const doc = parseHtml(html)
 
   const header = doc.querySelector(".cz-userinfo")
-  const greeting = header?.querySelector(".cz-greet a") ?? doc.querySelector(".cz-greet a")
+  if (!header) {
+    throw new Error(`Unexpected response from ${hostname}: missing the account header`)
+  }
+
+  const greeting = header.querySelector(".cz-greet a")
   const username = normalizeWhitespace(greeting?.textContent ?? "")
-
-  // The class is printed beside the name as "Class: Power User". The colon sits
-  // inside that element, so the cell-pair pass cannot split it.
-  const classText = normalizeWhitespace(
-    header?.querySelector(".cz-class")?.textContent ??
-      doc.querySelector(".cz-class")?.textContent ??
-      ""
-  )
-
-  const uid = doc
-    .querySelector("a[href*='userdetails.php?id=']")
+  const uid = greeting
     ?.getAttribute("href")
     ?.match(/userdetails\.php\?id=(\d+)/)?.[1]
 
-  // The chips carry only a number, so they are read structurally rather than by
-  // label. Both are optional: a member with no offences and no tokens may have
-  // no chip at all.
-  const hnrActive = tryParseCount(
-    header?.querySelector(".cz-sl-hnr")?.textContent ?? doc.querySelector(".cz-sl-hnr")?.textContent
-  )
-  const freeleechTokens = tryParseCount(
-    header?.querySelector(".cz-sl-fl")?.textContent ?? doc.querySelector(".cz-sl-fl")?.textContent
-  )
+  // The site prints the class in brackets: "[User]".
+  const group =
+    normalizeWhitespace(header.querySelector(".cz-class")?.textContent ?? "")
+      .replace(/^[[(]|[)\]]$/g, "")
+      .trim() || null
 
-  // The header block is the densest label/value region on the page, so read it
-  // on its own as well: index.php does not carry the profile table.
-  const headerValues = header ? readLabelValues(header) : null
-
-  const fallback = readLabelValues(doc)
-  const value = (group: keyof typeof LABELS): string | undefined =>
-    headerValues?.values.get(group) ?? fallback.values.get(group)
-
-  const uploadedBytes = tryParseSiteBytes(value("uploaded") ?? "")
-  const downloadedBytes = tryParseSiteBytes(value("downloaded") ?? "")
+  const statsLine = normalizeWhitespace(header.querySelector(".cz-stats")?.textContent ?? "")
+  const uploadedBytes = czSize(statsLine.match(/Up:\s*([\d.,]+\s*[A-Za-z]+)/i)?.[1])
+  const downloadedBytes = czSize(statsLine.match(/Down:\s*([\d.,]+\s*[A-Za-z]+)/i)?.[1])
+  const printedRatio = tryParseCount(statsLine.match(/Ratio:\s*([\d.,]+)/i)?.[1])
+  const seedbonus = headerNumber(header, '.cz-stats a[href*="bonus.php"] b')
 
   if (uploadedBytes === undefined) {
     throw new Error(`Unexpected response from ${hostname}: missing uploaded total`)
@@ -272,17 +174,10 @@ export function parseCzteamHeader(html: string, hostname: string): CzteamHeader 
     throw new Error(`Unexpected response from ${hostname}: missing downloaded total`)
   }
 
-  const ratio = tryParseCount(value("ratio"))
-  const seedingCount = tryParseCount(value("seeding"))
-  const leechingCount = tryParseCount(value("leeching"))
-  const seedbonus = tryParseCount(value("bonus"))
-  const seedingSize = tryParseSiteBytes(value("seedingSize") ?? "")
-  const group = classText.replace(/^[^:]{0,20}:\s*/, "") || value("className") || null
-
-  const meta: CzteamPlatformMeta = {}
-  if (hnrActive !== undefined) meta.hnrActive = hnrActive
-  if (freeleechTokens !== undefined) meta.freeleechTokens = freeleechTokens
-  if (seedingSize !== undefined) meta.seedSizeBytes = Number(seedingSize)
+  const seedingCount = headerNumber(header, ".cz-sl-up")
+  const leechingCount = headerNumber(header, ".cz-sl-down")
+  const hitAndRuns = headerNumber(header, ".cz-sl-hnr")
+  const freeleechTokens = headerNumber(header, ".cz-sl-fl")
 
   return {
     uid,
@@ -291,49 +186,88 @@ export function parseCzteamHeader(html: string, hostname: string): CzteamHeader 
       group,
       uploadedBytes,
       downloadedBytes,
-      ratio: ratio ?? computeRatio(uploadedBytes, downloadedBytes),
+      // "Inf." is what the site prints for uploads with no downloads.
+      ratio: printedRatio ?? computeRatio(uploadedBytes, downloadedBytes),
       bufferBytes: computeBufferBytes(uploadedBytes, downloadedBytes),
       seedingCount: seedingCount ?? null,
       leechingCount: leechingCount ?? null,
       seedbonus: seedbonus ?? null,
-      hitAndRuns: hnrActive ?? null,
+      hitAndRuns: hitAndRuns ?? null,
       requiredRatio: null,
       warned: null,
       freeleechTokens: freeleechTokens ?? null,
       remoteUserId: uid ? Number.parseInt(uid, 10) : undefined,
-      joinedDate: undefined,
-      lastAccessDate: undefined,
-      platformMeta: Object.keys(meta).length > 0 ? meta : undefined,
     },
   }
 }
 
 /**
- * The userdetails.php row table: class, join date, last activity and, on this
- * build, the seeding size the header chip does not carry.
+ * The userdetails.php sidebar. Each figure is a `.ud-side-stat` row of a `.k`
+ * label and a `.v` value, and a value can carry a `<small>` note ("42,97 GB /
+ * day"), which is why sizes are read by shape rather than by whole-cell
+ * equality.
  */
+function readSideStats(doc: HtmlNode): Map<string, string> {
+  const rows = new Map<string, string>()
+  for (const row of doc.querySelectorAll(".ud-side-stat")) {
+    const key = normalizeWhitespace(row.querySelector(".k")?.textContent ?? "").toLowerCase()
+    if (!key || rows.has(key)) continue
+    rows.set(key, normalizeWhitespace(row.querySelector(".v")?.textContent ?? ""))
+  }
+  return rows
+}
+
 export function parseCzteamProfile(html: string): Partial<TrackerStats> {
   assertAuthenticated(html)
   const doc = parseHtml(html)
-  const { values } = readLabelValues(doc)
+  const rows = readSideStats(doc)
 
-  const joinedDate = datePrefix(values.get("joined") ?? "")
-  const lastAccessDate = datePrefix(values.get("lastAccess") ?? "")
-  const group = values.get("className") ?? null
-  const seedbonus = tryParseCount(values.get("bonus"))
-  const seedingSize = tryParseSiteBytes(values.get("seedingSize") ?? "")
+  const uploadedBytes = firstSize(rows.get("uploaded"))
+  const downloadedBytes = firstSize(rows.get("downloaded"))
+  const printedRatio = tryParseCount(rows.get("ratio"))
 
   const meta: CzteamPlatformMeta = {}
-  if (seedingSize !== undefined) meta.seedSizeBytes = Number(seedingSize)
+  const avgSeedTimeSeconds = durationSeconds(rows.get("avg seedtime"))
+  const totalSeedTimeSeconds = durationSeconds(rows.get("total seedtime"))
+  const completedSeeds = tryParseCount(rows.get("completed seeds"))
+  if (avgSeedTimeSeconds !== undefined) meta.avgSeedTimeSeconds = avgSeedTimeSeconds
+  if (totalSeedTimeSeconds !== undefined) meta.totalSeedTimeSeconds = totalSeedTimeSeconds
+  if (completedSeeds !== undefined) meta.completedSeeds = completedSeeds
+
+  // The activity summary prints "161 seeding · 0 leeching · 1 snatched · 136
+  // uploads · 0 invited", the only upload count on the page.
+  const activity = normalizeWhitespace(
+    doc.querySelector(".ud-activity-summary-meta")?.textContent ?? ""
+  )
+  const uploads = tryParseCount(activity.match(/(\d+)\s+uploads?/)?.[1])
+  if (uploads !== undefined) meta.uploads = uploads
+
+  const seedbonus = tryParseCount(rows.get("bonus points"))
 
   const stats: Partial<TrackerStats> = {
-    group,
-    joinedDate,
-    lastAccessDate,
-    lastAccessField: lastAccessDate ? "Last activity" : undefined,
+    group: normalizeWhitespace(doc.querySelector(".post-author-class")?.textContent ?? "") || null,
+    joinedDate: datePrefix(rows.get("registered") ?? ""),
+    lastAccessDate: datePrefix(rows.get("last access") ?? ""),
+    lastAccessField: rows.has("last access") ? "Last access" : undefined,
+    platformMeta: Object.keys(meta).length > 0 ? meta : undefined,
+  }
+
+  if (uploadedBytes !== undefined) stats.uploadedBytes = uploadedBytes
+  if (downloadedBytes !== undefined) {
+    stats.downloadedBytes = downloadedBytes
+    // A buffer needs both totals; deriving one from an unread side would write
+    // a measured-looking zero.
+    if (uploadedBytes !== undefined) {
+      stats.bufferBytes = computeBufferBytes(uploadedBytes, downloadedBytes)
+    }
+  }
+  if (printedRatio !== undefined) {
+    stats.ratio = printedRatio
+  } else if (uploadedBytes !== undefined && downloadedBytes !== undefined) {
+    stats.ratio = computeRatio(uploadedBytes, downloadedBytes)
   }
   if (seedbonus !== undefined) stats.seedbonus = seedbonus
-  if (Object.keys(meta).length > 0) stats.platformMeta = meta
+
   return stats
 }
 
@@ -371,14 +305,13 @@ export class CzteamAdapter implements TrackerAdapter {
         proxyAgent: options?.proxyAgent,
       })
 
-    const header = parseCzteamHeader(await fetchPage(`${baseUrl}/index.php`), hostname)
-    const stats = header.stats
+    const home = parseCzteamHeader(await fetchPage(`${baseUrl}/index.php`), hostname)
+    const stats = home.stats
 
-    // The profile is enrichment. Its failure leaves the class, join date and
-    // seeding size unknown instead of discarding totals that already parsed.
-    // Copies field by field rather than spreading, because a field the profile
-    // could not read comes back null and would overwrite the header's figure.
-    const uid = header.uid ?? (options?.remoteUserId ? String(options.remoteUserId) : undefined)
+    // The profile is enrichment, but its sidebar carries the same totals to
+    // three decimals, so a figure it does read replaces the header's. A field
+    // it could not read is left alone rather than written back as null.
+    const uid = home.uid ?? (options?.remoteUserId ? String(options.remoteUserId) : undefined)
     if (uid) {
       try {
         const profile = parseCzteamProfile(await fetchPage(`${baseUrl}/userdetails.php?id=${uid}`))
@@ -388,6 +321,12 @@ export class CzteamAdapter implements TrackerAdapter {
           stats.lastAccessDate = profile.lastAccessDate
           stats.lastAccessField = profile.lastAccessField
         }
+        if (profile.uploadedBytes !== undefined) stats.uploadedBytes = profile.uploadedBytes
+        if (profile.downloadedBytes !== undefined) {
+          stats.downloadedBytes = profile.downloadedBytes
+          stats.bufferBytes = profile.bufferBytes ?? stats.bufferBytes
+        }
+        if (typeof profile.ratio === "number") stats.ratio = profile.ratio
         if (typeof profile.seedbonus === "number") stats.seedbonus = profile.seedbonus
         stats.platformMeta = mergeMeta(stats.platformMeta, profile.platformMeta)
       } catch {

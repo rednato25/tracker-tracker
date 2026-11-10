@@ -1,14 +1,16 @@
 // src/lib/tracker-platforms/__tests__/czteam.test.ts
 //
-// The fixture follows CZTeam's own header markup (every class below appears in
-// the stylesheet the public login page serves) plus stock NexusPHP profile
-// rows. It has not been checked against a logged-in page, so these tests hold
-// the parser to the documented shape rather than proving the live site matches.
+// The fixtures below are trimmed copies of the real logged-in pages, including
+// the site-wide Tracker statistics card that once got read as the account's own
+// total. Both traps are pinned here: reading "Uploaded 79,84 PB" out of the
+// page body, and treating the decimal comma in "1,26 TB" as a grouping
+// separator.
 
 import { describe, expect, it, vi } from "vitest"
 import { parseBytes } from "@/lib/parser"
 import {
   CzteamAdapter,
+  durationSeconds,
   parseCzteamCredentials,
   parseCzteamHeader,
   parseCzteamProfile,
@@ -16,80 +18,165 @@ import {
 import { SessionExpiredError } from "../helpers/errors"
 
 const HOME_HTML = `
-<html><head><title>CZTeam Tracker :: Home</title></head>
+<html><head><title>CZTeam Tracker</title></head>
 <body>
 <div class="cz-hdr">
-  <a class="cz-logo" href="index.php"><span class="cz-logo-mark">Cz</span>Team</a>
-  <table class="cz-userinfo"><tbody><tr>
-    <td class="cz-avatar"><img src="pic/default_avatar.gif"></td>
-    <td>
-      <span class="cz-greet">
-        <a href="userdetails.php?id=282901"><b>torrentzirro</b></a>
-        <span class="cz-class"> Class: Power User</span>
-        <a class="cz-sl cz-sl-hnr is-warn" href="hitandrun.php"><b>2</b></a>
-        <a class="cz-sl cz-sl-fl" href="bonus.php"><b>7</b></a>
-      </span>
-    </td>
-    <td class="cz-stats">Uploaded: 3.5 TB | Downloaded: 1.2 TB | Ratio: 2.92</td>
-    <td class="cz-actions"><a href="logout.php">Log out</a></td>
-  </tr></tbody></table>
+  <a class="cz-logo" href="index.php" title="Home"><span class="cz-logo-mark">Cz</span>Team</a>
+  <table class="cz-userinfo">
+    <tr>
+      <td class="cz-avatar" rowspan="3"><span class="cz-initial">K</span></td>
+      <td class="cz-greet">
+        Hello, <a href="userdetails.php?id=282901">khazzCZT</a>
+        <span class="cz-class">[User]</span>
+        <a href="classes.php" class="cz-class-link" title="View class progression">&#128640;</a>
+        <a class="cz-sl cz-sl-up" href="myactivity.php?tab=seeding" title="Currently seeding"><span class="cz-sl-arrow">&#9650;</span><b>161</b></a>
+        <a class="cz-sl cz-sl-down" href="myactivity.php?tab=leeching" title="Currently leeching"><span class="cz-sl-arrow">&#9660;</span><b>0</b></a>
+        <a class="cz-sl cz-sl-hnr" href="hitandrun.php" title="Active Hit &amp; Runs"><span class="cz-sl-arrow">&#9888;</span><b>0</b></a>
+        <a class="cz-sl cz-sl-fl" href="bonus.php" title="Freeleech tokens"><span class="cz-sl-arrow">&#127903;</span><b>10</b></a>
+      </td>
+    </tr>
+    <tr>
+      <td class="cz-actions">
+        <a href="invite.php" title="Invites">Invites: <b>0</b></a>
+        <a href="logout.php" title="Log out">Logout</a>
+      </td>
+    </tr>
+    <tr>
+      <td class="cz-stats">
+        Ratio: <b>Inf.</b>
+        &middot; Up: <b>1,26 TB</b>
+        &middot; Down: <b>0,00 KB</b>
+        &middot; <a href="bonus.php" title="Bonus points">&#129689; <b>4,485.33</b></a>
+        &middot; <a href="myactivity.php?tab=snatched">Snatchlist</a>
+      </td>
+    </tr>
+  </table>
 </div>
+
+<section class="card stats-card">
+  <div class="stats-grid">
+    <div class="stat-group">
+      <div class="stat-row"><span class="stat-label">S/L ratio</span><span class="stat-value">13059%</span></div>
+      <div class="stat-row"><span class="stat-label">Downloaded</span><span class="stat-value">15,79 PB</span></div>
+      <div class="stat-row"><span class="stat-label">Uploaded</span><span class="stat-value">79,84 PB</span></div>
+    </div>
+  </div>
+</section>
 </body></html>
 `
 
 const PROFILE_HTML = `
-<html><body>
-<a href="logout.php">Log out</a>
-<table><tbody>
-  <tr><td class="rowhead">Username</td><td class="rowfollow">torrentzirro</td></tr>
-  <tr><td class="rowhead">Class</td><td class="rowfollow">Power User</td></tr>
-  <tr><td class="rowhead">Join date</td><td class="rowfollow">2024-03-14 10:22:31 (2 years ago)</td></tr>
-  <tr><td class="rowhead">Last activity</td><td class="rowfollow">2026-11-09 21:04:12</td></tr>
-  <tr><td class="rowhead">Bonus points</td><td class="rowfollow">1,204.5</td></tr>
-  <tr><td class="rowhead">Seeding size</td><td class="rowfollow">1.5 TB</td></tr>
-</tbody></table>
+<html><head><title>CZTeam Tracker :: Details for: khazzCZT</title></head>
+<body>
+<table class="cz-userinfo">
+  <tr>
+    <td class="cz-greet">
+      Hello, <a href="userdetails.php?id=282901">khazzCZT</a>
+      <span class="cz-class">[User]</span>
+    </td>
+  </tr>
+  <tr><td class="cz-stats">Ratio: <b>Inf.</b> &middot; Up: <b>1,26 TB</b> &middot; Down: <b>0,00 KB</b></td></tr>
+</table>
+<div class="ud-page">
+  <div class="ud-name-row">
+    <span class="ucuser">khazzCZT</span>
+    <span class="post-author-class ucuser">User</span>
+  </div>
+  <aside class="ud-side">
+    <div class="ud-side-card">
+      <div class="ud-side-stats">
+        <div class="ud-side-stat"><span class="k">Registered</span><span class="v">2026-10-12 <small>4 Saptamani ago</small></span></div>
+        <div class="ud-side-stat"><span class="k">Last access</span><span class="v">2026-11-10 22:44 <small>6 Minute ago</small></span></div>
+        <div class="ud-side-stat"><span class="k">Uploaded</span><span class="v">1,259 TB <small>42,97 GB / day</small></span></div>
+        <div class="ud-side-stat"><span class="k">Downloaded</span><span class="v">0,000 KB <small>0,00 KB / day</small></span></div>
+        <div class="ud-side-stat"><span class="k">Ratio</span><span class="v"><span style="color:#80d090">Inf.</span></span></div>
+        <div class="ud-side-stat"><span class="k">Total seedtime</span><span class="v">867 days 6 hours 36 minutes</span></div>
+        <div class="ud-side-stat"><span class="k">Avg seedtime</span><span class="v">37 days 16 hours 58 minutes</span></div>
+        <div class="ud-side-stat"><span class="k">Completed seeds</span><span class="v">1</span></div>
+        <div class="ud-side-stat"><span class="k">Bonus points</span><span class="v"><a href="bonus.php">4,485.33</a> <small>+9.00/hr</small></span></div>
+      </div>
+    </div>
+  </aside>
+  <details class="ud-activity-section">
+    <summary>
+      <span>Activity</span>
+      <span class="ud-activity-summary-meta">161 seeding &middot; 0 leeching &middot; 1 snatched &middot; 136 uploads &middot; 0 invited</span>
+    </summary>
+  </details>
+  <a href="logout.php">Log out</a>
+</div>
 </body></html>
 `
 
 const HOST = "czteam.me"
 
 describe("parseCzteamHeader", () => {
-  it("reads the totals, chips and account id from the welcome block", () => {
+  it("reads the account totals from the header, not the site-wide statistics card", () => {
     const { stats, uid } = parseCzteamHeader(HOME_HTML, HOST)
 
     expect(uid).toBe("282901")
-    expect(stats.username).toBe("torrentzirro")
-    expect(stats.group).toBe("Power User")
-    expect(stats.uploadedBytes).toBe(parseBytes("3.5 TiB"))
-    expect(stats.downloadedBytes).toBe(parseBytes("1.2 TiB"))
-    expect(stats.ratio).toBeCloseTo(2.92)
-    expect(stats.hitAndRuns).toBe(2)
-    expect(stats.freeleechTokens).toBe(7)
+    expect(stats.username).toBe("khazzCZT")
+    expect(stats.group).toBe("User")
+    expect(stats.uploadedBytes).toBe(parseBytes("1.26 TiB"))
+    expect(stats.downloadedBytes).toBe(0n)
+    // The bug this fixture exists for: the page body prints "Uploaded 79,84 PB".
+    expect(stats.uploadedBytes).not.toBe(parseBytes("7984 PiB"))
+    expect(stats.ratio).toBe(Number.POSITIVE_INFINITY)
+    expect(stats.seedingCount).toBe(161)
+    expect(stats.leechingCount).toBe(0)
+    expect(stats.hitAndRuns).toBe(0)
+    expect(stats.freeleechTokens).toBe(10)
+    expect(stats.seedbonus).toBe(4485.33)
     expect(stats.remoteUserId).toBe(282901)
-    expect(stats.platformMeta).toMatchObject({ hnrActive: 2, freeleechTokens: 7 })
   })
 
-  it("throws a session error on the login page", () => {
+  it("throws a session error on a signed-out page, including its stylesheet", () => {
     expect(() => parseCzteamHeader("<html><body>Sign in</body></html>", HOST)).toThrow(
       SessionExpiredError
     )
+    // The login page ships the header's CSS, so the class name in a stylesheet
+    // must not read as a logged-in page.
+    expect(() =>
+      parseCzteamHeader("<html><style>.cz-userinfo { color: red }</style></html>", HOST)
+    ).toThrow(SessionExpiredError)
   })
 
   it("names the missing field instead of reporting a zero total", () => {
-    const html = HOME_HTML.replace("Uploaded: 3.5 TB | ", "")
+    const html = HOME_HTML.replace("&middot; Up: <b>1,26 TB</b>", "")
     expect(() => parseCzteamHeader(html, HOST)).toThrow(/missing uploaded total/)
   })
 })
 
 describe("parseCzteamProfile", () => {
-  it("reads the class, join date, last activity and seeding size", () => {
+  it("reads the sidebar rows, with the decimal comma read as a fraction", () => {
     expect(parseCzteamProfile(PROFILE_HTML)).toMatchObject({
-      group: "Power User",
-      joinedDate: "2024-03-14",
-      lastAccessDate: "2026-11-09",
-      seedbonus: 1204.5,
-      platformMeta: { seedSizeBytes: Number(parseBytes("1.5 TiB")) },
+      group: "User",
+      joinedDate: "2026-10-12",
+      lastAccessDate: "2026-11-10",
+      uploadedBytes: parseBytes("1.259 TiB"),
+      downloadedBytes: 0n,
+      ratio: Number.POSITIVE_INFINITY,
+      seedbonus: 4485.33,
+      platformMeta: {
+        avgSeedTimeSeconds: 37 * 86_400 + 16 * 3_600 + 58 * 60,
+        totalSeedTimeSeconds: 867 * 86_400 + 6 * 3_600 + 36 * 60,
+        completedSeeds: 1,
+        uploads: 136,
+      },
     })
+  })
+})
+
+describe("durationSeconds", () => {
+  it("adds the parts the sidebar prints", () => {
+    expect(durationSeconds("37 days 16 hours 58 minutes")).toBe(3_257_880)
+    expect(durationSeconds("1 day")).toBe(86_400)
+    expect(durationSeconds("6 hours 36 minutes")).toBe(23_760)
+  })
+
+  it("returns undefined when there is no duration to read", () => {
+    expect(durationSeconds("-")).toBeUndefined()
+    expect(durationSeconds(undefined)).toBeUndefined()
   })
 })
 
@@ -106,7 +193,9 @@ describe("parseCzteamCredentials", () => {
 })
 
 describe("CzteamAdapter", () => {
-  it("merges the profile over the header totals", async () => {
+  const creds = JSON.stringify({ cookies: "c_secure_uid=1; c_secure_pass=abc", userAgent: "UA" })
+
+  it("prefers the profile totals, which carry three decimals", async () => {
     const fetchSpy = vi
       .spyOn(global, "fetch")
       .mockResolvedValueOnce(new Response(HOME_HTML, { status: 200 }))
@@ -114,15 +203,16 @@ describe("CzteamAdapter", () => {
 
     const stats = await new CzteamAdapter().fetchStats(
       "https://czteam.me",
-      JSON.stringify({ cookies: "c_secure_uid=1; c_secure_pass=abc", userAgent: "UA" }),
+      creds,
       "/userdetails.php"
     )
 
     expect(fetchSpy).toHaveBeenCalledTimes(2)
-    expect(stats.group).toBe("Power User")
-    expect(stats.joinedDate).toBe("2024-03-14")
-    expect(stats.uploadedBytes).toBe(parseBytes("3.5 TiB"))
-    expect(stats.platformMeta).toMatchObject({ seedSizeBytes: Number(parseBytes("1.5 TiB")) })
+    expect(stats.uploadedBytes).toBe(parseBytes("1.259 TiB"))
+    expect(stats.joinedDate).toBe("2026-10-12")
+    expect(stats.lastAccessDate).toBe("2026-11-10")
+    expect(stats.seedingCount).toBe(161)
+    expect(stats.platformMeta).toMatchObject({ avgSeedTimeSeconds: 3_257_880, uploads: 136 })
   })
 
   it("keeps the header totals when the profile page fails", async () => {
@@ -132,11 +222,12 @@ describe("CzteamAdapter", () => {
 
     const stats = await new CzteamAdapter().fetchStats(
       "https://czteam.me",
-      JSON.stringify({ cookies: "c_secure_uid=1; c_secure_pass=abc", userAgent: "UA" }),
+      creds,
       "/userdetails.php"
     )
 
-    expect(stats.uploadedBytes).toBe(parseBytes("3.5 TiB"))
+    expect(stats.uploadedBytes).toBe(parseBytes("1.26 TiB"))
+    expect(stats.seedingCount).toBe(161)
     expect(stats.joinedDate).toBeUndefined()
   })
 
@@ -147,7 +238,7 @@ describe("CzteamAdapter", () => {
 
     const calls = await new CzteamAdapter().fetchRaw(
       "https://czteam.me",
-      JSON.stringify({ cookies: "c_secure_uid=1; c_secure_pass=abc", userAgent: "UA" }),
+      creds,
       "/userdetails.php"
     )
 
@@ -155,24 +246,5 @@ describe("CzteamAdapter", () => {
     expect(calls[0]).toMatchObject({ endpoint: "/index.php", error: null })
     expect(calls[1]?.error).toEqual(expect.any(String))
     expect(calls[1]?.data).toBeNull()
-  })
-
-  it("keeps the header class when the profile table has no class row", async () => {
-    const profileWithoutClass = PROFILE_HTML.replace(
-      '<tr><td class="rowhead">Class</td><td class="rowfollow">Power User</td></tr>',
-      ""
-    )
-    vi.spyOn(global, "fetch")
-      .mockResolvedValueOnce(new Response(HOME_HTML, { status: 200 }))
-      .mockResolvedValueOnce(new Response(profileWithoutClass, { status: 200 }))
-
-    const stats = await new CzteamAdapter().fetchStats(
-      "https://czteam.me",
-      JSON.stringify({ cookies: "c_secure_uid=1; c_secure_pass=abc", userAgent: "UA" }),
-      "/userdetails.php"
-    )
-
-    expect(stats.group).toBe("Power User")
-    expect(stats.joinedDate).toBe("2024-03-14")
   })
 })

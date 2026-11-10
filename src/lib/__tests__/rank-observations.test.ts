@@ -220,6 +220,21 @@ describe("buildRankObservations", () => {
     expect(result.averageSeedTimeSeconds).toBeUndefined()
   })
 
+  it("reads CZTeam's average seed time and upload count", () => {
+    // CZTeam's ladder is built on average seedtime, which only its profile page
+    // reports, so without these two the whole ladder reads as "no checks".
+    const result = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "czteam",
+      platformMeta: { avgSeedTimeSeconds: 3_257_880, uploads: 136 },
+      now: NOW,
+    })
+    expect(result.averageSeedTimeSeconds?.value).toBe(3_257_880)
+    expect(result.averageSeedTimeSeconds?.freshness).toBe("fresh")
+    expect(result.uploads?.value).toBe(136)
+  })
+
   it("keeps a missing seed size or seeding points absent instead of zero", () => {
     const filelist = buildRankObservations({
       latestStats: stats(),

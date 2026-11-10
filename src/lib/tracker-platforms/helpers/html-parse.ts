@@ -1,7 +1,8 @@
 // src/lib/tracker-platforms/helpers/html-parse.ts
 //
 // Functions: normalizeWhitespace, datePrefix, tryParseCount, tryParseSiteBytes,
-//            isCloudflareInterstitial, isCloudflareChallenge
+//            tryParseCommaDecimalBytes, bytesForUnit, isCloudflareInterstitial,
+//            isCloudflareChallenge
 
 import { parseBytes } from "@/lib/parser"
 
@@ -75,10 +76,33 @@ const SITE_UNITS: Record<string, string> = {
 export function tryParseSiteBytes(value: string): bigint | undefined {
   const match = value.trim().match(/^([\d,.]+)\s*([A-Za-z]+)$/)
   if (!match) return undefined
-  const unit = SITE_UNITS[match[2].toLowerCase()]
+  return bytesForUnit(match[1].replace(/,/g, ""), match[2])
+}
+
+/**
+ * `tryParseSiteBytes` for a site that prints the decimal comma ("1,26 TB",
+ * "0,000 KB"). A comma is the decimal separator here, so stripping it the way
+ * the grouping-comma reader does multiplies the figure by ten for every digit
+ * after it: CZTeam's "79,84 PB" became 7984 PiB. A string carrying both
+ * separators is read the European way ("1.234,56"), otherwise the lone comma is
+ * the decimal point.
+ */
+export function tryParseCommaDecimalBytes(value: string): bigint | undefined {
+  const match = value.trim().match(/^([\d.,]+)\s*([A-Za-z]+)$/)
+  if (!match) return undefined
+  const numeric = match[1]
+  const normalized =
+    numeric.includes(",") && numeric.includes(".")
+      ? numeric.replace(/\./g, "").replace(",", ".")
+      : numeric.replace(",", ".")
+  return bytesForUnit(normalized, match[2])
+}
+
+function bytesForUnit(numeric: string, label: string): bigint | undefined {
+  const unit = SITE_UNITS[label.toLowerCase()]
   if (!unit) return undefined
   try {
-    return parseBytes(`${match[1].replace(/,/g, "")} ${unit}`)
+    return parseBytes(`${numeric} ${unit}`)
   } catch {
     return undefined
   }

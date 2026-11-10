@@ -160,8 +160,8 @@ export const czteam: TrackerRegistryEntry = {
   },
 
   // ── Status ──────────────────────────────────────────────────────────
-  warning: true,
-  warningNote: "New adapter. Not tested against a live account yet.",
+  warning: false,
+  warningNote: "",
 
   // ── Flags ───────────────────────────────────────────────────────────
   draft: false,

@@ -24,6 +24,8 @@ export const VALID_PLATFORM_TYPES = [
   "apime",
   "animebytes",
   "luminance",
+  "czteam",
+  "teamhd",
 ] as const
 export type PlatformType = (typeof VALID_PLATFORM_TYPES)[number]
 
@@ -51,6 +53,8 @@ export const PLATFORM_LABELS: Record<PlatformType, string> = {
   apime: "API /me",
   animebytes: "AnimeBytes",
   luminance: "Luminance",
+  czteam: "CZTeam",
+  teamhd: "TeamHD",
 }
 
 export function platformTypeLabel(type: string): string {
@@ -82,6 +86,8 @@ export const DEFAULT_API_PATHS: Record<string, string> = {
   apime: "/api/me",
   animebytes: "/api/stats/personal",
   luminance: "/user.php",
+  czteam: "/userdetails.php",
+  teamhd: "/index.php",
 }
 
 /**

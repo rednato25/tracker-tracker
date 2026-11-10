@@ -320,6 +320,66 @@ export const CREDENTIAL_FORMS = {
     },
   },
 
+  czteam: {
+    kind: "cookies",
+    example: "c_secure_uid=...; c_secure_pass=...; cf_clearance=...; PHPSESSID=...",
+    extraCookieNames: [
+      "c_secure_uid",
+      "c_secure_pass",
+      "c_secure_login",
+      "cf_clearance",
+      "PHPSESSID",
+    ],
+    hidesJoinDate: true,
+    dialog: {
+      secret: {
+        label: "Browser Cookies",
+        tooltip:
+          "CZTeam's API is torrent search only, so stats are read from your logged-in session. Open DevTools (F12) → Network → any request to the site → copy the full Cookie header value.",
+        docs: true,
+        placeholder: "c_secure_uid=...; c_secure_pass=...; cf_clearance=...; PHPSESSID=...",
+        rows: 3,
+      },
+    },
+    sheet: {
+      secret: {
+        label: "Browser Cookies",
+        tooltip:
+          "Open DevTools (F12) → Network → any request to CZTeam → copy the full Cookie header value.",
+        docs: true,
+        placeholder: "c_secure_uid=...; c_secure_pass=...; cf_clearance=...; PHPSESSID=...",
+        rows: 3,
+      },
+    },
+  },
+
+  teamhd: {
+    kind: "cookies",
+    example: "c_secure_uid=...; c_secure_pass=...; PHPSESSID=...",
+    extraCookieNames: ["c_secure_uid", "c_secure_pass", "c_secure_login", "PHPSESSID"],
+    hidesJoinDate: true,
+    dialog: {
+      secret: {
+        label: "Browser Cookies",
+        tooltip:
+          "TeamHD's login page has a reCAPTCHA and there is no user API, so stats are read from your logged-in session. Open DevTools (F12) → Network → any request to the site → copy the full Cookie header value.",
+        docs: true,
+        placeholder: "c_secure_uid=...; c_secure_pass=...; PHPSESSID=...",
+        rows: 3,
+      },
+    },
+    sheet: {
+      secret: {
+        label: "Browser Cookies",
+        tooltip:
+          "Open DevTools (F12) → Network → any request to TeamHD → copy the full Cookie header value.",
+        docs: true,
+        placeholder: "c_secure_uid=...; c_secure_pass=...; PHPSESSID=...",
+        rows: 3,
+      },
+    },
+  },
+
   v3x: {
     kind: "cookies",
     example: "v3x_session=...",

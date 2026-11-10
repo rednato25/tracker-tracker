@@ -13,6 +13,7 @@ import { AvistazAdapter } from "./adapters/avistaz"
 import { BtnAdapter } from "./adapters/btn"
 import { C411Adapter } from "./adapters/c411"
 import { CarptAdapter } from "./adapters/carpt"
+import { CzteamAdapter } from "./adapters/czteam"
 import { DigitalCoreAdapter } from "./adapters/digitalcore"
 import { FilelistAdapter } from "./adapters/filelist"
 import { GazelleAdapter } from "./adapters/gazelle"
@@ -25,6 +26,7 @@ import { MteamAdapter } from "./adapters/mteam"
 import { NebulanceAdapter } from "./adapters/nebulance"
 import { PortugasAdapter } from "./adapters/portugas"
 import { RetrotoonAdapter } from "./adapters/retrotoon"
+import { TeamhdAdapter } from "./adapters/teamhd"
 import { TorrentleechAdapter } from "./adapters/torrentleech"
 import { Tr4kerAdapter } from "./adapters/tr4ker"
 import { Unit3dAdapter } from "./adapters/unit3d"
@@ -38,6 +40,7 @@ const adapters: Record<string, TrackerAdapter> = {
   btn: new BtnAdapter(),
   c411: new C411Adapter(),
   carpt: new CarptAdapter(),
+  czteam: new CzteamAdapter(),
   digitalcore: new DigitalCoreAdapter(),
   filelist: new FilelistAdapter(),
   gazelle: new GazelleAdapter(),
@@ -50,6 +53,7 @@ const adapters: Record<string, TrackerAdapter> = {
   nebulance: new NebulanceAdapter(),
   portugas: new PortugasAdapter(),
   retrotoon: new RetrotoonAdapter(),
+  teamhd: new TeamhdAdapter(),
   torrentleech: new TorrentleechAdapter(),
   tr4ker: new Tr4kerAdapter(),
   v3x: new V3xAdapter(),

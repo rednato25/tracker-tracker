@@ -42,6 +42,8 @@ const CREDENTIALS: Record<string, string> = {
   mteam: CANARY,
   portugas: cookieBlob(),
   carpt: cookieBlob(),
+  czteam: cookieBlob(),
+  teamhd: cookieBlob(),
   v3x: cookieBlob(),
   apime: CANARY,
   animebytes: JSON.stringify({ token: CANARY, username: "someone" }),

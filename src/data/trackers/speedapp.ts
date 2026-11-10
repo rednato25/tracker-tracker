@@ -2,6 +2,9 @@
 
 import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 
+const GiB = 1024 ** 3
+const TiB = 1024 ** 4
+
 export const speedapp: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
   slug: "speedapp",
@@ -55,38 +58,100 @@ export const speedapp: TrackerRegistryEntry = {
   statusPageUrl: "",
 
   // ── Community ───────────────────────────────────────────────────────
+  rankProgression: "automatic",
+  rankRequirementsSource: {
+    url: "https://speedapp.io/wiki/en/classes",
+    title: "SpeedApp wiki, Classes and promotion",
+    accessedAt: "2026-11-10",
+    sourceLastModified: null,
+    verification: "unresolved",
+    note:
+      "Thresholds are the registry's existing transcription of the wiki's Classes and promotion page; that page was not re-read for this change. The FAQ confirms the shape: classes grow with account age, upload and ratio, and the site moves members up or down on its own every hour. GB/TB text with no stated basis is read as the larger binary unit.",
+  },
+  rankUnresolved: [
+    "Peasant is a demotion state, not a rung: it is where an account sits below 0.95 ratio or under one month old.",
+    "The wiki page that states the exact thresholds was not re-read while adding these conditions.",
+  ],
   userClasses: [
     {
       name: "Peasant",
-      requirements: "Demotion class below 0.95 ratio or under one month old.",
+      requirements: "Demoted below 0.95 ratio or under one month old.",
       outsideLadder: "below",
     },
     {
       name: "User",
-      requirements: "Account age ≥ 30 days, uploaded ≥ 25 GB, ratio ≥ 1.05",
+      requirements: "Age ≥ 30 days, uploaded ≥ 25 GB, ratio ≥ 1.05",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-user-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 30 days registered" },
+          { kind: "numeric", id: "sp-user-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 25 * GiB, scope: "account", unitReading: "conservative", label: "At least 25 GiB uploaded" },
+          { kind: "numeric", id: "sp-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.05, scope: "account", label: "Ratio at least 1.05" },
+        ],
+      },
     },
     {
       name: "Power User",
-      requirements: "Account age ≥ 90 days, uploaded ≥ 200 GB, ratio ≥ 2.0",
+      requirements: "Age ≥ 90 days, uploaded ≥ 200 GB, ratio ≥ 2.0",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 90, scope: "account", label: "At least 90 days registered" },
+          { kind: "numeric", id: "sp-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 200 * GiB, scope: "account", unitReading: "conservative", label: "At least 200 GiB uploaded" },
+          { kind: "numeric", id: "sp-power-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.0, scope: "account", label: "Ratio at least 2.0" },
+        ],
+      },
     },
     {
       name: "Elite User",
-      requirements: "Account age ≥ 180 days, uploaded ≥ 1 TB, ratio ≥ 3.0",
+      requirements: "Age ≥ 180 days, uploaded ≥ 1 TB, ratio ≥ 3.0",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-elite-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 180, scope: "account", label: "At least 180 days registered" },
+          { kind: "numeric", id: "sp-elite-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", unitReading: "conservative", label: "At least 1 TiB uploaded" },
+          { kind: "numeric", id: "sp-elite-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 3.0, scope: "account", label: "Ratio at least 3.0" },
+        ],
+      },
     },
     {
       name: "Xtreme User",
-      requirements: "Account age ≥ 1 year, uploaded ≥ 5 TB, ratio ≥ 4.0",
+      requirements: "Age ≥ 1 year, uploaded ≥ 5 TB, ratio ≥ 4.0",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-xtreme-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 1 year registered" },
+          { kind: "numeric", id: "sp-xtreme-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", unitReading: "conservative", label: "At least 5 TiB uploaded" },
+          { kind: "numeric", id: "sp-xtreme-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 4.0, scope: "account", label: "Ratio at least 4.0" },
+        ],
+      },
     },
     {
       name: "Super User",
-      requirements: "Account age ≥ 2 years, uploaded ≥ 20 TB, ratio ≥ 5.0",
+      requirements: "Age ≥ 2 years, uploaded ≥ 20 TB, ratio ≥ 5.0",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-super-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 730, scope: "account", label: "At least 2 years registered" },
+          { kind: "numeric", id: "sp-super-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", unitReading: "conservative", label: "At least 20 TiB uploaded" },
+          { kind: "numeric", id: "sp-super-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 5.0, scope: "account", label: "Ratio at least 5.0" },
+        ],
+      },
     },
     {
       name: "Legend User",
-      requirements: "Account age ≥ 6 years, uploaded ≥ 100 TB, ratio ≥ 6.0",
+      requirements: "Age ≥ 6 years, uploaded ≥ 100 TB, ratio ≥ 6.0",
+      structured: {
+        mode: "all",
+        conditions: [
+          { kind: "numeric", id: "sp-legend-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 2190, scope: "account", label: "At least 6 years registered" },
+          { kind: "numeric", id: "sp-legend-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", unitReading: "conservative", label: "At least 100 TiB uploaded" },
+          { kind: "numeric", id: "sp-legend-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 6.0, scope: "account", label: "Ratio at least 6.0" },
+        ],
+      },
     },
     { name: "Star", requirements: "Donation package", outsideLadder: "above" },
-    { name: "VIP", requirements: "Granted by staff", outsideLadder: "above" },
+    { name: "VIP", requirements: "Granted by staff, or bought with bonus points", outsideLadder: "above" },
     { name: "Legend VIP", requirements: "Long-standing VIP", outsideLadder: "above" },
     {
       name: "Hyperseeder",
@@ -111,10 +176,39 @@ export const speedapp: TrackerRegistryEntry = {
   notableMembers: [],
 
   // ── Rules ───────────────────────────────────────────────────────────
+  // Read from the public FAQ on 2026-11-10: the seeding answer gives the 30
+  // minute head start, the 48 hours within 30 days and the 1:1 alternative, and
+  // the hit & run answer gives the 50 that stops downloads.
   rules: {
+    requiredAccountRatio: 0.95,
+    requiredTorrentRatio: 1.0,
     minimumRatio: 0.95,
     seedTimeHours: 48,
     loginIntervalDays: 0,
+    satisfactionMode: "any",
+    fulfillmentPeriodHours: 720,
+    hnrBanLimit: 50,
+    fullRulesMarkdown: [
+      "## Seeding and Hit & Runs",
+      "",
+      "- Keep a finished download running for the first 30 minutes",
+      "- Then seed until the torrent has 48 hours of seed time within 30 days, or until the torrent has uploaded as much as it downloaded",
+      "- The hours add up; they do not have to be consecutive",
+      "- A torrent whose seeding rule is still unmet 30 days after it finished is a hit & run",
+      "- Clear one by seeding it to 48 hours, by buying it off with bonus points, or by being a VIP",
+      "- At 50 hit & runs new downloads are blocked; fewer already limit invites, messages and seedboxes",
+      "- The site checks hit & runs every six hours",
+      "",
+      "## Ratio and freeleech",
+      "",
+      "- Ratio is uploaded divided by downloaded, over the whole account and per torrent",
+      "- A freeleech torrent costs no download credit while your upload still counts",
+      "",
+      "## Classes",
+      "",
+      "- Classes grow with account age, uploaded volume and ratio, and the site moves members up or down on its own every hour",
+      "- Invites, requests and uploader applications open at Power User",
+    ],
   },
 
   // ── Status ──────────────────────────────────────────────────────────

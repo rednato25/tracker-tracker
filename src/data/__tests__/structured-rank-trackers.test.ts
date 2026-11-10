@@ -407,4 +407,53 @@ describe("P35 structured rank requirements", () => {
     })
     expect(portugas.status).toBe("unmet")
   })
+
+  it("RetroFlix: Movie Lover needs the age, download and ratio at once", () => {
+    const met = evaluate("retroflix", "Movie Lover", {
+      accountAgeDays: 28,
+      downloadedBytes: 50 * GiB,
+      accountRatio: 1.05,
+    })
+    expect(met.status).toBe("met")
+
+    const tooYoung = evaluate("retroflix", "Movie Lover", {
+      accountAgeDays: 27,
+      downloadedBytes: 50 * GiB,
+      accountRatio: 1.05,
+    })
+    expect(tooYoung.status).toBe("unmet")
+  })
+
+  it("RetroFlix: Film Dummy is any one of the five demotion bands, not all of them", () => {
+    // 60 GiB downloaded with a 0.45 ratio trips only the first band: over 50 GB
+    // with ratio under 0.40 is false, so the member keeps their class.
+    const safe = evaluate("retroflix", "Film Dummy", {
+      downloadedBytes: 60 * GiB,
+      accountRatio: 0.45,
+    })
+    expect(safe.status).toBe("unmet")
+
+    // 900 GiB with a 0.75 ratio trips the fifth band.
+    const demoted = evaluate("retroflix", "Film Dummy", {
+      downloadedBytes: 900 * GiB,
+      accountRatio: 0.75,
+    })
+    expect(demoted.status).toBe("met")
+  })
+
+  it("SpeedApp: Power User needs age, upload and ratio together", () => {
+    const met = evaluate("speedapp", "Power User", {
+      accountAgeDays: 90,
+      uploadedBytes: 200 * GiB,
+      accountRatio: 2,
+    })
+    expect(met.status).toBe("met")
+
+    const short = evaluate("speedapp", "Power User", {
+      accountAgeDays: 90,
+      uploadedBytes: 199 * GiB,
+      accountRatio: 2,
+    })
+    expect(short.status).toBe("unmet")
+  })
 })

@@ -8,6 +8,7 @@ import type { RankObservationMap } from "@/lib/rank-goals"
 import type { TrackerLatestStats } from "@/types/api"
 import type {
   CarptPlatformMeta,
+  CzteamPlatformMeta,
   DigitalCorePlatformMeta,
   FileListPlatformMeta,
   MamPlatformMeta,
@@ -110,6 +111,25 @@ export function buildRankObservations(input: RankObservationSource): RankObserva
     )
     if (seedingPoints !== null) {
       observations.seedingPoints = { value: seedingPoints, freshness, source, observedAt }
+    }
+  }
+
+  // CZTeam's ladder is built on average seed time, which only its profile page
+  // reports, plus the upload count from the activity summary.
+  if (input.platformType === "czteam") {
+    const czteam = input.platformMeta as CzteamPlatformMeta | null
+    const avgSeedTime = metaNumber(czteam?.avgSeedTimeSeconds)
+    if (avgSeedTime !== null) {
+      observations.averageSeedTimeSeconds = {
+        value: avgSeedTime,
+        freshness,
+        source,
+        observedAt,
+      }
+    }
+    const uploads = metaNumber(czteam?.uploads)
+    if (uploads !== null) {
+      observations.uploads = { value: uploads, freshness, source, observedAt }
     }
   }
 

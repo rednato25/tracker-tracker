@@ -14,6 +14,7 @@ import {
   isCloudflareChallenge,
   isCloudflareInterstitial,
   normalizeWhitespace,
+  tryParseCommaDecimalBytes,
   tryParseCount,
   tryParseSiteBytes,
 } from "../helpers/html-parse"
@@ -59,6 +60,30 @@ describe("tryParseSiteBytes", () => {
     expect(tryParseSiteBytes("1 XB")).toBeUndefined()
     expect(tryParseSiteBytes("")).toBeUndefined()
     expect(tryParseSiteBytes("N/A")).toBeUndefined()
+  })
+})
+
+describe("tryParseCommaDecimalBytes", () => {
+  it("reads a lone comma as the decimal separator, not as grouping", () => {
+    // CZTeam prints "1,26 TB" and "0,000 KB". Stripping the comma the way
+    // tryParseSiteBytes does turns 79,84 PB into 79.84 EB worth of bytes.
+    expect(tryParseCommaDecimalBytes("1,26 TB")).toBe(parseBytes("1.26 TiB"))
+    expect(tryParseCommaDecimalBytes("0,000 KB")).toBe(0n)
+    expect(tryParseCommaDecimalBytes("82,19 GB")).toBe(parseBytes("82.19 GiB"))
+  })
+
+  it("reads a value carrying both separators the European way", () => {
+    expect(tryParseCommaDecimalBytes("1.234,5 GB")).toBe(parseBytes("1234.5 GiB"))
+  })
+
+  it("leaves a dot-only value alone", () => {
+    expect(tryParseCommaDecimalBytes("1.5 TB")).toBe(parseBytes("1.5 TiB"))
+    expect(tryParseCommaDecimalBytes("12 MB")).toBe(parseBytes("12 MiB"))
+  })
+
+  it("returns undefined for a unit that is not a byte unit at all", () => {
+    expect(tryParseCommaDecimalBytes("12 posts")).toBeUndefined()
+    expect(tryParseCommaDecimalBytes("")).toBeUndefined()
   })
 })
 

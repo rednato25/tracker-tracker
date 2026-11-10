@@ -83,7 +83,8 @@ export const teamhd: TrackerRegistryEntry = {
 
   // ── Status ──────────────────────────────────────────────────────────
   warning: true,
-  warningNote: "New adapter. Not tested against a live account yet.",
+  warningNote:
+    "Totals, seeding count and bonus poll correctly. Class and join date do not parse yet, and no class thresholds are published.",
 
   // ── Flags ───────────────────────────────────────────────────────────
   draft: false,

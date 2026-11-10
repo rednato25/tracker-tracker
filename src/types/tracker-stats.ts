@@ -357,18 +357,18 @@ export interface AnimeBytesPlatformMeta {
 }
 
 /**
- * CZTeam is a customised NexusPHP build whose header carries the class goal and
- * a couple of chips the profile table repeats.
+ * CZTeam is a customised NexusPHP build whose public pages print more than the
+ * header block allocates fields for.
  */
 export interface CzteamPlatformMeta {
-  /** Seeding size from the profile, in bytes. */
-  seedSizeBytes?: number
-  /** Active Hit & Run count the header chip reports. */
-  hnrActive?: number
-  /** Freeleech tokens the header chip reports. */
-  freeleechTokens?: number
-  /** The class the header names as the next promotion target. */
-  nextClass?: string
+  /** "Avg seedtime": total seed time divided by snatched torrents, in seconds. */
+  avgSeedTimeSeconds?: number
+  /** "Total seedtime" across every torrent, in seconds. */
+  totalSeedTimeSeconds?: number
+  /** "Completed seeds": torrents seeded for at least seven days. */
+  completedSeeds?: number
+  /** Torrents the account has uploaded, from the activity summary. */
+  uploads?: number
 }
 
 /**

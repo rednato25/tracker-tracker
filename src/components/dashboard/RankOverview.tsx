@@ -9,7 +9,7 @@
 import { ExternalLinkSmallIcon } from "@icons"
 import { useEffect, useMemo, useState } from "react"
 import { ManualValueEditor } from "@/components/dashboard/ManualValueEditor"
-import { Badge, Button } from "@/components/ui"
+import { Badge, Button, FilterPill } from "@/components/ui"
 import { type ClipboardOutcome, copyTextToClipboard } from "@/lib/clipboard"
 import { formatDate, localDateStr } from "@/lib/formatters"
 import { formatProfileReadAge } from "@/lib/profile-reading/labels"
@@ -21,7 +21,12 @@ import {
   type RankManualValuesByTracker,
 } from "@/lib/rank-manual-values"
 import { buildRankOverviewMarkdown } from "@/lib/rank-markdown"
-import { buildRankOverviews, type RankOverview as RankOverviewData } from "@/lib/rank-overview"
+import {
+  buildRankOverviews,
+  type RankCoverage,
+  type RankOverview as RankOverviewData,
+} from "@/lib/rank-overview"
+import { rankLadderStateLabel } from "@/lib/rank-summary"
 import type { RankCheck, RankCheckVerdict } from "@/lib/recruitment-state"
 import type { TrackerSummary } from "@/types/api"
 
@@ -49,7 +54,7 @@ function statusTone(status: RankGoalStatus): string {
 }
 
 function targetLabel(overview: RankOverviewData): string {
-  if (!overview.targetClass) return "No target"
+  if (!overview.targetClass) return rankLadderStateLabel(overview.ladderState)
   if (overview.targetKind === "saved") return `Target: ${overview.targetClass}`
   return `Next automatic class: ${overview.targetClass}`
 }
@@ -471,7 +476,7 @@ function TrackerRankSection({
       ) : (
         <div className="border-t border-border pt-2 text-xs text-secondary">
           <p>No structured conditions are published for this class.</p>
-          {overview.highestAutomatic && (
+          {overview.ladderState === "top" && (
             <p className="mt-1 text-tertiary">Highest automatic class reached.</p>
           )}
         </div>
@@ -509,6 +514,21 @@ function TrackerRankSection({
   )
 }
 
+type CoverageFilter = "all" | RankCoverage
+
+const COVERAGE_FILTERS: { value: CoverageFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "structured", label: "Structured" },
+  { value: "text", label: "Text only" },
+  { value: "none", label: "No ladder" },
+]
+
+const COVERAGE_EMPTY: Record<RankCoverage, string> = {
+  structured: "No active tracker has structured rank rules.",
+  text: "No active tracker has a rule-text-only ladder.",
+  none: "Every active tracker has a class ladder.",
+}
+
 export function RankOverview({
   trackers,
   savedGoals,
@@ -528,6 +548,17 @@ export function RankOverview({
     (overview) => checks[String(overview.trackerId)]?.verdict === "wrong"
   ).length
   const notCheckedCount = overviews.length - checkedCount
+  const [coverageFilter, setCoverageFilter] = useState<CoverageFilter>("all")
+  const coverageCounts: Record<CoverageFilter, number> = {
+    all: overviews.length,
+    structured: overviews.filter((overview) => overview.coverage === "structured").length,
+    text: overviews.filter((overview) => overview.coverage === "text").length,
+    none: overviews.filter((overview) => overview.coverage === "none").length,
+  }
+  const visibleOverviews =
+    coverageFilter === "all"
+      ? overviews
+      : overviews.filter((overview) => overview.coverage === coverageFilter)
   const [copyState, setCopyState] = useState<ClipboardOutcome | null>(null)
 
   async function copyOverview() {
@@ -554,7 +585,7 @@ export function RankOverview({
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-mono text-xs text-tertiary">
             {overviews.length} {overviews.length === 1 ? "tracker" : "trackers"}{" "}
-            {"\u00b7"} every condition on the target or next automatic class
+            {"\u00b7"} {coverageCounts.structured} checked automatically
           </p>
           <Button
             size="sm"
@@ -591,8 +622,30 @@ export function RankOverview({
           Not checked <span className="text-primary">{notCheckedCount}</span>
         </span>
       </div>
+      <fieldset
+        className="flex flex-wrap items-center gap-1 border-0 p-0"
+        data-rank-coverage
+      >
+        <legend className="sr-only">Filter by rank rule coverage</legend>
+        {COVERAGE_FILTERS.map((filter) => (
+          <FilterPill
+            key={filter.value}
+            active={coverageFilter === filter.value}
+            onClick={() => setCoverageFilter(filter.value)}
+            className="min-h-11 sm:min-h-7"
+            data-rank-coverage-filter={filter.value}
+          >
+            {filter.label} <span className="tabular-nums">{coverageCounts[filter.value]}</span>
+          </FilterPill>
+        ))}
+      </fieldset>
+      {visibleOverviews.length === 0 && coverageFilter !== "all" ? (
+        <p className="border border-border bg-raised p-4 text-sm text-secondary">
+          {COVERAGE_EMPTY[coverageFilter]}
+        </p>
+      ) : null}
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        {overviews.map((overview) => (
+        {visibleOverviews.map((overview) => (
           <TrackerRankSection
             key={overview.trackerId}
             overview={overview}

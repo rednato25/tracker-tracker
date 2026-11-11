@@ -5,6 +5,7 @@
 
 import { formatDate } from "@/lib/formatters"
 import type { RankOverview } from "@/lib/rank-overview"
+import { rankLadderStateLabel } from "@/lib/rank-summary"
 import type { RankCheck } from "@/lib/recruitment-state"
 
 const DOT = "\u00b7"
@@ -19,7 +20,7 @@ function cell(value: string): string {
 }
 
 function targetLine(overview: RankOverview): string {
-  if (!overview.targetClass) return "No target"
+  if (!overview.targetClass) return rankLadderStateLabel(overview.ladderState)
   if (overview.targetKind === "saved") return `${overview.targetClass} (saved target)`
   return `${overview.targetClass} (next automatic class)`
 }
@@ -58,7 +59,7 @@ export function buildRankOverviewMarkdown(
     if (overview.targetReached && overview.reachedTarget) {
       lines.push(`- Target reached: ${overview.reachedTarget}`)
     }
-    if (overview.highestAutomatic) lines.push("- Highest automatic class reached")
+    if (overview.ladderState === "top") lines.push("- Highest automatic class reached")
     lines.push(`- Registry text: ${overview.ruleText ?? "Not in the registry"}`)
     const source = overview.source
     const sourceParts = [

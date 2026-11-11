@@ -47,6 +47,19 @@ export interface RankSummaryBar {
   metric: RankMetric
 }
 
+/**
+ * Why a card does or does not name a next class. Only "top" may say the highest
+ * automatic class is reached; every other no-next state says what is missing.
+ */
+export type RankLadderState =
+  | "next"
+  | "top"
+  | "branch"
+  | "appointed"
+  | "off-ladder"
+  | "no-rank"
+  | "no-ladder"
+
 export interface RankGoalSummary {
   trackerId: number
   trackerName: string
@@ -60,6 +73,7 @@ export interface RankGoalSummary {
   nextRankName: string | null
   nextIsTextOnly: boolean
   highestAutomatic: boolean
+  ladderState: RankLadderState
   status: "goal" | "no-target" | "unsupported"
   metCount: number
   unmetCount: number
@@ -159,6 +173,50 @@ function distanceTextFor(target: string | null, bars: RankSummaryBar[]): string 
   return `${target}: ${parts.join(", ")}${!hasUnknown && hasRemaining ? " left" : ""}`
 }
 
+export function rankLadderStateFor(
+  entry: ReturnType<typeof registryEntryFor>,
+  currentRank: string | null,
+  currentRankHidden: boolean,
+  now: Date
+): RankLadderState {
+  const classes = entry?.userClasses ?? []
+  if (classes.length === 0) return "no-ladder"
+  if (currentRankHidden || !currentRank) return "no-rank"
+  const next = evaluateRankGoal({
+    userClasses: classes,
+    rankPaths: entry?.rankPaths,
+    currentRank,
+    observations: {},
+    now,
+    joinedAt: null,
+    structuredGoals: {},
+  })
+  if (next.nextRank) return "next"
+  if (next.status === "appointed") return "appointed"
+  if (next.status !== "no-next-rank") return "off-ladder"
+  return hasAutomaticClassAbove(classes, entry?.rankPaths, currentRank) ? "branch" : "top"
+}
+
+/** Short register text for a tracker with no saved or automatic next class. */
+export function rankLadderStateLabel(state: RankLadderState): string {
+  switch (state) {
+    case "top":
+      return "Highest automatic class"
+    case "branch":
+      return "Ladder branches, choose a target"
+    case "appointed":
+      return "Appointed class, no earned next class"
+    case "off-ladder":
+      return "Class not in the saved ladder"
+    case "no-rank":
+      return "Current class unknown"
+    case "no-ladder":
+      return "No class ladder for this tracker"
+    default:
+      return "Next class"
+  }
+}
+
 function nextMetaFor(
   entry: ReturnType<typeof registryEntryFor>,
   currentRank: string | null,
@@ -246,6 +304,7 @@ function buildSummary(
 
   const next = evaluateRankGoal(input)
   const nextMeta = nextMetaFor(entry, currentRank, now)
+  const ladderState = rankLadderStateFor(entry, currentRank, currentRankHidden, now)
 
   if (Object.keys(pilot.goals).length === 0) {
     return {
@@ -261,6 +320,7 @@ function buildSummary(
       nextRankName: nextMeta.name,
       nextIsTextOnly: nextMeta.textOnly,
       highestAutomatic: nextMeta.highest,
+      ladderState,
       status: "unsupported",
       metCount: 0,
       unmetCount: 0,
@@ -313,6 +373,7 @@ function buildSummary(
     highestAutomatic:
       (next.status === "no-next-rank" || next.status === "appointed") &&
       !hasAutomaticClassAbove(entry?.userClasses ?? [], entry?.rankPaths, currentRank),
+    ladderState,
     status: target ? "goal" : "no-target",
     metCount: progress.met,
     unmetCount: progress.unmet,
@@ -363,11 +424,14 @@ export function buildRankGoalSummaries(
     if (!tracker.isActive) return []
     const savedTarget = savedGoals[String(tracker.id)]?.targetRank ?? null
     const pilot = rankDefinitionForSlug(tracker.registrySlug)
-    if (!pilot && !savedTarget) return []
+    // A tracker without structured rules still gets a summary: its ladder and
+    // rule text name the next class, and its ladder state keeps the card from
+    // claiming the top of a ladder it never evaluated.
     if (!pilot) {
+      const entry = registryEntryFor(tracker)
       const raw = tracker.latestStats?.group ?? null
       const hidden = Boolean(raw && isRedacted(raw))
-      const nextMeta = nextMetaFor(registryEntryFor(tracker), hidden ? null : raw, now)
+      const nextMeta = nextMetaFor(entry, hidden ? null : raw, now)
       return [
         {
           trackerId: tracker.id,
@@ -382,6 +446,7 @@ export function buildRankGoalSummaries(
           nextRankName: nextMeta.name,
           nextIsTextOnly: nextMeta.textOnly,
           highestAutomatic: nextMeta.highest,
+          ladderState: rankLadderStateFor(entry, hidden ? null : raw, hidden, now),
           status: "unsupported" as const,
           metCount: 0,
           unmetCount: 0,

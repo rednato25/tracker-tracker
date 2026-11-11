@@ -20,7 +20,7 @@ import {
   formatTimeAgo,
 } from "@/lib/formatters"
 import { findClassIndex } from "@/lib/rank-ladder"
-import type { RankGoalSummary } from "@/lib/rank-summary"
+import { type RankGoalSummary, rankLadderStateLabel } from "@/lib/rank-summary"
 import { getSnapshotReadout, type SnapshotReadout } from "@/lib/snapshot-freshness"
 import {
   getTrackerChecks,
@@ -54,6 +54,8 @@ interface RegisterRow {
   rank: string
   rankOrder: number | null
   targetRank: string | null
+  /** What to say instead of a target when no next class is named. */
+  noTargetText: string
   distanceText: string | null
   remainingText: string | null
   shortAge: string | null
@@ -228,6 +230,7 @@ function buildRows(
       rank: tracker.latestStats?.group ?? "Unknown",
       rankOrder: findClassIndex(entry?.userClasses ?? [], stats?.group ?? "Unknown"),
       targetRank: summary?.targetRank ?? summary?.automaticNextRank ?? null,
+      noTargetText: summary ? rankLadderStateLabel(summary.ladderState) : "No target",
       distanceText: summary?.distanceText ?? null,
       remainingText: distanceWithoutTarget(
         summary?.distanceText ?? null,
@@ -671,7 +674,7 @@ function TrackerRegister({
                     {row.rank}
                   </span>
                   <span className="break-words font-cond text-2xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-                    {row.targetRank ? `Target: ${row.targetRank}` : "No target"}
+                    {row.targetRank ? `Target: ${row.targetRank}` : row.noTargetText}
                   </span>
                   {row.remainingText && (
                     <span className="break-words text-xs leading-snug text-secondary">
@@ -747,7 +750,7 @@ function TrackerRegister({
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="slot-label">Target</span>
                       <span className="font-cond text-2xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-                        {row.targetRank ?? "No target"}
+                        {row.targetRank ?? row.noTargetText}
                       </span>
                     </span>
                     {row.remainingText && (

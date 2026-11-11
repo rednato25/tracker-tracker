@@ -56,6 +56,11 @@ You can check out a few other, longer, screenshots in the docs folder.
 | V3X                   | V3X       | ✅ Verified            | Cookie auth; JSON API at api.v3x.club/auth/me     |
 | Yu-Scene              | UNIT3D    | ✅ Verified            |                                                   |
 | Zenith                | UNIT3D    | ✅ Verified            |                                                   |
+| NordicQuality         | UNIT3D    | ✅ Verified            | Optional profile read for seed size and seed time |
+| Lat-Team              | UNIT3D    | ✅ Verified            | Optional profile read for seed size and seed time |
+| DreadVault            | UNIT3D    | 🟡 Unverified          | Profile read tested against a saved profile page  |
+| Retro Movies Club     | UNIT3D    | 🟡 Unverified          | Profile read tested against a saved profile page  |
+| SeedCore              | UNIT3D    | 🟡 Unverified          | Profile read tested against a saved profile page  |
 | IPTorrents            | IPTorrents| 🟡 Unverified          | Session-cookie scraper, no public API              |
 | TorrentLeech          | TorrentLeech | 🟡 Unverified       | Username/password login, no public API             |
 | Portugas              | Portugas  | ✅ Verified            | Cookie auth; stats scraped from the profile page  |

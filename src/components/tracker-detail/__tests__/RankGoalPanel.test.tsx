@@ -146,6 +146,61 @@ describe("RankGoalPanel", () => {
     expect(screen.getByText(/last values are stale/)).toBeInTheDocument()
   })
 
+  it("tells the user to turn on profile reading when the ladder needs seed values", async () => {
+    render(
+      <RankGoalPanel
+        trackerId={1}
+        trackerName="DreadVault"
+        registrySlug="dreadvault"
+        userClasses={dreadvault.userClasses}
+        currentRank={null}
+        stats={stats}
+        snapshots={snapshots}
+        joinedAt={JOINED_AT}
+        lastPolledAt={RECENT_POLL}
+        accentColor="#2ecc71"
+        platformType="unit3d"
+        platformMeta={null}
+        profileReadingEnabled={false}
+      />
+    )
+    await waitFor(() =>
+      expect(document.querySelector("[data-profile-hint]")).toHaveTextContent(
+        /Read profile page daily/
+      )
+    )
+  })
+
+  it("leaves the stopped-read notice alone instead of adding a second hint", async () => {
+    render(
+      <RankGoalPanel
+        trackerId={1}
+        trackerName="DreadVault"
+        registrySlug="dreadvault"
+        userClasses={dreadvault.userClasses}
+        currentRank={null}
+        stats={stats}
+        snapshots={snapshots}
+        joinedAt={JOINED_AT}
+        lastPolledAt={RECENT_POLL}
+        accentColor="#2ecc71"
+        platformType="unit3d"
+        profileReadingEnabled
+        hasProfileCookie
+        platformMeta={{
+          profileRead: {
+            fetchedAt: new Date(Date.now() - 3 * HOUR_MS).toISOString(),
+            attemptedAt: new Date(Date.now() - HOUR_MS).toISOString(),
+            status: "session_expired",
+            values: {},
+          },
+        }}
+      />
+    )
+    await waitFor(() => expect(screen.getByText("Session expired.")).toBeInTheDocument())
+    expect(document.querySelector("[data-profile-hint]")).toBeNull()
+  })
+
   it("shows verified values and evaluates the conservative upload unit", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel()

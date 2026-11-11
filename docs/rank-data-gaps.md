@@ -1,5 +1,19 @@
 # Rank data gaps by tracker
 
+> **Status, November 2026.** This is the original investigation. Most of the
+> gaps it lists have since been closed, so read the rows below as history, not
+> as the current state. What the app observes today is defined in
+> `src/lib/rank-observations.ts`:
+>
+> - Seed size is read from the API or stored metadata for FileList, Portugas,
+>   DigitalCore, M-Team, MAM and TorrentLeech, and the upload count for MAM,
+>   M-Team and Gazelle.
+> - For UNIT3D trackers, seed size, average seed time and the upload count come
+>   from the opt-in daily profile page read. The trackers it supports are listed
+>   in `src/lib/profile-reading/support.ts`.
+> - Rows below that say "needs scraping" for UNIT3D are covered by that read
+>   only for the trackers on that list.
+
 Investigation only. No adapter or schema changes are made here. The question is
 what each platform actually exposes for the four rank inputs that the current
 model cannot fully answer: uploaded-torrent count, seed size, average seed time,
@@ -22,9 +36,9 @@ it applies.
 
 | Platform | Field | Available | Already stored | Effort to add |
 | --- | --- | --- | --- | --- |
-| UNIT3D | Upload count | needs scraping | no | Medium. Stock UNIT3D shows total uploads (non-anonymous + anonymous) on the user profile, not in `/api/user`. The API token cannot read the HTML profile, so this needs a cookie-session fetch plus a parser. |
-| UNIT3D | Seed size | needs scraping | no | Medium. Profile "Seed statistics" exposes seeding size. Same cookie-session fetch; store bytes in `platformMeta` or a snapshot column. |
-| UNIT3D | Average seed time | needs scraping | no | Medium. Profile "Seed statistics" exposes average seed time. Same fetch; store seconds and add a rank metric for distance/ETA. |
+| UNIT3D | Upload count | needs scraping | via profile read | Done for the profile-read trackers: stock UNIT3D shows total uploads (non-anonymous + anonymous) on the profile, and the read adds the two. Not in `/api/user`. |
+| UNIT3D | Seed size | needs scraping | via profile read | Done for the profile-read trackers: the profile's seeding size is stored under `platformMeta.profileRead` and used as the `seedSizeBytes` rank metric. |
+| UNIT3D | Average seed time | needs scraping | via profile read | Done for the profile-read trackers, as the `averageSeedTimeSeconds` rank metric. Compact values such as `1M 1S 1D` are calendar units (month, week, day). |
 | UNIT3D | Seeding points / bonus | yes | yes | None. `/api/user` returns `seedbonus`; it is already snapshotted as `seedbonus`. |
 | Gazelle | Upload count | yes | yes | None. `action=user` enrichment returns `community.uploaded`; the app already stores it in `platformMeta` and maps it to the `uploads` observation. |
 | Gazelle | Seed size | no | no | Not exposed by the index or extended profile API. A download-client estimate is the only local option. |

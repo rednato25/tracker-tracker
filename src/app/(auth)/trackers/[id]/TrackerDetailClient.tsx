@@ -416,6 +416,8 @@ export function TrackerDetailClient({
         accentColor={tc}
         platformType={tracker.platformType}
         platformMeta={tracker.platformMeta}
+        profileReadingEnabled={tracker.profileReadingEnabled}
+        hasProfileCookie={tracker.hasProfileCookie}
         initialSavedGoals={savedRankGoals}
         onSavedGoalsChange={setSavedRankGoals}
         manualValues={rankManualValues[String(trackerId)] ?? {}}

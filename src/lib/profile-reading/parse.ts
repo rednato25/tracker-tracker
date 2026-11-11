@@ -73,10 +73,11 @@ const DURATION_UNITS: Record<string, number> = {
  * capital letters are calendar units (M month, W or S week, D day, Y year) and
  * the lower-case ones are clock units. Expand the capitals before lowercasing so
  * `1M` is never read as a minute or `1S` as a second. Spanish builds use S
- * (semana) for week.
+ * (semana) for week and A (año) for year.
  */
 const COMPACT_CALENDAR_UNITS: Record<string, string> = {
   Y: "years",
+  A: "years",
   M: "months",
   W: "weeks",
   S: "weeks",
@@ -85,7 +86,7 @@ const COMPACT_CALENDAR_UNITS: Record<string, string> = {
 
 function expandCompactCalendarUnits(text: string): string {
   return text.replace(
-    /(\d+(?:[.,]\d+)?)\s*([YMWSD])(?![A-Za-z])/g,
+    /(\d+(?:[.,]\d+)?)\s*([YAMWSD])(?![A-Za-z])/g,
     (_, amount: string, unit: string) => `${amount} ${COMPACT_CALENDAR_UNITS[unit]}`
   )
 }
@@ -131,30 +132,41 @@ function addCount(target: ProfileReadValues, key: "uploads" | "level" | "xp", ra
 interface LabelValue {
   label: string
   value: string
+  /** A `<time datetime>` inside the value cell, which is exact where the text is relative. */
+  datetime?: string
 }
 
-function pushPair(pairs: LabelValue[], label: string | undefined, value: string | undefined): void {
+type HtmlElement = ReturnType<HtmlDocument["querySelector"]>
+
+function pushPair(
+  pairs: LabelValue[],
+  label: string | undefined,
+  value: string | undefined,
+  valueElement?: HtmlElement
+): void {
   if (!label || !value) return
   const normalizedLabel = normalizeWhitespace(label)
   const normalizedValue = normalizeWhitespace(value)
   if (!normalizedLabel || !normalizedValue) return
-  pairs.push({ label: normalizedLabel, value: normalizedValue })
+  const datetime = valueElement?.querySelector("time")?.getAttribute("datetime")?.trim()
+  pairs.push({
+    label: normalizedLabel,
+    value: normalizedValue,
+    ...(datetime ? { datetime } : {}),
+  })
 }
 
 /** dt/dd groups, dl pairs and two-column table rows, de-duplicated. */
 function collectLabelValues(doc: HtmlDocument): LabelValue[] {
   const pairs: LabelValue[] = []
   for (const group of doc.querySelectorAll(".key-value__group")) {
-    pushPair(
-      pairs,
-      group.querySelector("dt")?.textContent,
-      group.querySelector("dd")?.textContent
-    )
+    const value = group.querySelector("dd")
+    pushPair(pairs, group.querySelector("dt")?.textContent, value?.textContent, value)
   }
   for (const term of doc.querySelectorAll("dt")) {
     const sibling = term.nextElementSibling
     if (sibling?.rawTagName?.toLowerCase() === "dd") {
-      pushPair(pairs, term.textContent, sibling.textContent)
+      pushPair(pairs, term.textContent, sibling.textContent, sibling)
     }
   }
   for (const row of doc.querySelectorAll("tr")) {
@@ -166,7 +178,8 @@ function collectLabelValues(doc: HtmlDocument): LabelValue[] {
       cells
         .slice(1)
         .map((cell) => cell.textContent)
-        .join(" ")
+        .join(" "),
+      cells[1]
     )
   }
 
@@ -222,6 +235,17 @@ function isUploadCountLabel(label: string): boolean {
   )
 }
 
+/**
+ * Stock UNIT3D splits the upload count into "Total uploads (Non-Anonymous)" and
+ * "Total uploads (Anonymous)"; the account's count is their sum.
+ */
+function splitUploadLabel(label: string): "public" | "anonymous" | null {
+  const lower = foldLabel(label).replace(/\s+/g, " ").trim()
+  const match = lower.match(/^(?:total uploads|subidas totales) \((non-? ?)?(anonymous|anonimo)\)$/)
+  if (!match) return null
+  return match[1] ? "public" : "anonymous"
+}
+
 function isLastLoginLabel(label: string): boolean {
   const lower = foldLabel(label).replace(/\s+/g, " ").trim()
   return (
@@ -273,7 +297,16 @@ function valuesFromLabels(
   now: Date
 ): ProfileReadValues {
   const values: ProfileReadValues = {}
-  for (const { label, value } of pairs) {
+  const splitUploads: { public?: number; anonymous?: number } = {}
+  for (const { label, value, datetime } of pairs) {
+    const split = splitUploadLabel(label)
+    if (split && splitUploads[split] === undefined) {
+      const count = tryParseCount(value.replace(/\s/g, ""))
+      if (count !== undefined && Number.isInteger(count) && count >= 0) {
+        splitUploads[split] = count
+      }
+      continue
+    }
     const lowerLabel = label.toLowerCase()
     if (values.seedSizeBytes === undefined && isSeedSizeLabel(label)) {
       values.seedSizeBytes = parseSafeBytes(value)
@@ -282,7 +315,11 @@ function valuesFromLabels(
       values.averageSeedTimeSeconds = parseDurationSeconds(value)
     }
     if (values.lastLoginAt === undefined && isLastLoginLabel(label)) {
-      values.lastLoginAt = parseProfileLoginDate(value, now)
+      // UNIT3D prints "1 month ago" over an exact `<time datetime>`. The date
+      // part is the site's calendar day, so it is taken as written rather than
+      // shifted through a time zone; the relative text is only a fallback.
+      const exact = datetime?.match(/^(\d{4}-\d{2}-\d{2})(?:[ T]|$)/)?.[1]
+      values.lastLoginAt = exact ?? parseProfileLoginDate(value, now)
     }
     // "Uploaded" is bytes on a profile page, but some groups layouts use it as
     // the count. Only the unitless form is a count, so bytes can never slip in.
@@ -293,6 +330,9 @@ function valuesFromLabels(
     if (values.uploads === undefined && uploadIsCount) {
       addCount(values, "uploads", value)
     }
+  }
+  if (values.uploads === undefined && splitUploads.public !== undefined) {
+    values.uploads = splitUploads.public + (splitUploads.anonymous ?? 0)
   }
   return values
 }

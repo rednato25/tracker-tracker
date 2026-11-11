@@ -16,6 +16,9 @@ export const PROFILE_READING_SLUGS = [
   "portugas",
   "nordicq",
   "latteam",
+  "dreadvault",
+  "retromoviesclub",
+  "seedcore",
   "zenith",
   "v3x",
 ] as const

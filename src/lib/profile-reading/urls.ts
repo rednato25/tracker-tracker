@@ -20,7 +20,10 @@ export function profilePageUrl(
     registrySlug === "yuscene" ||
     registrySlug === "portugas" ||
     registrySlug === "nordicq" ||
-    registrySlug === "latteam"
+    registrySlug === "latteam" ||
+    registrySlug === "dreadvault" ||
+    registrySlug === "retromoviesclub" ||
+    registrySlug === "seedcore"
   ) {
     return `${root}/users/${encoded}`
   }

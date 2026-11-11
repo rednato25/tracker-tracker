@@ -9,6 +9,7 @@ import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatDate, formatRatio, formatSeedSize, formatSeedTime } from "@/lib/formatters"
+import { ladderUsesProfileMetrics, profileReadingHint } from "@/lib/profile-reading/hint"
 import { formatProfileReadAge } from "@/lib/profile-reading/labels"
 import { readProfileReadRecord } from "@/lib/profile-reading/types"
 import { estimateUploadCompletion } from "@/lib/rank-eta"
@@ -48,6 +49,9 @@ interface RankGoalPanelProps {
   accentColor: string
   platformType: string
   platformMeta: PlatformMeta | null
+  /** P49 profile reading state, for the "turn it on" hint. */
+  profileReadingEnabled?: boolean
+  hasProfileCookie?: boolean
   initialSavedGoals?: Record<string, { targetRank: string }>
   onSavedGoalsChange?: (goals: Record<string, { targetRank: string }>) => void
   manualValues?: RankManualValues
@@ -266,6 +270,8 @@ export function RankGoalPanel({
   accentColor,
   platformType,
   platformMeta,
+  profileReadingEnabled,
+  hasProfileCookie,
   initialSavedGoals,
   onSavedGoalsChange,
   manualValues = {},
@@ -273,6 +279,14 @@ export function RankGoalPanel({
   onClearManualValue,
 }: RankGoalPanelProps) {
   const pilot = useMemo(() => rankDefinitionForSlug(registrySlug), [registrySlug])
+  // Seed size and average seed time are unknown on every ladder rung until the
+  // profile page is read, so the hint is not tied to the selected target.
+  const profileHint = ladderUsesProfileMetrics(userClasses)
+    ? profileReadingHint(
+        { registrySlug, profileReadingEnabled, hasProfileCookie, platformMeta },
+        "seedSizeBytes"
+      )
+    : null
   const targetOptions = useMemo(() => Object.keys(pilot?.goals ?? {}), [pilot])
   const nextRequirements = useMemo(() => {
     const ladder = buildRankLadder(userClasses, currentRank)
@@ -499,6 +513,11 @@ export function RankGoalPanel({
         <p className="mt-3 font-mono text-4xs text-warn" data-profile-read-stopped>
           <span className="font-semibold">{profileStopped}.</span> Profile reading is stopped for
           this tracker; the last values are stale. Save a new cookie in Settings to retry.
+        </p>
+      )}
+      {!profileStopped && profileHint && (
+        <p className="mt-3 font-mono text-4xs text-warn" data-profile-hint>
+          {profileHint}
         </p>
       )}
 

@@ -43,7 +43,7 @@ export const retromoviesclub: TrackerRegistryEntry = {
       "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
   },
   rankUnresolved: [
-    "Average seed time and seed size are not supported rank metrics and stay as unsupported conditions.",
+    "Seed size and average seed time are not in the UNIT3D API. They come from the opt-in profile page read and stay unknown without it.",
     "Mod bypass, freeleech and H&R immunity are perks, not promotion thresholds.",
     "TiB text is read as written.",
   ],

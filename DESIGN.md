@@ -195,6 +195,10 @@ the only violet used for controls.
   in one row (requirement, current, required, status, and why an unknown value
   is unknown). It also carries the registry source, a tracker-site link, the
   user's own "Matches the site" / "Wrong" check, and Copy as Markdown.
+- When an unknown value could come from the tracker's profile page, the row and
+  the tracker page say the next step: turn on `Read profile page daily`, add a
+  session cookie, or wait for the first read. A stopped read keeps its own
+  notice and gets no second hint.
 - The Ranks header counts how many trackers are checked automatically. Below it,
   `All · Structured · Text only · No ladder` pills with counts filter the
   sections by registry coverage: structured conditions the evaluator reads, a

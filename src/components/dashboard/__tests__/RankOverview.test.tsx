@@ -258,6 +258,25 @@ describe("RankOverview", () => {
     expect(screen.queryByText("Highest automatic class reached.")).not.toBeInTheDocument()
   })
 
+  it("points an unknown seed value at the profile reading setting", () => {
+    render(
+      overview({
+        trackers: [
+          tracker({
+            name: "Lat-Team",
+            registrySlug: "latteam",
+            latestStats: { ...BASE_STATS, group: "User" },
+            profileReadingEnabled: false,
+          }),
+        ],
+        savedGoals: { "1": { targetRank: "Seeder" } },
+      })
+    )
+    const hints = document.querySelectorAll("[data-profile-hint]")
+    expect(hints).toHaveLength(2)
+    expect(hints[0]).toHaveTextContent(/Read profile page daily/)
+  })
+
   it("counts checked, wrong and unchecked trackers at the top", () => {
     render(
       overview({

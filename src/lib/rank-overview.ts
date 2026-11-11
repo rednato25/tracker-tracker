@@ -14,6 +14,7 @@ import {
   formatSeedTime,
 } from "@/lib/formatters"
 import { isRedacted } from "@/lib/privacy"
+import { profileReadingHint } from "@/lib/profile-reading/hint"
 import {
   evaluateRankGoal,
   evaluateRequirementGroup,
@@ -73,6 +74,8 @@ export interface RankOverviewCondition {
   source: string
   observedAt: string | null
   canEnterManual: boolean
+  /** What the user can switch on so the profile page supplies this value. */
+  profileHint: string | null
 }
 
 export interface RankOverviewClass {
@@ -164,7 +167,8 @@ function unknownReasonFor(condition: RankConditionResult): RankUnknownReason | n
 
 function toCondition(
   condition: RankConditionResult,
-  manualValues: RankManualValues
+  manualValues: RankManualValues,
+  tracker: TrackerSummary
 ): RankOverviewCondition {
   const metric = condition.metric ?? null
   const manual = metric ? (manualValues[metric] ?? null) : null
@@ -192,6 +196,10 @@ function toCondition(
       condition.verification !== "unresolved" &&
       !observed &&
       !manualUsed,
+    profileHint:
+      condition.status === "unknown" && !observed && !manualUsed
+        ? profileReadingHint(tracker, metric)
+        : null,
   }
 }
 
@@ -279,7 +287,7 @@ function buildOne(
     ? evaluateRequirementGroup(focusClass.structured, input)
     : null
   const conditions = result
-    ? flattenConditions(result).map((condition) => toCondition(condition, manualValues))
+    ? flattenConditions(result).map((condition) => toCondition(condition, manualValues, tracker))
     : []
 
   return {

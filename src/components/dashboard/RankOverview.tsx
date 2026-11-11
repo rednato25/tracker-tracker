@@ -147,6 +147,11 @@ function ConditionRow({
         <span className={condition.status === "unknown" ? "text-warn" : "text-tertiary"}>
           {missing}
         </span>
+        {condition.profileHint && (
+          <span className="mt-0.5 block text-secondary" data-profile-hint>
+            {condition.profileHint}
+          </span>
+        )}
         {showManual && condition.metric && (
           <ManualValueEditor
             trackerName={trackerName}

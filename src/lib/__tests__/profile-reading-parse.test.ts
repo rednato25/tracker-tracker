@@ -88,7 +88,8 @@ describe("UNIT3D profile layouts", () => {
     expect(values.seedSizeBytes).toBe(Math.round(5.14 * GiB))
     expect(values.averageSeedTimeSeconds).toBe(8 * DAY + 15 * 3600 + 28 * 60 + 54)
     expect(values.lastLoginAt).toBe("2026-11-11")
-    expect(values.uploads).toBeUndefined()
+    // Total uploads (Non-Anonymous) 0 + (Anonymous) 0.
+    expect(values.uploads).toBe(0)
   })
 
   it("reads Lat-Team's Spanish labels and relative last login", () => {
@@ -99,6 +100,46 @@ describe("UNIT3D profile layouts", () => {
     expect(values.seedSizeBytes).toBe(Math.round(59.52 * GiB))
     expect(values.averageSeedTimeSeconds).toBe(6 * DAY + 10 * 3600 + 58 * 60 + 33)
     expect(values.lastLoginAt).toBe("2026-11-11")
+  })
+
+  it("reads DreadVault's month-long average seedtime as days, not minutes", () => {
+    const values = parseUnit3dProfilePage(
+      fixture("dreadvault-profile.html"),
+      new Date("2026-11-11T22:00:00.000Z")
+    )
+    expect(values.averageSeedTimeSeconds).toBe(31 * DAY + 15 * 3600 + 22 * 60 + 24)
+    expect(values.seedSizeBytes).toBe(Math.round(51.81 * GiB))
+    expect(values.uploads).toBe(0)
+    expect(values.lastLoginAt).toBe("2026-11-11")
+  })
+
+  it("adds RetroMoviesClub's public and anonymous upload counts", () => {
+    const values = parseUnit3dProfilePage(
+      fixture("retromoviesclub-profile.html"),
+      new Date("2026-11-11T22:00:00.000Z")
+    )
+    expect(values.uploads).toBe(38)
+    expect(values.seedSizeBytes).toBe(Math.round(1.08 * TiB))
+    expect(values.averageSeedTimeSeconds).toBe(4 * DAY + 17 * 3600 + 60 + 58)
+  })
+
+  it("takes SeedCore's unique seeding size and its exact last login over '1 month ago'", () => {
+    const values = parseUnit3dProfilePage(
+      fixture("seedcore-profile.html"),
+      new Date("2026-11-11T22:00:00.000Z")
+    )
+    expect(values.seedSizeBytes).toBe(Math.round(212.08 * GiB))
+    expect(values.averageSeedTimeSeconds).toBe(35 * DAY + 18 * 3600 + 6 * 60 + 58)
+    // "1 month ago" alone would give 2026-10-12, two weeks late.
+    expect(values.lastLoginAt).toBe("2026-09-28")
+  })
+
+  it("falls back to the relative text when the last login has no timestamp", () => {
+    const html =
+      '<div class="key-value__group"><dt>Last login</dt><dd>2 days ago</dd></div>'
+    expect(parseUnit3dProfilePage(html, new Date("2026-11-11T12:00:00.000Z")).lastLoginAt).toBe(
+      "2026-11-09"
+    )
   })
 
   it("takes Last login over Last action and ignores Last action on its own", () => {
@@ -167,6 +208,8 @@ describe("duration parsing", () => {
     expect(parseDurationSeconds("1Y 2D")).toBe(367 * DAY)
     expect(parseDurationSeconds("3 Days 4 hours")).toBe(3 * DAY + 4 * 3600)
     expect(parseDurationSeconds("2 días")).toBe(2 * DAY)
+    // Spanish builds print A (año) for a year.
+    expect(parseDurationSeconds("1A 2S")).toBe(365 * DAY + 14 * DAY)
   })
 })
 
@@ -239,6 +282,9 @@ describe("one page, one decision", () => {
     )
     expect(parseProfilePage("nordicq", fixture("nordicq-profile.html"))?.layout).toBe("unit3d")
     expect(parseProfilePage("latteam", fixture("latteam-profile.html"))?.layout).toBe("unit3d")
+    for (const slug of ["dreadvault", "retromoviesclub", "seedcore"]) {
+      expect(parseProfilePage(slug, fixture(`${slug}-profile.html`))?.layout).toBe("unit3d")
+    }
     expect(
       parseProfilePage("uploadcx", "<html><body>no stats here</body></html>")
     ).toBeNull()

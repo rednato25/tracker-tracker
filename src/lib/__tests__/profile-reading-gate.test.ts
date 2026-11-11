@@ -156,6 +156,15 @@ describe("profile page URLs", () => {  it("uses the groups page for Zenith and t
     expect(profilePageUrl("latteam", "https://lat-team.com/", "a")).toBe(
       "https://lat-team.com/users/a"
     )
+    expect(profilePageUrl("dreadvault", "https://dreadvault.org", "a")).toBe(
+      "https://dreadvault.org/users/a"
+    )
+    expect(profilePageUrl("retromoviesclub", "https://retro-movies.club", "a")).toBe(
+      "https://retro-movies.club/users/a"
+    )
+    expect(profilePageUrl("seedcore", "https://seedcore.net", "a")).toBe(
+      "https://seedcore.net/users/a"
+    )
     expect(profilePageUrl("v3x", "https://v3x.club", "a")).toBe("https://v3x.club/u/a")
   })
 

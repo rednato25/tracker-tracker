@@ -43,7 +43,8 @@ export const seedcore: TrackerRegistryEntry = {
       "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
   },
   rankUnresolved: [
-    "Seed size and average seed time are not supported rank metrics and stay as unsupported conditions.",
+    "Seed size and average seed time are not in the UNIT3D API. They come from the opt-in profile page read and stay unknown without it.",
+    "The profile shows both a unique seeding size and an all-peers seed size; the profile read takes the unique figure.",
     "TiB text is read as written.",
     "VIP, trustee, internal and staff classes are outside the earned ladder.",
   ],

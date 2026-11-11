@@ -614,9 +614,9 @@ export function RankGoalPanel({
                     >
                       <span className="text-secondary">{condition.label}</span>
                       <span>
-                        source={condition.source} Â· freshness={condition.freshness}
+                        source={condition.source} · freshness={condition.freshness}
                         {condition.source === "profile" && condition.observedAt
-                          ? ` Â· ${formatProfileReadAge(condition.observedAt, now ?? new Date(0))}`
+                          ? ` · ${formatProfileReadAge(condition.observedAt, now ?? new Date(0))}`
                           : ""}
                       </span>
                       {condition.unitReading === "conservative" && (
@@ -641,10 +641,10 @@ export function RankGoalPanel({
                 <p>
                   Upload estimate:{" "}
                   {uploadUnresolved
-                    ? "unavailable â€” unit unresolved"
+                    ? "unavailable — unit unresolved"
                     : uploadEstimate
-                      ? `${uploadEstimate.date} Â· ${uploadEstimate.daysRemaining.toFixed(0)} days at the recent ${uploadEstimate.basisDays}-day trend`
-                      : "unavailable â€” insufficient, stale or non-positive history"}
+                      ? `${uploadEstimate.date} · ${uploadEstimate.daysRemaining.toFixed(0)} days at the recent ${uploadEstimate.basisDays}-day trend`
+                      : "unavailable — insufficient, stale or non-positive history"}
                 </p>
               </div>
               <p className="font-mono text-2xs text-muted">
@@ -658,7 +658,7 @@ export function RankGoalPanel({
                   {pilot.source.accessedAt
                     ? formatDate(pilot.source.accessedAt)
                     : "not available"}{" "}
-                  Â· page modified{" "}
+                  · page modified{" "}
                   {pilot.source.sourceLastModified
                     ? formatDate(pilot.source.sourceLastModified)
                     : "unknown"}

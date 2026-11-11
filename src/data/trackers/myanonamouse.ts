@@ -34,21 +34,19 @@ export const myanonamouse: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "mixed",
   rankRequirementsSource: {
-    url: "https://www.myanonamouse.net/wiki/index.php?title=User_Classes",
-    title: "MyAnonaMouse Wiki - User Classes",
-    accessedAt: "2026-10-30",
+    url: "https://www.myanonamouse.net/",
+    title: "MyAnonaMouse FAQ: member and staff classes",
+    accessedAt: "2026-11-11",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "The official wiki is login-gated and returned 403 without a session. The numeric thresholds still come from the existing registry text and are not independently re-read here.",
+      "Read off the site's FAQ by the owner on 2026-11-11 while logged in. Power User promotion is automatic within 15 minutes, and a ratio below 2.0 demotes again.",
   },
   rankUnresolved: [
-    "Source is login-gated; promotion automation and class-appointment rules remain unresolved.",
     "No earned ladder class is missing structured thresholds: User and Power User are the only stat-earned classes with published numbers.",
-    "GB/TB text without a stated unit basis is read as the larger binary GiB/TiB value.",
   ],
   userClasses: [
-    { name: "Mouse", requirements: "Ratio below 1.0 (auto-demotion)", outsideLadder: "below" },
+    { name: "Mouse", requirements: "Automatic demotion when the overall ratio drops below 1.0" },
     {
       name: "User",
       requirements: "Ratio above 1.0",
@@ -61,12 +59,12 @@ export const myanonamouse: TrackerRegistryEntry = {
     },
     {
       name: "Power User",
-      requirements: "4 weeks membership, 25 GB uploaded, 2.0 ratio",
+      requirements: "4 weeks membership, 25 GiB uploaded (store-bought upload counts), 2.0 ratio. Below 2.0 demotes again",
       structured: {
         mode: "all",
         conditions: [
           { kind: "numeric", id: "mam-power-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 28, scope: "account", label: "At least 4 weeks registered" },
-          { kind: "numeric", id: "mam-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 25 * GiB, scope: "account", unitReading: "conservative", label: "At least 25 GiB uploaded" },
+          { kind: "numeric", id: "mam-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 25 * GiB, scope: "account", label: "At least 25 GiB uploaded" },
           { kind: "numeric", id: "mam-power-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.0, scope: "account", label: "Ratio at least 2.0" },
         ],
       },
@@ -79,19 +77,19 @@ export const myanonamouse: TrackerRegistryEntry = {
     },
     {
       name: "Elite VIP",
-      requirements: "Staff-selected for community contribution",
+      requirements: "Granted automatically after donating 100 EUR, or at staff discretion",
       outsideLadder: "above",
     },
     {
       name: "Elite",
-      requirements: "Staff-selected, immune to auto-demotion",
+      requirements: "Recognised by staff for something special",
       outsideLadder: "above",
     },
     { name: "Supporter", requirements: "Continuous supporter", outsideLadder: "above" },
     { name: "Mouseketeer", requirements: "Retired staff", outsideLadder: "above" },
     {
       name: "Uploader",
-      requirements: "Staff-selected for consistent monthly uploads",
+      requirements: "Chosen by senior staff for consistent high-quality uploads; immune to automatic demotion",
       outsideLadder: "above",
     },
   ],

@@ -34,13 +34,13 @@ export const retromoviesclub: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; rules page is login-gated",
-    accessedAt: null,
+    url: "https://retro-movies.club/",
+    title: "Retro Movies Club User Groups & Ranks page",
+    accessedAt: "2026-11-11",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
+      "Read off the site's User Groups & Ranks page by the owner on 2026-11-11 while logged in. Ranks are checked automatically and every criterion must be met. The ladder follows the site's progression path, which is also its level order.",
   },
   rankUnresolved: [
     "Seed size and average seed time are not in the UNIT3D API. They come from the opt-in profile page read and stay unknown without it.",
@@ -75,8 +75,7 @@ export const retromoviesclub: TrackerRegistryEntry = {
     },
     {
       name: "Seat Filler",
-      requirements: "0 B Uploaded, 0.00 Ratio",
-      outsideLadder: "below",
+      requirements: "Starting class of the progression path: 0 B uploaded, 0.00 ratio",
     },
     {
       name: "Actor",

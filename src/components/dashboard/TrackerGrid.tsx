@@ -215,6 +215,8 @@ function noNextClassText(summary: RankGoalSummary | undefined): string {
       return "staff or appointed class, no earned next class"
     case "off-ladder":
       return "not in the saved ladder, no next class inferred"
+    case "restricted":
+      return "restricted account state, no next class"
     case "no-rank":
       return summary.currentRankHidden
         ? "class hidden, no next class inferred"

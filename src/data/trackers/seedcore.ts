@@ -34,35 +34,26 @@ export const seedcore: TrackerRegistryEntry = {
   // ── Community ───────────────────────────────────────────────────────
   rankProgression: "automatic",
   rankRequirementsSource: {
-    url: null,
-    title: "Existing registry free text; rules page is login-gated",
-    accessedAt: null,
+    url: "https://seedcore.net/",
+    title: "SeedCore user classes page",
+    accessedAt: "2026-11-11",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds come from the existing registry text. The tracker's rules page is login-gated, so this change does not independently re-read it.",
+      "Read off the site's user classes page by the owner on 2026-11-11 while logged in. Classes update automatically (AutoGroup). Every threshold is at least.",
   },
   rankUnresolved: [
     "Seed size and average seed time are not in the UNIT3D API. They come from the opt-in profile page read and stay unknown without it.",
     "The profile shows both a unique seeding size and an all-peers seed size; the profile read takes the unique figure.",
-    "TiB text is read as written.",
+    "The class page writes TB; thresholds are read as TiB, the larger value, so progress is never overstated.",
     "VIP, trustee, internal and staff classes are outside the earned ladder.",
   ],
   userClasses: [
     { name: "Disabled", requirements: "Disabled account, no privileges", outsideLadder: "below" },
     { name: "Banned", requirements: "Violated site rules", outsideLadder: "below" },
     { name: "Pruned", requirements: "Pruned for inactivity", outsideLadder: "below" },
-    { name: "Leech", requirements: "Ratio below 0.40. Downloads disabled", outsideLadder: "below" },
-    {
-      name: "User",
-      requirements: "Ratio ≥ 0.40",
-      structured: {
-        mode: "all",
-        conditions: [
-          { kind: "numeric", id: "sc-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 0.4, scope: "account", label: "Ratio at least 0.40" },
-        ],
-      },
-    },
+    { name: "Leech", requirements: "Demotion class, no download slots. No requirement on the class page" },
+    { name: "User", requirements: "No special requirements on the class page. 25 download slots" },
     {
       name: "PowerUser",
       requirements: "Upload ≥ 1 TiB, ratio ≥ 0.40, age ≥ 1 month",
@@ -157,6 +148,8 @@ export const seedcore: TrackerRegistryEntry = {
     { name: "Torrent Moderator", requirements: "Staff", outsideLadder: "above" },
     { name: "Moderator", requirements: "Staff", outsideLadder: "above" },
     { name: "Administrator", requirements: "Staff", outsideLadder: "above" },
+    { name: "Secret (Administrator)", requirements: "Staff", outsideLadder: "above" },
+    { name: "Bot", requirements: "System account", outsideLadder: "above" },
   ],
   releaseGroups: [],
   bannedGroups: [

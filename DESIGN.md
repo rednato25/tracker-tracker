@@ -262,6 +262,7 @@ the only violet used for controls.
   - ladder branches: `ladder branches here, choose a target`
   - staff or appointed class: `staff or appointed class, no earned next class`
   - class not in the registry ladder: `not in the saved ladder, no next class inferred`
+  - banned, disabled, pruned or unverified: `restricted account state, no next class`
   - class missing or hidden: `class not reported` or `class hidden`, `no next class inferred`
   - no ladder in the registry: `no class ladder for this tracker`
   The register and the Ranks view use the same states in place of `No target`.

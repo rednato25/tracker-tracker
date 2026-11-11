@@ -1390,7 +1390,7 @@ test.describe.serial("P41 rank overview", () => {
         update app_settings
         set rank_goals = ${JSON.stringify({
           [String(torrentLeechId)]: { targetRank: "Super User" },
-          [String(dreadVaultId)]: { targetRank: "Ancient One" },
+          [String(dreadVaultId)]: { targetRank: "Bloodbound" },
         })},
         recruitment_state = ${JSON.stringify({
           version: 2,
@@ -1406,7 +1406,7 @@ test.describe.serial("P41 rank overview", () => {
             },
             [String(dreadVaultId)]: {
               verdict: "wrong",
-              note: "Site says 500 uploads",
+              note: "Site says 10 uploads",
               checkedAt: "2026-10-29",
             },
           },
@@ -1477,7 +1477,7 @@ test.describe.serial("P41 rank overview", () => {
         .first()
     ).toBeVisible()
     await expect(dv.getByLabel("Note for TEST P41 DreadVault")).toHaveValue(
-      "Site says 500 uploads"
+      "Site says 10 uploads"
     )
 
     for (const theme of ["light", "dark"] as const) {

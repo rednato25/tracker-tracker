@@ -62,29 +62,28 @@ export const speedapp: TrackerRegistryEntry = {
   rankRequirementsSource: {
     url: "https://speedapp.io/wiki/en/classes",
     title: "SpeedApp wiki, Classes and promotion",
-    accessedAt: "2026-11-10",
+    accessedAt: "2026-11-11",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "Thresholds are the registry's existing transcription of the wiki's Classes and promotion page; that page was not re-read for this change. The FAQ confirms the shape: classes grow with account age, upload and ratio, and the site moves members up or down on its own every hour. GB/TB text with no stated basis is read as the larger binary unit.",
+      "Read off the wiki's Classes and promotion page by the owner on 2026-11-11 while logged in. A class needs all three of account age, upload and ratio; the site promotes and demotes every hour, and each class is kept while the ratio stays above its keep ratio.",
   },
   rankUnresolved: [
-    "Peasant is a demotion state, not a rung: it is where an account sits below 0.95 ratio or under one month old.",
-    "The wiki page that states the exact thresholds was not re-read while adding these conditions.",
+    "GB and TB on the wiki are read as GiB and TiB, the larger values, so progress is never overstated.",
+    "Each class's keep ratio is in its requirement text; the dashboard tracks the promotion thresholds.",
   ],
   userClasses: [
     {
       name: "Peasant",
-      requirements: "Demoted below 0.95 ratio or under one month old.",
-      outsideLadder: "below",
+      requirements: "Starting class for every new account, and where an account drops below the User keep ratio of 0.95",
     },
     {
       name: "User",
-      requirements: "Age ≥ 30 days, uploaded ≥ 25 GB, ratio ≥ 1.05",
+      requirements: "Age ≥ 28 days, uploaded ≥ 25 GB, ratio ≥ 1.05. Kept above 0.95",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "sp-user-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 30, scope: "account", label: "At least 30 days registered" },
+          { kind: "numeric", id: "sp-user-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 28, scope: "account", label: "At least 28 days registered" },
           { kind: "numeric", id: "sp-user-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 25 * GiB, scope: "account", unitReading: "conservative", label: "At least 25 GiB uploaded" },
           { kind: "numeric", id: "sp-user-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.05, scope: "account", label: "Ratio at least 1.05" },
         ],
@@ -92,7 +91,7 @@ export const speedapp: TrackerRegistryEntry = {
     },
     {
       name: "Power User",
-      requirements: "Age ≥ 90 days, uploaded ≥ 200 GB, ratio ≥ 2.0",
+      requirements: "Age ≥ 90 days, uploaded ≥ 200 GB, ratio ≥ 2.0. Kept above 1.75",
       structured: {
         mode: "all",
         conditions: [
@@ -104,7 +103,7 @@ export const speedapp: TrackerRegistryEntry = {
     },
     {
       name: "Elite User",
-      requirements: "Age ≥ 180 days, uploaded ≥ 1 TB, ratio ≥ 3.0",
+      requirements: "Age ≥ 180 days, uploaded ≥ 1 TB, ratio ≥ 3.0. Kept above 2.75",
       structured: {
         mode: "all",
         conditions: [
@@ -116,11 +115,11 @@ export const speedapp: TrackerRegistryEntry = {
     },
     {
       name: "Xtreme User",
-      requirements: "Age ≥ 1 year, uploaded ≥ 5 TB, ratio ≥ 4.0",
+      requirements: "Age ≥ 360 days, uploaded ≥ 5 TB, ratio ≥ 4.0. Kept above 3.75",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "sp-xtreme-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 365, scope: "account", label: "At least 1 year registered" },
+          { kind: "numeric", id: "sp-xtreme-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 360, scope: "account", label: "At least 360 days registered" },
           { kind: "numeric", id: "sp-xtreme-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 5 * TiB, scope: "account", unitReading: "conservative", label: "At least 5 TiB uploaded" },
           { kind: "numeric", id: "sp-xtreme-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 4.0, scope: "account", label: "Ratio at least 4.0" },
         ],
@@ -128,11 +127,11 @@ export const speedapp: TrackerRegistryEntry = {
     },
     {
       name: "Super User",
-      requirements: "Age ≥ 2 years, uploaded ≥ 20 TB, ratio ≥ 5.0",
+      requirements: "Age ≥ 720 days, uploaded ≥ 20 TB, ratio ≥ 5.0. Kept above 4.75",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "sp-super-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 730, scope: "account", label: "At least 2 years registered" },
+          { kind: "numeric", id: "sp-super-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 720, scope: "account", label: "At least 720 days registered" },
           { kind: "numeric", id: "sp-super-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 20 * TiB, scope: "account", unitReading: "conservative", label: "At least 20 TiB uploaded" },
           { kind: "numeric", id: "sp-super-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 5.0, scope: "account", label: "Ratio at least 5.0" },
         ],
@@ -140,11 +139,11 @@ export const speedapp: TrackerRegistryEntry = {
     },
     {
       name: "Legend User",
-      requirements: "Age ≥ 6 years, uploaded ≥ 100 TB, ratio ≥ 6.0",
+      requirements: "Age ≥ 2160 days, uploaded ≥ 100 TB, ratio ≥ 6.0. Kept above 5.75",
       structured: {
         mode: "all",
         conditions: [
-          { kind: "numeric", id: "sp-legend-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 2190, scope: "account", label: "At least 6 years registered" },
+          { kind: "numeric", id: "sp-legend-age", metric: "accountAgeDays", comparison: "gte", requiredValue: 2160, scope: "account", label: "At least 2160 days registered" },
           { kind: "numeric", id: "sp-legend-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 100 * TiB, scope: "account", unitReading: "conservative", label: "At least 100 TiB uploaded" },
           { kind: "numeric", id: "sp-legend-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 6.0, scope: "account", label: "Ratio at least 6.0" },
         ],
@@ -152,10 +151,10 @@ export const speedapp: TrackerRegistryEntry = {
     },
     { name: "Star", requirements: "Donation package", outsideLadder: "above" },
     { name: "VIP", requirements: "Granted by staff, or bought with bonus points", outsideLadder: "above" },
-    { name: "Legend VIP", requirements: "Long-standing VIP", outsideLadder: "above" },
+    { name: "Legend VIP", requirements: "For donors, or VIP time bought with bonus points", outsideLadder: "above" },
     {
       name: "Hyperseeder",
-      requirements: "Top 10 by seed size, seeding over 90% of the last 72 hours",
+      requirements: "The ten members who seed the most by size, steadily over the last three days, from Elite User up",
       outsideLadder: "above",
     },
     { name: "Hall of Fame", requirements: "Granted by staff", outsideLadder: "above" },

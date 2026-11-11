@@ -57,6 +57,7 @@ export type RankLadderState =
   | "branch"
   | "appointed"
   | "off-ladder"
+  | "restricted"
   | "no-rank"
   | "no-ladder"
 
@@ -182,6 +183,13 @@ export function rankLadderStateFor(
   const classes = entry?.userClasses ?? []
   if (classes.length === 0) return "no-ladder"
   if (currentRankHidden || !currentRank) return "no-rank"
+  // Banned, disabled, pruned and unverified accounts sit below the ladder.
+  // They are known states, not a class missing from the registry.
+  const wanted = currentRank.toLowerCase()
+  const below = classes.find(
+    (userClass) => userClass.outsideLadder === "below" && userClass.name.toLowerCase() === wanted
+  )
+  if (below) return "restricted"
   const next = evaluateRankGoal({
     userClasses: classes,
     rankPaths: entry?.rankPaths,
@@ -208,6 +216,8 @@ export function rankLadderStateLabel(state: RankLadderState): string {
       return "Appointed class, no earned next class"
     case "off-ladder":
       return "Class not in the saved ladder"
+    case "restricted":
+      return "Restricted account state, no next class"
     case "no-rank":
       return "Current class unknown"
     case "no-ladder":

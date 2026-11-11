@@ -138,7 +138,11 @@ export function RankStacks({
   onToggleExpanded,
 }: RankStacksProps) {
   const router = useRouter()
-  const summaries = buildRankGoalSummaries(trackers, savedGoals, now)
+  // This legacy section lists only structured ladders and saved targets; the
+  // grid cards carry every other ladder state.
+  const summaries = buildRankGoalSummaries(trackers, savedGoals, now).filter(
+    (summary) => summary.status !== "unsupported" || Boolean(savedGoals[String(summary.trackerId)])
+  )
 
   const entries: StackEntry[] = trackers.flatMap((tracker) => {
     if (!tracker.isActive) return []

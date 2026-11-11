@@ -200,6 +200,32 @@ function bufferValue(tracker: TrackerSummary): string {
   }
 }
 
+/**
+ * Card text for a tracker with no saved or automatic next class. Only the top of
+ * an evaluated automatic ladder may claim the highest class; the other states
+ * say what the app is missing instead.
+ */
+function noNextClassText(summary: RankGoalSummary | undefined): string {
+  switch (summary?.ladderState) {
+    case "top":
+      return "highest automatic class reached"
+    case "branch":
+      return "ladder branches here, choose a target"
+    case "appointed":
+      return "staff or appointed class, no earned next class"
+    case "off-ladder":
+      return "not in the saved ladder, no next class inferred"
+    case "no-rank":
+      return summary.currentRankHidden
+        ? "class hidden, no next class inferred"
+        : "class not reported, no next class inferred"
+    case "no-ladder":
+      return "no class ladder for this tracker"
+    default:
+      return "no rank data"
+  }
+}
+
 function barTone(bar: RankSummaryBar): string {
   if (bar.status === "unmet") return "bg-danger"
   if (bar.status === "unknown") return "bg-warn"
@@ -448,7 +474,8 @@ function TrackerCard({
   const automaticTarget = summary?.automaticNextRank ?? null
   const targetRank = summary?.targetReached ? automaticTarget : (savedTarget ?? automaticTarget)
   const isAutomaticTarget = !savedTarget || Boolean(summary?.targetReached)
-  const topOfLadder = !targetRank
+  const noNextClass = !targetRank
+  const noNextText = noNextClassText(summary)
   const loginMarking = useLoginMarking(tracker, now, onTrackerUpdated)
   const loginWindow = readLoginWindow(
     { ...tracker, lastAccessAt: loginMarking.lastAccessAt },
@@ -596,10 +623,13 @@ function TrackerCard({
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          {topOfLadder ? (
-            <p className="min-w-0 break-words font-mono text-xs text-primary">
+          {noNextClass ? (
+            <p
+              className="min-w-0 break-words font-mono text-xs text-primary"
+              data-rank-ladder-state={summary?.ladderState ?? "none"}
+            >
               <span className="font-medium">{currentRankLabel}</span>{" "}
-              <span className="text-secondary">highest automatic class reached</span>
+              <span className="text-secondary">{noNextText}</span>
             </p>
           ) : (
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-mono text-xs">
@@ -646,7 +676,7 @@ function TrackerCard({
               <p className="text-xs text-tertiary">+{bars.length - visibleBars.length} more requirements</p>
             )}
           </div>
-        ) : topOfLadder ? null : summary?.nextRankRequirements ? (
+        ) : noNextClass ? null : summary?.nextRankRequirements ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-tertiary">
               From tracker rules (not tracked automatically)

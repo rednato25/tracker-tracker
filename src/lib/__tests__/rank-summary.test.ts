@@ -278,3 +278,83 @@ describe("parseSavedRankGoals", () => {
     expect(parseSavedRankGoals(null)).toEqual({})
   })
 })
+
+describe("rank ladder state", () => {
+  function only(overrides: Partial<TrackerSummary>, saved: Record<string, { targetRank: string }> = {}) {
+    const summaries = buildRankGoalSummaries([tracker(overrides)], saved, NOW)
+    expect(summaries).toHaveLength(1)
+    return summaries[0]
+  }
+
+  it("summarizes a text-only ladder with no saved target instead of dropping it", () => {
+    const summary = only({
+      registrySlug: "aither",
+      name: "Aither",
+      latestStats: { ...tracker().latestStats!, group: "Phobos" },
+    })
+    expect(summary.status).toBe("unsupported")
+    expect(summary.ladderState).toBe("next")
+    expect(summary.automaticNextRank).toBe("Harmonia")
+    expect(summary.nextIsTextOnly).toBe(true)
+    expect(summary.nextRankRequirements).toMatch(/Upload/)
+    expect(summary.highestAutomatic).toBe(false)
+  })
+
+  it("reserves the top state for the top of an evaluated automatic ladder", () => {
+    expect(only({ latestStats: { ...tracker().latestStats!, group: "TL GOD" } }).ladderState).toBe(
+      "top"
+    )
+    expect(
+      only({
+        registrySlug: "aither",
+        name: "Aither",
+        latestStats: { ...tracker().latestStats!, group: "Titan" },
+      }).ladderState
+    ).toBe("top")
+  })
+
+  it("says a branching prefix branches rather than tops out", () => {
+    const summary = only({
+      registrySlug: "zenith",
+      name: "Zenith",
+      latestStats: { ...tracker().latestStats!, group: "Explorer" },
+    })
+    expect(summary.ladderState).toBe("branch")
+    expect(summary.highestAutomatic).toBe(false)
+  })
+
+  it("marks a staff or appointed class as appointed", () => {
+    const summary = only({
+      registrySlug: "aither",
+      name: "Aither",
+      latestStats: { ...tracker().latestStats!, group: "Uploader" },
+    })
+    expect(summary.ladderState).toBe("appointed")
+  })
+
+  it("marks a class that is not in the saved ladder as off-ladder", () => {
+    const summary = only({
+      registrySlug: "aither",
+      name: "Aither",
+      latestStats: { ...tracker().latestStats!, group: "Mystery Class" },
+    })
+    expect(summary.ladderState).toBe("off-ladder")
+    expect(summary.highestAutomatic).toBe(false)
+  })
+
+  it("does not infer a next class without a reported or visible current class", () => {
+    expect(only({ latestStats: { ...tracker().latestStats!, group: null } }).ladderState).toBe(
+      "no-rank"
+    )
+    const hidden = only({ latestStats: { ...tracker().latestStats!, group: "▓▓▓▓▓▓" } })
+    expect(hidden.currentRankHidden).toBe(true)
+    expect(hidden.ladderState).toBe("no-rank")
+  })
+
+  it("summarizes a tracker with no registry ladder as no-ladder", () => {
+    const summary = only({ registrySlug: null, name: "Custom" })
+    expect(summary.ladderState).toBe("no-ladder")
+    expect(summary.highestAutomatic).toBe(false)
+    expect(summary.automaticNextRank).toBeNull()
+  })
+})

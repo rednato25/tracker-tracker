@@ -293,6 +293,7 @@ describe("TrackerRegister transfer metrics", () => {
       nextRankName: null,
       nextIsTextOnly: false,
       highestAutomatic: false,
+      ladderState: "next",
       status: "goal",
       metCount: 1,
       unmetCount: 1,

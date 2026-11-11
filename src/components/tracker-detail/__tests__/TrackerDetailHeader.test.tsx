@@ -118,6 +118,7 @@ describe("TrackerDetailHeader actions", () => {
       nextRankName: null,
       nextIsTextOnly: false,
       highestAutomatic: false,
+      ladderState: "next",
       status: "goal",
       metCount: 2,
       unmetCount: 1,

@@ -195,6 +195,10 @@ the only violet used for controls.
   in one row (requirement, current, required, status, and why an unknown value
   is unknown). It also carries the registry source, a tracker-site link, the
   user's own "Matches the site" / "Wrong" check, and Copy as Markdown.
+- The Ranks header counts how many trackers are checked automatically. Below it,
+  `All · Structured · Text only · No ladder` pills with counts filter the
+  sections by registry coverage: structured conditions the evaluator reads, a
+  class ladder with rule text only, or no ladder. The filter is not remembered.
 - The Grid | Table | Ranks choice is a view toggle, not a route. Preserve the
   current register columns and default order. Sorting is owned by the register
   itself.
@@ -248,6 +252,15 @@ the only violet used for controls.
   condition is already met; label it `in N days`, neutral, never red.
 - At the top of the automatic ladder, say `Highest automatic class reached`.
   Never invent thresholds for staff, VIP, awarded or unpublished classes.
+- Every active tracker gets a rank line. With no saved or next class, say why,
+  and never claim the top of a ladder that was not evaluated:
+  - top of the automatic ladder: `highest automatic class reached`
+  - ladder branches: `ladder branches here, choose a target`
+  - staff or appointed class: `staff or appointed class, no earned next class`
+  - class not in the registry ladder: `not in the saved ladder, no next class inferred`
+  - class missing or hidden: `class not reported` or `class hidden`, `no next class inferred`
+  - no ladder in the registry: `no class ladder for this tracker`
+  The register and the Ranks view use the same states in place of `No target`.
 - A saved target at or below the current class says `Target reached`; offer the
   next automatic class when one exists, otherwise repeat the highest-automatic
   line. Do not silently drop the saved target.

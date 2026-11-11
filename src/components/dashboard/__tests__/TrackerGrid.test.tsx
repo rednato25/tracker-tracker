@@ -70,6 +70,7 @@ function summary(overrides: Partial<RankGoalSummary> = {}): RankGoalSummary {
     nextRankName: null,
     nextIsTextOnly: false,
     highestAutomatic: false,
+    ladderState: "next",
     status: "goal",
     metCount: 1,
     unmetCount: 1,
@@ -265,6 +266,7 @@ describe("TrackerGrid", () => {
             targetRank: null,
             automaticNextRank: null,
             highestAutomatic: true,
+            ladderState: "top",
             bars: [],
             status: "no-target",
           }),
@@ -274,6 +276,42 @@ describe("TrackerGrid", () => {
     )
     expect(screen.getByText("highest automatic class reached")).toBeInTheDocument()
     expect(screen.queryByText("No structured requirement to show.")).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ["no-ladder", "no class ladder for this tracker"],
+    ["off-ladder", "not in the saved ladder, no next class inferred"],
+    ["appointed", "staff or appointed class, no earned next class"],
+    ["branch", "ladder branches here, choose a target"],
+    ["no-rank", "class not reported, no next class inferred"],
+  ] as const)("does not claim the top of the ladder for %s", (ladderState, text) => {
+    render(
+      <TrackerGrid
+        trackers={[tracker({ registrySlug: "aither", name: "Aither" })]}
+        summaries={[
+          summary({
+            trackerName: "Aither",
+            targetRank: null,
+            automaticNextRank: null,
+            ladderState,
+            bars: [],
+            status: "unsupported",
+          }),
+        ]}
+        now={NOW}
+      />
+    )
+    expect(screen.getByText(text)).toBeInTheDocument()
+    expect(screen.queryByText("highest automatic class reached")).not.toBeInTheDocument()
+    expect(
+      screen.queryByText("No next-class requirements are published for this tracker.")
+    ).not.toBeInTheDocument()
+  })
+
+  it("says no rank data when a card has no summary", () => {
+    render(<TrackerGrid trackers={[tracker()]} summaries={[]} now={NOW} />)
+    expect(screen.getByText("no rank data")).toBeInTheDocument()
+    expect(screen.queryByText("highest automatic class reached")).not.toBeInTheDocument()
   })
 
   it("offers the next automatic class without dropping a reached saved target", () => {

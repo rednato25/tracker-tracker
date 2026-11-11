@@ -32,6 +32,7 @@ import type {
   RankManualValuesByTracker,
 } from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
+import { type RankLadderState, rankLadderStateFor } from "@/lib/rank-summary"
 import type { TrackerSummary } from "@/types/api"
 
 export const UNKNOWN_COLLECTED = "Not collected for this tracker"
@@ -90,6 +91,19 @@ export interface RankOverviewSource {
   note: string | null
 }
 
+/**
+ * How much of a tracker's ladder the app can check. "structured" means at least
+ * one class has conditions the evaluator reads; "text" means the registry has a
+ * class ladder with rule text only; "none" means there is no ladder at all.
+ */
+export type RankCoverage = "structured" | "text" | "none"
+
+function rankCoverageFor(entry: TrackerRegistryEntry | undefined): RankCoverage {
+  const classes = entry?.userClasses ?? []
+  if (classes.length === 0) return "none"
+  return classes.some((userClass) => userClass.structured) ? "structured" : "text"
+}
+
 export interface RankOverview {
   trackerId: number
   trackerName: string
@@ -102,6 +116,8 @@ export interface RankOverview {
   targetReached: boolean
   reachedTarget: string | null
   highestAutomatic: boolean
+  ladderState: RankLadderState
+  coverage: RankCoverage
   hasStructuredRules: boolean
   ruleText: string | null
   conditions: RankOverviewCondition[]
@@ -280,6 +296,8 @@ function buildOne(
     highestAutomatic:
       (evaluation.status === "no-next-rank" || evaluation.status === "appointed") &&
       !hasAutomaticClassAbove(entry?.userClasses ?? [], entry?.rankPaths, currentClass),
+    ladderState: rankLadderStateFor(entry, currentClass, currentClassHidden, now),
+    coverage: rankCoverageFor(entry),
     hasStructuredRules: Boolean(focusClass?.structured),
     ruleText: focusClass?.requirements ?? null,
     conditions,

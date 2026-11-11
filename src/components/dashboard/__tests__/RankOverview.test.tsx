@@ -205,6 +205,59 @@ describe("RankOverview", () => {
     expect(screen.getByText("No registry source")).toBeInTheDocument()
   })
 
+  it("counts rank rule coverage and filters trackers by it", async () => {
+    const user = userEvent.setup()
+    render(
+      overview({
+        trackers: [
+          tracker(),
+          tracker({
+            id: 2,
+            name: "Aither",
+            registrySlug: "aither",
+            latestStats: { ...BASE_STATS, group: "Phobos" },
+          }),
+          tracker({ id: 3, name: "Custom", registrySlug: null }),
+        ],
+        savedGoals: {},
+      })
+    )
+    expect(screen.getByText(/3 trackers · 1 checked automatically/)).toBeInTheDocument()
+    const pill = (value: string) =>
+      document.querySelector(`[data-rank-coverage-filter="${value}"]`) as HTMLElement
+    expect(pill("all")).toHaveTextContent("All 3")
+    expect(pill("structured")).toHaveTextContent("Structured 1")
+    expect(pill("text")).toHaveTextContent("Text only 1")
+    expect(pill("none")).toHaveTextContent("No ladder 1")
+    expect(pill("all")).toHaveAttribute("aria-pressed", "true")
+    expect(document.querySelectorAll("[data-rank-overview-tracker]")).toHaveLength(3)
+
+    await user.click(pill("text"))
+    expect(pill("text")).toHaveAttribute("aria-pressed", "true")
+    const sections = document.querySelectorAll("[data-rank-overview-tracker]")
+    expect(sections).toHaveLength(1)
+    expect(sections[0]).toHaveAttribute("data-rank-overview-tracker", "2")
+    expect(screen.getByText("Next automatic class: Harmonia")).toBeInTheDocument()
+
+    await user.click(pill("none"))
+    expect(screen.getByText("No class ladder for this tracker")).toBeInTheDocument()
+    expect(screen.queryByText("Highest automatic class reached.")).not.toBeInTheDocument()
+  })
+
+  it("says why there is no target instead of a bare No target", () => {
+    render(
+      overview({
+        trackers: [
+          tracker({ registrySlug: "aither", name: "Aither", latestStats: { ...BASE_STATS, group: "Uploader" } }),
+        ],
+        savedGoals: {},
+      })
+    )
+    expect(screen.getByText("Appointed class, no earned next class")).toBeInTheDocument()
+    expect(screen.queryByText("No target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Highest automatic class reached.")).not.toBeInTheDocument()
+  })
+
   it("counts checked, wrong and unchecked trackers at the top", () => {
     render(
       overview({

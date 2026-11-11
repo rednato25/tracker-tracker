@@ -36,16 +36,15 @@ export const nordicq: TrackerRegistryEntry = {
   rankProgression: "automatic",
   rankRequirementsSource: {
     url: "https://nordicq.org/",
-    title: "NordicQuality user-class list, as transcribed by PT-depiler",
-    accessedAt: "2026-11-10",
+    title: "NordicQuality Groups page",
+    accessedAt: "2026-11-11",
     sourceLastModified: null,
-    verification: "unresolved",
+    verification: "published",
     note:
-      "The site's own class list is behind a login this project has no account on. Thresholds come from PT-depiler's nordicquality.ts (github.com/pt-plugins/PT-depiler), which transcribes them from the site. Read every threshold as at least; a week is 7 days.",
+      "Read off the site's Groups page by the owner on 2026-11-11 while logged in; every threshold matches PT-depiler's earlier transcription. Read every threshold as at least. UNIT3D counts a month as 30 days and a week as 7.",
   },
   rankUnresolved: [
-    "Thresholds are third-party and have not been read off the site by the owner.",
-    "Seed size and average seed time are structured conditions the UNIT3D adapter does not collect, so they stay unknown until collected.",
+    "Seed size and average seed time are not in the UNIT3D API. They come from the opt-in profile page read and stay unknown without it.",
     "Download slots, freeleech and H&R immunity are perks, not promotion thresholds.",
   ],
   userClasses: [
@@ -137,7 +136,8 @@ export const nordicq: TrackerRegistryEntry = {
     },
     { name: "Disabled", requirements: "Administrative state", outsideLadder: "below" },
     { name: "Banned", requirements: "Administrative state", outsideLadder: "below" },
-    { name: "Vip", requirements: "Granted or staff class", outsideLadder: "above" },
+    { name: "ViP", requirements: "Granted or staff class", outsideLadder: "above" },
+    { name: "Trial Uploader", requirements: "Granted uploader class; uploads need moderator approval", outsideLadder: "above" },
     { name: "Uploader", requirements: "Granted or staff class", outsideLadder: "above" },
     { name: "Internal", requirements: "Granted or staff class", outsideLadder: "above" },
     { name: "Moderator", requirements: "Granted or staff class", outsideLadder: "above" },
@@ -148,25 +148,34 @@ export const nordicq: TrackerRegistryEntry = {
   notableMembers: [],
 
   // ── Rules ───────────────────────────────────────────────────────────
-  // Prowlarr Indexers definitions/v11/nordicquality.yml: "global MR is 0.4 but
-  // torrents must be seeded for 3 days or 1:1", and the site's own inactivity
-  // text: "you are required to login to the site at least once every 90 days".
+  // The site's rules and FAQ, read by the owner on 2026-11-11: ratio below 0.4
+  // disables downloads; seed each torrent to 1:1 or for 72 hours once 20% is
+  // downloaded; "login to the site at least once every 180 days". The older
+  // Prowlarr definition said 90 days.
   rules: {
     requiredAccountRatio: 0.4,
     requiredTorrentRatio: 1.0,
     minimumRatio: 0.4,
     seedTimeHours: 72,
-    loginIntervalDays: 90,
+    loginIntervalDays: 180,
     satisfactionMode: "any",
     fullRulesMarkdown: [
       "## Ratio",
       "",
-      "- The global minimum ratio is 0.40",
+      "- The global minimum ratio is 0.40; below it download rights are disabled",
       "- Seed each torrent for 3 days, or to ratio 1:1, whichever comes first",
+      "- A torrent counts only once at least 20% of it is downloaded; there is no part-seeding",
+      "- These rules apply to freeleech and featured torrents too",
+      "",
+      "## Warnings",
+      "",
+      "- 24 hours disconnected from a torrent gives a pre-warning, 7 days a warning",
+      "- 3 active warnings disable download rights; warnings expire after 8 weeks",
       "",
       "## Account",
       "",
-      "- Log in at least once every 90 days or the account is disabled",
+      "- Log in at least once every 180 days or the account is disabled",
+      "- A disabled account is pruned for good after another 180 days without a login",
     ],
   },
 

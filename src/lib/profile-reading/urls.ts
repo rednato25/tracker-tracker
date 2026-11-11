@@ -18,7 +18,9 @@ export function profilePageUrl(
     registrySlug === "onlyencodes" ||
     registrySlug === "seedpool" ||
     registrySlug === "yuscene" ||
-    registrySlug === "portugas"
+    registrySlug === "portugas" ||
+    registrySlug === "nordicq" ||
+    registrySlug === "latteam"
   ) {
     return `${root}/users/${encoded}`
   }

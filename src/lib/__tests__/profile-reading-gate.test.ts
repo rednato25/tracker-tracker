@@ -150,6 +150,12 @@ describe("profile page URLs", () => {  it("uses the groups page for Zenith and t
     expect(profilePageUrl("portugas", "https://portugas.org", "a")).toBe(
       "https://portugas.org/users/a"
     )
+    expect(profilePageUrl("nordicq", "https://nordicq.org", "a")).toBe(
+      "https://nordicq.org/users/a"
+    )
+    expect(profilePageUrl("latteam", "https://lat-team.com/", "a")).toBe(
+      "https://lat-team.com/users/a"
+    )
     expect(profilePageUrl("v3x", "https://v3x.club", "a")).toBe("https://v3x.club/u/a")
   })
 

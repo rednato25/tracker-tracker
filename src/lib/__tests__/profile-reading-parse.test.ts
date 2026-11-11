@@ -80,6 +80,27 @@ describe("UNIT3D profile layouts", () => {
     })
   })
 
+  it("reads NordicQuality's Seeding Size and Average Seedtime, not Total Seedtime", () => {
+    const values = parseUnit3dProfilePage(
+      fixture("nordicq-profile.html"),
+      new Date("2026-11-11T18:30:00.000Z")
+    )
+    expect(values.seedSizeBytes).toBe(Math.round(5.14 * GiB))
+    expect(values.averageSeedTimeSeconds).toBe(8 * DAY + 15 * 3600 + 28 * 60 + 54)
+    expect(values.lastLoginAt).toBe("2026-11-11")
+    expect(values.uploads).toBeUndefined()
+  })
+
+  it("reads Lat-Team's Spanish labels and relative last login", () => {
+    const values = parseUnit3dProfilePage(
+      fixture("latteam-profile.html"),
+      new Date("2026-11-11T17:30:00.000Z")
+    )
+    expect(values.seedSizeBytes).toBe(Math.round(59.52 * GiB))
+    expect(values.averageSeedTimeSeconds).toBe(6 * DAY + 10 * 3600 + 58 * 60 + 33)
+    expect(values.lastLoginAt).toBe("2026-11-11")
+  })
+
   it("takes Last login over Last action and ignores Last action on its own", () => {
     const both = `<div class="key-value__group"><dt>Last login</dt><dd>9 minutes ago</dd></div>
       <div class="key-value__group"><dt>Last action</dt><dd>2020-01-01 00:00:00</dd></div>`
@@ -133,6 +154,19 @@ describe("duration parsing", () => {
     )
     expect(parseDurationSeconds("12:34:56")).toBe(12 * 3600 + 34 * 60 + 56)
     expect(parseDurationSeconds("never")).toBeUndefined()
+  })
+
+  it("reads UNIT3D's capital calendar units as months, weeks and days, not minutes", () => {
+    expect(parseDurationSeconds("1M 2W 1D 15h 28m 54s")).toBe(
+      30 * DAY + 14 * DAY + DAY + 15 * 3600 + 28 * 60 + 54
+    )
+    // Spanish builds print S (semana) for a week.
+    expect(parseDurationSeconds("1M 1S 1D 17h 51m 18s")).toBe(
+      30 * DAY + 7 * DAY + DAY + 17 * 3600 + 51 * 60 + 18
+    )
+    expect(parseDurationSeconds("1Y 2D")).toBe(367 * DAY)
+    expect(parseDurationSeconds("3 Days 4 hours")).toBe(3 * DAY + 4 * 3600)
+    expect(parseDurationSeconds("2 días")).toBe(2 * DAY)
   })
 })
 
@@ -203,6 +237,8 @@ describe("one page, one decision", () => {
     expect(parseProfilePage("uploadcx", fixture("uploadcx-profile.html"))?.layout).toBe(
       "unit3d"
     )
+    expect(parseProfilePage("nordicq", fixture("nordicq-profile.html"))?.layout).toBe("unit3d")
+    expect(parseProfilePage("latteam", fixture("latteam-profile.html"))?.layout).toBe("unit3d")
     expect(
       parseProfilePage("uploadcx", "<html><body>no stats here</body></html>")
     ).toBeNull()

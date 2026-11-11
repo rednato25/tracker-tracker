@@ -58,7 +58,7 @@ export const latteam: TrackerRegistryEntry = {
   },
   rankUnresolved: [
     "Thresholds are third-party and have not been read off the site by the owner.",
-    "Seed size and average seed time are structured conditions the UNIT3D adapter does not collect, so they stay unknown until collected.",
+    "Seed size and average seed time are not in the UNIT3D API. They come from the opt-in profile page read and stay unknown without it.",
     "Download slots and H&R immunity are perks, not promotion thresholds.",
   ],
   userClasses: [

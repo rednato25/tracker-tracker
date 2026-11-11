@@ -3,9 +3,10 @@
 // P49 layout parsers. Pure functions over a saved page, so the tests can use
 // stored HTML fixtures and no adapter ever contacts a tracker here.
 //
-// UNIT3D (Upload.cx, OnlyEncodes, seedpool, Yu-Scene) and Portugas share the
-// key-value profile layout. Zenith prints its current values after "You:" on
-// the groups page. V3X puts level and XP on the profile page when it shows them.
+// UNIT3D (Upload.cx, OnlyEncodes, seedpool, Yu-Scene, NordicQuality and the
+// Spanish-language Lat-Team) and Portugas share the key-value profile layout.
+// Zenith prints its current values after "You:" on the groups page. V3X puts
+// level and XP on the profile page when it shows them.
 
 import { parse as parseHtml } from "node-html-parser"
 import { localDateStr, trackerDateStr } from "@/lib/formatters"
@@ -59,15 +60,42 @@ const DURATION_UNITS: Record<string, number> = {
   horas: 3600,
   minuto: 60,
   minutos: 60,
+  segundo: 1,
+  segundos: 1,
   mes: 30 * 86_400,
   meses: 30 * 86_400,
   ano: 365 * 86_400,
   anos: 365 * 86_400,
 }
 
+/**
+ * UNIT3D prints compact durations such as `1M 1S 1D 17h 51m 18s`, where the
+ * capital letters are calendar units (M month, W or S week, D day, Y year) and
+ * the lower-case ones are clock units. Expand the capitals before lowercasing so
+ * `1M` is never read as a minute or `1S` as a second. Spanish builds use S
+ * (semana) for week.
+ */
+const COMPACT_CALENDAR_UNITS: Record<string, string> = {
+  Y: "years",
+  M: "months",
+  W: "weeks",
+  S: "weeks",
+  D: "days",
+}
+
+function expandCompactCalendarUnits(text: string): string {
+  return text.replace(
+    /(\d+(?:[.,]\d+)?)\s*([YMWSD])(?![A-Za-z])/g,
+    (_, amount: string, unit: string) => `${amount} ${COMPACT_CALENDAR_UNITS[unit]}`
+  )
+}
+
 /** "3 weeks, 2 days" and "1 month" become seconds. Unknown text is undefined. */
 export function parseDurationSeconds(raw: string): number | undefined {
-  const text = normalizeWhitespace(raw).toLowerCase()
+  const text = expandCompactCalendarUnits(normalizeWhitespace(raw))
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
   if (!text) return undefined
   const clock = text.match(/^(\d+):(\d{2})(?::(\d{2}))?$/)
   if (clock) {
@@ -163,6 +191,8 @@ function isSeedSizeLabel(label: string): boolean {
   return (
     (lower.includes("seed size") ||
       lower.includes("seedsize") ||
+      lower.includes("seeding size") ||
+      (lower.includes("tamano") && lower.includes("compartiendo")) ||
       lower.includes("tamanho das sementes") ||
       lower.includes("tamanho do seed")) &&
     !lower.includes("average")
@@ -174,7 +204,8 @@ function isAverageSeedTimeLabel(label: string): boolean {
   return (
     ((lower.includes("seed time") || lower.includes("seedtime")) &&
       (lower.includes("average") || lower.includes("avg") || lower.includes("weighted"))) ||
-    (lower.includes("tempo") && lower.includes("seed") && lower.includes("medio"))
+    (lower.includes("tempo") && lower.includes("seed") && lower.includes("medio")) ||
+    (lower.includes("tiempo") && lower.includes("promedio") && lower.includes("compartiendo"))
   )
 }
 
@@ -193,7 +224,12 @@ function isUploadCountLabel(label: string): boolean {
 
 function isLastLoginLabel(label: string): boolean {
   const lower = foldLabel(label).replace(/\s+/g, " ").trim()
-  return lower === "last login" || lower === "ultimo login" || lower === "last login time"
+  return (
+    lower === "last login" ||
+    lower === "ultimo login" ||
+    lower === "last login time" ||
+    lower === "ultimo inicio de sesion"
+  )
 }
 
 const DAY_MS = 86_400_000
@@ -216,8 +252,14 @@ export function parseProfileLoginDate(raw: string, now: Date = new Date()): stri
   if (lower === "today") return localDateStr(now)
   if (lower === "yesterday") return localDateStr(new Date(now.getTime() - DAY_MS))
 
-  if (/\bago$/.test(lower)) {
-    const seconds = parseDurationSeconds(lower.replace(/\bago$/, ""))
+  if (/^(justo ahora|ahora mismo|hace un momento)$/.test(lower)) return localDateStr(now)
+  if (lower === "hoy") return localDateStr(now)
+  if (lower === "ayer") return localDateStr(new Date(now.getTime() - DAY_MS))
+
+  // "9 minutes ago" and the Spanish "hace 9 minutos".
+  const relative = lower.match(/^(.+)\s+ago$/)?.[1] ?? lower.match(/^hace\s+(.+)$/)?.[1]
+  if (relative !== undefined) {
+    const seconds = parseDurationSeconds(relative.replace(/^(an?|un|una)\s+/, "1 "))
     if (seconds !== undefined) {
       return localDateStr(new Date(now.getTime() - seconds * 1000))
     }

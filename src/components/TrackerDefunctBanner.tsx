@@ -117,7 +117,7 @@ function DefunctBannerBody({
         <span className="flex items-center gap-1.5 font-mono text-3xs uppercase tracking-wider text-danger">
           <TriangleWarningIcon width="10" height="10" className="shrink-0" />
           Defunct
-          {shutdownDate ? ` · ${shutdownDate}` : ""}
+          {shutdownDate ? ` since ${shutdownDate}` : ""}
         </span>
         {link && (
           <a
@@ -137,7 +137,7 @@ function DefunctBannerBody({
             className="ml-auto"
             onClick={handleArchiveNow}
             loading={archiving}
-            text="Archive Now?"
+            text="Archive now"
           />
         )}
         {error && <Notice variant="danger" message={error} className="w-full" />}
@@ -150,7 +150,7 @@ function DefunctBannerBody({
       <div className="flex items-start justify-between gap-3 mb-2">
         <p className="flex items-center gap-2 text-xs font-sans font-medium text-danger uppercase tracking-wider">
           <TriangleWarningIcon width="14" height="14" className="shrink-0" />
-          Tracker Defunct
+          Tracker shut down
         </p>
         {shutdownDate && <span className="timestamp shrink-0">{shutdownDate}</span>}
       </div>
@@ -173,7 +173,7 @@ function DefunctBannerBody({
           size="sm"
           onClick={handleArchiveNow}
           loading={archiving}
-          text="Archive Now?"
+          text="Archive now"
         />
       ) : (
         <p className="text-xs font-mono text-tertiary">

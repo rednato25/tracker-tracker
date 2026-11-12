@@ -62,6 +62,36 @@ describe("MteamAdapter", () => {
     vi.restoreAllMocks()
   })
 
+  it("takes the last login over the last browse and never the record's modified date", async () => {
+    const withoutLogin = {
+      ...PROFILE_RESPONSE,
+      data: {
+        ...PROFILE_RESPONSE.data,
+        memberStatus: { vip: false },
+      },
+    }
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce(okResponse({
+        ...PROFILE_RESPONSE,
+        data: {
+          ...PROFILE_RESPONSE.data,
+          memberStatus: { ...PROFILE_RESPONSE.data.memberStatus, lastLogin: "2026-10-19 08:00:00" },
+        },
+      }))
+      .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
+      .mockResolvedValueOnce(okResponse(withoutLogin))
+      .mockResolvedValueOnce(okResponse(PEER_RESPONSE))
+      .mockResolvedValueOnce(okResponse(PEER_STATISTICS_RESPONSE))
+
+    const login = await adapter.fetchStats(HOST, "api-key", PATH)
+    expect(login.lastAccessDate).toBe("2026-10-19")
+    expect(login.lastAccessField).toBe("memberStatus.lastLogin")
+
+    const none = await adapter.fetchStats(HOST, "api-key", PATH)
+    expect(none.lastAccessDate).toBeUndefined()
+  })
+
   it("maps the profile and peer status into TrackerStats", async () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce(okResponse(PROFILE_RESPONSE))

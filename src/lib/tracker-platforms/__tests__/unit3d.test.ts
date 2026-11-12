@@ -41,6 +41,27 @@ describe("Unit3dAdapter", () => {
     expect(stats.hitAndRuns).toBe(0)
   })
 
+  it("prefers last_login over last_access when a build reports both", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        username: "JohnDoe",
+        group: "Power User",
+        uploaded: "500.25 GiB",
+        downloaded: "125.50 GiB",
+        ratio: "3.99",
+        buffer: "374.75 GiB",
+        last_access: "2026-10-22 12:00:00",
+        last_login: "2026-10-18 12:00:00",
+      }),
+    } as Response)
+
+    const stats = await adapter.fetchStats("https://aither.cc", "fake-token", "/api/user")
+
+    expect(stats.lastAccessDate).toBe("2026-10-18")
+    expect(stats.lastAccessField).toBe("last_login")
+  })
+
   it("reads the last-access day when the build reports one", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,

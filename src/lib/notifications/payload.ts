@@ -176,12 +176,12 @@ function buildDescription(
     }
     case "anniversary": {
       const label = data.label as string | undefined
-      return label ? `${source} · ${label}` : `${source} membership anniversary`
+      return label ? `${source}: ${label}` : `${source} membership anniversary`
     }
     case "bonus_cap": {
       const current = formatCount(Number(data.currentBonus ?? 0))
       const cap = formatCount(Number(data.capLimit ?? 0))
-      return `${source} bonus points at **${current}** (cap: ${cap}). Spend them before they're wasted!`
+      return `${source} bonus points at **${current}** (cap ${cap}). Spend some soon.`
     }
     case "vip_expiring": {
       const expiry = data.vipUntil ? new Date(String(data.vipUntil)) : null
@@ -199,7 +199,7 @@ function buildDescription(
       return `${source} has **${count}** active Hit & Run${count !== 1 ? "s" : ""}. Seed them to avoid penalties.`
     }
     case "download_disabled":
-      return `${source} has lost download privileges; the ratio may have dropped, or the account was restricted`
+      return `${source} can't download right now. Check your ratio and account on the site.`
     default:
       return `${source} triggered a notification`
   }

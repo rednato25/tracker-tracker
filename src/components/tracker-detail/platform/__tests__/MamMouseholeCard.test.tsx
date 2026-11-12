@@ -67,7 +67,7 @@ describe("MamMouseholeCard", () => {
     render(<MamMouseholeCard trackerId={1} mouseholeUrl="http://mousehole-test:5010" />)
 
     await screen.findByText("OK")
-    await userEvent.click(screen.getByRole("button", { name: "Check Now" }))
+    await userEvent.click(screen.getByRole("button", { name: "Check now" }))
 
     expect(await screen.findByText("Mousehole unreachable")).toBeInTheDocument()
     expect(screen.getByText("OK")).toBeInTheDocument()

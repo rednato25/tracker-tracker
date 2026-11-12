@@ -90,7 +90,7 @@ function cachedTrackers(queryClient: QueryClient) {
 }
 
 function archiveButton() {
-  return screen.queryByRole("button", { name: "Archive Now?" })
+  return screen.queryByRole("button", { name: "Archive now" })
 }
 
 beforeEach(() => {
@@ -137,7 +137,7 @@ describe("TrackerDefunctBanner visibility", () => {
   it("renders the compact card variant with the same facts and action", () => {
     renderBanner({ variant: "compact" })
 
-    expect(screen.getByText(/Defunct · May 11, 2026/)).toBeInTheDocument()
+    expect(screen.getByText(/Defunct since May 11, 2026/)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Details/ })).toHaveAttribute("href", REDDIT_THREAD)
     expect(archiveButton()).toBeInTheDocument()
   })
@@ -148,7 +148,7 @@ describe("TrackerDefunctBanner archive action", () => {
     const user = userEvent.setup()
     const { queryClient, onArchived } = renderBanner()
 
-    await user.click(screen.getByRole("button", { name: "Archive Now?" }))
+    await user.click(screen.getByRole("button", { name: "Archive now" }))
 
     await waitFor(() => expect(onArchived).toHaveBeenCalledWith(ARCHIVED_ROW))
 
@@ -170,7 +170,7 @@ describe("TrackerDefunctBanner archive action", () => {
     const user = userEvent.setup()
     const { queryClient, onArchived } = renderBanner({ variant: "compact" })
 
-    await user.click(screen.getByRole("button", { name: "Archive Now?" }))
+    await user.click(screen.getByRole("button", { name: "Archive now" }))
 
     await waitFor(() => expect(onArchived).toHaveBeenCalledWith(ARCHIVED_ROW))
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ isActive: false })
@@ -182,7 +182,7 @@ describe("TrackerDefunctBanner archive action", () => {
     patchResult = jsonResponse({ error: "Failed to update tracker" }, { ok: false, status: 500 })
     const { queryClient, onArchived } = renderBanner()
 
-    await user.click(screen.getByRole("button", { name: "Archive Now?" }))
+    await user.click(screen.getByRole("button", { name: "Archive now" }))
 
     expect(await screen.findByText("Failed to update tracker")).toBeInTheDocument()
     expect(onArchived).not.toHaveBeenCalled()

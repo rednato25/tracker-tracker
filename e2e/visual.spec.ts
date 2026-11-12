@@ -1447,14 +1447,14 @@ test.describe.serial("P41 rank overview", () => {
     await expect(view).toBeVisible({ timeout: 15_000 })
 
     const summary = view.locator("[data-rank-check-summary]")
-    await expect(summary).toContainText("Checked 2")
-    await expect(summary).toContainText("Wrong 1")
-    await expect(summary).toContainText("Not checked 1")
+    await expect(summary).toContainText("1 match the site")
+    await expect(summary).toContainText("1 wrong")
+    await expect(summary).toContainText("1 not checked")
 
     const tl = view.locator(`[data-rank-overview-tracker="${tlId}"]`)
     await expect(tl).toContainText("Target: Super User")
     await expect(tl.locator("[data-rank-condition]")).toHaveCount(3)
-    await expect(tl).toContainText("Published source")
+    await expect(tl).toContainText("Checked against the site")
     await expect(tl.getByLabel("Note for TEST P41 TorrentLeech")).toHaveValue(
       "Same thresholds as the wiki"
     )

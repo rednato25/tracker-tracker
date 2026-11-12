@@ -8,8 +8,10 @@
 
 import type { PlatformType } from "@/data/platform-types"
 import { platformTypeLabel } from "@/data/platform-types"
+import { supportsProfileReading } from "@/lib/profile-reading/support"
 
 export const LOGIN_DETECTING_PLATFORMS = [
+  "apime",
   "avistaz",
   "carpt",
   "czteam",
@@ -17,12 +19,14 @@ export const LOGIN_DETECTING_PLATFORMS = [
   "filelist",
   "gazelle",
   "ggn",
+  "iptorrents",
+  "luminance",
   "mteam",
   "nebulance",
   "portugas",
   "retrotoon",
+  "teamhd",
   "tr4ker",
-  "unit3d",
 ] as const satisfies readonly PlatformType[]
 
 const LOGIN_DETECTING_PLATFORM_SET: ReadonlySet<PlatformType> = new Set(
@@ -51,7 +55,22 @@ export function loginSourceFor(tracker: {
   return tracker.lastAccessSource === "detected" ? "detected" : "manual"
 }
 
-/** Human names for the adapters that report a last-access value. */
-export function loginDetectingPlatformLabels(): string[] {
-  return LOGIN_DETECTING_PLATFORMS.map((platform) => platformTypeLabel(platform))
+/**
+ * One sentence for the settings sheet about this tracker only. Stock UNIT3D's
+ * API has no login date; the opt-in profile read supplies it where supported.
+ */
+export function loginDetectionNote(tracker: {
+  platformType: string
+  registrySlug?: string | null
+  profileReadingEnabled?: boolean
+}): string {
+  if (canDetectLogin(tracker.platformType)) {
+    return `${platformTypeLabel(tracker.platformType)} reports the last login, so it updates on its own.`
+  }
+  if (tracker.platformType === "unit3d" && supportsProfileReading(tracker)) {
+    return tracker.profileReadingEnabled
+      ? "Read from your profile page each day."
+      : "Turn on “Read profile page daily” below to update it on its own."
+  }
+  return "This tracker doesn't report logins, so mark them here."
 }

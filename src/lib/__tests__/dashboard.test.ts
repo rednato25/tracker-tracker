@@ -755,7 +755,7 @@ describe("computeAlerts", () => {
     expect(seedAlert).toBeDefined()
     expect(seedAlert?.trackerId).toBe(3)
     expect(seedAlert?.key).toBe("zero-seeding-3")
-    expect(seedAlert?.message).toContain("0 torrents")
+    expect(seedAlert?.message).toContain("Not seeding anything")
   })
 
   it("does not generate zero-seeding alert when seedingCount is positive", () => {
@@ -851,7 +851,7 @@ describe("computeAlerts", () => {
     const paused = alerts.find((a) => a.type === "poll-paused")
     expect(paused).toBeDefined()
     expect(paused?.dismissible).toBe(false)
-    expect(paused?.message).toContain("Polling paused after repeated failures")
+    expect(paused?.message).toContain("Polling stopped after repeated failures")
   })
 
   it("suppresses error alert when tracker is paused", () => {
@@ -1171,7 +1171,7 @@ describe("detectRankChanges", () => {
     const result = detectRankChanges([tracker], map)
     expect(result).toHaveLength(1)
     expect(result[0].type).toBe("rank-change")
-    expect(result[0].message).toContain("User → Power User")
+    expect(result[0].message).toContain("Class changed from User to Power User")
     expect(result[0].key).toBe("rank-change-1-Power User")
   })
 
@@ -1198,7 +1198,7 @@ describe("detectRankChanges", () => {
     const map = new Map([[1, snapshots]])
     const result = detectRankChanges([tracker], map)
     expect(result).toHaveLength(1)
-    expect(result[0].message).toContain("Power User → Elite")
+    expect(result[0].message).toContain("Class changed from Power User to Elite")
   })
 })
 

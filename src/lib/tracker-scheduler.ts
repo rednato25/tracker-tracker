@@ -168,6 +168,11 @@ function lastAccessMetaUpdates(
   now: Date
 ): LastAccessMetaUpdates {
   const lastAccess = stats.lastAccessDate ? trackerDateStr(stats.lastAccessDate) : undefined
+  // An older date from the tracker never replaces a newer one, such as a login
+  // you marked today before the tracker's own field caught up.
+  if (lastAccess && tracker.lastAccessAt && lastAccess < tracker.lastAccessAt) {
+    return { lastAccessSource: "manual" }
+  }
   if (lastAccess) {
     return {
       lastAccessAt: lastAccess,

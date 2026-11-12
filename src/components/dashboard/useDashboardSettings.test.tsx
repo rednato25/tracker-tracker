@@ -1,9 +1,8 @@
 // src/components/dashboard/useDashboardSettings.test.tsx
 //
 // Two invariants worth pinning:
-//   1. `loaded` means "the server told us", not "the request finished". Consumers gate WebGL
-//      charts on it, so flipping it after a failed fetch mounts echarts-gl for the very users
-//      who turned it off.
+//   1. `loaded` means "the server told us", not "the request finished". Consumers gate on it,
+//      so flipping it after a failed fetch would act on defaults the user may have changed.
 //   2. An update writes only the key it changed. A whole-object write made before the initial GET
 //      resolves puts defaults over every other stored setting.
 
@@ -39,13 +38,13 @@ describe("useDashboardSettings", () => {
   describe("loaded", () => {
     it("flips true once the server's settings are applied", async () => {
       vi.spyOn(global, "fetch").mockResolvedValue(
-        jsonResponse({ ...DASHBOARD_SETTINGS_DEFAULTS, enable3DCharts: false })
+        jsonResponse({ ...DASHBOARD_SETTINGS_DEFAULTS, showOutageBands: false })
       )
 
       const { result } = renderHook(() => useDashboardSettings())
 
       await waitFor(() => expect(result.current.loaded).toBe(true))
-      expect(result.current.settings.enable3DCharts).toBe(false)
+      expect(result.current.settings.showOutageBands).toBe(false)
     })
 
     it("stays false when the request fails, so callers keep their safe default", async () => {
@@ -87,12 +86,12 @@ describe("useDashboardSettings", () => {
       await waitFor(() => expect(result.current.loaded).toBe(true))
 
       act(() => {
-        result.current.update("enable3DCharts", false)
+        result.current.update("showOutageBands", false)
       })
 
       const bodies = putBodies(spy)
       expect(bodies).toHaveLength(1)
-      expect(bodies[0]).toEqual({ enable3DCharts: false })
+      expect(bodies[0]).toEqual({ showOutageBands: false })
       // An untouched key must not ride along, or a stale local value overwrites
       // what the server already has.
       expect(bodies[0]).not.toHaveProperty("showLoginTimers")
@@ -114,12 +113,12 @@ describe("useDashboardSettings", () => {
       expect(result.current.loaded).toBe(false)
 
       act(() => {
-        result.current.update("enable3DCharts", false)
+        result.current.update("showOutageBands", false)
       })
 
       const bodies = putBodies(spy)
       expect(bodies).toHaveLength(1)
-      expect(Object.keys(bodies[0])).toEqual(["enable3DCharts"])
+      expect(Object.keys(bodies[0])).toEqual(["showOutageBands"])
     })
   })
 

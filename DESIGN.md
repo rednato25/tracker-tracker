@@ -200,7 +200,7 @@ the only violet used for controls.
   session cookie, or wait for the first read. A stopped read keeps its own
   notice and gets no second hint.
 - The Ranks header counts how many trackers are checked automatically. Below it,
-  `All · Structured · Text only · No ladder` pills with counts filter the
+  `All`, `Automatic`, `Text only` and `No ladder` pills with counts filter the
   sections by registry coverage: structured conditions the evaluator reads, a
   class ladder with rule text only, or no ladder. The filter is not remembered.
 - The Grid | Table | Ranks choice is a view toggle, not a route. Preserve the
@@ -230,11 +230,30 @@ the only violet used for controls.
   freshness as the register, so a stale row cannot claim urgency.
 - An all-checks-met row for a dated off-ladder class says what it waits for. For
   example, FileList's `VIP (Until: 2026-12-29)` reads
-  `All checks met · applies after VIP ends on 29 Dec 2026`, not `waiting for the
-  site`.
+  `All checks met. Applies after VIP ends on 29 Dec 2026.`, not `Waiting for
+  the site to promote.`
 - With no items, the panel is replaced by the single line
   `Nothing coming up in the next 14 days`; it never prints a zero state or a
   fabricated deadline.
+
+### Attention needed
+
+- A to-do list below the tracker views. It lists only open items, each as one
+  row: `Needs action` or `Needs checking`, the tracker, the reason in a plain
+  sentence, a due date or an `As of` time, and the next step as a link.
+- Trackers with nothing open are counted, not listed: `The other 21 trackers
+  are clear.` With nothing open at all it says `All 22 trackers clear as of …`.
+- No filters, no internal keys, action types, priorities, source or freshness
+  fields. All clear is never claimed while data is loading, failed, or the
+  download client data is missing.
+
+### Tracker page rank goal
+
+- The rank goal shows the target, `n of N met`, and one row per condition. It
+  has no Details block, and never an upload date estimated from the transfer
+  trend.
+- One closing line says whether the rules were checked against the site, and
+  when. Sources, unresolved notes and your own checks live in the Ranks view.
 
 ### Tracker card
 
@@ -271,7 +290,7 @@ the only violet used for controls.
   line. Do not silently drop the saved target.
 - A next class with only rule text shows the class name and its requirement,
   labelled `From tracker rules (not tracked automatically)`.
-- A failure-paused tracker shows `Paused after N failed polls · next retry HH:MM`
+- A failure-paused tracker shows `Paused after N failed polls. Next retry HH:MM.`
   and the plain cause (`Timeout`, `Site down`, `Login expired, update
   credentials`). Manual pauses never show a retry. A rejected login stops after
   the first retry.
@@ -365,6 +384,26 @@ the only violet used for controls.
   not display names.
 - Do not stack two facts with a middle dot when a column, a line break, or a
   comma reads naturally.
+- No arrows as decoration (`TrackerHub →`, `← you`). Arrows stay only where they
+  show a real path, such as a Pathways route or a menu path.
+- Say what something means, not how it is stored. Never show keys, enum values,
+  field names or words like registry, structured, observation or snapshot.
+- Do not add a disclaimer the status already makes clear.
+- One ellipsis character for busy states: `Saving…`, `Loading…`.
+
+### Glossary
+
+Use one name per idea everywhere: tiles, filters, banners and notifications.
+
+| Idea | Say | Not |
+| --- | --- | --- |
+| Something the user must do | `Needs action`, `to fix` | Action required, Critical item |
+| Something to look at or confirm | `Needs checking`, `to check` | Needs verification, Unverified, Unknown |
+| Nothing open | `Clear` | Healthy (that is a ratio state), No action recorded |
+| What the user holds on a tracker | class | rank, group |
+| A requirement not reached | `Not met` | Unmet |
+| A tracker tracked from its own data | `Automatic` | Structured |
+| Logging in | log in, login | sign in |
 
 ## Truth and status language
 

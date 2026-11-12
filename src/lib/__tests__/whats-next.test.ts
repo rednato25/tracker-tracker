@@ -85,14 +85,14 @@ describe("buildWhatsNext", () => {
       kind: "promotion-waiting",
       dueInDays: 0,
     })
-    expect(items[0].detail).toContain("waiting for the site")
+    expect(items[0].detail).toContain("Waiting for the site to promote.")
     expect(items[1]).toMatchObject({
       trackerName: "Yu-Scene",
       kind: "promotion-time",
       dueInDays: 14,
     })
-    expect(items[1].title).toBe("Yu-Scene \u2192 Super User")
-    expect(items[1].detail).toBe("in 14 days of account age")
+    expect(items[1].title).toBe("Yu-Scene: Super User")
+    expect(items[1].detail).toBe("in 14 days")
   })
 
   it("says a dated off-ladder promotion applies after the class ends", () => {
@@ -113,7 +113,7 @@ describe("buildWhatsNext", () => {
     expect(items).toHaveLength(1)
     expect(items[0]).toMatchObject({ kind: "promotion-waiting", trackerName: "FileList" })
     expect(items[0].detail).toBe(
-      "All checks met \u00b7 applies after VIP ends on 29 Dec 2026"
+      "All checks met. Applies after VIP ends on 29 Dec 2026."
     )
   })
 
@@ -147,7 +147,7 @@ describe("buildWhatsNext", () => {
 
     const ratio = items.find((item) => item.kind === "ratio")
     expect(ratio).toMatchObject({ trackerName: "RatioEdge", dueInDays: null })
-    expect(ratio?.detail).toContain("minimum 1.00")
+    expect(ratio?.detail).toContain("close to the minimum of 1.00")
   })
 
   it("excludes logins beyond 14 days and ratios outside the 10% band", () => {

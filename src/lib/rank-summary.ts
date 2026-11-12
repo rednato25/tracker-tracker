@@ -209,7 +209,7 @@ export function rankLadderStateFor(
 export function rankLadderStateLabel(state: RankLadderState): string {
   switch (state) {
     case "top":
-      return "Highest automatic class"
+      return "Highest automatic class reached"
     case "branch":
       return "Ladder branches, choose a target"
     case "appointed":

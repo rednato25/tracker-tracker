@@ -141,7 +141,9 @@ function useLoginMarking(
     setSaving(true)
     setError(false)
     try {
-      const updated = await patchLastAccess(localDateStr(now))
+      // The page's `now` is fixed at render; a tab left open past midnight
+      // must still record the day of the click.
+      const updated = await patchLastAccess(localDateStr(new Date()))
       setLastAccessAt(updated.lastAccessAt)
       setLastAccessSource(updated.lastAccessSource ?? null)
       setLastAccessField(updated.lastAccessField ?? null)
@@ -503,9 +505,9 @@ function TrackerCard({
     : null
   const markerTitle =
     snapshot.state === "stale"
-      ? `Snapshot polled ${snapshot.age ?? "some time"} ago and is stale (older than 2 hours).`
+      ? `Last poll ${snapshot.age ?? "some time"} ago, over 2 hours.`
       : snapshot.state === "unknown"
-        ? "Snapshot poll time is unknown, so freshness cannot be confirmed."
+        ? "Last poll time unknown."
         : undefined
 
   return (

@@ -89,9 +89,11 @@ function readLastAccess(data: Unit3dApiResponse): {
   date?: string
   field?: string
 } {
+  // UNIT3D disables inactive accounts by last_login, so it wins over the
+  // activity fields, which can also move when this app polls.
   const candidates = [
-    ["last_access", data.last_access],
     ["last_login", data.last_login],
+    ["last_access", data.last_access],
     ["last_seen", data.last_seen],
   ] as const
   for (const [field, raw] of candidates) {

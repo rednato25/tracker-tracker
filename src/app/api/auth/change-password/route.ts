@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       "password change aborted: session key does not match the current password"
     )
     return NextResponse.json(
-      { error: "Your session is out of date. Sign in again before changing your password." },
+      { error: "Your session is out of date. Log in again before changing your password." },
       { status: 409 }
     )
   }

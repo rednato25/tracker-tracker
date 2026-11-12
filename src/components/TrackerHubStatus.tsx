@@ -135,7 +135,7 @@ function TrackerHubStatus({
           </span>
           {fetchedAt && (
             <span className="ml-1 font-mono text-3xs text-secondary">
-              · Checked {formatTimeAgo(fetchedAt)}
+              checked {formatTimeAgo(fetchedAt)}
             </span>
           )}
         </button>
@@ -147,7 +147,7 @@ function TrackerHubStatus({
             rel="noopener noreferrer"
             className="text-xs font-mono text-accent hover:text-primary transition-colors duration-150"
           >
-            TrackerHub →
+            TrackerHub
           </a>
           {statusPageUrl && (
             <a
@@ -156,7 +156,7 @@ function TrackerHubStatus({
               rel="noopener noreferrer"
               className="text-xs font-mono text-accent hover:text-primary transition-colors duration-150"
             >
-              Status Page →
+              Status page
             </a>
           )}
         </div>
@@ -194,9 +194,8 @@ function TrackerHubStatus({
                 Uptime <span className="text-secondary">{data.uptimeMonth}</span>
                 <span className="ml-1 text-secondary">30d</span>
               </span>
-              <span className="text-tertiary">·</span>
               <span>
-                Resp <span className="text-secondary">{data.timeDay}ms</span>
+                Response <span className="text-secondary">{data.timeDay}ms</span>
                 <span className="ml-1 text-secondary">24h</span>
               </span>
             </div>

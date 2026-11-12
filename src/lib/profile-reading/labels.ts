@@ -12,7 +12,7 @@ export function profileReadAgeHours(fetchedAt: string, now: Date): number | null
 
 export function formatProfileReadAge(fetchedAt: string, now: Date): string {
   const hours = profileReadAgeHours(fetchedAt, now)
-  if (hours === null) return "from profile page"
-  if (hours === 0) return "from profile page · less than an hour ago"
-  return `from profile page · ${hours} hour${hours === 1 ? "" : "s"} ago`
+  if (hours === null) return "from your profile page"
+  if (hours === 0) return "from your profile page, less than an hour ago"
+  return `from your profile page, ${hours} hour${hours === 1 ? "" : "s"} ago`
 }

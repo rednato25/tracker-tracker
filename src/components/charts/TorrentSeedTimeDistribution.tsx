@@ -88,7 +88,7 @@ function buildSeedTimeBucketedOption(
           chartDot(p.color) +
           `<span style="color:${CHART_THEME.textPrimary};font-weight:600;">Seed Time ${bucket.label}</span><br/>` +
           `<span style="color:${CHART_THEME.textSecondary};">${formatCount(bucket.count)} torrents</span>` +
-          `<span style="color:${CHART_THEME.textTertiary};"> · ${pct}%</span>`
+          `<span style="color:${CHART_THEME.textTertiary};"> (${pct}%)</span>`
         )
       },
     }),

@@ -96,7 +96,7 @@ function Tooltip({ content, children, className, docs, interactive = true }: Too
                 rel="noopener noreferrer"
                 className="block mt-1.5 pt-1.5 border-t border-border text-accent hover:underline text-3xs"
               >
-                Documentation →
+                Documentation
               </a>
             )}
           </div>,

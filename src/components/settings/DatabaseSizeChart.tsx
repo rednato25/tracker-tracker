@@ -115,12 +115,11 @@ function StatsRow({ data }: { data: DbSizeResponse }) {
 
   return (
     <p className="text-xs font-mono text-muted">
-      {current.num} {current.unit} current
+      {current.num} {current.unit} now
       {data.dailyGrowthBytes > 0 && (
         <>
-          {" · "}
-          {daily.num} {daily.unit}/day avg growth
-          {" · "}~{projected.num} {projected.unit} in {historyDays} days
+          , growing {daily.num} {daily.unit} a day, about {projected.num} {projected.unit} in{" "}
+          {historyDays} days
         </>
       )}
     </p>

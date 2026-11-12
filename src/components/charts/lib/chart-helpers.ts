@@ -162,7 +162,7 @@ export function buildBucketedBarOption<TBucket, TTorrent>(
           chartDot(p.color) +
           `<span style="color:${CHART_THEME.textPrimary};font-weight:600;">${labelPrefix} ${getLabel(entry.bucket)}</span><br/>` +
           `<span style="color:${CHART_THEME.textSecondary};">${formatCount(entry.count)} torrents</span>` +
-          `<span style="color:${CHART_THEME.textTertiary};"> · ${pct}%${pctSuffix}</span>`
+          `<span style="color:${CHART_THEME.textTertiary};"> (${pct}%${pctSuffix})</span>`
         )
       },
     }),

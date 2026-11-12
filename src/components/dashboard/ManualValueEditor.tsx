@@ -113,12 +113,12 @@ export function ManualValueEditor({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-mono text-4xs text-tertiary">
             {formatManualAge(manual.enteredAt, now)}
-            {stale ? "* · Needs checking" : ""}
+            {stale ? ". Needs checking" : ""}
           </span>
           {manualUsed ? (
             <Badge variant="accent">Manual value</Badge>
           ) : (
-            <span className="font-mono text-4xs text-tertiary">Observed value wins</span>
+            <span className="font-mono text-4xs text-tertiary">Tracker's value used</span>
           )}
           <Button
             size="sm"

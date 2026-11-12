@@ -142,7 +142,7 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
         label="Enable scheduled digest"
         checked={enabled}
         onChange={setEnabled}
-        description="Sends a summary of active actions. Immediate notifications keep their existing behavior."
+        description="Sends one summary of open items. Instant alerts still go out as before."
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
@@ -203,7 +203,7 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
         label="Enable quiet hours"
         checked={quietEnabled}
         onChange={setQuietEnabled}
-        description="Routine immediate notifications are coalesced into the next summary. Nothing is dropped; resolved items are omitted. Critical bypass is explicit below."
+        description="During quiet hours, alerts wait for the next summary. Items fixed in the meantime are left out. Choose below whether urgent alerts still come through."
       />
       <div className="grid gap-3 sm:grid-cols-3">
         <Input
@@ -225,7 +225,7 @@ export function DigestSection({ initialConfig }: DigestSectionProps) {
           value={quietTimezone}
           onChange={(e) => setQuietTimezone(e.target.value)}
           placeholder="UTC"
-          hint="Explicit IANA timezone; handles DST and midnight crossing"
+          hint="For example Europe/London. Daylight saving is handled."
           name="quiet-hours-timezone"
         />
       </div>

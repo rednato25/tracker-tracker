@@ -34,7 +34,7 @@ beforeEach(() => {
  * first hit for a short query is not always the tracker meant here.
  */
 async function pick(user: ReturnType<typeof userEvent.setup>, name: string) {
-  await user.type(screen.getByPlaceholderText("Search trackers..."), name)
+  await user.type(screen.getByPlaceholderText("Search trackers…"), name)
   await user.click(
     screen.getByRole("option", { name: (accessible) => accessible.startsWith(name) })
   )
@@ -114,7 +114,7 @@ describe("AddTrackerDialog cookie paste errors", () => {
 
     await pick(user, "RetroToon World")
     await user.type(screen.getByLabelText("Browser Cookies"), "PHPSESSID")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     expect(await screen.findByText(/you pasted a cookie name \("PHPSESSID"\)/)).toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
@@ -126,7 +126,7 @@ describe("AddTrackerDialog cookie paste errors", () => {
 
     await pick(user, "RetroToon World")
     await user.type(screen.getByLabelText("Browser Cookies"), "justastring")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     expect(await screen.findByText(/PHPSESSID=abc123def456/)).toBeInTheDocument()
   })

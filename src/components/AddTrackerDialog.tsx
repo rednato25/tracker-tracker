@@ -144,7 +144,7 @@ function TrackerCombobox({ presets, value, onChange }: TrackerComboboxProps) {
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder={selectedEntry ? selectedEntry.name : "Search trackers..."}
+            placeholder={selectedEntry ? selectedEntry.name : "Search trackers…"}
             className="flex-1 bg-transparent outline-none text-primary placeholder:text-muted font-mono text-sm min-w-0"
             autoComplete="off"
             data-1p-ignore
@@ -389,7 +389,7 @@ function AddTrackerDialog({ open, onClose, onAdded, existingSlugs = [] }: AddTra
       formProps={
         { autoComplete: "off", "data-1p-ignore": true } as React.HTMLAttributes<HTMLFormElement>
       }
-      title="Add Tracker"
+      title="Add tracker"
       maxWidth="max-w-lg"
       busy={loading}
       footer={
@@ -397,7 +397,7 @@ function AddTrackerDialog({ open, onClose, onAdded, existingSlugs = [] }: AddTra
           <Button
             type="submit"
             disabled={loading}
-            text={loading ? "Connecting..." : "Add Tracker"}
+            text={loading ? "Connecting…" : "Add tracker"}
           />
           <Button variant="ghost" onClick={handleDialogClose} text="Cancel" />
         </div>

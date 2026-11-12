@@ -227,7 +227,7 @@ function ClassChip({
       </span>
       <span className="font-mono text-2xs text-tertiary">
         {progressText}
-        {unknownText ? <span className="text-warn"> · {unknownText}</span> : null}
+        {unknownText ? <span className="text-warn">, {unknownText}</span> : null}
       </span>
     </button>
   )
@@ -373,7 +373,7 @@ function RankProgress({
   return (
     <div className="flex flex-col gap-4">
       <SectionToggle
-        label="Rank Progression"
+        label="Rank progression"
         expanded={expanded}
         onToggle={() => setExpanded((e) => !e)}
       />

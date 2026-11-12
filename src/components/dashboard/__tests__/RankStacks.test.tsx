@@ -179,7 +179,7 @@ describe("RankStacks", () => {
     expect(litCount(z)).toBe(0)
     const label = within(z).getByText("Mystery")
     expect(label).toHaveClass("text-warn")
-    expect(z).toHaveAttribute("aria-label", "Zeta: Mystery, not on the registry ladder")
+    expect(z).toHaveAttribute("aria-label", "Zeta: Mystery, not in this tracker's class list")
   })
 
   it("speaks the class and rank in each stack's accessible name", () => {
@@ -189,16 +189,16 @@ describe("RankStacks", () => {
       makeTracker(5, "Epsilon", "alpha", "VIP"),
       makeTracker(7, "Theta", "alpha", "Leech"),
     ])
-    expect(stackFor("Alpha")).toHaveAttribute("aria-label", "Alpha: Power User, rank 2 of 2")
+    expect(stackFor("Alpha")).toHaveAttribute("aria-label", "Alpha: Power User, 2 of 2")
     expect(stackFor("Gamma")).toHaveAttribute(
       "aria-label",
-      "Gamma: class not reported, rank 0 of 2"
+      "Gamma: class not reported, 0 of 2"
     )
     expect(stackFor("Epsilon")).toHaveAttribute(
       "aria-label",
-      "Epsilon: VIP, above the 2-rank ladder"
+      "Epsilon: VIP, above the 2 earned classes"
     )
-    expect(stackFor("Theta")).toHaveAttribute("aria-label", "Theta: Leech, rank 0 of 2")
+    expect(stackFor("Theta")).toHaveAttribute("aria-label", "Theta: Leech, 0 of 2")
   })
 
   it("skips a row that names no registry entry", () => {
@@ -268,7 +268,7 @@ describe("RankStacks", () => {
     const user = userEvent.setup()
     renderStacks([makeTracker(8, "Zeta", "alpha", "Mystery")])
     await user.hover(stackFor("Zeta"))
-    expect(screen.getByRole("tooltip").textContent).toContain("Mystery, not on the registry ladder")
+    expect(screen.getByRole("tooltip").textContent).toContain("Mystery, not in this tracker's class list")
   })
 
   it("opens a single tooltip for a redacted class and explains the mask inside it", async () => {
@@ -276,7 +276,7 @@ describe("RankStacks", () => {
     const masked = makeTracker(9, "Kappa", "alpha", `${REDACTED_PREFIX}5`)
     renderStacks([masked])
     const k = stackFor("Kappa")
-    expect(k).toHaveAttribute("aria-label", "Kappa: class redacted, rank 0 of 2")
+    expect(k).toHaveAttribute("aria-label", "Kappa: class hidden, 0 of 2")
     await user.hover(within(k).getByRole("img"))
     const tips = screen.getAllByRole("tooltip")
     expect(tips).toHaveLength(1)

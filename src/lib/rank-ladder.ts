@@ -194,7 +194,7 @@ export function buildRankLadder(
         appointedClass: null,
         shownClass: null,
         unknownClass: false,
-        summary: `class not reported, rank 0 of ${total}`,
+        summary: `class not reported, 0 of ${total}`,
       }
     }
     if (isRedacted(currentClass)) {
@@ -204,7 +204,7 @@ export function buildRankLadder(
         appointedClass: null,
         shownClass: currentClass,
         unknownClass: false,
-        summary: `class redacted, rank 0 of ${total}`,
+        summary: `class hidden, 0 of ${total}`,
       }
     }
     return {
@@ -213,7 +213,7 @@ export function buildRankLadder(
       appointedClass: null,
       shownClass: currentClass,
       unknownClass: true,
-      summary: `${currentClass}, not on the registry ladder`,
+      summary: `${currentClass}, not in this tracker's class list`,
     }
   }
 
@@ -225,7 +225,7 @@ export function buildRankLadder(
       appointedClass: current.name,
       shownClass: current.name,
       unknownClass: false,
-      summary: `${current.name}, above the ${total}-rank ladder`,
+      summary: `${current.name}, above the ${total} earned classes`,
     }
   }
   // A demotion or administrative state has no rung either, but nothing has
@@ -237,7 +237,7 @@ export function buildRankLadder(
       appointedClass: null,
       shownClass: current.name,
       unknownClass: false,
-      summary: `${current.name}, rank 0 of ${total}`,
+      summary: `${current.name}, 0 of ${total}`,
     }
   }
   const currentIndex = findClassIndex(rungs, current.name)
@@ -247,7 +247,7 @@ export function buildRankLadder(
     appointedClass: null,
     shownClass: current.name,
     unknownClass: false,
-    summary: `${current.name}, rank ${currentIndex + 1} of ${total}`,
+    summary: `${current.name}, ${currentIndex + 1} of ${total}`,
   }
 }
 
@@ -300,21 +300,21 @@ export function buildRankForest(
     if (!currentClass) {
       return {
         ...base,
-        summary: `class not reported, rank 0 of ${totalShared}`,
+        summary: `class not reported, 0 of ${totalShared}`,
       }
     }
     if (isRedacted(currentClass)) {
       return {
         ...base,
         shownClass: currentClass,
-        summary: `class redacted, rank 0 of ${totalShared}`,
+        summary: `class hidden, 0 of ${totalShared}`,
       }
     }
     return {
       ...base,
       shownClass: currentClass,
       unknownClass: true,
-      summary: `${currentClass}, not on the registry ladder`,
+      summary: `${currentClass}, not in this tracker's class list`,
     }
   }
 
@@ -326,14 +326,14 @@ export function buildRankForest(
       sharedCurrentIndex: totalShared - 1,
       appointedClass: current.name,
       shownClass: current.name,
-      summary: `${current.name}, above the ${totalShared}-rank shared ladder`,
+      summary: `${current.name}, above the ${totalShared} shared classes`,
     }
   }
   if (current.outsideLadder === "below") {
     return {
       ...base,
       shownClass: current.name,
-      summary: `${current.name}, rank 0 of ${totalShared}`,
+      summary: `${current.name}, 0 of ${totalShared}`,
     }
   }
 
@@ -353,7 +353,7 @@ export function buildRankForest(
       sharedCurrentIndex: totalShared - 1,
       activePathId: branch.id,
       shownClass: current.name,
-      summary: `${current.name}, ${branch.label} rank ${branch.currentIndex + 1} of ${branch.rungs.length}`,
+      summary: `${current.name}, ${branch.currentIndex + 1} of ${branch.rungs.length} on ${branch.label}`,
     }
   }
 
@@ -362,6 +362,6 @@ export function buildRankForest(
     ...base,
     sharedCurrentIndex: sharedIndex,
     shownClass: current.name,
-    summary: `${current.name}, shared rank ${sharedIndex + 1} of ${totalShared}, ${branches.length} paths onward`,
+    summary: `${current.name}, ${sharedIndex + 1} of ${totalShared}, then ${branches.length} paths`,
   }
 }

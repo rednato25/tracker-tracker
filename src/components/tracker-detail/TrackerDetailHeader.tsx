@@ -192,7 +192,7 @@ export function TrackerDetailHeader({
             onClick={onPollNow}
             disabled={polling}
             className="h-11 px-3"
-            text={polling ? "Polling..." : "Poll now"}
+            text={polling ? "Polling…" : "Poll now"}
           />
           <Button
             variant={tracker.userPausedAt ? "secondary" : "ghost"}
@@ -304,7 +304,7 @@ export function TrackerDetailHeader({
             />
             <Button
               size="sm"
-              text={markLoginLoading ? "Saving..." : "Record login"}
+              text={markLoginLoading ? "Saving…" : "Record login"}
               disabled={markLoginLoading}
               onClick={() => {
                 setConfirmLoginOpen(false)

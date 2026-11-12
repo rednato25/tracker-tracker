@@ -27,6 +27,11 @@ export interface ProfileReadValues {
    * deliberately ignored because it is not the activity the login rule means.
    */
   lastLoginAt?: string
+  /**
+   * Registration date as YYYY-MM-DD, from UNIT3D's `profile__registration`
+   * timestamp. It fills an empty join date so account age needs no typing.
+   */
+  joinedAt?: string
 }
 
 export interface ProfileReadRecord {
@@ -78,6 +83,8 @@ function normalizeValues(raw: unknown): ProfileReadValues {
   if (xp !== undefined) values.xp = xp
   const lastLoginAt = calendarDate(raw.lastLoginAt)
   if (lastLoginAt !== undefined) values.lastLoginAt = lastLoginAt
+  const joinedAt = calendarDate(raw.joinedAt)
+  if (joinedAt !== undefined) values.joinedAt = joinedAt
   return values
 }
 

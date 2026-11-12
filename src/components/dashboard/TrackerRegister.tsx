@@ -104,25 +104,25 @@ function readMetric(
     return {
       text: "\u2014",
       title: snapshot.hasStats
-        ? "Not reported in the latest snapshot."
-        : "No snapshot yet; this value is missing.",
+        ? "The tracker didn't report this."
+        : "No data yet.",
       marker: "?",
     }
   }
 
   const text = format(value)
-  const baseTitle = `${text} from the latest stored snapshot; this is not independent verification of the metric.`
+  const baseTitle = `${text} from the last poll.`
   if (snapshot.state === "stale") {
     return {
       text,
-      title: `${baseTitle} Snapshot polled ${snapshot.age ?? "some time"} ago and is stale (older than 2 hours).`,
+      title: `${baseTitle} That poll was ${snapshot.age ?? "some time"} ago, over 2 hours.`,
       marker: "*",
     }
   }
   if (snapshot.state === "unknown") {
     return {
       text,
-      title: `${baseTitle} Snapshot poll time is unknown, so freshness cannot be confirmed.`,
+      title: `${baseTitle} The poll time is unknown.`,
       marker: "?",
     }
   }
@@ -308,10 +308,9 @@ function AccountCell({ row }: { row: RegisterRow }) {
           >
             {row.statusLabel}
           </span>
-          <span className="hidden shrink-0 md:inline">{"\u00b7"}</span>
           <span className="truncate">
             {row.abbreviation}
-            {row.shortAge ? ` · ${row.shortAge}` : ""}
+            {row.shortAge ? `, ${row.shortAge}` : ""}
           </span>
         </span>
       </span>
@@ -347,7 +346,6 @@ function RegisterFoot({ rows }: { rows: RegisterRow[] }) {
         <span className="font-cond text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
           Today
         </span>
-        <span className="font-mono text-xs text-tertiary">login windows · H&amp;R · poll</span>
       </div>
       <div className="grid md:grid-cols-3">
       <section className="border-b border-border px-4 py-3 md:border-b-0 md:border-r">
@@ -472,7 +470,7 @@ function TrackerRegister({
             Account register
           </h2>
           <p className="mt-2 font-mono text-xs text-secondary">
-            {rows.length} {rows.length === 1 ? "tracker" : "trackers"} · last poll{" "}
+            {rows.length} {rows.length === 1 ? "tracker" : "trackers"}, last poll{" "}
             {rows
               .map((row) => row.tracker.lastPolledAt)
               .filter((value): value is string => Boolean(value))
@@ -622,7 +620,7 @@ function TrackerRegister({
                 </span>
                 <span
                   className="flex flex-col gap-[1px] whitespace-nowrap px-3 font-mono text-sm tabular-nums"
-                  title="Transfer totals and tracker-specific bonus points from the latest snapshot; not client speed."
+                  title="Totals and bonus points from the last poll. Bonus points differ per tracker."
                 >
                   <span className="flex items-center justify-between gap-1.5">
                     <span className="text-xs text-tertiary">Upload</span>
@@ -769,9 +767,8 @@ function TrackerRegister({
       </div>
 
       <p className="font-mono text-xs text-tertiary">
-        Transfer values and bonus are from the latest stored snapshot, not client speed.{" "}
-        {"\u2014"} no data {"\u00b7"} * stale snapshot (&gt;2h) {"\u00b7"} ? snapshot age
-        unknown. Bonus points are tracker-specific.
+        Values come from the last poll. {"\u2014"} means no data, * means older than 2 hours, ?
+        means the poll time is unknown. Bonus points differ per tracker.
       </p>
 
       <RegisterFoot rows={rows} />

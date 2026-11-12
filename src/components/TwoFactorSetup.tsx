@@ -335,7 +335,7 @@ function TwoFactorSetup() {
               onClick={handleConfirm}
               disabled={step === "confirming" || totpCode.length !== 6}
             >
-              {step === "confirming" ? "Verifying..." : "Confirm"}
+              {step === "confirming" ? "Verifying…" : "Confirm"}
             </Button>
             <Button size="sm" variant="ghost" onClick={handleCancel} text="Cancel" />
           </div>
@@ -477,7 +477,7 @@ function TwoFactorSetup() {
               onClick={handleDisable}
               disabled={step === "disabling" || !disableCode.trim() || !disablePassword.trim()}
             >
-              {step === "disabling" ? "Disabling..." : "Confirm Disable"}
+              {step === "disabling" ? "Disabling…" : "Confirm disable"}
             </Button>
             <Button size="sm" variant="ghost" onClick={handleCancelDisable} text="Cancel" />
           </div>

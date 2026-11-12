@@ -159,18 +159,18 @@ export function buildDigest(
   const total = actions.length
   if (total === 0) {
     if (options.emptyBehavior === "skip") return null
-    return `Tracker Tracker digest — ${options.dateKey} (${options.timezone})\n\nNo active actions or verification items.`
+    return `Tracker Tracker digest for ${options.dateKey} (${options.timezone})\n\nNothing to do.`
   }
 
   const lines: string[] = [
-    `Tracker Tracker digest — ${options.dateKey} (${options.timezone})`,
+    `Tracker Tracker digest for ${options.dateKey} (${options.timezone})`,
     `${total} item${total === 1 ? "" : "s"} need attention`,
     "",
   ]
   let shown = 0
   for (const group of groups.values()) {
     if (group.confirmed.length > 0) {
-      lines.push(`ACTION REQUIRED — ${group.name}`)
+      lines.push(`${group.name}: needs action`)
       for (const action of group.confirmed) {
         if (shown >= total) break
         lines.push(`• ${action.reason} Next: ${action.nextAction}`)
@@ -178,7 +178,7 @@ export function buildDigest(
       }
     }
     if (group.verification.length > 0) {
-      lines.push(`NEEDS VERIFICATION — ${group.name}`)
+      lines.push(`${group.name}: needs checking`)
       for (const action of group.verification) {
         if (shown >= total) break
         lines.push(`• ${action.reason} Next: ${action.nextAction}`)

@@ -114,7 +114,7 @@ function DashboardSettingsSheet({
           />
           <Toggle
             label="Show health indicators"
-            description="Display the breathing pulse dot on each tracker card showing connection status."
+            description="Show a status dot on each tracker card."
             checked={dashSettings.settings.showHealthIndicators}
             onChange={(checked) => dashSettings.update("showHealthIndicators", checked)}
             disabled={!dashSettings.loaded}
@@ -140,13 +140,6 @@ function DashboardSettingsSheet({
         {/* Chart Visibility & Order */}
         <div className="flex flex-col gap-4">
           <H2>Charts</H2>
-          <Toggle
-            label="Enable 3D charts"
-            description="Render the Upload Landscape and Torrent Library charts in 3D, which requires WebGL. Turn off to use flat 2D equivalents instead."
-            checked={dashSettings.settings.enable3DCharts}
-            onChange={(checked) => dashSettings.update("enable3DCharts", checked)}
-            disabled={!dashSettings.loaded}
-          />
           <Toggle
             label="Show downtime bands"
             description="Shade the background of time-series charts over ranges where nothing was being collected, so a flat stretch reads as missing data rather than a real zero. Ranges with no record are left blank."

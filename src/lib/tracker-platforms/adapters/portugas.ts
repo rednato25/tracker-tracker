@@ -179,8 +179,10 @@ export function parsePortugasProfile(html: string): Partial<TrackerStats> {
   const joinedDate = registration ? datePrefix(normalizeWhitespace(registration)) : undefined
   const actionTime = findTime(doc, "Última Ação")
   const loginTime = findTime(doc, "Último Login")
-  const lastAccessDate = actionTime ?? loginTime
-  const lastAccessField = actionTime ? "Última Ação" : loginTime ? "Último Login" : undefined
+  // The login deadline is about logging in. "Última Ação" also moves when this
+  // app reads the page with your cookie, so it is only a fallback.
+  const lastAccessDate = loginTime ?? actionTime
+  const lastAccessField = loginTime ? "Último Login" : actionTime ? "Última Ação" : undefined
 
   const userId = parseCount(findKey(values, "ID do Utilizador"))
   const hnrCount = parseCount(findKey(values, "Contagem de HnR"))

@@ -122,7 +122,7 @@ describe("validateNotificationConfig", () => {
   it("rejects Discord config with missing webhookUrl", async () => {
     const { validateNotificationConfig } = await import("@/lib/notifications/validate")
     const result = validateNotificationConfig("discord", {})
-    expect(result).toMatch(/webhookUrl/)
+    expect(result).toMatch(/Discord webhook URL/)
   })
 
   it("accepts a valid Telegram config without exposing the token", async () => {
@@ -134,7 +134,7 @@ describe("validateNotificationConfig", () => {
   it("rejects malformed Telegram tokens without echoing them", async () => {
     const token = "not-a-token"
     const result = validateNotificationConfig("telegram", { botToken: token, chatId: "-1001234567890" })
-    expect(result).toBe("Telegram config requires a valid bot token")
+    expect(result).toBe("Enter a valid Telegram bot token.")
     expect(result).not.toContain(token)
   })
 
@@ -143,7 +143,7 @@ describe("validateNotificationConfig", () => {
       botToken: "123456:ABCdefGHIjklMNOpqrsTUVwxyz123456789",
       chatId: "not a chat",
     })
-    expect(result).toBe("Telegram chatId must be a numeric chat ID or an @channel username")
+    expect(result).toBe("The chat ID must be a number or an @channel name.")
   })
 
   it("accepts public and explicitly local ntfy configurations", async () => {
@@ -169,26 +169,26 @@ describe("validateNotificationConfig", () => {
         serverUrl: "http://127.0.0.1:8080",
         topic: "synthetic_topic",
       })
-    ).toBe("ntfy server URL points to a private or reserved network address; enable allowPrivateNetwork for a self-hosted server")
+    ).toBe('That ntfy server is on a private network. Turn on "Allow private network" for a self-hosted server.')
   })
 
   it("rejects invalid ntfy topics and credential-bearing URLs", async () => {
     expect(
       validateNotificationConfig("ntfy", { serverUrl: "https://ntfy.sh", topic: "bad topic" })
-    ).toBe("ntfy topic must be 1-64 letters, numbers, underscores or dashes")
+    ).toBe("The ntfy topic can use 1 to 64 letters, numbers, _ or -.")
     expect(
       validateNotificationConfig("ntfy", {
         serverUrl: "https://user:pass@ntfy.sh",
         topic: "synthetic_topic",
       })
-    ).toBe("ntfy server URL must not contain credentials")
+    ).toBe("Remove the username and password from the ntfy server URL.")
     expect(
       validateNotificationConfig("ntfy", {
         serverUrl: "https://ntfy.sh",
         topic: "synthetic_topic",
         authToken: "bad token",
       })
-    ).toBe("ntfy authToken must be a non-empty header-safe string")
+    ).toBe("Enter a valid ntfy access token.")
   })
 
   it("rejects unknown notification type", async () => {
@@ -704,14 +704,14 @@ describe("validateNotificationConfig edge cases", () => {
     // pass through to the regex test (which would also fail, but for the wrong reason).
     const { validateNotificationConfig } = await import("@/lib/notifications/validate")
     const result = validateNotificationConfig("discord", { webhookUrl: "" })
-    expect(result).toMatch(/webhookUrl/)
+    expect(result).toMatch(/Discord webhook URL/)
   })
 
   it("rejects Discord config with whitespace-only webhookUrl", async () => {
     // Catches: validation only checking typeof but not trimming before the check.
     const { validateNotificationConfig } = await import("@/lib/notifications/validate")
     const result = validateNotificationConfig("discord", { webhookUrl: "   " })
-    expect(result).toMatch(/webhookUrl/)
+    expect(result).toMatch(/Discord webhook URL/)
   })
 
   it("rejects Discord config where webhookUrl is a number, not a string", async () => {
@@ -719,7 +719,7 @@ describe("validateNotificationConfig edge cases", () => {
     // if the guard were missing and coercion happened silently.
     const { validateNotificationConfig } = await import("@/lib/notifications/validate")
     const result = validateNotificationConfig("discord", { webhookUrl: 12345 as unknown as string })
-    expect(result).toMatch(/webhookUrl/)
+    expect(result).toMatch(/Discord webhook URL/)
   })
 
   it("gotify returns a 'not yet supported' message (not null, not 'Unsupported')", async () => {

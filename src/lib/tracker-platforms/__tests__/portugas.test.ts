@@ -90,6 +90,16 @@ describe("parsePortugasHomepage", () => {
 })
 
 describe("parsePortugasProfile", () => {
+  it("takes Último Login over Última Ação for the login deadline", () => {
+    const html = PROFILE_HTML.replace(
+      "</dl>",
+      '<div class="key-value__group"><dt>Último Login</dt><dd><time datetime="2026-10-18 09:00:00">há 3 dias</time></dd></div></dl>'
+    )
+    const profile = parsePortugasProfile(html)
+    expect(profile.lastAccessDate).toBe("2026-10-18")
+    expect(profile.lastAccessField).toBe("Último Login")
+  })
+
   it("reads the profile sidebar figures", () => {
     const profile = parsePortugasProfile(PROFILE_HTML)
     const meta = profile.platformMeta as PortugasPlatformMeta

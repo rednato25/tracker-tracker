@@ -51,7 +51,6 @@ function Dashboard() {
         trackerSeries={[]}
         trackers={[]}
         chartPrefs={chartPrefs}
-        dashSettings={dashSettings}
       />
       <DashboardSettingsSheet
         open

@@ -15,7 +15,12 @@ import { trackerDateStr } from "@/lib/formatters"
 import { log } from "@/lib/logger"
 import { PROFILE_LOGIN_FIELD } from "@/lib/profile-login"
 import { withProfileReadRecord } from "@/lib/profile-reading/meta"
-import { profileReadFailed, profileReadStopped, readProfilePageOnce } from "@/lib/profile-reading/read"
+import {
+  joinedAtFor,
+  profileReadFailed,
+  profileReadStopped,
+  readProfilePageOnce,
+} from "@/lib/profile-reading/read"
 import { supportsProfileReading } from "@/lib/profile-reading/support"
 import {
   isProfileReadDue,
@@ -54,6 +59,7 @@ export async function runProfileReads(
         platformType: trackers.platformType,
         platformMeta: trackers.platformMeta,
         lastAccessAt: trackers.lastAccessAt,
+        joinedAt: trackers.joinedAt,
         encryptedProfileCookie: trackers.encryptedProfileCookie,
       })
       .from(trackers)
@@ -141,7 +147,8 @@ export async function runProfileReads(
           row.id,
           row.platformMeta,
           next.record,
-          detectedLoginFor(row, next.record)
+          detectedLoginFor(row, next.record),
+          joinedAtFor(row, next.record)
         )
         log.info(
           {
@@ -192,10 +199,12 @@ async function persist(
   trackerId: number,
   currentMeta: string | null,
   record: ProfileReadRecord,
-  detectedLoginAt?: string
+  detectedLoginAt?: string,
+  joinedAt?: string
 ): Promise<void> {
   const values: {
     platformMeta: string
+    joinedAt?: string
     lastAccessAt?: string
     lastAccessSource?: "detected"
     lastAccessField?: string
@@ -203,6 +212,7 @@ async function persist(
   } = {
     platformMeta: withProfileReadRecord(currentMeta, record),
   }
+  if (joinedAt) values.joinedAt = joinedAt
   if (detectedLoginAt) {
     values.lastAccessAt = detectedLoginAt
     values.lastAccessSource = "detected"

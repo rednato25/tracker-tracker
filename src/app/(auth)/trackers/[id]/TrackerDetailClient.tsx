@@ -410,7 +410,6 @@ export function TrackerDetailClient({
         rankPaths={registryEntry?.rankPaths}
         currentRank={stats?.group ?? null}
         stats={stats}
-        snapshots={allTimeSnapshots}
         joinedAt={tracker.joinedAt}
         lastPolledAt={tracker.lastPolledAt}
         accentColor={tc}

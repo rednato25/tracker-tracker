@@ -101,7 +101,7 @@ function buildCrossSeedNetworkOption(nodes: NetworkNode[], edges: NetworkEdge[])
           `<span style="color:${node.itemStyle.color};font-weight:600;">${escHtml(node.name)}</span><br/>` +
           `<span style="color:${CHART_THEME.textSecondary};">${formatCount(node.torrentCount)} torrents</span><br/>` +
           `<span style="color:${CHART_THEME.accent};">${formatCount(node.crossSeeded)} cross-seeded</span>` +
-          `<span style="color:${CHART_THEME.textTertiary};"> · ${pct}%</span>`
+          `<span style="color:${CHART_THEME.textTertiary};"> (${pct}%)</span>`
         )
       },
     }),

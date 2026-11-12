@@ -87,7 +87,7 @@ describe("TrackerRegister transfer metrics", () => {
     expect(screen.getAllByText(/1\.00 TiB/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/500\.00 GiB/).length).toBeGreaterThan(0)
     expect(screen.getAllByText("1,234").length).toBeGreaterThan(0)
-    expect(screen.getByText(/Transfer values and bonus are from the latest stored snapshot/)).toBeInTheDocument()
+    expect(screen.getByText(/Values come from the last poll/)).toBeInTheDocument()
     expect(screen.getByText("Transfer")).toBeInTheDocument()
     expect(screen.getByText("Upload")).toBeInTheDocument()
     expect(screen.getByText("Download")).toBeInTheDocument()
@@ -120,7 +120,7 @@ describe("TrackerRegister transfer metrics", () => {
 
   it("shows missing values with the snapshot distinction and never presents unsupported as zero", () => {
     render(<TrackerRegister trackers={[tracker({ latestStats: null })]} now={NOW} />)
-    expect(screen.getAllByTitle("No snapshot yet; this value is missing.").length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle("No data yet.").length).toBeGreaterThan(0)
     expect(screen.queryByText("0 MiB")).not.toBeInTheDocument()
 
     render(
@@ -138,7 +138,7 @@ describe("TrackerRegister transfer metrics", () => {
         now={NOW}
       />
     )
-    expect(screen.getAllByTitle("Not reported in the latest snapshot.").length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle("The tracker didn't report this.").length).toBeGreaterThan(0)
   })
 
   it("marks a stale snapshot while keeping the stored values and age explanation", () => {
@@ -149,14 +149,14 @@ describe("TrackerRegister transfer metrics", () => {
       />
     )
     expect(screen.getAllByLabelText("stale snapshot").length).toBeGreaterThan(0)
-    expect(screen.getAllByTitle(/is stale \(older than 2 hours\)/).length).toBeGreaterThan(0)
-    expect(screen.getAllByTitle(/Snapshot polled .* ago/).length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle(/over 2 hours/).length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle(/That poll was .* ago/).length).toBeGreaterThan(0)
   })
 
   it("marks unknown snapshot age without pretending the values are fresh", () => {
     render(<TrackerRegister trackers={[tracker({ lastPolledAt: null })]} now={NOW} />)
     expect(screen.getAllByLabelText("snapshot age unknown").length).toBeGreaterThan(0)
-    expect(screen.getAllByTitle(/freshness cannot be confirmed/).length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle(/poll time is unknown/).length).toBeGreaterThan(0)
   })
 
   it("replaces the status counts with account totals and attention", () => {

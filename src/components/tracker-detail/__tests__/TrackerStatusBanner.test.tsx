@@ -50,11 +50,11 @@ function renderBanner(tracker: TrackerSummary, pollError: string | null = null) 
 }
 
 function resumeButton() {
-  return screen.queryByRole("button", { name: "Resume Polling" })
+  return screen.queryByRole("button", { name: "Resume polling" })
 }
 
 function pausedHeading() {
-  return screen.queryByText("Polling Paused")
+  return screen.queryByText("Polling paused")
 }
 
 const AUTO_PAUSED = { pausedAt: "2026-08-10T09:00:00.000Z" }
@@ -73,7 +73,7 @@ describe("TrackerStatusBanner on an active tracker", () => {
     renderBanner(makeTracker(USER_PAUSED))
 
     expect(pausedHeading()).toBeInTheDocument()
-    expect(screen.getByText(/Automated polling is paused by the user/)).toBeInTheDocument()
+    expect(screen.getByText(/You paused polling/)).toBeInTheDocument()
     expect(resumeButton()).not.toBeInTheDocument()
   })
 
@@ -100,7 +100,7 @@ describe("TrackerStatusBanner on an archived tracker", () => {
     const { container } = renderBanner(makeTracker({ isActive: false, ...USER_PAUSED }))
 
     expect(container).toBeEmptyDOMElement()
-    expect(screen.queryByText(/Automated polling is paused by the user/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/You paused polling/)).not.toBeInTheDocument()
   })
 
   it("keeps the last error visible instead of losing it with the pause banner", () => {

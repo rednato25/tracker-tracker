@@ -132,6 +132,6 @@ describe("UsernamePrompt", () => {
   it("tells the user the username becomes required at the next sign-in", async () => {
     render(<UsernamePrompt needed />)
 
-    expect(await screen.findByText(/required at your next sign-in/i)).toBeInTheDocument()
+    expect(await screen.findByText(/required at your next login/i)).toBeInTheDocument()
   })
 })

@@ -47,6 +47,7 @@ interface MteamProfile {
     shareRate?: string | number
   }
   memberStatus?: {
+    lastLogin?: string
     lastBrowse?: string
     vip?: boolean
   }
@@ -212,11 +213,14 @@ function readProfile(body: MteamEnvelope<MteamProfile>, hostname: string): Track
     freeleechTokens: null,
     remoteUserId: remoteId(data.id),
     joinedDate: dateOnly(data.createdDate),
-    lastAccessDate: dateOnly(data.memberStatus?.lastBrowse) ?? dateOnly(data.lastModifiedDate),
-    lastAccessField: data.memberStatus?.lastBrowse
-      ? "memberStatus.lastBrowse"
-      : data.lastModifiedDate
-        ? "lastModifiedDate"
+    // The login deadline is about logging in, so lastLogin wins over lastBrowse.
+    // lastModifiedDate is when the profile record changed, not a visit.
+    lastAccessDate:
+      dateOnly(data.memberStatus?.lastLogin) ?? dateOnly(data.memberStatus?.lastBrowse),
+    lastAccessField: data.memberStatus?.lastLogin
+      ? "memberStatus.lastLogin"
+      : data.memberStatus?.lastBrowse
+        ? "memberStatus.lastBrowse"
         : undefined,
     platformMeta: Object.keys(meta).length > 0 ? meta : undefined,
   }

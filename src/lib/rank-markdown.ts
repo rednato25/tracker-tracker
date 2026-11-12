@@ -8,7 +8,6 @@ import type { RankOverview } from "@/lib/rank-overview"
 import { rankLadderStateLabel } from "@/lib/rank-summary"
 import type { RankCheck } from "@/lib/recruitment-state"
 
-const DOT = "\u00b7"
 const DASH = "\u2014"
 
 function cell(value: string): string {
@@ -43,7 +42,7 @@ export function buildRankOverviewMarkdown(
   const lines: string[] = [
     "# Rank overview",
     "",
-    `Checked ${checked} ${DOT} Wrong ${wrong} ${DOT} Not checked ${overviews.length - checked}`,
+    `My checks: ${checked - wrong} match the site, ${wrong} wrong, ${overviews.length - checked} not checked`,
     "",
   ]
 
@@ -52,7 +51,7 @@ export function buildRankOverviewMarkdown(
     lines.push(`- Site: ${overview.siteUrl}`)
     lines.push(
       `- Current class: ${
-        overview.currentClassHidden ? "Redacted" : (overview.currentClass ?? "Unknown")
+        overview.currentClassHidden ? "Hidden" : (overview.currentClass ?? "Unknown")
       }`
     )
     lines.push(`- Target: ${targetLine(overview)}`)
@@ -60,22 +59,22 @@ export function buildRankOverviewMarkdown(
       lines.push(`- Target reached: ${overview.reachedTarget}`)
     }
     if (overview.ladderState === "top") lines.push("- Highest automatic class reached")
-    lines.push(`- Registry text: ${overview.ruleText ?? "Not in the registry"}`)
+    lines.push(`- Tracker rules: ${overview.ruleText ?? "No rules text"}`)
     const source = overview.source
     const sourceParts = [
       source.title ?? "No title",
       source.verification === "published"
-        ? "published source"
+        ? "checked against the site"
         : source.verification === "unresolved"
-          ? "source unresolved"
-          : "no registry source",
+          ? "not checked against the site"
+          : "no source",
     ]
     if (source.url) sourceParts.push(source.url)
     if (source.accessedAt) sourceParts.push(`accessed ${formatDate(source.accessedAt)}`)
-    lines.push(`- Source: ${sourceParts.join(` ${DOT} `)}`)
+    lines.push(`- Source: ${sourceParts.join(", ")}`)
     lines.push(`- My check: ${checkLine(checks[String(overview.trackerId)])}`)
     if (overview.conditions.length === 0) {
-      lines.push("- Conditions: No structured conditions published")
+      lines.push("- Conditions: none listed")
     } else {
       lines.push("- Conditions:")
       lines.push("")
@@ -83,7 +82,7 @@ export function buildRankOverviewMarkdown(
       lines.push("  | --- | --- | --- | --- | --- |")
       for (const condition of overview.conditions) {
         const status =
-          condition.status === "met" ? "Met" : condition.status === "unmet" ? "Unmet" : "Unknown"
+          condition.status === "met" ? "Met" : condition.status === "unmet" ? "Not met" : "Unknown"
         const why =
           condition.status === "unknown"
             ? (condition.unknownReason ?? condition.reason ?? "Unknown")

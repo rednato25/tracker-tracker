@@ -277,7 +277,7 @@ function evaluateCondition(
       freshness: "unknown",
       source: "unknown",
       remaining: null,
-      reason: "Manual or non-numeric condition cannot be evaluated from collected data.",
+      reason: "Check this one on the site.",
     }
   }
 
@@ -300,7 +300,7 @@ function evaluateCondition(
       remaining: null,
       reason:
         condition.note ??
-        "The threshold or its unit is unresolved; this condition cannot establish eligibility.",
+        "The site's rule is unclear.",
     }
   }
 
@@ -320,7 +320,7 @@ function evaluateCondition(
       freshness: "unknown",
       source: "unknown",
       remaining: null,
-      reason: "Per-torrent requirement is separate from account rank data.",
+      reason: "This rule applies per torrent, not to the account.",
     }
   }
 
@@ -342,7 +342,7 @@ function evaluateCondition(
       source: observation?.source ?? "unknown",
       observedAt: observation?.observedAt ?? null,
       remaining: null,
-      reason: "No observed value is available.",
+      reason: "No value from the tracker yet.",
     }
   }
 
@@ -364,7 +364,7 @@ function evaluateCondition(
       source: observation.source,
       observedAt: observation.observedAt ?? null,
       remaining: remainingFor(observation.value, condition.comparison, condition.requiredValue),
-      reason: "Observation is stale; re-check before treating this condition as met.",
+      reason: "The last value is out of date. Check it on the site.",
     }
   }
 
@@ -388,11 +388,9 @@ function evaluateCondition(
     remaining: remainingFor(observation.value, condition.comparison, condition.requiredValue),
     reason: manual
       ? observation.freshness === "stale"
-        ? "Manual value is older than 14 days and needs checking; no observed value is available."
-        : "Manual value entered by you is used because no observed value is available."
-      : met
-        ? "Observed value meets the structured requirement."
-        : "Observed value does not meet the structured requirement.",
+        ? "Your value is older than 14 days. Check it on the site."
+        : "Using the value you entered."
+      : "",
   }
 }
 
@@ -457,14 +455,14 @@ function nextRankFor(input: RankGoalInput): {
   if (forest?.appointedClass || ladder?.appointedClass) {
     return {
       nextRank: null,
-      reason: "Staff, donation or invitation class; not an earned next rank.",
+      reason: "Staff, donor or invited class. There is no earned next class.",
       status: "appointed",
     }
   }
   if (forest?.unknownClass || ladder?.unknownClass) {
     return {
       nextRank: null,
-      reason: "Reported class is not in the known ladder; no next rank is inferred.",
+      reason: "This class isn't in the tracker's class list.",
       status: "unknown",
     }
   }
@@ -478,7 +476,7 @@ function nextRankFor(input: RankGoalInput): {
       }
       return {
         nextRank: null,
-        reason: path ? "Top of the active rank branch." : "Active rank branch is unknown.",
+        reason: path ? "Top of this branch." : "Branch not known.",
         status: "no-next-rank",
       }
     }
@@ -492,30 +490,30 @@ function nextRankFor(input: RankGoalInput): {
     if (forest.sharedCurrentIndex === forest.shared.length - 1) {
       return {
         nextRank: null,
-        reason: "Ladder branches here; a branch is not selected automatically.",
+        reason: "The ladder branches here. Choose a target.",
         status: "no-next-rank",
       }
     }
     return {
       nextRank: null,
-      reason: "Current rank is not on the shared ladder.",
+      reason: "This class isn't in the tracker's class list.",
       status: "unknown",
     }
   }
 
   if (!ladder) {
-    return { nextRank: null, reason: "No rank ladder is defined.", status: "unknown" }
+    return { nextRank: null, reason: "No class list for this tracker.", status: "unknown" }
   }
   if (ladder.currentIndex < 0) {
     return {
       nextRank: null,
-      reason: "Current rank is not an earned rung; no next rank is inferred.",
+      reason: "This class isn't an earned class.",
       status: "unknown",
     }
   }
   const next = ladder.rungs[ladder.currentIndex + 1]
   if (!next) {
-    return { nextRank: null, reason: "Top of the known ladder.", status: "no-next-rank" }
+    return { nextRank: null, reason: "Highest automatic class reached.", status: "no-next-rank" }
   }
   return { nextRank: next.name, reason: null, status: "met" }
 }

@@ -44,7 +44,7 @@ beforeEach(() => {
 })
 
 async function pickDigitalCore(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText("Search trackers..."), "DigitalCore")
+  await user.type(screen.getByPlaceholderText("Search trackers…"), "DigitalCore")
   await user.keyboard("{Enter}")
 }
 
@@ -56,7 +56,7 @@ describe("AddTrackerDialog digitalcore credentials", () => {
 
     await pickDigitalCore(user)
     await user.type(screen.getByLabelText("Session Cookies"), "uid=56954; pass=abc123def456")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const request = createRequest()
     expect(request).toBeDefined()
@@ -72,7 +72,7 @@ describe("AddTrackerDialog digitalcore credentials", () => {
 
     await pickDigitalCore(user)
     await user.type(screen.getByLabelText("Session Cookies"), "uid=56954; pass=abc123def456")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const test = fetchMock.mock.calls.find(
       ([url]) => String(url) === "/api/trackers/test-connection"
@@ -83,7 +83,7 @@ describe("AddTrackerDialog digitalcore credentials", () => {
 })
 
 async function pickTorrentLeech(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText("Search trackers..."), "TorrentLeech")
+  await user.type(screen.getByPlaceholderText("Search trackers…"), "TorrentLeech")
   await user.keyboard("{Enter}")
 }
 
@@ -96,7 +96,7 @@ describe("AddTrackerDialog torrentleech credentials", () => {
     await user.type(screen.getByLabelText("TorrentLeech Username"), "bob")
     await user.type(screen.getByLabelText("TorrentLeech Password"), "hunter2")
     await user.type(screen.getByLabelText("Alt 2FA Token (optional)"), "tok123")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const request = createRequest()
     expect(request).toBeDefined()
@@ -113,7 +113,7 @@ describe("AddTrackerDialog torrentleech credentials", () => {
     await pickTorrentLeech(user)
     await user.type(screen.getByLabelText("TorrentLeech Username"), "bob")
     await user.type(screen.getByLabelText("TorrentLeech Password"), "hunter2")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const blob = JSON.parse(JSON.parse(String(createRequest()?.[1]?.body)).apiToken)
     expect(blob).toEqual({ username: "bob", password: "hunter2" })
@@ -138,7 +138,7 @@ describe("AddTrackerDialog torrentleech credentials", () => {
 })
 
 async function pickRetroToon(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText("Search trackers..."), "RetroToon")
+  await user.type(screen.getByPlaceholderText("Search trackers…"), "RetroToon")
   await user.keyboard("{Enter}")
 }
 
@@ -151,7 +151,7 @@ describe("AddTrackerDialog retrotoon credentials", () => {
 
     await pickRetroToon(user)
     await user.type(screen.getByLabelText("Browser Cookies"), "PHPSESSID=abc123")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const blob = JSON.parse(JSON.parse(String(createRequest()?.[1]?.body)).apiToken)
     expect(blob).toEqual({ cookies: "PHPSESSID=abc123", userAgent: navigator.userAgent })
@@ -163,7 +163,7 @@ describe("AddTrackerDialog retrotoon credentials", () => {
 
     await pickRetroToon(user)
     await user.type(screen.getByLabelText("Browser Cookies"), "Cookie: PHPSESSID=abc123")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const blob = JSON.parse(JSON.parse(String(createRequest()?.[1]?.body)).apiToken)
     expect(blob.cookies).toBe("PHPSESSID=abc123")
@@ -195,7 +195,7 @@ async function paste(user: ReturnType<typeof userEvent.setup>, field: HTMLElemen
 async function pickPreset(user: ReturnType<typeof userEvent.setup>, name: string) {
   const clear = screen.queryByRole("button", { name: "Clear selection" })
   if (clear) await user.click(clear)
-  await paste(user, screen.getByPlaceholderText("Search trackers..."), name)
+  await paste(user, screen.getByPlaceholderText("Search trackers…"), name)
   await user.keyboard("{Enter}")
 }
 
@@ -223,7 +223,7 @@ describe("AddTrackerDialog Mousehole fields", () => {
     await paste(user, screen.getByLabelText("API Token"), "not-a-real-mam-cookie")
     await paste(user, screen.getByLabelText("Mousehole URL (optional)"), "http://mh:5010")
     await paste(user, screen.getByLabelText("Mousehole API token"), "tok-7f3a")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const saved = JSON.parse(String(createRequest()?.[1]?.body))
     expect(saved).toMatchObject({
@@ -244,7 +244,7 @@ describe("AddTrackerDialog request bodies", () => {
     await pickTorrentLeech(user)
     await user.type(screen.getByLabelText("TorrentLeech Username"), "bob")
     await user.type(screen.getByLabelText("TorrentLeech Password"), "hunter2")
-    await user.click(screen.getByRole("button", { name: "Add Tracker" }))
+    await user.click(screen.getByRole("button", { name: "Add tracker" }))
 
     const tested = JSON.parse(String(testConnectionRequest()?.[1]?.body))
     expect(tested.slug).toBe("torrentleech")
@@ -268,7 +268,7 @@ describe("AddTrackerDialog existing trackers", () => {
       <AddTrackerDialog open onClose={vi.fn()} onAdded={vi.fn()} existingSlugs={["aither"]} />
     )
 
-    await user.click(screen.getByPlaceholderText("Search trackers..."))
+    await user.click(screen.getByPlaceholderText("Search trackers…"))
 
     expect(screen.queryByRole("option", { name: /^Aither/ })).not.toBeInTheDocument()
     expect(screen.getByRole("option", { name: /^Blutopia/ })).toBeInTheDocument()

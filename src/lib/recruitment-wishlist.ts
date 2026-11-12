@@ -378,7 +378,7 @@ function summarizePath(steps: WishlistStepView[]): {
 
   return {
     status: "known-met",
-    detail: "All known requirements are satisfied; recruitment is still not guaranteed.",
+    detail: "All known requirements are met. Getting an invite still isn't guaranteed.",
   }
 }
 
@@ -476,7 +476,7 @@ function buildStepView(input: {
       ? owner.latestStats
         ? `Evaluated from stored stats for your account (last poll ${owner.lastPolledAt ?? "unknown"}).`
         : "No stored stats for your account on this source; the requirement cannot be checked yet."
-      : "Scenario only: you do not own an account on this source, so no personal observations are used.",
+      : "You don't have an account here, so this step uses no stats of yours.",
     evaluation,
     classGate,
     goalCandidates: goalCandidatesForStep({

@@ -90,7 +90,7 @@ describe("compareClassGate", () => {
       currentClass: "Mystery Pool",
     })
     expect(gate?.status).toBe("unknown")
-    expect(gate?.detail).toContain("not on the registry ladder")
+    expect(gate?.detail).toContain("isn't in this tracker's class list")
   })
 
   it("counts a class above the ladder as met", () => {

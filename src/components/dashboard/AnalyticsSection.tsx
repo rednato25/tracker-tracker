@@ -2,7 +2,6 @@
 "use client"
 
 import { H2 } from "@typography"
-import dynamic from "next/dynamic"
 import { BufferCandlestickChart } from "@/components/charts/BufferCandlestickChart"
 import { BufferVelocityChart } from "@/components/charts/BufferVelocityChart"
 import { ComparisonChart } from "@/components/charts/ComparisonChart"
@@ -19,15 +18,9 @@ import { VolumeSurface2D } from "@/components/charts/VolumeSurface2D"
 import { ChartCard } from "@/components/dashboard/ChartCard"
 import type { useChartPreferences } from "@/components/dashboard/useChartPreferences"
 import { DASHBOARD_CHARTS } from "@/components/dashboard/useChartPreferences"
-import { useDashboardSettings } from "@/components/dashboard/useDashboardSettings"
 import { ChevronUpIcon } from "@/components/ui/Icons"
 import type { TrackerSummary } from "@/types/api"
 import type { TrackerSnapshotSeries } from "@/types/charts"
-
-const VolumeSurface3D = dynamic(
-  () => import("@/components/charts/VolumeSurface3D").then((m) => m.VolumeSurface3D),
-  { ssr: false }
-)
 
 const allChartIds = DASHBOARD_CHARTS.filter((c) => c.category === "analytics").map((c) => c.id)
 
@@ -40,22 +33,13 @@ interface AnalyticsSectionProps {
    * a second instance here would revert whatever the sheet had just stored.
    */
   chartPrefs: ReturnType<typeof useChartPreferences>
-  /**
-   * Pass the dashboard's existing settings instance so toggling "Enable 3D
-   * charts" swaps this section live. Falls back to its own instance, which
-   * only picks up changes on remount.
-   */
-  dashSettings?: ReturnType<typeof useDashboardSettings>
 }
 
 function AnalyticsSection({
   trackerSeries,
   trackers,
   chartPrefs,
-  dashSettings: externalSettings,
 }: AnalyticsSectionProps) {
-  const internalSettings = useDashboardSettings()
-  const dashSettings = externalSettings ?? internalSettings
   const { hydrated: chartPrefsHydrated, orderedCharts } = chartPrefs
 
   const analyticsCharts = orderedCharts("analytics")
@@ -67,17 +51,8 @@ function AnalyticsSection({
     switch (id) {
       case "daily-volume":
         return <DailyVolumeChart trackerData={trackerSeries} height={360} />
-      // Same chart id, card, and preference slot either way. Only the
-      // renderer changes, so toggling never disturbs the user's layout.
       case "upload-landscape":
-        // Render the 2D chart until the setting is known. Defaulting to 3D would load
-        // echarts-gl for users who turned WebGL off, which defeats the purpose. A brief
-        // 2D render for everyone else is the cheaper mistake.
-        return dashSettings.loaded && dashSettings.settings.enable3DCharts ? (
-          <VolumeSurface3D trackerData={trackerSeries} height={420} />
-        ) : (
-          <VolumeSurface2D trackerData={trackerSeries} height={420} />
-        )
+        return <VolumeSurface2D trackerData={trackerSeries} height={420} />
       case "distribution":
         return (
           <DistributionChart

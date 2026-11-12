@@ -68,11 +68,10 @@ export function UserProfileCard({
               {joinedDate && (
                 <span className="whitespace-nowrap text-xs font-mono text-secondary">Joined {joinedDate}</span>
               )}
-              {joinedDate && accountAge && (
-                <span className="text-xs font-mono text-tertiary">·</span>
-              )}
               {accountAge && (
-                <span className="whitespace-nowrap text-xs font-mono text-secondary">{accountAge}</span>
+                <span className="whitespace-nowrap text-xs font-mono text-secondary">
+                  {joinedDate ? `(${accountAge})` : accountAge}
+                </span>
               )}
               {milestone && (
                 <Badge variant="accent" data-anniversary-marker>

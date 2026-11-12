@@ -116,6 +116,7 @@ beforeEach(() => {
 
 describe("pollTracker last-access provenance", () => {
   it("stores an adapter-reported last access as detected", async () => {
+    trackerRow = { ...TRACKER, lastAccessAt: "2026-10-18" }
     await pollTracker(42, KEY, false)
 
     const metadata = setCalls.find((values) => "lastAccessAt" in values)
@@ -125,6 +126,15 @@ describe("pollTracker last-access provenance", () => {
       lastAccessField: "last_login",
     })
     expect(metadata?.lastAccessUpdatedAt).toBeInstanceOf(Date)
+  })
+
+  it("keeps a newer marked login when the tracker reports an older date", async () => {
+    // TRACKER holds 2026-10-24; the API still says 2026-10-20.
+    await pollTracker(42, KEY, false)
+
+    const metadata = setCalls.find((values) => "lastAccessSource" in values)
+    expect(metadata).toMatchObject({ lastAccessSource: "manual" })
+    expect(metadata).not.toHaveProperty("lastAccessAt")
   })
 
   it("falls back to manual and keeps the last known date when the API stops reporting one", async () => {

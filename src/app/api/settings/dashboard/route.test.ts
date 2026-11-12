@@ -92,9 +92,9 @@ describe("PUT /api/settings/dashboard", () => {
   })
 
   it("ignores values whose type does not match the setting", async () => {
-    const body = await put({ enable3DCharts: "yes-please" })
+    const body = await put({ showOutageBands: "yes-please" })
 
-    expect(body.enable3DCharts).toBe(DASHBOARD_SETTINGS_DEFAULTS.enable3DCharts)
+    expect(body.showOutageBands).toBe(DASHBOARD_SETTINGS_DEFAULTS.showOutageBands)
   })
 
   it("ignores unknown keys rather than storing them", async () => {
@@ -106,17 +106,17 @@ describe("PUT /api/settings/dashboard", () => {
   it("falls back to defaults when the stored JSON is corrupt", async () => {
     mockStoredRow("{not json")
 
-    const body = await put({ enable3DCharts: false })
+    const body = await put({ showOutageBands: false })
 
     expect(body.showLoginTimers).toBe(DASHBOARD_SETTINGS_DEFAULTS.showLoginTimers)
-    expect(body.enable3DCharts).toBe(false)
+    expect(body.showOutageBands).toBe(false)
   })
 
   it("returns 400 when the app has no settings row yet", async () => {
     vi.mocked(db.select).mockReturnValue({
       from: () => ({ limit: () => Promise.resolve([]) }),
     } as never)
-    vi.mocked(parseJsonBody).mockResolvedValue({ enable3DCharts: false } as never)
+    vi.mocked(parseJsonBody).mockResolvedValue({ showOutageBands: false } as never)
 
     const res = await PUT(new Request("http://localhost/api/settings/dashboard", { method: "PUT" }))
 

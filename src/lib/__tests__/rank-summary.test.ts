@@ -351,6 +351,32 @@ describe("rank ladder state", () => {
     expect(hidden.ladderState).toBe("no-rank")
   })
 
+  it("calls a banned or disabled account restricted, not missing from the ladder", () => {
+    const summary = only({
+      registrySlug: "latteam",
+      name: "Lat-Team",
+      latestStats: { ...tracker().latestStats!, group: "Banned" },
+    })
+    expect(summary.ladderState).toBe("restricted")
+    expect(summary.automaticNextRank).toBeNull()
+  })
+
+  it.each([
+    ["speedapp", "Peasant", "User"],
+    ["retromoviesclub", "Seat Filler", "Actor"],
+    ["myanonamouse", "Mouse", "User"],
+    ["dreadvault", "Leech", "User"],
+    ["seedcore", "Leech", "User"],
+    ["latteam", "Leech", "User"],
+  ])("puts %s's starting or demotion class %s on the ladder below %s", (slug, current, next) => {
+    const summary = only({
+      registrySlug: slug,
+      latestStats: { ...tracker().latestStats!, group: current },
+    })
+    expect(summary.ladderState).toBe("next")
+    expect(summary.automaticNextRank).toBe(next)
+  })
+
   it("summarizes a tracker with no registry ladder as no-ladder", () => {
     const summary = only({ registrySlug: null, name: "Custom" })
     expect(summary.ladderState).toBe("no-ladder")

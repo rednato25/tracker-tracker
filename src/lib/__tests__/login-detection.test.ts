@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
-import { canDetectLogin, loginDetectingPlatformLabels, loginSourceFor } from "@/lib/login-detection"
+import { canDetectLogin, loginDetectionNote, loginSourceFor } from "@/lib/login-detection"
 
 describe("canDetectLogin", () => {
   it("recognises adapters that report a last-access date", () => {
     for (const platform of [
-      "unit3d",
+      "apime",
+      "iptorrents",
+      "luminance",
+      "teamhd",
       "gazelle",
       "ggn",
       "nebulance",
@@ -26,7 +29,7 @@ describe("canDetectLogin", () => {
     for (const platform of [
       "mam",
       "btn",
-      "iptorrents",
+      "unit3d",
       "torrentleech",
       "hawke",
       "c411",
@@ -54,22 +57,26 @@ describe("loginSourceFor", () => {
   })
 })
 
-describe("loginDetectingPlatformLabels", () => {
-  it("lists every adapter that reports a last-access value", () => {
-    expect(loginDetectingPlatformLabels()).toEqual([
-      "AvistaZ",
-      "CarPT",
-      "CZTeam",
-      "DigitalCore",
-      "FileList",
-      "Gazelle",
-      "GazelleGames",
-      "M-Team",
-      "Nebulance",
-      "Portugas",
-      "RetroToon",
-      "Tr4ker",
-      "Unit3D",
-    ])
+describe("loginDetectionNote", () => {
+  it("says a detecting platform updates on its own", () => {
+    expect(loginDetectionNote({ platformType: "filelist" })).toMatch(/updates on its own/)
+  })
+
+  it("points a UNIT3D tracker with profile reading at that setting", () => {
+    expect(
+      loginDetectionNote({ platformType: "unit3d", registrySlug: "latteam", profileReadingEnabled: false })
+    ).toMatch(/Read profile page daily/)
+    expect(
+      loginDetectionNote({ platformType: "unit3d", registrySlug: "latteam", profileReadingEnabled: true })
+    ).toBe("Read from your profile page each day.")
+  })
+
+  it("asks for a manual mark where nothing reports a login", () => {
+    expect(loginDetectionNote({ platformType: "unit3d", registrySlug: "aither" })).toBe(
+      "This tracker doesn't report logins, so mark them here."
+    )
+    expect(loginDetectionNote({ platformType: "mam" })).toBe(
+      "This tracker doesn't report logins, so mark them here."
+    )
   })
 })

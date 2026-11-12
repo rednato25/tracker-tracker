@@ -127,7 +127,7 @@ describe("getTrackerHealth — thin ratio vs. zero seeds", () => {
 
 describe("getTrackerHealth — precedence above 'no-seeds'", () => {
   it("keeps 'critical' when the ratio is below 1.0 and there are zero seeds", () => {
-    // Ratio < 1.0 carries account-action risk that "No Seeds" would hide.
+    // Ratio < 1.0 carries account-action risk that "No seeds" would hide.
     expect(healthOf({ ratio: 0.4, seedingCount: 0 })).toBe("critical")
   })
 
@@ -162,10 +162,10 @@ describe("getTrackerHealth — seedingCount the adapter does not report", () => 
 
 describe("health metadata", () => {
   it("gives 'no-seeds' its own label and description", () => {
-    expect(getHealthLabel("no-seeds")).toBe("No Seeds")
+    expect(getHealthLabel("no-seeds")).toBe("No seeds")
     // Named for what the model measures, ratio against the requirement. It
     // never sees the buffer, so the label must not claim one.
-    expect(getHealthLabel("warning")).toBe("Above Min")
+    expect(getHealthLabel("warning")).toBe("Above minimum")
     expect(getHealthDescription("no-seeds")).toBe("Zero active seeds, nothing is uploading")
   })
 

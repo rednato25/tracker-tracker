@@ -1,9 +1,7 @@
 // src/components/charts/lib/chart-transforms.ts
 //
-// Pure, side-effect-free chart data transforms. This module must never import
-// echarts or echarts-gl: it is shared by statically imported 2D charts and by
-// the dynamically imported WebGL charts, and an echarts-gl import here would
-// pull WebGL into the main bundle for every consumer.
+// Pure, side-effect-free chart data transforms. This module never imports
+// echarts, so any chart can use it without pulling in the chart library.
 //
 // Functions: buildActivityMatrix, computeDailyDeltas, carryForwardValues, buildTimeSeriesData, carryForwardTimeSeries, collectUnifiedTimestamps, computeDailyGrid, getBucketKey, formatBucketLabel, bucketGrid
 
@@ -148,8 +146,7 @@ export function collectUnifiedTimestamps(trackerData: TrackerSnapshotSeries[]): 
 // ---------------------------------------------------------------------------
 // Tracker x date-bucket volume grid
 //
-// Shared by VolumeSurface3D (bar3D) and VolumeSurface2D (2D heatmap), which draw
-// the same numbers with different marks.
+// Used by VolumeSurface2D, the upload landscape heatmap.
 // ---------------------------------------------------------------------------
 
 export interface GridResult {

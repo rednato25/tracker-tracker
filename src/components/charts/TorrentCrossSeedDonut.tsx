@@ -32,7 +32,7 @@ function TorrentCrossSeedDonut({ crossSeeded, unique, accentColor }: TorrentCros
       formatter: (params: unknown) => {
         const p = params as { name: string; value: number; color: string }
         const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : "0"
-        return `<span style="display:inline-block;width:7px;height:7px;background:${p.color};margin-right:5px;"></span> <b>${escHtml(p.name)}</b><br/>${formatCount(p.value)} torrents · ${pct}%`
+        return `<span style="display:inline-block;width:7px;height:7px;background:${p.color};margin-right:5px;"></span> <b>${escHtml(p.name)}</b><br/>${formatCount(p.value)} torrents (${pct}%)`
       },
     }),
     graphic: [

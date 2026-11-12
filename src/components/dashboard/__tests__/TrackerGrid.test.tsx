@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { TrackerGrid } from "@/components/dashboard/TrackerGrid"
 import type { RankGoalSummary } from "@/lib/rank-summary"
 import type { TrackerSummary } from "@/types/api"
@@ -111,6 +111,13 @@ function summary(overrides: Partial<RankGoalSummary> = {}): RankGoalSummary {
 }
 
 describe("TrackerGrid", () => {
+  // Marking a login uses the clock at click time, not the rendered `now`.
+  // The suite's single afterEach below restores real timers.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(NOW)
+  })
+
   it("renders the stat grid and rank target bars as current / required", () => {
     render(<TrackerGrid trackers={[tracker()]} summaries={[summary()]} now={NOW} />)
     expect(screen.getByRole("heading", { name: "Trackers" })).toBeInTheDocument()
@@ -844,6 +851,27 @@ describe("TrackerGrid", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       lastAccessAt: "2026-10-28",
+    })
+  })
+
+  it("records the day of the click, not the day the page was rendered", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { lastAccessAt: string | null }
+      return {
+        ok: true,
+        json: async () => manualTracker({ lastAccessAt: body.lastAccessAt }),
+      } as Response
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<TrackerGrid trackers={[manualTracker()]} summaries={[summary()]} now={NOW} />)
+    // The tab stayed open past midnight.
+    vi.setSystemTime(new Date("2026-10-29T12:00:00.000Z"))
+    fireEvent.click(screen.getByRole("link", { name: "Open MyAnonaMouse site" }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      lastAccessAt: "2026-10-29",
     })
   })
 

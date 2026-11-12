@@ -123,7 +123,7 @@ export function routeRequirementText(route: RecruitmentRouteRecord): string | nu
   const notes = route.requirementNotes
     .map((note) => note.trim())
     .filter((note) => note && !NO_REQUIREMENT.test(note))
-  return notes.length > 0 ? notes.join(" · ") : null
+  return notes.length > 0 ? notes.join("; ") : null
 }
 
 export function inviteTiming(

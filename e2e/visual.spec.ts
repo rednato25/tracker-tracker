@@ -1390,7 +1390,7 @@ test.describe.serial("P41 rank overview", () => {
         update app_settings
         set rank_goals = ${JSON.stringify({
           [String(torrentLeechId)]: { targetRank: "Super User" },
-          [String(dreadVaultId)]: { targetRank: "Ancient One" },
+          [String(dreadVaultId)]: { targetRank: "Bloodbound" },
         })},
         recruitment_state = ${JSON.stringify({
           version: 2,
@@ -1406,7 +1406,7 @@ test.describe.serial("P41 rank overview", () => {
             },
             [String(dreadVaultId)]: {
               verdict: "wrong",
-              note: "Site says 500 uploads",
+              note: "Site says 10 uploads",
               checkedAt: "2026-10-29",
             },
           },
@@ -1447,14 +1447,14 @@ test.describe.serial("P41 rank overview", () => {
     await expect(view).toBeVisible({ timeout: 15_000 })
 
     const summary = view.locator("[data-rank-check-summary]")
-    await expect(summary).toContainText("Checked 2")
-    await expect(summary).toContainText("Wrong 1")
-    await expect(summary).toContainText("Not checked 1")
+    await expect(summary).toContainText("1 match the site")
+    await expect(summary).toContainText("1 wrong")
+    await expect(summary).toContainText("1 not checked")
 
     const tl = view.locator(`[data-rank-overview-tracker="${tlId}"]`)
     await expect(tl).toContainText("Target: Super User")
     await expect(tl.locator("[data-rank-condition]")).toHaveCount(3)
-    await expect(tl).toContainText("Published source")
+    await expect(tl).toContainText("Checked against the site")
     await expect(tl.getByLabel("Note for TEST P41 TorrentLeech")).toHaveValue(
       "Same thresholds as the wiki"
     )
@@ -1477,7 +1477,7 @@ test.describe.serial("P41 rank overview", () => {
         .first()
     ).toBeVisible()
     await expect(dv.getByLabel("Note for TEST P41 DreadVault")).toHaveValue(
-      "Site says 500 uploads"
+      "Site says 10 uploads"
     )
 
     for (const theme of ["light", "dark"] as const) {

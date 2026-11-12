@@ -50,7 +50,7 @@ describe("ManualValueEditor", () => {
         })}
       />
     )
-    expect(screen.getByText(/Entered by you · 21 days ago/)).toBeInTheDocument()
+    expect(screen.getByText(/Entered by you 21 days ago/)).toBeInTheDocument()
     expect(screen.getByText(/Needs checking/)).toBeInTheDocument()
     expect(screen.getByText("Manual value")).toBeInTheDocument()
   })
@@ -80,7 +80,7 @@ describe("ManualValueEditor", () => {
         })}
       />
     )
-    expect(screen.getByText("Observed value wins")).toBeInTheDocument()
+    expect(screen.getByText("Tracker's value used")).toBeInTheDocument()
   })
 
   it("does not offer entry when an observed value exists", () => {

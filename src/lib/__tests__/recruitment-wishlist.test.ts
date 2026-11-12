@@ -180,7 +180,7 @@ describe("buildWishlistPaths", () => {
     expect(multi?.status).toBe("needs-verification")
     expect(multi?.steps[0].scenario).toBe(false)
     expect(multi?.steps[1].scenario).toBe(true)
-    expect(multi?.steps[1].observationNote).toContain("Scenario only")
+    expect(multi?.steps[1].observationNote).toContain("You don't have an account here")
   })
 
   it("keeps cycles finite and deduplicates path keys", () => {

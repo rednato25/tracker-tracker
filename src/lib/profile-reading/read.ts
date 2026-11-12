@@ -91,3 +91,15 @@ export function readProfilePageOnce(input: {
   }
   return succeeded(attemptedAt, parsed.values)
 }
+
+/**
+ * The registration date fills the join date only when none is stored, the same
+ * rule the adapters follow, so a date the user typed is never overwritten.
+ */
+export function joinedAtFor(
+  row: { joinedAt: string | null },
+  record: ProfileReadRecord
+): string | undefined {
+  if (row.joinedAt || record.status || !record.values.joinedAt) return undefined
+  return record.values.joinedAt
+}

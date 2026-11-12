@@ -1,14 +1,9 @@
 import clsx from "clsx"
 import Link from "next/link"
-import { useMemo, useState } from "react"
-import { FilterPill } from "@/components/ui/FilterPill"
-import { InfoIcon, TriangleWarningIcon } from "@/components/ui/Icons"
+import { useMemo } from "react"
 import type { TrackerAction } from "@/lib/actions"
 import { formatDateTime } from "@/lib/formatters"
 import type { TrackerSummary } from "@/types/api"
-
-type AttentionFilter = "attention" | "unknown" | "healthy" | "all"
-type RowTone = "crit" | "warn" | "muted" | "ok"
 
 interface AttentionNeededProps {
   trackers: TrackerSummary[]
@@ -20,25 +15,10 @@ interface AttentionNeededProps {
   asOf: string
 }
 
-const FILTER_LABELS: Record<AttentionFilter, string> = {
-  attention: "Needs attention",
-  unknown: "Unknown",
-  healthy: "Healthy",
-  all: "All",
-}
-
-const TONE_MARK: Record<RowTone, string> = {
-  crit: "bg-danger",
-  warn: "bg-warn",
-  muted: "bg-muted",
-  ok: "bg-success",
-}
-
-function statusMeta(status: TrackerAction["status"]) {
-  if (status === "action-required") {
-    return { tone: "crit" as const, label: "Action required", icon: TriangleWarningIcon }
-  }
-  return { tone: "warn" as const, label: "Needs verification", icon: InfoIcon }
+interface AttentionRow {
+  action: TrackerAction
+  /** One entry per tracker; more than one when the same item applies to several. */
+  trackers: { name: string; href: string }[]
 }
 
 function actionDestination(action: TrackerAction): string {
@@ -46,161 +26,96 @@ function actionDestination(action: TrackerAction): string {
   return `/trackers/${action.trackerId}`
 }
 
-function formatEvidenceValue(value: unknown): string {
-  if (value === null || value === undefined) return "—"
-  if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(2)
-  return String(value)
+/** "5m ago", measured against the page's own time so server and browser agree. */
+function ageFrom(observedAt: string, asOf: string): string | null {
+  const ms = new Date(asOf).getTime() - new Date(observedAt).getTime()
+  if (Number.isNaN(ms)) return null
+  const minutes = Math.floor(Math.max(0, ms) / 60_000)
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
 }
 
-function StatusMark({ tone, label }: { tone: RowTone; label: string }) {
+/** What the item's timestamp means, so "30d ago" is never ambiguous. */
+function ageLabel(action: TrackerAction): string {
+  if (action.type.startsWith("login-")) return "Last login"
+  if (action.type === "poll-error" || action.type === "auth-error") return "Failed"
+  if (action.type === "polling-paused") return "Paused"
+  return "Updated"
+}
+
+function StatusMark({ action }: { action: TrackerAction }) {
+  const fix = action.status === "action-required"
   return (
     <span className="inline-flex items-center gap-1.5 font-cond text-xs font-semibold uppercase tracking-[0.1em] text-secondary">
-      <span className={clsx("size-1.5 rounded-[1px]", TONE_MARK[tone])} aria-hidden="true" />
-      {label}
+      <span
+        className={clsx("size-1.5 shrink-0 rounded-[1px]", fix ? "bg-danger" : "bg-warn")}
+        aria-hidden="true"
+      />
+      {fix ? "Needs action" : "Needs checking"}
     </span>
   )
 }
 
-function ActionEvidence({ action }: { action: TrackerAction }) {
-  const evidence = action.evidence
-  return (
-    <details className="mt-2 border-t border-border pt-2">
-      <summary className="cursor-pointer font-cond text-xs uppercase tracking-[0.1em] text-tertiary focus-visible:outline-1 focus-visible:outline-accent">
-        Evidence and source
-      </summary>
-      <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 font-mono text-xs text-tertiary sm:grid-cols-2">
-        <div className="flex gap-2">
-          <dt className="text-muted">key</dt>
-          <dd className="break-all">{action.key}</dd>
-        </div>
-        <div className="flex gap-2">
-          <dt className="text-muted">type</dt>
-          <dd>{action.type}</dd>
-        </div>
-        <div className="flex gap-2">
-          <dt className="text-muted">priority</dt>
-          <dd>{action.priority}</dd>
-        </div>
-        {evidence.value !== undefined && (
-          <div className="flex gap-2">
-            <dt className="text-muted">observed</dt>
-            <dd>{formatEvidenceValue(evidence.value)}</dd>
-          </div>
-        )}
-        {evidence.required !== undefined && (
-          <div className="flex gap-2">
-            <dt className="text-muted">required</dt>
-            <dd>{formatEvidenceValue(evidence.required)}</dd>
-          </div>
-        )}
-        {evidence.observedAt && (
-          <div className="flex gap-2">
-            <dt className="text-muted">timestamp</dt>
-            <dd>{formatDateTime(evidence.observedAt)}</dd>
-          </div>
-        )}
-        {evidence.verifiedAt && (
-          <div className="flex gap-2">
-            <dt className="text-muted">verified</dt>
-            <dd>{formatDateTime(evidence.verifiedAt)}</dd>
-          </div>
-        )}
-        {evidence.source && (
-          <div className="flex gap-2">
-            <dt className="text-muted">source</dt>
-            <dd>{evidence.source}</dd>
-          </div>
-        )}
-        {evidence.freshness && (
-          <div className="flex gap-2">
-            <dt className="text-muted">freshness</dt>
-            <dd>{evidence.freshness}</dd>
-          </div>
-        )}
-        {evidence.note && (
-          <div className="col-span-full flex gap-2">
-            <dt className="text-muted">note</dt>
-            <dd>{evidence.note}</dd>
-          </div>
-        )}
-      </dl>
-    </details>
-  )
-}
-
-function ActionRow({ action, tracker }: { action: TrackerAction; tracker?: TrackerSummary }) {
-  const meta = statusMeta(action.status)
-  const Icon = meta.icon
-  const destination = actionDestination(action)
+function ActionRow({ row, asOf }: { row: AttentionRow; asOf: string }) {
+  const { action, trackers } = row
+  const observedAt = trackers.length === 1 ? action.evidence.observedAt : undefined
+  const age = observedAt ? ageFrom(observedAt, asOf) : null
   return (
     <article
-      className="grid gap-2 border-t border-border px-3 py-3 md:grid-cols-[7rem_minmax(9rem,1fr)_minmax(12rem,2fr)_minmax(8rem,1fr)] md:items-start md:gap-4"
+      className="grid gap-x-4 gap-y-1 border-t border-border px-3 py-3 md:grid-cols-[9rem_minmax(8rem,14rem)_minmax(0,1fr)_minmax(8rem,14rem)] md:items-baseline"
       data-action-key={action.key}
     >
-      <div className="flex items-center gap-2 md:block">
-        <Icon
-          width="14"
-          height="14"
-          className={action.status === "action-required" ? "text-danger" : "text-warn"}
-          aria-hidden="true"
-        />
-        <StatusMark tone={meta.tone} label={meta.label} />
-      </div>
+      <StatusMark action={action} />
+      <p className="min-w-0 break-words font-cond text-xs font-semibold uppercase tracking-[0.06em] text-primary">
+        {trackers.map((tracker, index) => (
+          <span key={`${tracker.href}:${tracker.name}`}>
+            {index > 0 && ", "}
+            <Link
+              href={tracker.href}
+              className="underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-accent"
+            >
+              {tracker.name}
+            </Link>
+          </span>
+        ))}
+      </p>
       <div className="min-w-0">
-        <Link
-          href={destination}
-          className="font-cond text-xs font-semibold uppercase tracking-[0.06em] text-primary underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-accent"
-        >
-          {tracker?.name ?? action.trackerName}
-        </Link>
+        <p className="break-words text-xs leading-5 text-secondary">{action.reason}</p>
         {action.torrentHash && (
-          <p className="mt-1 break-all font-mono text-xs text-tertiary">
+          <p className="break-all font-mono text-xs text-tertiary">
             Torrent {action.torrentHash.slice(0, 12)}…
           </p>
         )}
-        <p className="mt-1 font-mono text-xs text-muted">{action.type}</p>
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs leading-5 text-secondary">{action.reason}</p>
-        {action.deadline && (
-          <p className="mt-1 font-mono text-xs text-tertiary">Deadline {action.deadline}</p>
+        {(action.deadline || age) && (
+          <p className="font-mono text-xs text-tertiary">
+            {action.deadline ? `Due ${action.deadline}` : `${ageLabel(action)} ${age}`}
+          </p>
         )}
-        <ActionEvidence action={action} />
       </div>
-      <div className="flex items-start">
-        <Link
-          href={destination}
-          className="font-cond text-xs font-semibold uppercase tracking-[0.1em] text-accent underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-accent"
-        >
-          {action.nextAction}
-        </Link>
-      </div>
+      <Link
+        href={trackers[0]?.href ?? actionDestination(action)}
+        className="break-words text-xs leading-5 text-accent underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-accent"
+      >
+        {action.nextAction}
+      </Link>
     </article>
   )
 }
 
-function ClearRow({ tracker }: { tracker: TrackerSummary }) {
-  return (
-    <article
-      className="grid gap-2 border-t border-border px-3 py-3 md:grid-cols-[7rem_minmax(9rem,1fr)_minmax(12rem,2fr)_minmax(8rem,1fr)] md:items-center md:gap-4"
-      data-clear-tracker={tracker.id}
-    >
-      <StatusMark tone="ok" label="Clear" />
-      <Link
-        href={`/trackers/${tracker.id}`}
-        className="font-cond text-xs font-semibold uppercase tracking-[0.06em] text-primary underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-accent"
-      >
-        {tracker.name}
-      </Link>
-      <p className="text-xs text-secondary">No action or verification item is recorded.</p>
-      <span className="font-mono text-xs text-muted">No next action</span>
-    </article>
-  )
+function countLine(fix: number, check: number): string {
+  const parts: string[] = []
+  if (fix > 0) parts.push(`${fix} to fix`)
+  if (check > 0) parts.push(`${check} to check`)
+  return parts.length > 0 ? parts.join(", ") : "Nothing to fix"
 }
 
 /**
- * P05 compact attention surface. Classification, priority, deadlines and keys
- * come from `computeTrackerActions`; this component only groups and renders.
+ * The dashboard's to-do list. Classification, priority, deadlines and keys
+ * come from `computeTrackerActions`; this component only orders and renders.
+ * Trackers with nothing open are counted, not listed.
  */
 export function AttentionNeeded({
   trackers,
@@ -210,71 +125,84 @@ export function AttentionNeeded({
   clientsUnavailable = false,
   asOf,
 }: AttentionNeededProps) {
-  const [filter, setFilter] = useState<AttentionFilter>("attention")
+  const { rows, clearCount, fix, check } = useMemo(() => {
+    const active = trackers.filter((tracker) => tracker.isActive)
+    const nameById = new Map(active.map((tracker) => [tracker.id, tracker.name]))
+    const position = new Map(active.map((tracker, index) => [tracker.id, index]))
+    const withOpenItems = new Set<number>()
+    const trackerActions: { action: TrackerAction; name: string; order: number }[] = []
+    const clientActions: TrackerAction[] = []
 
-  const { actionRows, clearTrackers, actionRequired, verification } = useMemo(() => {
-    const byTracker = new Map<number, TrackerAction[]>()
-    const clientRows: TrackerAction[] = []
-    for (const action of actions) {
+    actions.forEach((action, order) => {
       if (action.trackerId === null) {
-        clientRows.push(action)
+        clientActions.push(action)
+        return
+      }
+      if (!nameById.has(action.trackerId)) return
+      withOpenItems.add(action.trackerId)
+      trackerActions.push({
+        action,
+        name: nameById.get(action.trackerId) ?? action.trackerName,
+        order,
+      })
+    })
+
+    // Actions arrive in priority order; keep each tracker's rows together,
+    // led by its most urgent one.
+    const firstOrder = new Map<number, number>()
+    for (const { action, order } of trackerActions) {
+      const id = action.trackerId as number
+      if (!firstOrder.has(id)) firstOrder.set(id, order)
+    }
+    trackerActions.sort((left, right) => {
+      const a = left.action.trackerId as number
+      const b = right.action.trackerId as number
+      return (
+        (firstOrder.get(a) ?? 0) - (firstOrder.get(b) ?? 0) ||
+        (position.get(a) ?? 0) - (position.get(b) ?? 0) ||
+        left.order - right.order
+      )
+    })
+
+    // The same item on several trackers (a proxy outage makes every poll
+    // stale) becomes one row naming them all. Items with a torrent or a
+    // deadline stay separate, because those details differ per tracker.
+    const grouped: AttentionRow[] = []
+    const byKey = new Map<string, AttentionRow>()
+    for (const { action, name } of trackerActions) {
+      const tracker = { name, href: actionDestination(action) }
+      const shareable = !action.torrentHash && !action.deadline
+      const key = `${action.status}|${action.type}|${action.reason}|${action.nextAction}`
+      const existing = shareable ? byKey.get(key) : undefined
+      if (existing) {
+        existing.trackers.push(tracker)
         continue
       }
-      const rows = byTracker.get(action.trackerId) ?? []
-      rows.push(action)
-      byTracker.set(action.trackerId, rows)
+      const row: AttentionRow = { action, trackers: [tracker] }
+      if (shareable) byKey.set(key, row)
+      grouped.push(row)
     }
-    const actionOrder = new Map(actions.map((action, index) => [action.key, index]))
-    const trackerRows = trackers
-      .filter((tracker) => tracker.isActive)
-      .map((tracker, index) => {
-        const rows = byTracker.get(tracker.id) ?? []
-        const primary = rows.find((row) => row.status === "action-required") ?? rows[0] ?? null
-        return {
-          tracker,
-          rows,
-          primary,
-          order: primary ? (actionOrder.get(primary.key) ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER,
-          index,
-        }
+    for (const action of clientActions) {
+      grouped.push({
+        action,
+        trackers: [{ name: action.trackerName, href: actionDestination(action) }],
       })
-      .sort((left, right) => left.order - right.order || left.index - right.index)
+    }
+
+    const count = (status: TrackerAction["status"]) =>
+      grouped
+        .filter((row) => row.action.status === status)
+        .reduce((sum, row) => sum + row.trackers.length, 0)
     return {
-      actionRows: { trackerRows, clientRows },
-      clearTrackers: trackerRows.filter((row) => row.rows.length === 0),
-      actionRequired: actions.filter((action) => action.status === "action-required").length,
-      verification: actions.filter((action) => action.status === "needs-verification").length,
+      rows: grouped,
+      clearCount: active.length - withOpenItems.size,
+      fix: count("action-required"),
+      check: count("needs-verification"),
     }
   }, [actions, trackers])
 
-  const filterCounts: Record<AttentionFilter, number> = {
-    attention: actionRequired,
-    unknown: verification,
-    healthy: clearTrackers.length,
-    all: actionRequired + verification + clearTrackers.length,
-  }
-
-  const visibleTrackerRows = actionRows.trackerRows.filter((row) => {
-    if (filter === "all") return true
-    if (filter === "healthy") return row.rows.length === 0
-    if (filter === "unknown") {
-      return row.rows.length > 0 && row.rows.every((action) => action.status === "needs-verification")
-    }
-    return row.rows.some((action) => action.status === "action-required")
-  })
-
-  const visibleClientRows = actionRows.clientRows.filter((action) => {
-    if (filter === "all") return true
-    if (filter === "healthy") return false
-    if (filter === "unknown") return action.status === "needs-verification"
-    return action.status === "action-required"
-  })
-
-  const hasConfirmed = actionRequired > 0
-  const hasVerification = verification > 0
-  const fullyLoaded = !loading && !error && !clientsUnavailable
-  const allClear = fullyLoaded && !hasConfirmed && !hasVerification && clearTrackers.length > 0
-  const noRows = visibleTrackerRows.length === 0 && visibleClientRows.length === 0
+  const complete = !loading && !error
+  const allClear = complete && !clientsUnavailable && rows.length === 0
 
   return (
     <section
@@ -282,99 +210,56 @@ export function AttentionNeeded({
       aria-labelledby="attention-needed-heading"
       data-attention-view
     >
-      <div className="flex flex-col gap-3 border-b border-border px-3 py-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2
-            id="attention-needed-heading"
-            className="font-cond text-lg font-semibold uppercase tracking-[0.08em] text-primary"
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-3 py-3">
+        <h2
+          id="attention-needed-heading"
+          className="font-cond text-lg font-semibold uppercase tracking-[0.08em] text-primary"
+        >
+          Attention needed
+        </h2>
+        {complete && (
+          <p
+            className={clsx("font-mono text-xs", allClear ? "text-success" : "text-secondary")}
+            aria-live="polite"
+            data-testid="attention-counts"
           >
-            Attention needed
-          </h2>
-          <p className="mt-1 font-mono text-xs text-tertiary" aria-live="polite" data-testid="attention-counts">
-            {actionRequired} action{actionRequired === 1 ? "" : "s"} required ·{" "}
-            {verification} need{verification === 1 ? "s" : ""} verification ·{" "}
-            {clearTrackers.length} clear
+            {countLine(fix, check)}
           </p>
-        </div>
-        <fieldset className="m-0 flex flex-wrap items-center gap-1 border-0 p-0">
-          <legend className="sr-only">Filter attention items</legend>
-          {(Object.keys(FILTER_LABELS) as AttentionFilter[]).map((key) => (
-            <FilterPill
-              key={key}
-              active={filter === key}
-              onClick={() => setFilter(key)}
-              size="sm"
-              aria-label={`${FILTER_LABELS[key]} (${filterCounts[key]})`}
-            >
-              {FILTER_LABELS[key]} <span className="text-muted">{filterCounts[key]}</span>
-            </FilterPill>
-          ))}
-        </fieldset>
+        )}
       </div>
 
       {loading ? (
-        <div className="px-3 py-6" role="status">
-          <p className="font-mono text-xs text-secondary">Checking tracker actions…</p>
-          <p className="mt-1 font-mono text-xs text-tertiary">
-            A clear result is withheld until data finishes loading.
-          </p>
-        </div>
+        <p className="px-3 py-4 font-mono text-xs text-secondary" role="status">
+          Loading…
+        </p>
       ) : error ? (
-        <div className="px-3 py-6" role="alert">
-          <p className="font-mono text-xs text-danger">Tracker actions could not be loaded.</p>
-          <p className="mt-1 font-mono text-xs text-tertiary">
-            No clear status is claimed while data is unavailable.
-          </p>
-        </div>
+        <p className="px-3 py-4 font-mono text-xs text-danger" role="alert">
+          Couldn't load the tracker checks. Reload the page to try again.
+        </p>
       ) : (
         <>
           {clientsUnavailable && (
             <p className="border-b border-border px-3 py-2 font-mono text-xs text-warn" role="status">
-              Client data is unavailable. Client actions may be missing, so this is not an all-clear.
+              Download client data didn't load, so this list may be incomplete.
             </p>
           )}
-          {hasVerification && !hasConfirmed && (
-            <p className="border-b border-border px-3 py-2 font-mono text-xs text-secondary" role="status">
-              No confirmed problems. {verification} item{verification === 1 ? "" : "s"} still{" "}
-              {verification === 1 ? "needs" : "need"} verification.
-            </p>
-          )}
-          {allClear && !clientsUnavailable && (
-            <p className="border-b border-border px-3 py-2 font-mono text-xs text-success" role="status">
-              All clear. No confirmed actions or verification items at {asOf}.
-            </p>
-          )}
-          {noRows ? (
-            <div className="px-3 py-6">
-              <p className="font-mono text-xs text-secondary">
-                {filter === "attention" && hasVerification
-                  ? "No confirmed actions in this filter."
-                  : filter === "attention"
-                    ? "No confirmed actions."
-                    : filter === "unknown"
-                      ? "No verification items."
-                      : filter === "healthy"
-                        ? "No clear accounts."
-                        : "No tracker actions."}
-              </p>
-            </div>
-          ) : (
-            <div>
-              {visibleTrackerRows.map(({ tracker, rows, primary }) =>
-                primary ? (
-                  <div key={`tracker:${tracker.id}`}>
-                    {rows.map((action) => (
-                      <ActionRow key={action.key} action={action} tracker={tracker} />
-                    ))}
-                  </div>
-                ) : (
-                  <ClearRow key={`tracker:${tracker.id}`} tracker={tracker} />
-                )
+          {rows.map((row) => (
+            <ActionRow key={row.action.key} row={row} asOf={asOf} />
+          ))}
+          {clearCount > 0 && (
+            <p
+              className={clsx(
+                "px-3 py-2.5 font-mono text-xs",
+                rows.length > 0 && "border-t border-border",
+                allClear ? "text-success" : "text-tertiary"
               )}
-              {visibleClientRows.map((action) => (
-                <ActionRow key={action.key} action={action} />
-              ))}
-            </div>
+              role={allClear ? "status" : undefined}
+              data-clear-count={clearCount}
+            >
+              {allClear
+                ? `All ${clearCount} ${clearCount === 1 ? "tracker" : "trackers"} clear as of ${formatDateTime(asOf)}.`
+                : `${rows.length > 0 ? "The other " : ""}${clearCount} ${clearCount === 1 ? "tracker is" : "trackers are"} clear.`}
+            </p>
           )}
         </>
       )}

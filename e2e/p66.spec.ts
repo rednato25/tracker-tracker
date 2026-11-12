@@ -165,7 +165,7 @@ test.describe("P66 what's next", () => {
       const vipRow = panel.locator("[data-whats-next-row]").filter({ hasText: "P66 FileList VIP" })
       await expect(vipRow).toHaveAttribute("data-whats-next-kind", "promotion-waiting")
       await expect(vipRow).toContainText(
-        "All checks met \u00b7 applies after VIP ends on 29 Dec 2026"
+        "All checks met. Applies after VIP ends on 29 Dec 2026."
       )
 
       const panelFollowsTotals = await page.evaluate(() => {

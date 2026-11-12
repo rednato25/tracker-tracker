@@ -337,8 +337,18 @@ function valuesFromLabels(
   return values
 }
 
+/** Stock UNIT3D prints the registration instant on `time.profile__registration`. */
+function registrationDate(doc: HtmlDocument): string | undefined {
+  const raw = doc.querySelector(".profile__registration")?.getAttribute("datetime")?.trim()
+  return raw?.match(/^(\d{4}-\d{2}-\d{2})(?:[ T]|$)/)?.[1]
+}
+
 export function parseUnit3dProfilePage(html: string, now: Date = new Date()): ProfileReadValues {
-  return valuesFromLabels(collectLabelValues(parseHtml(html)), false, now)
+  const doc = parseHtml(html)
+  const values = valuesFromLabels(collectLabelValues(doc), false, now)
+  const joinedAt = registrationDate(doc)
+  if (joinedAt) values.joinedAt = joinedAt
+  return values
 }
 
 function findLeafYouElements(doc: HtmlDocument): ReturnType<HtmlDocument["querySelectorAll"]> {

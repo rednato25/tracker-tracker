@@ -13,14 +13,14 @@ function currentLabel(summary: RankGoalSummary): string {
 
 function conditionList(label: string, items: RankGoalSummary["unmet"]): string[] {
   return items.slice(0, 2).map((item) => {
-    const remaining = item.remaining ? ` · ${item.remaining} remaining` : ""
+    const remaining = item.remaining ? `, ${item.remaining} to go` : ""
     return `${label}: ${item.label}${remaining}`
   })
 }
 
 function SummaryCard({ summary }: { summary: RankGoalSummary }) {
   const lines = [
-    ...conditionList("Unmet", summary.unmet),
+    ...conditionList("Not met", summary.unmet),
     ...conditionList("Needs checking", summary.unknown),
   ]
   const hiddenCount = Math.max(0, summary.unmet.length - 2) + Math.max(0, summary.unknown.length - 2)
@@ -37,36 +37,36 @@ function SummaryCard({ summary }: { summary: RankGoalSummary }) {
         </span>
         <Badge variant={summary.status === "goal" ? "accent" : "default"}>
           {summary.status === "unsupported"
-            ? "Unsupported"
+            ? "Rules text only"
             : summary.targetRank
               ? "Target set"
               : summary.automaticNextRank
-                ? "Automatic next"
+                ? "Next class"
                 : "No target"}
         </Badge>
       </div>
 
       <p className="font-mono text-xs text-secondary">
-        Current: {currentLabel(summary)}
-        {summary.targetRank ? ` · Target: ${summary.targetRank}` : ""}
+        {currentLabel(summary)}
+        {summary.targetRank ? `, target ${summary.targetRank}` : ""}
         {!summary.targetRank && summary.automaticNextRank
-          ? ` · Next rank (automatic): ${summary.automaticNextRank}`
+          ? `, next ${summary.automaticNextRank}`
           : ""}
       </p>
 
       {summary.status === "unsupported" ? (
-        <p className="font-mono text-xs text-warn">Structured progress unavailable.</p>
+        <p className="font-mono text-xs text-warn">Not checked automatically.</p>
       ) : summary.status === "no-target" && !summary.automaticNextRank ? (
         <p className="font-mono text-xs text-secondary">
           No target selected. Choose one on the tracker page.
         </p>
       ) : summary.metCount + summary.unmetCount + summary.unknownCount > 0 ? (
         <p className="font-mono text-xs text-tertiary">
-          {summary.metCount} met · {summary.unmetCount} unmet · {summary.unknownCount} need checking
+          {summary.metCount} met, {summary.unmetCount} not met, {summary.unknownCount} to check
         </p>
       ) : summary.status === "no-target" ? (
         <p className="font-mono text-xs text-tertiary">
-          Next rank is known, but no structured requirement is available.
+          The next class is known, but its rules are text only.
         </p>
       ) : null}
 

@@ -171,6 +171,6 @@ export function isManualValueStale(enteredAt: string, now: Date): boolean {
 export function formatManualAge(enteredAt: string, now: Date): string {
   const days = manualAgeDays(enteredAt, now)
   if (days === null) return "Entered by you"
-  if (days === 0) return "Entered by you · today"
-  return `Entered by you · ${days} day${days === 1 ? "" : "s"} ago`
+  if (days === 0) return "Entered by you today"
+  return `Entered by you ${days} day${days === 1 ? "" : "s"} ago`
 }

@@ -87,10 +87,10 @@ describe("TrackerChecksStrip tooltips", () => {
   it("names each passing check with its value and state", async () => {
     const checks = checksFor(tracker())
 
-    await expectTooltip(checks, 0, "Ratio 15.13 (minimum 1.0) \u00b7 OK")
-    await expectTooltip(checks, 1, "Buffer +84.63 GiB \u00b7 OK")
-    await expectTooltip(checks, 2, "Seeding 8 torrents \u00b7 OK")
-    await expectTooltip(checks, 3, "Login due in 60 days \u00b7 OK")
+    await expectTooltip(checks, 0, "OK: ratio 15.13, minimum 1.0")
+    await expectTooltip(checks, 1, "OK: buffer +84.63 GiB")
+    await expectTooltip(checks, 2, "OK: seeding 8 torrents")
+    await expectTooltip(checks, 3, "OK: login due in 60 days")
   })
 
   it("names the failure behind a critical check", async () => {
@@ -106,10 +106,10 @@ describe("TrackerChecksStrip tooltips", () => {
       })
     )
 
-    await expectTooltip(checks, 0, "Ratio 0.50 (minimum 1.0) \u00b7 Critical")
-    await expectTooltip(checks, 1, "Buffer -1.00 GiB \u00b7 Critical")
-    await expectTooltip(checks, 2, "Seeding 0 torrents \u00b7 Critical")
-    await expectTooltip(checks, 3, "Login overdue by 5 days \u00b7 Critical")
+    await expectTooltip(checks, 0, "Critical: ratio 0.50, minimum 1.0")
+    await expectTooltip(checks, 1, "Critical: buffer -1.00 GiB")
+    await expectTooltip(checks, 2, "Critical: seeding 0 torrents")
+    await expectTooltip(checks, 3, "Critical: login overdue by 5 days")
   })
 
   it("says why a gray segment is unknown", async () => {

@@ -131,7 +131,7 @@ function detailFor(input: {
     return `Not yet (${required}; you are ${input.currentClass})`
   }
   return input.currentClass
-    ? `Class check unavailable (${required}; ${input.currentClass} is not on the registry ladder)`
+    ? `Class check unavailable (${required}; ${input.currentClass} isn't in this tracker's class list)`
     : `Class check unavailable (${required}; no current class)`
 }
 

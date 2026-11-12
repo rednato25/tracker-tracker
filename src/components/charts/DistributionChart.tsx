@@ -41,7 +41,7 @@ function buildPieOption(
           chartDot(p.color) +
           `<span style="color:${CHART_THEME.textPrimary};font-weight:600;">${escHtml(p.name)}</span><br/>` +
           `<span style="color:${CHART_THEME.textSecondary};">${formatValue(p.value)}</span>` +
-          `<span style="color:${CHART_THEME.textTertiary};"> · ${p.percent}%</span>`
+          `<span style="color:${CHART_THEME.textTertiary};"> (${p.percent}%)</span>`
         )
       },
     }),

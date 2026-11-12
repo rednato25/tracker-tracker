@@ -180,7 +180,7 @@ test.describe("P52 rank goal and what's next", () => {
     }
   })
 
-  test("rank goal panel is compact, details are collapsed, and time-only waits are neutral", async ({
+  test("rank goal panel is compact, has no debug details, and time-only waits are neutral", async ({
     page,
   }) => {
     test.setTimeout(120_000)
@@ -192,14 +192,15 @@ test.describe("P52 rank goal and what's next", () => {
       const panel = page.locator("[data-rank-goal-panel]:visible").first()
       await expect(panel).toBeVisible({ timeout: 20_000 })
 
-      await expect(panel.getByText("Details")).toBeVisible()
+      await expect(panel.getByText("Details")).toHaveCount(0)
       await expect(panel.getByText("Evidence")).toHaveCount(0)
+      await expect(panel.locator("[data-rank-source]")).toContainText(/Ranks view/)
       await expect(panel.locator("[data-rank-condition]")).toHaveCount(3)
       const ageRow = panel
         .locator("[data-rank-condition]")
         .filter({ hasText: "At least 12 weeks registered" })
       await expect(ageRow).toContainText(/in 1[234] days/)
-      await expect(ageRow.locator("text=Unmet")).toHaveCount(0)
+      await expect(ageRow.locator("text=Not met")).toHaveCount(0)
       await expect(ageRow.locator("[data-bar-fill]")).toHaveClass(/bg-secondary/)
 
       const box = await panel.boundingBox()
@@ -237,7 +238,7 @@ test.describe("P52 rank goal and what's next", () => {
     for (const width of [1440, 390] as const) {
       await page.setViewportSize({ width, height: 1200 })
       await page.goto(`/trackers/${trackerId}`)
-      const progression = page.locator("[data-rank-progression]")
+      const progression = page.locator("#main-content [data-rank-progression]")
       await expect(progression).toBeVisible({ timeout: 20_000 })
 
       const hint = progression.locator("[data-rank-target-hint]")
@@ -299,17 +300,17 @@ test.describe("P52 rank goal and what's next", () => {
       await expect(rows).toHaveCount(4)
 
       await expect(rows.nth(0)).toHaveAttribute("data-whats-next-kind", "promotion-waiting")
-      await expect(rows.nth(0)).toContainText("P52 AllMet \u2192 Super User")
-      await expect(rows.nth(0)).toContainText("waiting for the site")
+      await expect(rows.nth(0)).toContainText("P52 AllMet: Super User")
+      await expect(rows.nth(0)).toContainText("Waiting for the site to promote.")
       await expect(rows.nth(1)).toHaveAttribute("data-whats-next-kind", "login")
       await expect(rows.nth(1)).toContainText("P52 LoginDue login")
       await expect(rows.nth(1)).toContainText("due in 10 days")
       await expect(rows.nth(2)).toHaveAttribute("data-whats-next-kind", "promotion-time")
-      await expect(rows.nth(2)).toContainText("P52 TimeOnly \u2192 Super User")
-      await expect(rows.nth(2)).toContainText("in 14 days of account age")
+      await expect(rows.nth(2)).toContainText("P52 TimeOnly: Super User")
+      await expect(rows.nth(2)).toContainText("in 14 days")
       await expect(rows.nth(3)).toHaveAttribute("data-whats-next-kind", "ratio")
       await expect(rows.nth(3)).toContainText("P52 RatioEdge ratio")
-      await expect(rows.nth(3)).toContainText("minimum 1.00")
+      await expect(rows.nth(3)).toContainText("close to the minimum of 1.00")
 
       const box = await panel.boundingBox()
       const visibleHeight = page.viewportSize()?.height ?? 0

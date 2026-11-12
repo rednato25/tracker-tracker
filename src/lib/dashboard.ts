@@ -171,7 +171,7 @@ export function computeAlerts(trackers: TrackerSummary[]): DashboardAlert[] {
         trackerId: tracker.id,
         trackerName: tracker.name,
         trackerColor: tracker.color,
-        message: "Polling paused after repeated failures. Check the API key and resume",
+        message: "Polling stopped after repeated failures. Check the login details, then resume.",
         timestamp: tracker.pausedAt ?? undefined,
         dismissible: false,
       })
@@ -234,7 +234,7 @@ export function computeAlerts(trackers: TrackerSummary[]): DashboardAlert[] {
         trackerId: tracker.id,
         trackerName: tracker.name,
         trackerColor: tracker.color,
-        message: "Seeding 0 torrents, no active seeds",
+        message: "Not seeding anything",
         timestamp: tracker.lastPolledAt ?? undefined,
         dismissible: true,
       })
@@ -313,7 +313,7 @@ export function detectRankChanges(
         trackerId: t.id,
         trackerName: t.name,
         trackerColor: t.color,
-        message: `Rank changed: ${previous.group} → ${current.group}`,
+        message: `Class changed from ${previous.group} to ${current.group}`,
         timestamp: current.polledAt,
         dismissible: true,
       })

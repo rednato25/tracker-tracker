@@ -2,7 +2,6 @@
 "use client"
 
 import { H2 } from "@typography"
-import dynamic from "next/dynamic"
 import { useState } from "react"
 import { ParallelTorrentsChart } from "@/components/charts/ParallelTorrentsChart"
 import { StorageSunburst } from "@/components/charts/StorageSunburst"
@@ -27,16 +26,10 @@ import {
   TorrentStatCards,
   UnsatisfiedTorrentsTable,
 } from "@/components/dashboard/torrents"
-import { useDashboardSettings } from "@/components/dashboard/useDashboardSettings"
 import { Card, LazySection, Notice, TorrentTabSkeleton } from "@/components/ui"
 import { XIcon } from "@/components/ui/Icons"
 import type { TrackerTorrentsData } from "@/hooks/useTrackerTorrents"
 import { formatSpeed, formatTimeAgo } from "@/lib/formatters"
-
-const TorrentAgeScatter3D = dynamic(
-  () => import("@/components/charts/TorrentAgeScatter3D").then((m) => m.TorrentAgeScatter3D),
-  { ssr: false }
-)
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,10 +55,6 @@ function TorrentsTab({
   trackerSeedingCount,
 }: TorrentsTabProps) {
   const [staleDismissed, setStaleDismissed] = useState(false)
-  const dashSettings = useDashboardSettings()
-  // Gate on `loaded` so echarts-gl is never mounted on the strength of the default for a
-  // user who has WebGL charts switched off. See AnalyticsSection for the same reasoning.
-  const use3DScatter = dashSettings.loaded && dashSettings.settings.enable3DCharts
 
   if (data.loading) {
     return <TorrentTabSkeleton />
@@ -292,18 +281,10 @@ function TorrentsTab({
         <TorrentAvgSeedTime torrents={data.torrents} accentColor={accentColor} />
       </Card>
 
-      {/* Torrent library scatter. 3D when WebGL charts are enabled, 2D otherwise */}
+      {/* Torrent library scatter */}
       <LazySection minHeight={400}>
-        <Card
-          title={use3DScatter ? "Torrent Library (3D Scatter)" : "Torrent Library (Scatter)"}
-          trackerColor={accentColor}
-          className="flex flex-col gap-4"
-        >
-          {use3DScatter ? (
-            <TorrentAgeScatter3D torrents={data.torrents} accentColor={accentColor} />
-          ) : (
-            <TorrentAgeScatter2D torrents={data.torrents} accentColor={accentColor} />
-          )}
+        <Card title="Torrent library" trackerColor={accentColor} className="flex flex-col gap-4">
+          <TorrentAgeScatter2D torrents={data.torrents} accentColor={accentColor} />
         </Card>
       </LazySection>
 

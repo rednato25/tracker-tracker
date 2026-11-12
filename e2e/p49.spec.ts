@@ -94,7 +94,10 @@ test.describe.serial("P49 profile reading", () => {
       const height = width === 1440 ? 1400 : 1200
       await page.setViewportSize({ width, height })
       await page.goto(`/trackers/${trackerId}`)
-      await expect(page.locator("[data-rank-goal-panel]")).toBeVisible({ timeout: 20_000 })
+      // Scoped to the main content: a streamed copy can exist for a moment.
+      await expect(page.locator("#main-content [data-rank-goal-panel]")).toBeVisible({
+        timeout: 20_000,
+      })
       if (width === 390) {
         await page.waitForFunction(() => document.querySelector('[data-mobile="true"]') !== null)
       }

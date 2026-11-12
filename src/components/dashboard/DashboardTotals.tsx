@@ -59,15 +59,15 @@ export function DashboardTotals({
     staleCount > 0 ? `${staleCount} stale` : null,
     unverifiedCount > 0 ? `${unverifiedCount} unverified` : null,
     verificationCount > 0
-      ? `${verificationCount} ${verificationCount === 1 ? "needs" : "need"} verification`
+      ? `${verificationCount} to check`
       : null,
   ].filter((part): part is string => part !== null)
-  const coverageText = coverageParts.join(" \u00b7 ") || "coverage incomplete"
-  const actionLabel = `${attentionCount} ${attentionCount === 1 ? "action" : "actions"}`
+  const coverageText = coverageParts.join(", ") || "some data missing"
+  const actionLabel = `${attentionCount} to fix`
   const attentionMeta = coverageIncomplete
-    ? `${actionLabel} \u00b7 ${coverageText}`
+    ? `${actionLabel}, ${coverageText}`
     : attentionCount > 0
-      ? "Action required"
+      ? "Needs action"
       : "All clear"
   const attentionTone = attentionCount > 0 ? "danger" : coverageIncomplete ? "warn" : "success"
   const noTrackers = included.length === 0
@@ -101,7 +101,7 @@ export function DashboardTotals({
           value={aggregateStats.avgRatio === null ? "\u2014" : formatRatioDisplay(aggregateStats.avgRatio)}
           color={CHART_THEME.ratio}
           data={series.ratio.filter((value): value is number => value !== null)}
-          meta="Fleet total"
+          meta="All trackers"
           unknown={aggregateStats.avgRatio === null}
         />
         <Tile

@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import { AttentionNeeded } from "@/components/dashboard/AttentionNeeded"
 import type { TrackerAction } from "@/lib/actions"
@@ -77,29 +76,70 @@ function renderView(overrides: {
 }
 
 describe("AttentionNeeded", () => {
-  it("separates confirmed actions from verification items and clear accounts", async () => {
-    const user = userEvent.setup()
+  it("lists open items together and counts clear trackers instead of listing them", () => {
     renderView()
 
-    expect(screen.getByTestId("attention-counts").textContent).toMatch(/2 actions required/)
-    expect(screen.getByTestId("attention-counts").textContent).toMatch(/1 needs verification/)
-    expect(screen.getByTestId("attention-counts").textContent).toMatch(/1 clear/)
+    expect(screen.getByTestId("attention-counts")).toHaveTextContent("2 to fix, 1 to check")
     expect(screen.getByText(confirmed.reason)).toBeInTheDocument()
-    expect(screen.queryByText(verification.reason)).not.toBeInTheDocument()
+    expect(screen.getByText(verification.reason)).toBeInTheDocument()
+    expect(screen.getByText(client.reason)).toBeInTheDocument()
+    expect(screen.getAllByText("Needs action")).toHaveLength(2)
+    expect(screen.getByText("Needs checking")).toBeInTheDocument()
+    // Gamma has nothing open: counted, not listed.
     expect(screen.queryByText("Gamma")).not.toBeInTheDocument()
+    expect(screen.getByText("The other 1 tracker is clear.")).toBeInTheDocument()
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
 
-    await user.click(screen.getByRole("button", { name: /Unknown/ }))
-    expect(screen.getByText(verification.reason)).toBeInTheDocument()
-    expect(screen.queryByText(confirmed.reason)).not.toBeInTheDocument()
+  it("shows no internal keys, types or source fields", () => {
+    const { container } = renderView()
+    const text = container.textContent ?? ""
+    for (const internal of [
+      "ratio-below-account",
+      "stale-data",
+      "priority",
+      "freshness",
+      "snapshot",
+      "Evidence",
+    ]) {
+      expect(text).not.toContain(internal)
+    }
+  })
 
-    await user.click(screen.getByRole("button", { name: /Healthy/ }))
-    expect(screen.getByText("Gamma")).toBeInTheDocument()
-    expect(screen.getByText(/No action or verification item is recorded/)).toBeInTheDocument()
+  it("says how old an item is, measured from the page time", () => {
+    renderView({ actions: [verification] })
+    // AS_OF is 12:00, the observation 08:00.
+    expect(screen.getByText("Updated 4h ago")).toBeInTheDocument()
+    expect(screen.queryByText(/2026-10-24T08:00:00/)).not.toBeInTheDocument()
+  })
 
-    await user.click(screen.getByRole("button", { name: /^All/ }))
-    expect(screen.getByText(confirmed.reason)).toBeInTheDocument()
-    expect(screen.getByText(verification.reason)).toBeInTheDocument()
-    expect(screen.getByText("Gamma")).toBeInTheDocument()
+  it("folds the same item on several trackers into one row naming them all", () => {
+    const stale = (id: number, name: string) =>
+      action({ ...verification, key: `stale-data:tracker:${id}`, trackerId: id, trackerName: name })
+    const { container } = render(
+      <AttentionNeeded
+        trackers={[tracker(1, "Alpha"), tracker(2, "Beta"), tracker(3, "Gamma"), tracker(4, "Delta")]}
+        actions={[stale(1, "Alpha"), stale(2, "Beta"), stale(3, "Gamma")]}
+        asOf={AS_OF}
+      />
+    )
+    expect(container.querySelectorAll("[data-action-key]")).toHaveLength(1)
+    expect(screen.getAllByText(verification.reason)).toHaveLength(1)
+    for (const [name, id] of [["Alpha", 1], ["Beta", 2], ["Gamma", 3]] as const) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", `/trackers/${id}`)
+    }
+    expect(screen.getByTestId("attention-counts")).toHaveTextContent("3 to check")
+    expect(screen.getByText("The other 1 tracker is clear.")).toBeInTheDocument()
+    // Each tracker's own poll time differs, so a folded row shows none.
+    expect(screen.queryByText(/^Updated/)).not.toBeInTheDocument()
+  })
+
+  it("shows a proven deadline instead of the observation time", () => {
+    renderView({
+      actions: [action({ ...verification, key: "login-due:tracker:2", deadline: "2026-10-25" })],
+    })
+    expect(screen.getByText("Due 2026-10-25")).toBeInTheDocument()
+    expect(screen.queryByText(/^Updated/)).not.toBeInTheDocument()
   })
 
   it("puts trackers with a login deadline before other attention rows", () => {
@@ -140,91 +180,43 @@ describe("AttentionNeeded", () => {
     ).toHaveAttribute("href", "/trackers/1")
   })
 
-  it("withholds all-clear while loading, on error, or with unavailable client data", () => {
+  it("claims all clear only once the data is complete", () => {
     const { rerender } = renderView({ loading: true, actions: [] })
-    expect(screen.getByText(/Checking tracker actions/)).toBeInTheDocument()
-    expect(screen.queryByText(/All clear/)).not.toBeInTheDocument()
+    expect(screen.getByText("Loading…")).toBeInTheDocument()
+    expect(screen.queryByText(/clear/)).not.toBeInTheDocument()
+
+    rerender(<AttentionNeeded trackers={[tracker(3, "Gamma")]} actions={[]} error asOf={AS_OF} />)
+    expect(screen.getByText(/Couldn't load/)).toBeInTheDocument()
+    expect(screen.queryByText(/clear/)).not.toBeInTheDocument()
 
     rerender(
-      <AttentionNeeded
-        trackers={[tracker(3, "Gamma")]}
-        actions={[]}
-        error
-        asOf={AS_OF}
-      />
+      <AttentionNeeded trackers={[tracker(3, "Gamma")]} actions={[]} clientsUnavailable asOf={AS_OF} />
     )
-    expect(screen.getByText(/could not be loaded/)).toBeInTheDocument()
-    expect(screen.queryByText(/All clear/)).not.toBeInTheDocument()
+    expect(screen.getByText(/may be incomplete/)).toBeInTheDocument()
+    expect(screen.queryByText(/^All 1 tracker clear/)).not.toBeInTheDocument()
 
-    rerender(
-      <AttentionNeeded
-        trackers={[tracker(3, "Gamma")]}
-        actions={[]}
-        clientsUnavailable
-        asOf={AS_OF}
-      />
-    )
-    expect(screen.getByText(/Client data is unavailable/)).toBeInTheDocument()
-    expect(screen.queryByText(/All clear/)).not.toBeInTheDocument()
+    rerender(<AttentionNeeded trackers={[tracker(3, "Gamma")]} actions={[]} asOf={AS_OF} />)
+    expect(screen.getByText(`All 1 tracker clear as of ${formatDateTime(AS_OF)}.`)).toBeInTheDocument()
+    expect(screen.getByTestId("attention-counts")).toHaveTextContent("Nothing to fix")
   })
 
-  it("says verification remains instead of all-clear", () => {
-    renderView({ actions: [verification] })
-    expect(screen.getByText(/No confirmed problems/)).toBeInTheDocument()
-    expect(screen.getByText(/still need/)).toBeInTheDocument()
-    expect(screen.queryByText(/All clear/)).not.toBeInTheDocument()
-  })
-
-  it("shows all-clear only after the data is complete and no conditions remain", () => {
-    const { rerender } = renderView({ actions: [confirmed] })
-    expect(screen.queryByText(/All clear/)).not.toBeInTheDocument()
-    rerender(
+  it("leaves archived trackers out of the clear count", () => {
+    render(
       <AttentionNeeded
-        trackers={[tracker(1, "Alpha")]}
+        trackers={[tracker(1, "Alpha"), tracker(4, "Archived", false)]}
         actions={[]}
         asOf={AS_OF}
       />
     )
-    expect(screen.getByText(/All clear/)).toBeInTheDocument()
-  })
-
-  it("formats the evidence timestamp with the app date format", async () => {
-    const user = userEvent.setup()
-    renderView({ actions: [verification] })
-    await user.click(screen.getByRole("button", { name: /Unknown/ }))
-    await user.click(screen.getByText("Evidence and source"))
-    expect(
-      screen.getByText(formatDateTime("2026-10-24T08:00:00.000Z"))
-    ).toBeInTheDocument()
-    expect(screen.queryByText("2026-10-24T08:00:00.000Z")).not.toBeInTheDocument()
-  })
-  it("shows evidence through progressive disclosure", async () => {
-    const user = userEvent.setup()
-    renderView()
-    const details = screen.getAllByText("Evidence and source")[0]
-    await user.click(details)
-    expect(screen.getByText(/ratio-below-account:tracker:1/)).toBeInTheDocument()
-    expect(screen.getAllByText(/manual/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/^All 1 tracker clear/)).toBeInTheDocument()
   })
 
   it("removes resolved rows and brings them back on recomputation", () => {
     const { rerender } = renderView({ actions: [confirmed] })
     expect(screen.getByText(confirmed.reason)).toBeInTheDocument()
-    rerender(
-      <AttentionNeeded
-        trackers={[tracker(1, "Alpha")]}
-        actions={[]}
-        asOf={AS_OF}
-      />
-    )
+    rerender(<AttentionNeeded trackers={[tracker(1, "Alpha")]} actions={[]} asOf={AS_OF} />)
     expect(screen.queryByText(confirmed.reason)).not.toBeInTheDocument()
-    rerender(
-      <AttentionNeeded
-        trackers={[tracker(1, "Alpha")]}
-        actions={[confirmed]}
-        asOf={AS_OF}
-      />
-    )
+    rerender(<AttentionNeeded trackers={[tracker(1, "Alpha")]} actions={[confirmed]} asOf={AS_OF} />)
     expect(screen.getByText(confirmed.reason)).toBeInTheDocument()
   })
 

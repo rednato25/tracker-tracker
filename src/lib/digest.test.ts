@@ -112,8 +112,8 @@ describe("digest rendering", () => {
       ],
       { dateKey: "2026-10-24", timezone: "UTC", emptyBehavior: "skip" }
     )
-    expect(text).toContain("ACTION REQUIRED — Alpha")
-    expect(text).toContain("NEEDS VERIFICATION — Beta")
+    expect(text).toContain("Alpha: needs action")
+    expect(text).toContain("Beta: needs checking")
     expect(text).not.toContain("resolved")
   })
 
@@ -123,7 +123,7 @@ describe("digest rendering", () => {
     ).toBeNull()
     expect(
       buildDigest([], { dateKey: "2026-10-24", timezone: "UTC", emptyBehavior: "send" })
-    ).toContain("No active actions")
+    ).toContain("Nothing to do")
   })
 
   it("keeps the ntfy byte limit for emoji and Romanian diacritics", () => {

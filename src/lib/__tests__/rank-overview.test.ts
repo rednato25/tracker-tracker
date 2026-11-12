@@ -224,7 +224,7 @@ describe("buildRankOverviews", () => {
           latestStats: { ...BASE_STATS, group: "User" },
         }),
       ],
-      { "2": { targetRank: "Ancient One" } },
+      { "2": { targetRank: "Survivor" } },
       NOW
     )
     const uploads = overview.conditions.find((condition) => condition.metric === "uploads")

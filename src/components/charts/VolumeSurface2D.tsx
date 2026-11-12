@@ -1,15 +1,8 @@
 // src/components/charts/VolumeSurface2D.tsx
 //
-// 2D substitute for VolumeSurface3D, rendered when the dashboard's
-// "Enable 3D charts" setting is off. Same props and same data source.
-// tracker on the Y axis, date bucket on the X axis, upload volume as
-// color intensity instead of bar height.
-//
-// The bucketing helpers come from ./lib/chart-transforms, not from
-// VolumeSurface3D: that module has a top-level `import "echarts-gl"` side
-// effect, and this component is statically imported, so importing from it
-// would pull WebGL into the main bundle. Exactly what this chart exists to
-// avoid. chart-transforms must stay free of echarts-gl for the same reason.
+// Upload landscape as a heatmap: tracker on the Y axis, date bucket on the X
+// axis, upload volume as color intensity. The bucketing helpers come from
+// ./lib/chart-transforms.
 
 "use client"
 
@@ -81,7 +74,7 @@ function buildVolumeSurface2DOption(grid: GridResult): EChartsOption {
         const tracker = grid.trackerNames[ti] ?? "?"
         const header =
           `<div style="font-family:var(--font-mono),monospace;font-size:${CHART_THEME.fontSizeDense}px;` +
-          `color:${CHART_THEME.textTertiary};margin-bottom:4px;">${escHtml(tracker)} · ${escHtml(bucketLabel)}</div>`
+          `color:${CHART_THEME.textTertiary};margin-bottom:4px;">${escHtml(tracker)}, ${escHtml(bucketLabel)}</div>`
         if (val <= 0) {
           return `${header}<span style="color:${CHART_THEME.textTertiary};">No upload recorded</span>`
         }

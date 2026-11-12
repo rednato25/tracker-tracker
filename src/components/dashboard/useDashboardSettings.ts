@@ -20,8 +20,8 @@ export const DASHBOARD_SETTINGS_CHANGED_EVENT = "tracker-tracker:dashboard-setti
 
 function useDashboardSettings() {
   const [settings, setSettings] = useState<DashboardSettings>(DEFAULTS)
-  // Callers that must not act on a default before the real value arrives (mounting a
-  // WebGL chart for someone who turned WebGL off) gate on this instead of reading `settings`
+  // Callers that must not act on a default before the real value arrives (showing a panel
+  // the user turned off, for example) gate on this instead of reading `settings`
   // straight away. It flips only once server-confirmed settings have been applied, never on
   // a failed fetch, where `settings` is still DEFAULTS and acting on them would do the exact
   // thing the caller is trying to avoid.

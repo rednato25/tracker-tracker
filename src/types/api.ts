@@ -145,8 +145,6 @@ export interface DashboardSettings {
    * card records today's login. The 10-second Undo stays available on the card.
    */
   markLoginOnSiteOpen: boolean
-  /** When false, WebGL charts are swapped for 2D substitutes. Defaults to true. */
-  enable3DCharts: boolean
   /**
    * Hatched background bands marking ranges where nothing was being collected.
    * On by default: a flat region with no explanation is the failure this
@@ -227,7 +225,6 @@ export const DASHBOARD_SETTINGS_DEFAULTS: DashboardSettings = {
   showTodayAtAGlance: true,
   showWhatsNext: true,
   markLoginOnSiteOpen: true,
-  enable3DCharts: true,
   showOutageBands: true,
   rankManualValues: {},
 }

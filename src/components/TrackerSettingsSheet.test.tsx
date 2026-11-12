@@ -454,13 +454,15 @@ describe("TrackerSettingsSheet registry data", () => {
     expect(loginHint()).toBeInTheDocument()
   })
 
-  it("lists the adapters that detect a last-access value", () => {
+  it("says whether this tracker reports its own logins", () => {
     renderSheet()
     expect(
       screen.getByText(
         (_content, element) =>
           element?.tagName === "P" &&
-          Boolean(element.textContent?.includes("Detected automatically for AvistaZ, CarPT"))
+          Boolean(
+            element.textContent?.includes("This tracker doesn't report logins, so mark them here.")
+          )
       )
     ).toBeInTheDocument()
   })

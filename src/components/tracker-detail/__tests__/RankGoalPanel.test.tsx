@@ -4,13 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { RankGoalPanel } from "@/components/tracker-detail/RankGoalPanel"
 import { dreadvault } from "@/data/trackers/dreadvault"
 import { torrentleech } from "@/data/trackers/torrentleech"
-import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
+import type { PlatformMeta, TrackerLatestStats } from "@/types/api"
 
 const GiB = 1024 ** 3
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 const RECENT_POLL = new Date(Date.now() - HOUR_MS).toISOString()
-const EARLIER_POLL = new Date(Date.now() - 25 * DAY_MS).toISOString()
 const JOINED_AT = new Date(Date.now() - 16 * DAY_MS).toISOString()
 
 const stats: TrackerLatestStats = {
@@ -31,46 +30,6 @@ const stats: TrackerLatestStats = {
   bufferBytes: "0",
 }
 
-const snapshots = [
-  {
-    polledAt: EARLIER_POLL,
-    uploadedBytes: String(100 * GiB),
-    downloadedBytes: "0",
-    bufferBytes: "0",
-    ratio: 1.2,
-    ratioIsInfinite: false,
-    seedingCount: 4,
-    leechingCount: 0,
-    seedbonus: null,
-    hitAndRuns: 0,
-    requiredRatio: 1,
-    warned: false,
-    freeleechTokens: null,
-    shareScore: null,
-    username: "test",
-    group: "Registered",
-    isManual: false,
-  },
-  {
-    polledAt: RECENT_POLL,
-    uploadedBytes: String(250 * GiB),
-    downloadedBytes: "0",
-    bufferBytes: "0",
-    ratio: 1.2,
-    ratioIsInfinite: false,
-    seedingCount: 4,
-    leechingCount: 0,
-    seedbonus: null,
-    hitAndRuns: 0,
-    requiredRatio: 1,
-    warned: false,
-    freeleechTokens: null,
-    shareScore: null,
-    username: "test",
-    group: "Registered",
-    isManual: false,
-  },
-] as Snapshot[]
 
 function renderPanel(
   registrySlug = "torrentleech",
@@ -87,7 +46,6 @@ function renderPanel(
       userClasses={torrentleech.userClasses}
       currentRank="Registered"
       stats={statsOverride}
-      snapshots={snapshots}
       joinedAt={joinedAt}
       lastPolledAt={polledAt}
       accentColor="#2ecc71"
@@ -126,7 +84,6 @@ describe("RankGoalPanel", () => {
         userClasses={torrentleech.userClasses}
         currentRank="Registered"
         stats={stats}
-        snapshots={snapshots}
         joinedAt={JOINED_AT}
         lastPolledAt={RECENT_POLL}
         accentColor="#2ecc71"
@@ -143,7 +100,7 @@ describe("RankGoalPanel", () => {
     )
 
     await waitFor(() => expect(screen.getByText("Session expired.")).toBeInTheDocument())
-    expect(screen.getByText(/last values are stale/)).toBeInTheDocument()
+    expect(screen.getByText(/last values are out of date/)).toBeInTheDocument()
   })
 
   it("tells the user to turn on profile reading when the ladder needs seed values", async () => {
@@ -155,7 +112,6 @@ describe("RankGoalPanel", () => {
         userClasses={dreadvault.userClasses}
         currentRank={null}
         stats={stats}
-        snapshots={snapshots}
         joinedAt={JOINED_AT}
         lastPolledAt={RECENT_POLL}
         accentColor="#2ecc71"
@@ -180,7 +136,6 @@ describe("RankGoalPanel", () => {
         userClasses={dreadvault.userClasses}
         currentRank={null}
         stats={stats}
-        snapshots={snapshots}
         joinedAt={JOINED_AT}
         lastPolledAt={RECENT_POLL}
         accentColor="#2ecc71"
@@ -201,12 +156,12 @@ describe("RankGoalPanel", () => {
     expect(document.querySelector("[data-profile-hint]")).toBeNull()
   })
 
-  it("shows verified values and evaluates the conservative upload unit", async () => {
+  it("shows verified values and never estimates an upload date from the trend", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     renderPanel()
     await waitFor(() => expect(screen.getByText(/3 of \d+/)).toBeInTheDocument())
-    expect(screen.getByText("conservative unit reading")).toBeInTheDocument()
-    expect(screen.getByText(/Upload estimate:/)).not.toHaveTextContent(/unit unresolved/)
+    // DESIGN.md: no ETA from transfer trends.
+    expect(document.body.textContent ?? "").not.toMatch(/estimate|trend/i)
     expect(document.querySelectorAll("[data-rank-condition-bar]").length).toBeGreaterThan(0)
     expect(document.querySelectorAll("[data-threshold-tick]").length).toBeGreaterThan(0)
   })
@@ -227,9 +182,10 @@ describe("RankGoalPanel", () => {
 
   it("shows an explicit no-target state and a non-persisted next-rank suggestion", async () => {
     renderPanel()
-    expect(await screen.findByText(/No saved target for this tracker/)).toBeInTheDocument()
+    expect(
+      await screen.findByRole("button", { name: "Use Power User as target" })
+    ).toBeInTheDocument()
     expect(screen.getByLabelText("Target rank")).toHaveValue("")
-    expect(screen.getByText(/Suggested next rank: Power User \(not saved\)/)).toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalledWith(
       "/api/settings",
       expect.objectContaining({ method: "PATCH" })
@@ -275,7 +231,7 @@ describe("RankGoalPanel", () => {
     rankGoalsResponse = JSON.stringify({ "99": { targetRank: "Power User" } })
     renderPanel()
     await waitFor(() => expect(screen.getByLabelText("Target rank")).toHaveValue(""))
-    expect(screen.getByText(/No saved target for this tracker/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Use .* as target$/ })).toBeInTheDocument()
   })
 
   it("keeps a stale ratio unknown without blaming the unresolved upload unit", async () => {
@@ -287,14 +243,17 @@ describe("RankGoalPanel", () => {
     if (!row) return
     expect(within(row).getByText("Unknown")).toBeInTheDocument()
     expect(within(row).queryByText(/stale/i)).not.toBeInTheDocument()
-    expect(document.querySelector("[data-rank-details]")).toHaveTextContent(/freshness=stale/i)
   })
 
-  it("formats threshold and source dates instead of printing ISO strings", async () => {
+  it("states in one line whether the rules were checked, with a formatted date", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
-    renderPanel()
-    const threshold = await screen.findByText(/Account-age threshold date:/)
-    expect(threshold.textContent).toMatch(/[A-Z][a-z]{2} \d{1,2}, \d{4}/)
+    const { container } = renderPanel()
+    await waitFor(() => expect(container.querySelector("[data-rank-source]")).not.toBeNull())
+    const source = container.querySelector("[data-rank-source]")?.textContent ?? ""
+    expect(source).toMatch(
+      /Rules checked against the site on [A-Z][a-z]{2} \d{1,2}, \d{4}\.|These rules have not been checked against the site yet\./
+    )
+    expect(source).toMatch(/Ranks view/)
     expect(document.body.textContent ?? "").not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)
   })
   it("writes the strict requirement and draws a shortfall marker at equality", async () => {
@@ -309,13 +268,13 @@ describe("RankGoalPanel", () => {
     expect(row.querySelector("[data-bar-fill]")?.getAttribute("style")).toContain("width: 0%")
   })
 
-  it("renders one compact row per condition with one Details toggle", async () => {
+  it("renders one compact row per condition and no debug details", async () => {
     rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Power User" } })
     const { container } = renderPanel()
     await waitFor(() => expect(container.querySelectorAll("[data-rank-condition]")).toHaveLength(3))
-    expect(screen.getAllByText("Details")).toHaveLength(1)
-    expect(screen.queryByText("Evidence")).not.toBeInTheDocument()
-    expect(container.querySelector("[data-rank-details]")).toHaveTextContent(/source=/)
+    expect(screen.queryByText("Details")).not.toBeInTheDocument()
+    expect(container.querySelector("[data-rank-details]")).toBeNull()
+    expect(container.textContent ?? "").not.toMatch(/source=|freshness=|unresolved:/)
     for (const row of container.querySelectorAll("[data-rank-condition]")) {
       expect(row.querySelector("[data-rank-condition-bar]")).not.toBeNull()
       expect(row.textContent).toMatch(/ \/ /)
@@ -364,7 +323,7 @@ describe("RankGoalPanel", () => {
     expect(row).not.toBeNull()
     if (!row) return
     expect(row).toHaveAttribute("data-time-only", "false")
-    const status = within(row).getByText("Unmet")
+    const status = within(row).getByText("Not met")
     expect(status.className).toContain("text-danger")
     expect(row.querySelector("[data-bar-fill]")?.className).toContain("bg-danger")
   })
@@ -380,7 +339,6 @@ describe("RankGoalPanel", () => {
         userClasses={dreadvault.userClasses}
         currentRank="User"
         stats={{ ...stats, group: "User" }}
-        snapshots={snapshots}
         joinedAt={JOINED_AT}
         lastPolledAt={RECENT_POLL}
         accentColor="#2ecc71"
@@ -401,6 +359,6 @@ describe("RankGoalPanel", () => {
     expect(
       within(row).getByLabelText("Value for Seed size ≥ 5 TiB on DreadVault")
     ).toBeInTheDocument()
-    expect(container.querySelector("[data-rank-details]")).not.toBeNull()
+    expect(container.querySelector("[data-rank-details]")).toBeNull()
   })
 })

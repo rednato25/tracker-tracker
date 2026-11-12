@@ -426,7 +426,6 @@ export function DashboardClient({
               trackerSeries={trackerSeries}
               trackers={data.trackers}
               chartPrefs={chartPrefs}
-              dashSettings={dashSettings}
             />
           </div>
         </div>

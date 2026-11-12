@@ -10,9 +10,7 @@ import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatDate, formatRatio, formatSeedSize, formatSeedTime } from "@/lib/formatters"
 import { ladderUsesProfileMetrics, profileReadingHint } from "@/lib/profile-reading/hint"
-import { formatProfileReadAge } from "@/lib/profile-reading/labels"
 import { readProfileReadRecord } from "@/lib/profile-reading/types"
-import { estimateUploadCompletion } from "@/lib/rank-eta"
 import {
   evaluateRankGoal,
   evaluateRequirementGroup,
@@ -26,14 +24,10 @@ import {
   rankDefinitionForSlug,
 } from "@/lib/rank-goals"
 import { buildRankLadder } from "@/lib/rank-ladder"
-import {
-  apiDoesNotReportMessage,
-  type RankManualValue,
-  type RankManualValues,
-} from "@/lib/rank-manual-values"
+import type { RankManualValue, RankManualValues } from "@/lib/rank-manual-values"
 import { buildRankObservations } from "@/lib/rank-observations"
 import { requirementBarGeometry, strictThresholdRequirement } from "@/lib/requirement-bar"
-import type { PlatformMeta, Snapshot, TrackerLatestStats } from "@/types/api"
+import type { PlatformMeta, TrackerLatestStats } from "@/types/api"
 
 interface RankGoalPanelProps {
   trackerId: number
@@ -43,7 +37,6 @@ interface RankGoalPanelProps {
   rankPaths?: TrackerRankPath[]
   currentRank: string | null
   stats: TrackerLatestStats | null
-  snapshots: Snapshot[]
   joinedAt: string | null
   lastPolledAt: string | null
   accentColor: string
@@ -78,18 +71,6 @@ function findUploadCondition(
   return null
 }
 
-function findAgeCondition(goal: RankRequirementGroup): RankNumericCondition | null {
-  for (const condition of goal.conditions) {
-    if ("conditions" in condition) {
-      const found = findAgeCondition(condition)
-      if (found) return found
-    } else if (condition.kind === "numeric" && condition.metric === "accountAgeDays") {
-      return condition
-    }
-  }
-  return null
-}
-
 function formatValue(metric: RankMetric | undefined, value: number | null): string {
   if (value === null) return "Unknown"
   if (metric === "uploadedBytes" || metric === "downloadedBytes" || metric === "bufferBytes") {
@@ -103,7 +84,7 @@ function formatValue(metric: RankMetric | undefined, value: number | null): stri
 }
 
 function statusLabel(status: "met" | "unmet" | "unknown"): string {
-  return status === "met" ? "Met" : status === "unmet" ? "Unmet" : "Unknown"
+  return status === "met" ? "Met" : status === "unmet" ? "Not met" : "Unknown"
 }
 
 function ConditionRow({
@@ -264,7 +245,6 @@ export function RankGoalPanel({
   rankPaths,
   currentRank,
   stats,
-  snapshots,
   joinedAt,
   lastPolledAt,
   accentColor,
@@ -366,22 +346,7 @@ export function RankGoalPanel({
   const suggestion = !target && now ? evaluateRankGoal(goalInput).nextRank : null
   const conditions = groupConditions(result)
   const upload = goal ? findUploadCondition(goal) : null
-  const age = goal ? findAgeCondition(goal) : null
   const uploadUnresolved = upload?.verification === "unresolved"
-  const uploadEstimate =
-    goal && upload && !uploadUnresolved && stats && now
-      ? estimateUploadCompletion(
-          snapshots,
-          upload.requiredValue,
-          stats.uploadedBytes === null ? Number.NaN : Number(stats.uploadedBytes),
-          now
-        )
-      : null
-  const joined = joinedAt ? new Date(joinedAt) : null
-  const ageDate =
-    age && joined && now && !Number.isNaN(joined.getTime())
-      ? formatDate(new Date(joined.getTime() + age.requiredValue * 86_400_000))
-      : null
   const counts = result?.progress ?? { met: 0, unmet: 0, unknown: 0, total: 0 }
   const eligible = result?.status === "met"
 
@@ -511,8 +476,8 @@ export function RankGoalPanel({
 
       {profileStopped && (
         <p className="mt-3 font-mono text-4xs text-warn" data-profile-read-stopped>
-          <span className="font-semibold">{profileStopped}.</span> Profile reading is stopped for
-          this tracker; the last values are stale. Save a new cookie in Settings to retry.
+          <span className="font-semibold">{profileStopped}.</span> Profile reading stopped, so
+          the last values are out of date. Save a new cookie in this tracker's settings.
         </p>
       )}
       {!profileStopped && profileHint && (
@@ -523,27 +488,18 @@ export function RankGoalPanel({
 
       {!loaded || !now ? (
         <p className="mt-3 font-mono text-xs text-secondary" role="status">
-          Loading rank evidence…
+          Loading…
         </p>
       ) : !target ? (
         <div className="mt-3 flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="default">Choose a target</Badge>
-            <span className="font-mono text-4xs text-secondary">
-              No saved target for this tracker.
-            </span>
-          </div>
           {targetInvalid && savedTarget && (
             <p className="font-mono text-4xs text-warn">
-              Saved target "{savedTarget}" is no longer available in this ladder. Clear it or
-              choose another.
+              Your saved target "{savedTarget}" is no longer in this tracker's classes. Clear it
+              or choose another.
             </p>
           )}
           {suggestion && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-4xs text-secondary">
-                Suggested next rank: {suggestion} (not saved).
-              </span>
               <Button
                 size="sm"
                 variant="secondary"
@@ -553,25 +509,23 @@ export function RankGoalPanel({
               />
             </div>
           )}
-          <p className="font-mono text-4xs text-tertiary">
-            Selecting a suggestion saves it explicitly; no automatic target is persisted.
-          </p>
         </div>
       ) : (
         <>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Badge variant={eligible ? "success" : "default"}>
-              {counts.met} of {counts.total} · {counts.unmet} unmet · {counts.unknown} unknown
+              {counts.met} of {counts.total} met
+              {counts.unknown > 0 ? `, ${counts.unknown} unknown` : ""}
             </Badge>
             {eligible && (
               <span className="font-mono text-4xs text-secondary">
-                Thresholds met; promotion still depends on tracker/manual rules.
+                All met. The site promotes on its own schedule.
               </span>
             )}
           </div>
           {uploadUnresolved && (
             <p className="mt-2 font-mono text-4xs text-warn">
-              Upload requirement is unknown: the official source does not establish binary vs decimal units.
+              Upload target unclear: the rules don't say whether GB means GB or GiB.
             </p>
           )}
           <ul className="mt-2">
@@ -597,81 +551,15 @@ export function RankGoalPanel({
               />
             ))}
           </ul>
-          <details className="mt-3 border-t border-border pt-2" data-rank-details>
-            <summary className="cursor-pointer font-mono text-2xs text-tertiary">Details</summary>
-            <div className="mt-2 flex flex-col gap-3">
-              <ul className="flex flex-col gap-2">
-                {conditions.map((condition) => {
-                  const observed =
-                    condition.observedValue !== null &&
-                    condition.source !== "manual" &&
-                    condition.manual !== true
-                  return (
-                    <li
-                      key={`detail-${condition.id}`}
-                      className="flex flex-col gap-0.5 font-mono text-2xs text-tertiary"
-                      data-rank-condition-detail
-                    >
-                      <span className="text-secondary">{condition.label}</span>
-                      <span>
-                        source={condition.source} Â· freshness={condition.freshness}
-                        {condition.source === "profile" && condition.observedAt
-                          ? ` Â· ${formatProfileReadAge(condition.observedAt, now ?? new Date(0))}`
-                          : ""}
-                      </span>
-                      {condition.unitReading === "conservative" && (
-                        <span>conservative unit reading</span>
-                      )}
-                      {condition.status === "unknown" && (
-                        <span className="text-warn">
-                          {observed
-                            ? (condition.reason ?? "The observation needs checking.")
-                            : condition.metric
-                              ? apiDoesNotReportMessage(trackerName, condition.metric)
-                              : (condition.reason ??
-                                "This condition cannot be read from the tracker's API.")}
-                        </span>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-              <div className="grid gap-2 font-mono text-2xs text-secondary sm:grid-cols-2">
-                <p>Account-age threshold date: {ageDate ?? "unavailable"}</p>
-                <p>
-                  Upload estimate:{" "}
-                  {uploadUnresolved
-                    ? "unavailable â€” unit unresolved"
-                    : uploadEstimate
-                      ? `${uploadEstimate.date} Â· ${uploadEstimate.daysRemaining.toFixed(0)} days at the recent ${uploadEstimate.basisDays}-day trend`
-                      : "unavailable â€” insufficient, stale or non-positive history"}
-                </p>
-              </div>
-              <p className="font-mono text-2xs text-muted">
-                An upload estimate is not a promotion date; bonuses, donations and manual rules can
-                change it.
-              </p>
-              <div className="space-y-1 font-mono text-2xs text-tertiary">
-                <p>{pilot.source.title}</p>
-                <p>
-                  accessed{" "}
-                  {pilot.source.accessedAt
-                    ? formatDate(pilot.source.accessedAt)
-                    : "not available"}{" "}
-                  Â· page modified{" "}
-                  {pilot.source.sourceLastModified
-                    ? formatDate(pilot.source.sourceLastModified)
-                    : "unknown"}
-                </p>
-                <p>{pilot.source.note}</p>
-                {pilot.unresolved.map((item) => (
-                  <p key={item} className="text-warn">
-                    unresolved: {item}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </details>
+          <p
+            className="mt-3 border-t border-border pt-2 font-mono text-2xs text-tertiary"
+            data-rank-source
+          >
+            {pilot.source.verification === "published" && pilot.source.accessedAt
+              ? `Rules checked against the site on ${formatDate(pilot.source.accessedAt)}.`
+              : "These rules have not been checked against the site yet."}{" "}
+            Sources and your own checks are in the dashboard's Ranks view.
+          </p>
           <Notice message={error} />
         </>
       )}

@@ -109,7 +109,7 @@ describe("RankOverview", () => {
     )
 
     expect(screen.getByText("6.00 TiB")).toBeInTheDocument()
-    expect(screen.getByText("from profile page · 3 hours ago")).toBeInTheDocument()
+    expect(screen.getByText("from your profile page, 3 hours ago")).toBeInTheDocument()
   })
 
   it("shows the registry source, verification status and a link to the tracker site", () => {
@@ -118,7 +118,7 @@ describe("RankOverview", () => {
       "href",
       "https://www.torrentleech.org"
     )
-    expect(screen.getByText("Published source")).toBeInTheDocument()
+    expect(screen.getByText("Checked against the site")).toBeInTheDocument()
     expect(screen.getByText("TorrentLeech Wiki - User Classes")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /user_classes/ })).toHaveAttribute(
       "target",
@@ -178,7 +178,7 @@ describe("RankOverview", () => {
     )
     expect(screen.getByText("2.00 TiB")).toBeInTheDocument()
     expect(screen.getByText("Manual value")).toBeInTheDocument()
-    expect(screen.getByText(/Entered by you · 2 days ago/)).toBeInTheDocument()
+    expect(screen.getByText(/Entered by you 2 days ago/)).toBeInTheDocument()
     await user.click(screen.getAllByRole("button", { name: "Clear" })[0])
     expect(onClearManualValue).toHaveBeenCalledWith(1, "uploadedBytes")
   })
@@ -199,10 +199,10 @@ describe("RankOverview", () => {
     )
     expect(screen.getByText("Next automatic class: Harmonia")).toBeInTheDocument()
     expect(
-      screen.getByText("No structured conditions are published for this class.")
+      screen.getByText("No requirements listed for this class.")
     ).toBeInTheDocument()
-    expect(screen.getByText(/Registry text:/)).toBeInTheDocument()
-    expect(screen.getByText("No registry source")).toBeInTheDocument()
+    expect(screen.getByText(/Tracker rules:/)).toBeInTheDocument()
+    expect(screen.getByText("No source")).toBeInTheDocument()
   })
 
   it("counts rank rule coverage and filters trackers by it", async () => {
@@ -222,11 +222,11 @@ describe("RankOverview", () => {
         savedGoals: {},
       })
     )
-    expect(screen.getByText(/3 trackers · 1 checked automatically/)).toBeInTheDocument()
+    expect(screen.getByText(/3 trackers, 1 tracked automatically/)).toBeInTheDocument()
     const pill = (value: string) =>
       document.querySelector(`[data-rank-coverage-filter="${value}"]`) as HTMLElement
     expect(pill("all")).toHaveTextContent("All 3")
-    expect(pill("structured")).toHaveTextContent("Structured 1")
+    expect(pill("structured")).toHaveTextContent("Automatic 1")
     expect(pill("text")).toHaveTextContent("Text only 1")
     expect(pill("none")).toHaveTextContent("No ladder 1")
     expect(pill("all")).toHaveAttribute("aria-pressed", "true")
@@ -287,9 +287,9 @@ describe("RankOverview", () => {
       })
     )
     const summary = document.querySelector("[data-rank-check-summary]")
-    expect(summary?.textContent).toContain("Checked 1")
-    expect(summary?.textContent).toContain("Wrong 1")
-    expect(summary?.textContent).toContain("Not checked 1")
+    expect(summary?.textContent).toContain("0 match the site")
+    expect(summary?.textContent).toContain("1 wrong")
+    expect(summary?.textContent).toContain("1 not checked")
   })
 
   it("saves a verdict with an optional note and the date checked", async () => {

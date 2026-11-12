@@ -504,7 +504,7 @@ function ClientCard({ client, linkedTrackers, onSaved, onRemove, onSetDefault }:
                 variant="primary"
                 onClick={() => saveUrlPath(newUrlPath.trim())}
                 disabled={!newUrlPath.trim() || savingUrlPath}
-                text={savingUrlPath ? "Saving..." : "Save Path"}
+                text={savingUrlPath ? "Saving…" : "Save path"}
               />
               <button
                 type="button"
@@ -529,7 +529,7 @@ function ClientCard({ client, linkedTrackers, onSaved, onRemove, onSetDefault }:
                   onConfirm={() => saveUrlPath("")}
                   variant="ghost"
                   busy={savingUrlPath}
-                  busyLabel="Removing..."
+                  busyLabel="Removing…"
                 />
               </div>
             ) : (
@@ -676,7 +676,7 @@ function ClientCard({ client, linkedTrackers, onSaved, onRemove, onSetDefault }:
           disabled={connectionStatus === "pending"}
         >
           {connectionStatus === "pending"
-            ? "Testing..."
+            ? "Testing…"
             : connectionStatus === "success"
               ? "Connected"
               : connectionStatus === "failed"
@@ -811,7 +811,7 @@ function AddClientForm({
           size="sm"
           onClick={handleSubmit}
           disabled={!canSubmit || saving}
-          text={saving ? "Creating..." : "Create Client"}
+          text={saving ? "Creating…" : "Create client"}
         />
         <Button size="sm" variant="ghost" onClick={onCancel} text="Cancel" />
       </div>

@@ -83,7 +83,7 @@ describe("buildRankLadder", () => {
     expect(ladder?.appointedClass).toBeNull()
     expect(ladder?.shownClass).toBe("User")
     expect(ladder?.unknownClass).toBe(false)
-    expect(ladder?.summary).toBe("User, rank 1 of 2")
+    expect(ladder?.summary).toBe("User, 1 of 2")
   })
 
   it("carries the requirements text onto each rung", () => {
@@ -94,7 +94,7 @@ describe("buildRankLadder", () => {
   it("uses the registry casing for the shown class, not the tracker's", () => {
     const ladder = buildRankLadder(classes, "power user")
     expect(ladder?.shownClass).toBe("Power User")
-    expect(ladder?.summary).toBe("Power User, rank 2 of 2")
+    expect(ladder?.summary).toBe("Power User, 2 of 2")
   })
 
   it("renders a class above the ladder as a full stack under its own name", () => {
@@ -102,7 +102,7 @@ describe("buildRankLadder", () => {
     expect(ladder?.currentIndex).toBe(1)
     expect(ladder?.appointedClass).toBe("VIP")
     expect(ladder?.shownClass).toBe("VIP")
-    expect(ladder?.summary).toBe("VIP, above the 2-rank ladder")
+    expect(ladder?.summary).toBe("VIP, above the 2 earned classes")
   })
 
   it("renders a class below the ladder as an empty stack under its own name", () => {
@@ -111,7 +111,7 @@ describe("buildRankLadder", () => {
     expect(ladder?.appointedClass).toBeNull()
     expect(ladder?.shownClass).toBe("Leech")
     expect(ladder?.unknownClass).toBe(false)
-    expect(ladder?.summary).toBe("Leech, rank 0 of 2")
+    expect(ladder?.summary).toBe("Leech, 0 of 2")
   })
 
   it("flags a class the registry does not list and keeps the reported name", () => {
@@ -119,7 +119,7 @@ describe("buildRankLadder", () => {
     expect(ladder?.currentIndex).toBe(-1)
     expect(ladder?.shownClass).toBe("Elite")
     expect(ladder?.unknownClass).toBe(true)
-    expect(ladder?.summary).toBe("Elite, not on the registry ladder")
+    expect(ladder?.summary).toBe("Elite, not in this tracker's class list")
   })
 
   it("treats a missing class as not reported, not unknown", () => {
@@ -127,7 +127,7 @@ describe("buildRankLadder", () => {
     expect(ladder?.currentIndex).toBe(-1)
     expect(ladder?.shownClass).toBeNull()
     expect(ladder?.unknownClass).toBe(false)
-    expect(ladder?.summary).toBe("class not reported, rank 0 of 2")
+    expect(ladder?.summary).toBe("class not reported, 0 of 2")
   })
 
   it("passes a redacted class through for masking without calling it unknown", () => {
@@ -136,7 +136,7 @@ describe("buildRankLadder", () => {
     expect(ladder?.currentIndex).toBe(-1)
     expect(ladder?.shownClass).toBe(masked)
     expect(ladder?.unknownClass).toBe(false)
-    expect(ladder?.summary).toBe("class redacted, rank 0 of 2")
+    expect(ladder?.summary).toBe("class hidden, 0 of 2")
   })
 
   it("returns null when the tracker has no earned classes at all", () => {
@@ -198,7 +198,7 @@ describe("buildRankForest", () => {
     expect(forest?.sharedCurrentIndex).toBe(1)
     expect(forest?.activePathId).toBeNull()
     expect(forest?.paths.map((path) => path.currentIndex)).toEqual([-1, -1])
-    expect(forest?.summary).toBe("Explorer, shared rank 2 of 2, 2 paths onward")
+    expect(forest?.summary).toBe("Explorer, 2 of 2, then 2 paths")
   })
 
   it("tracks a member on one branch and leaves the other unlit", () => {
@@ -207,7 +207,7 @@ describe("buildRankForest", () => {
     expect(forest?.activePathId).toBe("upload")
     expect(forest?.paths.find((path) => path.id === "upload")?.currentIndex).toBe(0)
     expect(forest?.paths.find((path) => path.id === "seedsize")?.currentIndex).toBe(-1)
-    expect(forest?.summary).toBe("Bulker, Upload path rank 1 of 3")
+    expect(forest?.summary).toBe("Bulker, 1 of 3 on Upload path")
   })
 
   it("lights both branches for an above class", () => {
@@ -219,7 +219,7 @@ describe("buildRankForest", () => {
   it("flags a class on an undeclared path", () => {
     const forest = buildRankForest(forestClasses, paths, "Ghost")
     expect(forest?.unknownClass).toBe(true)
-    expect(forest?.summary).toBe("Ghost, not on the registry ladder")
+    expect(forest?.summary).toBe("Ghost, not in this tracker's class list")
   })
 
   it("sees automatic classes beyond a branching shared prefix", () => {

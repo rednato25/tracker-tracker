@@ -1,6 +1,6 @@
 // src/components/charts/VolumeSurface2D.test.tsx
 //
-// Issue #38: the 2D substitute rendered when "Enable 3D charts" is off.
+// Issue #38: the upload landscape heatmap, which replaced the 3D bar chart.
 // The point of the component is that it draws the same data without ever
 // asking for a WebGL context, so the option shape is what these tests guard.
 
@@ -54,7 +54,7 @@ function lastOption(): HeatmapOption {
 }
 
 describe("VolumeSurface2D", () => {
-  it("shows the same empty state as the 3D chart when no tracker has two snapshots", () => {
+  it("shows the empty state when no tracker has two snapshots", () => {
     optionSpy.mockClear()
     const single = [
       {

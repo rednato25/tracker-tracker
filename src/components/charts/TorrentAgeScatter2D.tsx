@@ -1,14 +1,7 @@
 // src/components/charts/TorrentAgeScatter2D.tsx
 //
-// 2D substitute for TorrentAgeScatter3D, rendered when the dashboard's
-// "Enable 3D charts" setting is off. Keeps both view presets and all four
-// data dimensions: the 3D depth axis (size) becomes symbol size, and the
-// fourth dimension keeps its visualMap color scale.
-//
-// The presets are duplicated from TorrentAgeScatter3D rather than imported:
-// that module has a top-level `import "echarts-gl"` side effect, and this
-// component is statically imported, so importing from it would pull WebGL
-// into the main bundle. Exactly what this chart exists to avoid.
+// Torrent library scatter with two view presets. Four data dimensions: two
+// axes, symbol size for torrent size, and a visualMap color scale.
 //
 // Functions: computeDotSize, buildScatter2DOption, TorrentAgeScatter2D
 
@@ -30,7 +23,7 @@ interface Scatter2DViewConfig {
   description: string
   x: { idx: number; name: string }
   y: { idx: number; name: string }
-  /** Dimension mapped to symbol size: the 3D chart's depth axis. */
+  /** Dimension mapped to symbol size. */
   size: { idx: number; name: string }
   color: { idx: number; name: string; max: number }
 }
@@ -39,7 +32,7 @@ const SCATTER2D_VIEWS: Record<Scatter2DView, Scatter2DViewConfig> = {
   "age-seed": {
     label: "Age vs Seed Time",
     description:
-      "Age = time since added · Seed Time = cumulative active seeding · Gap reveals downtime · Color = ratio · Dot size = size",
+      "Each dot is a torrent: age across, seed time up, color is ratio, size is file size. A gap below the diagonal means time not seeding.",
     x: { idx: 0, name: "Age (days)" },
     y: { idx: 1, name: "Seed Time (days)" },
     size: { idx: 2, name: "Size (GiB)" },
@@ -48,7 +41,7 @@ const SCATTER2D_VIEWS: Record<Scatter2DView, Scatter2DViewConfig> = {
   "seed-ratio": {
     label: "Seed Time vs Ratio",
     description:
-      "Are you getting ratio returns for your seeding investment? · Color = age · Dot size = size",
+      "Each dot is a torrent: seed time across, ratio up, color is age, size is file size.",
     x: { idx: 1, name: "Seed Time (days)" },
     y: { idx: 3, name: "Ratio" },
     size: { idx: 2, name: "Size (GiB)" },

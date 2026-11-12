@@ -46,7 +46,7 @@ function buildAgeBandHeatmapOption(trackers: AgeBandEntry[]): EChartsOption {
         const pct = tracker.total > 0 ? ((count / tracker.total) * 100).toFixed(1) : "0"
         return (
           `<div style="font-family:var(--font-mono),monospace;font-size:${CHART_THEME.fontSizeDense}px;` +
-          `color:${CHART_THEME.textTertiary};margin-bottom:4px;">${escHtml(tracker.name)} · ${escHtml(bucket)}</div>` +
+          `color:${CHART_THEME.textTertiary};margin-bottom:4px;">${escHtml(tracker.name)}, ${escHtml(bucket)}</div>` +
           chartTooltipRow(tracker.color, "Torrents", String(count)) +
           "<br/>" +
           chartTooltipRow(tracker.color, "Share", `${pct}%`)

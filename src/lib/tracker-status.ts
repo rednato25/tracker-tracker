@@ -37,7 +37,7 @@ const HEALTH_META: Record<TrackerHealth, HealthMeta> = {
     // Named for what the model actually measures, which is ratio against the
     // tracker's requirement. It never sees the buffer, so neither label nor
     // description may claim one. The amber badge already signals watch.
-    label: "Above Min",
+    label: "Above minimum",
     description: "Ratio above the required ratio, below double it",
     pulseDot: "warning",
     badge: "warn",
@@ -46,7 +46,7 @@ const HEALTH_META: Record<TrackerHealth, HealthMeta> = {
   // already does: this table distinguishes states by label and description
   // rather than giving every id its own color.
   "no-seeds": {
-    label: "No Seeds",
+    label: "No seeds",
     description: "Zero active seeds, nothing is uploading",
     // Its own dot status, not "critical": dot-only surfaces expose the status
     // name to screen readers, and "Critical" would describe the wrong problem.
@@ -67,7 +67,7 @@ const HEALTH_META: Record<TrackerHealth, HealthMeta> = {
   },
   "paused-user": {
     label: "Paused",
-    description: "Automated polling paused by user",
+    description: "You paused polling",
     pulseDot: "paused-user",
     badge: "warn",
   },

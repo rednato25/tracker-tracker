@@ -81,8 +81,8 @@ function promotionRows(
         trackerId: summary.trackerId,
         trackerName: summary.trackerName,
         color: summary.color,
-        title: `${summary.trackerName} \u2192 ${rank}`,
-        detail: `in ${daysText(days)} of account age`,
+        title: `${summary.trackerName}: ${rank}`,
+        detail: `in ${daysText(days)}`,
         href: summary.linkHref,
         dueInDays: days,
         margin: 0,
@@ -107,11 +107,11 @@ function promotionRows(
         trackerId: summary.trackerId,
         trackerName: summary.trackerName,
         color: summary.color,
-        title: `${summary.trackerName} \u2192 ${rank}`,
+        title: `${summary.trackerName}: ${rank}`,
         detail:
           classEnd && classEndText
-            ? `All checks met \u00b7 applies after ${classEnd.className} ends on ${classEndText}`
-            : "All checks met \u00b7 waiting for the site",
+            ? `All checks met. Applies after ${classEnd.className} ends on ${classEndText}.`
+            : "All checks met. Waiting for the site to promote.",
         href: summary.linkHref,
         dueInDays: 0,
         margin: 0,
@@ -168,7 +168,7 @@ function ratioRows(trackers: TrackerSummary[], now: Date): WhatsNextItem[] {
       trackerName: tracker.name,
       color: tracker.color,
       title: `${tracker.name} ratio`,
-      detail: `${formatRatio(stats.ratio)} \u00b7 minimum ${formatRatio(threshold)} (within 10%)`,
+      detail: `${formatRatio(stats.ratio)}, close to the minimum of ${formatRatio(threshold)}`,
       href: `/trackers/${tracker.id}`,
       dueInDays: null,
       margin,

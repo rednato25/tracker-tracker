@@ -251,7 +251,7 @@ export function ProxySection({ initialProxy, trackers }: ProxySectionProps) {
               onClick={handleTestProxy}
             >
               {proxyTestStatus === "pending"
-                ? "Testing..."
+                ? "Testing…"
                 : proxyTestStatus === "success"
                   ? "Connected"
                   : proxyTestStatus === "failed"

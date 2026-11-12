@@ -62,7 +62,7 @@ describe("DashboardTotals", () => {
     expect(screen.getByText("Overall ratio")).toBeInTheDocument()
     expect(screen.getByText("Need attention")).toBeInTheDocument()
     expect(screen.getByText("1")).toBeInTheDocument()
-    expect(screen.getByText("Action required")).toBeInTheDocument()
+    expect(screen.getByText("Needs action")).toBeInTheDocument()
     expect(
       container
         .querySelector('[data-total-tile="need-attention"]')
@@ -86,7 +86,7 @@ describe("DashboardTotals", () => {
     expect(screen.getByText("0")).toBeInTheDocument()
     expect(screen.queryByText("00")).not.toBeInTheDocument()
     expect(screen.queryByText("All clear")).not.toBeInTheDocument()
-    expect(screen.getByText("0 actions \u00b7 1 offline")).toBeInTheDocument()
+    expect(screen.getByText("0 to fix, 1 offline")).toBeInTheDocument()
     expect(
       container
         .querySelector('[data-total-tile="need-attention"]')
@@ -116,7 +116,7 @@ describe("DashboardTotals", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("0 actions \u00b7 1 offline \u00b7 1 stale")).toBeInTheDocument()
+    expect(screen.getByText("0 to fix, 1 offline, 1 stale")).toBeInTheDocument()
     expect(
       container
         .querySelector('[data-total-tile="need-attention"]')
@@ -136,7 +136,7 @@ describe("DashboardTotals", () => {
         now={NOW}
       />
     )
-    expect(screen.getByText("0 actions \u00b7 1 needs verification")).toBeInTheDocument()
+    expect(screen.getByText("0 to fix, 1 to check")).toBeInTheDocument()
     expect(
       container
         .querySelector('[data-total-tile="need-attention"]')

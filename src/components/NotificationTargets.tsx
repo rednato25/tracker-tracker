@@ -515,7 +515,7 @@ function NotificationCard({ target, onSaved, onRemove }: NotificationCardProps) 
           disabled={webhookStatus === "pending" || !target.hasConfig}
         >
           {webhookStatus === "pending"
-            ? "Sending..."
+            ? "Sending…"
             : webhookStatus === "success"
               ? "Sent"
               : webhookStatus === "failed"
@@ -705,7 +705,7 @@ function AddNotificationForm({
           size="sm"
           onClick={handleSubmit}
           disabled={!canSubmit || saving}
-          text={saving ? "Creating..." : "Create Target"}
+          text={saving ? "Creating…" : "Create target"}
         />
         <Button size="sm" variant="ghost" onClick={onCancel} text="Cancel" />
       </div>

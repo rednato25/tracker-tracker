@@ -58,7 +58,7 @@ test.describe.serial("a tracker added from the registry", () => {
     // The dialog's content is in the DOM while closed; scope to the open one.
     const dialog = page.locator("dialog[open]")
     await dialog.getByRole("combobox").click()
-    await dialog.getByPlaceholder("Search trackers...").fill(entry.name)
+    await dialog.getByPlaceholder("Search trackers…").fill(entry.name)
     await dialog.getByRole("option", { name: entry.name }).click()
     await dialog.getByLabel("API Token").fill(E2E_TRACKER.token)
 
@@ -67,7 +67,7 @@ test.describe.serial("a tracker added from the registry", () => {
         (r) => r.method() === "POST" && r.url().endsWith("/api/trackers/test-connection")
       ),
       page.waitForRequest((r) => r.method() === "POST" && r.url().endsWith("/api/trackers")),
-      dialog.getByRole("button", { name: "Add Tracker" }).click(),
+      dialog.getByRole("button", { name: "Add tracker" }).click(),
     ])
 
     expect(testRequest.postDataJSON()).toMatchObject({ slug: E2E_TRACKER.slug })

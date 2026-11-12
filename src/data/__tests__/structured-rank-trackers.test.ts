@@ -352,7 +352,8 @@ describe("P35 structured rank requirements", () => {
       accountRatio: 0.4,
     })
     expect(shadow.status).toBe("unknown")
-    expect(shadow.progress).toEqual({ met: 2, unmet: 0, unknown: 2, total: 4 })
+    // Seed size, average seed time and the 5-upload minimum from the Groups page.
+    expect(shadow.progress).toEqual({ met: 2, unmet: 0, unknown: 3, total: 5 })
   })
 
   it("SeedCore: PowerUser meets numeric thresholds and Seeder needs seed checks", () => {

@@ -34,7 +34,7 @@ function buildFleetCrossSeedOption(
           chartDot(p.color) +
           `<span style="color:${CHART_THEME.textPrimary};font-weight:600;">${escHtml(p.name)}</span><br/>` +
           `<span style="color:${CHART_THEME.textSecondary};">${formatCount(p.value)} torrents</span>` +
-          `<span style="color:${CHART_THEME.textTertiary};"> · ${p.percent}%</span>`
+          `<span style="color:${CHART_THEME.textTertiary};"> (${p.percent}%)</span>`
         )
       },
     }),

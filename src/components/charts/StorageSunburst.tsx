@@ -108,7 +108,7 @@ function buildOption(
             `${swatch}` +
             `<span style="color:${CHART_THEME.textPrimary};font-weight:600;">${escHtml(p.name)}</span><br/>` +
             `<span style="color:${CHART_THEME.textSecondary};">${formatBytesNum(p.value)}</span>` +
-            `<span style="color:${CHART_THEME.textTertiary};font-size:${CHART_THEME.fontSizeCompact}px;"> · ${childCount} torrent${childCount !== 1 ? "s" : ""}</span>`
+            `<span style="color:${CHART_THEME.textTertiary};font-size:${CHART_THEME.fontSizeCompact}px;">, ${childCount} torrent${childCount !== 1 ? "s" : ""}</span>`
           )
         }
 

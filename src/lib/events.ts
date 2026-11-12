@@ -137,7 +137,7 @@ function sanitizeLogDetail(line: PinoLine): string | null {
     parts.push(sanitizeNetworkError(line.msg, redactIps(line.msg)))
   }
 
-  const raw = parts.length > 0 ? parts.join(" · ") : null
+  const raw = parts.length > 0 ? parts.join(", ") : null
   return raw ? redactIps(raw) : null
 }
 
@@ -210,7 +210,7 @@ export function snapshotToEvent(row: SnapshotRow): SystemEvent {
     title: "Poll succeeded",
     detail: [row.trackerName, `↑ ${upGib} GiB`, `↓ ${downGib} GiB`, ratioStr]
       .filter(Boolean)
-      .join(" · "),
+      .join(", "),
     trackerId: row.trackerId,
     trackerName: row.trackerName ?? null,
     source: "db",
@@ -237,7 +237,7 @@ export function backupToEvent(row: BackupRow): SystemEvent {
     title: `Backup ${row.status}`,
     detail: [row.frequency, row.encrypted ? "encrypted" : null, formatBytesNum(row.sizeBytes)]
       .filter(Boolean)
-      .join(" · "),
+      .join(", "),
     trackerId: null,
     trackerName: null,
     source: "db",

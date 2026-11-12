@@ -327,7 +327,7 @@ export function EventsSection() {
                         </span>
                         <span className="text-secondary shrink-0">{event.title}</span>
                         {hasDetail && !isExpanded && !hasBatch && (
-                          <span className="text-tertiary truncate">· {event.detail}</span>
+                          <span className="text-tertiary truncate">{event.detail}</span>
                         )}
                       </div>
                       {isExpanded && !hasBatch && event.detail && (

@@ -66,7 +66,7 @@ describe("buildRankOverviewMarkdown", () => {
     })
 
     expect(markdown).toContain("# Rank overview")
-    expect(markdown).toContain("Checked 1 \u00b7 Wrong 1 \u00b7 Not checked 0")
+    expect(markdown).toContain("My checks: 0 match the site, 1 wrong, 0 not checked")
     expect(markdown).toContain("## TorrentLeech")
     expect(markdown).toContain("- Current class: Power User")
     expect(markdown).toContain("- Target: Super User (saved target)")
@@ -78,7 +78,7 @@ describe("buildRankOverviewMarkdown", () => {
     )
     expect(markdown).toContain("TorrentLeech Wiki - User Classes")
     expect(markdown).toContain("https://wiki.torrentleech.org/doku.php/user_classes")
-    expect(markdown).toContain("Registry text: 12 weeks registered")
+    expect(markdown).toContain("Tracker rules: 12 weeks registered")
   })
 
   it("escapes pipes and backslashes so the table cannot break", () => {
@@ -109,8 +109,8 @@ describe("buildRankOverviewMarkdown", () => {
       NOW
     )
     const markdown = buildRankOverviewMarkdown(overviews, {})
-    expect(markdown).toContain("Checked 0 \u00b7 Wrong 0 \u00b7 Not checked 1")
+    expect(markdown).toContain("My checks: 0 match the site, 0 wrong, 1 not checked")
     expect(markdown).toContain("- My check: Not checked yet")
-    expect(markdown).toContain("- Conditions: No structured conditions published")
+    expect(markdown).toContain("- Conditions: none listed")
   })
 })

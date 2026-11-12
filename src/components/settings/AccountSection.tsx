@@ -131,7 +131,7 @@ export function AccountSection({ initialUsername }: AccountSectionProps) {
             size="sm"
             onClick={handleSaveUsername}
             disabled={savingUsername || username === savedUsername}
-            text={savingUsername ? "Saving…" : "Save Username"}
+            text={savingUsername ? "Saving…" : "Save username"}
           />
         </div>
       </div>

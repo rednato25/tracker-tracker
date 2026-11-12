@@ -111,7 +111,8 @@ describe("registry-backed TorrentLeech rank requirements", () => {
     const mam = rankDefinitionForSlug("myanonamouse")
     const red = rankDefinitionForSlug("redacted")
     expect(mam?.goals["Power User"]).toBeDefined()
-    expect(mam?.goals["Power User"]?.conditions.some((c) => "unitReading" in c)).toBe(true)
+    // The FAQ states 25 GiB explicitly, so no conservative unit reading is needed.
+    expect(mam?.goals["Power User"]?.conditions.some((c) => "unitReading" in c)).toBe(false)
     expect(red?.goals["Member"]).toBeDefined()
     expect(red?.goals["Torrent Master"]).toBeDefined()
   })

@@ -42,7 +42,7 @@ interface RankOverviewProps {
 }
 
 function statusLabel(status: RankGoalStatus): string {
-  return status === "met" ? "Met" : status === "unmet" ? "Unmet" : "Unknown"
+  return status === "met" ? "Met" : status === "unmet" ? "Not met" : "Unknown"
 }
 
 function statusTone(status: RankGoalStatus): string {
@@ -60,9 +60,9 @@ function targetLabel(overview: RankOverviewData): string {
 }
 
 function verificationLabel(verification: RankOverviewData["source"]["verification"]): string {
-  if (verification === "published") return "Published source"
-  if (verification === "unresolved") return "Source unresolved"
-  return "No registry source"
+  if (verification === "published") return "Checked against the site"
+  if (verification === "unresolved") return "Not checked against the site"
+  return "No source"
 }
 
 function Field({
@@ -480,10 +480,7 @@ function TrackerRankSection({
         </div>
       ) : (
         <div className="border-t border-border pt-2 text-xs text-secondary">
-          <p>No structured conditions are published for this class.</p>
-          {overview.ladderState === "top" && (
-            <p className="mt-1 text-tertiary">Highest automatic class reached.</p>
-          )}
+          <p>No requirements listed for this class.</p>
         </div>
       )}
 
@@ -491,9 +488,9 @@ function TrackerRankSection({
 
       <div className="flex flex-col gap-1 border-t border-border pt-2 text-xs" data-rank-source>
         <p className="text-secondary">
-          Registry text:{" "}
+          Tracker rules:{" "}
           <span className="text-tertiary">
-            {overview.ruleText ?? "No class requirement text in the registry."}
+            {overview.ruleText ?? "No rules text."}
           </span>
         </p>
         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-tertiary">
@@ -523,14 +520,14 @@ type CoverageFilter = "all" | RankCoverage
 
 const COVERAGE_FILTERS: { value: CoverageFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "structured", label: "Structured" },
+  { value: "structured", label: "Automatic" },
   { value: "text", label: "Text only" },
   { value: "none", label: "No ladder" },
 ]
 
 const COVERAGE_EMPTY: Record<RankCoverage, string> = {
-  structured: "No active tracker has structured rank rules.",
-  text: "No active tracker has a rule-text-only ladder.",
+  structured: "No tracker is tracked automatically yet.",
+  text: "No tracker has rules text only.",
   none: "Every active tracker has a class ladder.",
 }
 
@@ -576,7 +573,7 @@ export function RankOverview({
   if (overviews.length === 0) {
     return (
       <p className="border border-border bg-raised p-4 text-sm text-secondary">
-        No rank ladders are available for the active trackers.
+        No class ladders for your active trackers.
       </p>
     )
   }
@@ -589,8 +586,8 @@ export function RankOverview({
         </h2>
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-mono text-xs text-tertiary">
-            {overviews.length} {overviews.length === 1 ? "tracker" : "trackers"}{" "}
-            {"\u00b7"} {coverageCounts.structured} checked automatically
+            {overviews.length} {overviews.length === 1 ? "tracker" : "trackers"},{" "}
+            {coverageCounts.structured} tracked automatically
           </p>
           <Button
             size="sm"
@@ -616,15 +613,14 @@ export function RankOverview({
         data-rank-check-summary
       >
         <span className="text-secondary">
-          Checked <span className="text-primary">{checkedCount}</span>
+          Your checks: <span className="text-primary">{checkedCount - wrongCount}</span> match the
+          site,
         </span>
-        <span className="text-tertiary">{"\u00b7"}</span>
         <span className={wrongCount > 0 ? "text-danger" : "text-secondary"}>
-          Wrong <span className="text-primary">{wrongCount}</span>
+          <span className="text-primary">{wrongCount}</span> wrong,
         </span>
-        <span className="text-tertiary">{"\u00b7"}</span>
         <span className="text-secondary">
-          Not checked <span className="text-primary">{notCheckedCount}</span>
+          <span className="text-primary">{notCheckedCount}</span> not checked
         </span>
       </div>
       <fieldset

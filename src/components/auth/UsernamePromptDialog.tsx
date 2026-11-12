@@ -135,7 +135,7 @@ function UsernamePromptDialog({ onSaved, onSkipped }: UsernamePromptDialogProps)
 
         <Subtext>
           Letters, numbers, underscores, hyphens, dots and spaces. Once set, this username is
-          <strong> required at your next sign-in</strong>, but capitalisation is not, since the
+          <strong> required at your next login</strong>, but capitalisation is not, since the
           login check is case-insensitive.
         </Subtext>
 
@@ -159,7 +159,7 @@ function UsernamePromptDialog({ onSaved, onSkipped }: UsernamePromptDialogProps)
         </div>
 
         <Subtext>
-          Skipping asks again at your next sign-in. You can also set it in Settings.
+          Skipping asks again at your next login. You can also set it in Settings.
         </Subtext>
       </div>
     </Dialog>

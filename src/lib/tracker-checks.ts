@@ -141,25 +141,25 @@ function getTrackerChecks(tracker: TrackerSummary, login = readLoginWindow(track
   const ratioDetail =
     ratioTone === "muted"
       ? "No ratio data"
-      : `Ratio ${stats.ratioIsInfinite ? "\u221e" : formatRatio(stats.ratio)} (minimum ${formatRequirement(requirement)}) \u00b7 ${STATE_LABEL[ratioTone]}`
+      : `${STATE_LABEL[ratioTone]}: ratio ${stats.ratioIsInfinite ? "\u221e" : formatRatio(stats.ratio)}, minimum ${formatRequirement(requirement)}`
 
   const buffer = readBuffer(tracker)
   const bufferDetail =
     buffer.tone === "muted"
       ? "No buffer data"
-      : `Buffer ${buffer.display} \u00b7 ${STATE_LABEL[buffer.tone]}`
+      : `${STATE_LABEL[buffer.tone]}: buffer ${buffer.display}`
 
   const seedTone: TrackerCheckTone =
     stats.seedingCount === null ? "muted" : stats.seedingCount > 0 ? "ok" : "crit"
   const seedDetail =
     seedTone === "muted"
       ? "No seeding data"
-      : `Seeding ${plural(stats.seedingCount ?? 0, "torrent")} \u00b7 ${STATE_LABEL[seedTone]}`
+      : `${STATE_LABEL[seedTone]}: seeding ${plural(stats.seedingCount ?? 0, "torrent")}`
 
   const loginDetail =
     login.tone === "muted"
       ? login.detail
-      : `${login.detail} \u00b7 ${STATE_LABEL[login.tone]}`
+      : `${STATE_LABEL[login.tone]}: ${login.detail.charAt(0).toLowerCase()}${login.detail.slice(1)}`
 
   const segments: TrackerCheckSegment[] = [
     { tone: ratioTone, detail: ratioDetail },

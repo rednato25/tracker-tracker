@@ -13,7 +13,7 @@ import {
   parseV3xProfilePage,
   parseZenithGroupsPage,
 } from "@/lib/profile-reading/parse"
-import { readProfilePageOnce } from "@/lib/profile-reading/read"
+import { joinedAtFor, readProfilePageOnce } from "@/lib/profile-reading/read"
 import type { ProfileReadRecord } from "@/lib/profile-reading/types"
 import { looksLikeLoginPage } from "@/lib/profile-reading/urls"
 
@@ -132,6 +132,13 @@ describe("UNIT3D profile layouts", () => {
     expect(values.averageSeedTimeSeconds).toBe(35 * DAY + 18 * 3600 + 6 * 60 + 58)
     // "1 month ago" alone would give 2026-10-12, two weeks late.
     expect(values.lastLoginAt).toBe("2026-09-28")
+  })
+
+  it("reads the registration date from UNIT3D's profile__registration timestamp", () => {
+    expect(parseUnit3dProfilePage(fixture("nordicq-profile.html")).joinedAt).toBe("2026-09-30")
+    expect(parseUnit3dProfilePage(fixture("latteam-profile.html")).joinedAt).toBe("2026-10-21")
+    expect(parseUnit3dProfilePage(fixture("seedcore-profile.html")).joinedAt).toBe("2026-08-26")
+    expect(parseUnit3dProfilePage(fixture("uploadcx-profile.html")).joinedAt).toBeUndefined()
   })
 
   it("falls back to the relative text when the last login has no timestamp", () => {
@@ -288,5 +295,30 @@ describe("one page, one decision", () => {
     expect(
       parseProfilePage("uploadcx", "<html><body>no stats here</body></html>")
     ).toBeNull()
+  })
+})
+
+describe("join date from the profile read", () => {
+  const read = (joinedAt?: string, status: ProfileReadRecord["status"] = null): ProfileReadRecord => ({
+    fetchedAt: "2026-11-11T00:00:00.000Z",
+    attemptedAt: "2026-11-11T00:00:00.000Z",
+    status,
+    values: joinedAt ? { joinedAt } : {},
+  })
+
+  it("fills an empty join date", () => {
+    expect(joinedAtFor({ joinedAt: null }, read("2026-09-30"))).toBe("2026-09-30")
+  })
+
+  it("never overwrites a stored join date, and ignores a stopped read", () => {
+    expect(joinedAtFor({ joinedAt: "2026-10-01" }, read("2026-09-30"))).toBeUndefined()
+    expect(joinedAtFor({ joinedAt: null }, read("2026-09-30", "session_expired"))).toBeUndefined()
+    expect(joinedAtFor({ joinedAt: null }, read())).toBeUndefined()
+  })
+
+  it("keeps the registration date when the stored record is read back", () => {
+    const html = fixture("nordicq-profile.html")
+    const next = readProfilePageOnce({ registrySlug: "nordicq", html, previous: null, now: NOW })
+    expect(next.record.values.joinedAt).toBe("2026-09-30")
   })
 })

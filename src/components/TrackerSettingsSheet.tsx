@@ -29,7 +29,7 @@ import {
   validateCredentialValues,
 } from "@/lib/credential-forms"
 import { localDateStr } from "@/lib/formatters"
-import { loginDetectingPlatformLabels } from "@/lib/login-detection"
+import { loginDetectionNote } from "@/lib/login-detection"
 import {
   MOUSEHOLE_TOKEN_TIP,
   MOUSEHOLE_URL_PLACEHOLDER,
@@ -535,8 +535,8 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
                 : tracker.lastAccessSource === "manual"
                   ? " This date was marked by you."
                   : ""}
-              {" "}Detected automatically for {loginDetectingPlatformLabels().join(", ")}. Other
-              trackers keep a manual marker.
+              {" "}
+              {loginDetectionNote(tracker)}
               {!hasLoginPolicy &&
                 " This tracker has no login-interval policy, so no dashboard timer will appear. This is for your own records."}
             </p>
@@ -623,7 +623,7 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
                           setClearProfileCookie(false)
                         }}
                         placeholder="session=abc123; remember_web_=..."
-                        hint="Paste the Cookie header from DevTools while signed in to this tracker."
+                        hint="Paste the Cookie header from DevTools while logged in to this tracker."
                       />
                       {(changingProfileCookie || clearProfileCookie) && (
                         <Button
@@ -664,7 +664,7 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
           {/* Save / Cancel */}
           <div className="flex gap-3 pt-1 justify-end">
             <Button variant="ghost" onClick={handleClose} text="Cancel" />
-            <Button type="submit" disabled={saving} text={saving ? "Saving..." : "Save Changes"} />
+            <Button type="submit" disabled={saving} text={saving ? "Saving…" : "Save Changes"} />
           </div>
         </form>
 
@@ -686,7 +686,7 @@ function TrackerSettingsSheet({ open, tracker, onClose, onUpdated }: TrackerSett
             <ConfirmRemove
               label="Delete"
               confirmLabel="Confirm Delete"
-              busyLabel="Deleting..."
+              busyLabel="Deleting…"
               busy={deleting}
               onConfirm={handleDelete}
             />

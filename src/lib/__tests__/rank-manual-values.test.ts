@@ -88,8 +88,8 @@ describe("manual value age", () => {
     expect(manualAgeDays("2026-10-29", NOW)).toBe(2)
     expect(isManualValueStale("2026-10-17", NOW)).toBe(false)
     expect(isManualValueStale("2026-10-16", NOW)).toBe(true)
-    expect(formatManualAge("2026-10-31", NOW)).toBe("Entered by you · today")
-    expect(formatManualAge("2026-10-28", NOW)).toBe("Entered by you · 3 days ago")
+    expect(formatManualAge("2026-10-31", NOW)).toBe("Entered by you today")
+    expect(formatManualAge("2026-10-28", NOW)).toBe("Entered by you 3 days ago")
   })
 })
 

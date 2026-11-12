@@ -13,10 +13,6 @@ import { beforeAll, describe, expect, it, vi } from "vitest"
 import { TorrentsTab } from "@/components/dashboard/TorrentsTab"
 import type { TrackerTorrentsData } from "@/hooks/useTrackerTorrents"
 
-vi.mock("@/components/dashboard/useDashboardSettings", () => ({
-  useDashboardSettings: () => ({ loaded: true, settings: { enable3DCharts: false } }),
-}))
-
 // The populated branch mounts a dozen ECharts instances, which in jsdom have no
 // layout and init non-deterministically under parallel load. This test is about
 // which branch TorrentsTab picks, so stub the charts out and keep it decisive.
@@ -35,9 +31,6 @@ vi.mock("@/components/charts/TorrentActivityHeatmap", () => ({
 }))
 vi.mock("@/components/charts/TorrentAgeScatter2D", () => ({
   TorrentAgeScatter2D: () => <div data-testid="chart" />,
-}))
-vi.mock("@/components/charts/TorrentAgeScatter3D", () => ({
-  TorrentAgeScatter3D: () => <div data-testid="chart" />,
 }))
 vi.mock("@/components/charts/TorrentAgeTimeline", () => ({
   TorrentAgeTimeline: () => <div data-testid="chart" />,

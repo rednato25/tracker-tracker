@@ -261,7 +261,7 @@ function TrackerOverviewGrid({ trackers, showHealthIndicators = true }: TrackerO
                 {/* Row 3: Account age + join date */}
                 {t.joinedAt ? (
                   <span className="font-mono text-xs text-tertiary ml-4.5">
-                    {formatAccountAge(t.joinedAt)} · Joined {formatJoinedDate(t.joinedAt)}
+                    Joined {formatJoinedDate(t.joinedAt)} ({formatAccountAge(t.joinedAt)})
                   </span>
                 ) : (
                   <span className="font-mono text-xs text-tertiary ml-4.5">&nbsp;</span>

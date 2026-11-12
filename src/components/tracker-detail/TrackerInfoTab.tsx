@@ -62,7 +62,7 @@ function UserClassRow({
         >
           {userClass.name}
         </span>
-        {isCurrent && <span className="text-3xs font-mono text-secondary">← you</span>}
+        {isCurrent && <span className="text-3xs font-mono text-secondary">(you)</span>}
       </div>
       {(userClass.requirements || (userClass.perks && userClass.perks.length > 0)) && (
         <div className="flex flex-col items-end gap-1 max-w-[60%]">

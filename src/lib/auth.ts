@@ -20,7 +20,7 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 const PENDING_TOKEN_MAX_AGE = 60 // 60 seconds
 const SETUP_TOKEN_MAX_AGE = 300 // 5 minutes
 
-export const STALE_SESSION_MESSAGE = "Your session is out of date. Sign in again."
+export const STALE_SESSION_MESSAGE = "Your session is out of date. Log in again."
 
 /**
  * A stale session decrypts, but it was minted under a password hash or salt the

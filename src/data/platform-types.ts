@@ -26,6 +26,8 @@ export const VALID_PLATFORM_TYPES = [
   "luminance",
   "czteam",
   "teamhd",
+  "fileiplay",
+  "hdspace",
 ] as const
 export type PlatformType = (typeof VALID_PLATFORM_TYPES)[number]
 
@@ -55,6 +57,8 @@ export const PLATFORM_LABELS: Record<PlatformType, string> = {
   luminance: "Luminance",
   czteam: "CZTeam",
   teamhd: "TeamHD",
+  fileiplay: "FileIplay",
+  hdspace: "HD-Space",
 }
 
 export function platformTypeLabel(type: string): string {
@@ -88,6 +92,8 @@ export const DEFAULT_API_PATHS: Record<string, string> = {
   luminance: "/user.php",
   czteam: "/userdetails.php",
   teamhd: "/index.php",
+  fileiplay: "/profile",
+  hdspace: "/index.php?page=usercp",
 }
 
 /**

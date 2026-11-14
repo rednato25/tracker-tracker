@@ -13,6 +13,8 @@ describe("maxTokenLengthFor", () => {
     "teamhd",
     "torrentleech",
     "v3x",
+    "fileiplay",
+    "hdspace",
   ])(
     "gives %s the large cap for JSON credential blobs",
     (platform) => {

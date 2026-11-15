@@ -1,7 +1,8 @@
 // src/lib/tracker-platforms/adapters/hdspace.ts
 //
-// Functions: parseHdspaceCredentials, visibleText, parseXbtitDate, bytesAfterLabel,
-//            assertAuthenticated, parseHdspaceProfile, fetchHtml, HdspaceAdapter
+// Functions: parseHdspaceCredentials, stripScriptsAndStyles, visibleText,
+//            parseXbtitDate, dateAfterLabels, bytesAfterLabel, assertAuthenticated,
+//            parseHdspaceProfile, fetchHtml, HdspaceAdapter
 //
 // HD-Space runs a customised xbtit codebase with no API, and the site sits
 // behind a Cloudflare managed challenge that refuses server-side logins. The
@@ -10,7 +11,6 @@
 // was issued to. One page is read per poll, the user control panel, whose
 // header block carries every figure the registry needs.
 
-import { parse as parseHtml } from "node-html-parser"
 import { computeBufferBytes, computeRatio } from "@/lib/data-transforms"
 import { validateCookieHeader } from "@/lib/tracker-credentials/cookie-header"
 import type { DebugApiCall, FetchOptions, TrackerAdapter, TrackerStats } from "../contract"
@@ -67,11 +67,46 @@ export function parseHdspaceCredentials(apiToken: string): HdspaceCredentials {
 // whitespace-normalized string rather than through cell positions.
 // ---------------------------------------------------------------------------
 
+/**
+ * Removes script and style elements without a regex. HTML filtering regexes
+ * miss end tags with attributes or unusual whitespace, and a DOM walk would
+ * drop the malformed cells xbtit emits in the very header block this reads.
+ */
+function stripScriptsAndStyles(html: string): string {
+  const lower = html.toLowerCase()
+  let out = ""
+  let index = 0
+
+  while (index < html.length) {
+    const script = lower.indexOf("<script", index)
+    const style = lower.indexOf("<style", index)
+    const start = script === -1 ? style : style === -1 ? script : Math.min(script, style)
+    if (start === -1) {
+      out += html.slice(index)
+      break
+    }
+
+    out += html.slice(index, start)
+    const closeScript = lower.indexOf("</script", start)
+    const closeStyle = lower.indexOf("</style", start)
+    const close = lower.startsWith("<script", start) ? closeScript : closeStyle
+    if (close === -1) break
+    const end = lower.indexOf(">", close)
+    if (end === -1) break
+    index = end + 1
+  }
+
+  return out
+}
+
 /** Visible text with scripts and styles removed, for the header-block regexes. */
 function visibleText(html: string): string {
-  const doc = parseHtml(html)
-  for (const el of doc.querySelectorAll("script, style")) el.remove()
-  return normalizeWhitespace(doc.textContent)
+  return normalizeWhitespace(
+    stripScriptsAndStyles(html)
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+  )
 }
 
 const MONTHS: Record<string, string> = {
@@ -116,18 +151,36 @@ export function parseXbtitDate(value: string): string | undefined {
     return `${dayFirst[3]}-${dayFirst[2].padStart(2, "0")}-${dayFirst[1].padStart(2, "0")}`
   }
 
-  const monthFirst = text.match(/\b([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\b/)
+  const monthFirst = text.match(/\b([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,\s*(\d{4})\b/i)
   if (monthFirst) {
     const month = MONTHS[monthFirst[1].toLowerCase()]
     if (month) return `${monthFirst[3]}-${month}-${monthFirst[2].padStart(2, "0")}`
   }
 
-  const dayMonthYear = text.match(/\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b/)
+  const dayMonthYear = text.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})\b/i)
   if (dayMonthYear) {
     const month = MONTHS[dayMonthYear[2].toLowerCase()]
     if (month) return `${dayMonthYear[3]}-${month}-${dayMonthYear[1].padStart(2, "0")}`
   }
 
+  return undefined
+}
+
+/**
+ * The date printed after a label in the visible panel text. The label can be
+ * "Joined on", "Joined" or "Join Date", and the value can be a month name or a
+ * day-first date; parseXbtitDate decides whether the text is a date at all.
+ */
+function dateAfterLabels(text: string, labels: readonly string[]): string | undefined {
+  for (const label of labels) {
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const match = text.match(
+      new RegExp(`(?:^|\\s)${escaped}\\s*:?\\s*([A-Za-z0-9,./ -]{4,40})`, "i")
+    )
+    if (!match) continue
+    const date = parseXbtitDate(match[1])
+    if (date) return date
+  }
   return undefined
 }
 
@@ -186,13 +239,19 @@ export function parseHdspaceProfile(html: string, hostname: string): TrackerStat
   const seedingCount = tryParseCount(active?.[1]) ?? null
   const leechingCount = tryParseCount(active?.[2]) ?? null
 
-  const joinedMatch = text.match(
-    /Joined on:\s*([A-Za-z]+ \d{1,2}, \d{4})(?:,\s*(\d{2}:\d{2}:\d{2}))?/i
-  )
-  const joinedDate = joinedMatch ? parseXbtitDate(joinedMatch[1]) : undefined
-
-  const lastAccessMatch = text.match(/Last access:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
-  const lastAccessDate = lastAccessMatch ? parseXbtitDate(lastAccessMatch[1]) : undefined
+  const joinedDate = dateAfterLabels(text, [
+    "joined on",
+    "joined",
+    "join date",
+    "registered",
+    "registration date",
+  ])
+  const lastAccessDate = dateAfterLabels(text, [
+    "last access",
+    "last seen",
+    "last active",
+    "last login",
+  ])
 
   const uidMatch = html.match(/page=usercp&(?:amp;)?uid=(\d+)/i)
   const remoteUserId = uidMatch ? Number.parseInt(uidMatch[1], 10) : undefined

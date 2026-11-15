@@ -97,6 +97,21 @@ describe("parseHdspaceProfile", () => {
     const html = `<html><body>Welcome back <span>deusx</span> <a href="logout.php">(Logout)</a><p>maintenance</p></body></html>`
     expect(() => parseHdspaceProfile(html, "hd-space.org")).toThrow(/Unexpected response from hd-space\.org/)
   })
+
+  it("reads a panel whose join date is not the 'Joined on' wording", () => {
+    const withJoinRow = (label: string, value: string) =>
+      PANEL_HTML.replace(
+        /<tr><td class="header" align="left">Joined on:<\/td>[\s\S]*?<\/tr>/,
+        `<tr><td class="header" align="left">${label}</td><td class="lista" align="left">${value}</td></tr>`
+      )
+
+    expect(parseHdspaceProfile(withJoinRow("Joined:", "29/09/2026"), "hd-space.org").joinedDate).toBe(
+      "2026-09-29"
+    )
+    expect(
+      parseHdspaceProfile(withJoinRow("Join Date:", "3rd Sep 2026"), "hd-space.org").joinedDate
+    ).toBe("2026-09-03")
+  })
 })
 
 describe("parseXbtitDate", () => {
@@ -106,6 +121,8 @@ describe("parseXbtitDate", () => {
     ["September 3, 2026", "2026-09-03"],
     ["Sep 3, 2026", "2026-09-03"],
     ["3 Sep 2026", "2026-09-03"],
+    ["September 3rd, 2026", "2026-09-03"],
+    ["3rd Sep 2026", "2026-09-03"],
   ])("reads %s as %s", (input, expected) => {
     expect(parseXbtitDate(input)).toBe(expected)
   })

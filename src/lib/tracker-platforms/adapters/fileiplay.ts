@@ -470,13 +470,13 @@ export function parseSiteDate(value: string | undefined): string | undefined {
     return `${dayFirst[3]}-${dayFirst[2].padStart(2, "0")}-${dayFirst[1].padStart(2, "0")}`
   }
 
-  const monthFirst = text.match(/\b([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\b/)
+  const monthFirst = text.match(/\b([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,\s*(\d{4})\b/i)
   if (monthFirst) {
     const month = MONTHS[monthFirst[1].toLowerCase()]
     if (month) return `${monthFirst[3]}-${month}-${monthFirst[2].padStart(2, "0")}`
   }
 
-  const dayMonthYear = text.match(/\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b/)
+  const dayMonthYear = text.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})\b/i)
   if (dayMonthYear) {
     const month = MONTHS[dayMonthYear[2].toLowerCase()]
     if (month) return `${dayMonthYear[3]}-${month}-${dayMonthYear[1].padStart(2, "0")}`

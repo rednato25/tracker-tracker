@@ -37,6 +37,21 @@ page plus one row of the panel:
 xbtit has no hit-and-run system, warning flag, required ratio or freeleech
 tokens, so those stay `null`.
 
+## Classes
+
+The site's class FAQ, supplied by a member on 2026-11-15, defines three automatic
+promotions:
+
+| Class       | Requirement                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
+| HD Spacer   | 100 GB uploaded and ratio at or above 1.05; demoted below 0.95.             |
+| HD Astronaut | 500 GB uploaded and ratio at or above 2.25; demoted below 2.05.            |
+| HD Alien    | 2 TB uploaded and ratio at or above 4.25; demoted below 4.05.              |
+
+HD Internal, V.I.P., Uploader, Elite Uploader and the staff classes are granted
+or appointed. Elite Uploader also has a monthly top-five route that the app does
+not track. Members start as Members; Leecher is the low-ratio penalty state.
+
 ### Byte units
 
 xbtit labels sizes `KB` / `MB` / `GB` but computes them in binary. For a header

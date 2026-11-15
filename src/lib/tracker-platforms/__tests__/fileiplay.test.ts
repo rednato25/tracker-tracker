@@ -187,6 +187,8 @@ describe("parseSiteDate", () => {
     ["September 3, 2026", "2026-09-03"],
     ["Sep 3, 2026", "2026-09-03"],
     ["3 Sep 2026", "2026-09-03"],
+    ["September 3rd, 2026", "2026-09-03"],
+    ["3rd Sep 2026", "2026-09-03"],
   ])("reads %s as %s", (input, expected) => {
     expect(parseSiteDate(input)).toBe(expected)
   })

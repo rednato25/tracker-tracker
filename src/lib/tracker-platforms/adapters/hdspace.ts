@@ -1,8 +1,8 @@
 // src/lib/tracker-platforms/adapters/hdspace.ts
 //
-// Functions: parseHdspaceCredentials, visibleText, parseXbtitDate, dateAfterLabels,
-//            bytesAfterLabel, assertAuthenticated, parseHdspaceProfile, fetchHtml,
-//            HdspaceAdapter
+// Functions: parseHdspaceCredentials, stripScriptsAndStyles, visibleText,
+//            parseXbtitDate, dateAfterLabels, bytesAfterLabel, assertAuthenticated,
+//            parseHdspaceProfile, fetchHtml, HdspaceAdapter
 //
 // HD-Space runs a customised xbtit codebase with no API, and the site sits
 // behind a Cloudflare managed challenge that refuses server-side logins. The
@@ -68,16 +68,41 @@ export function parseHdspaceCredentials(apiToken: string): HdspaceCredentials {
 // ---------------------------------------------------------------------------
 
 /**
- * Visible text with scripts and styles removed, for the header-block regexes.
- * The tag stripping is deliberate rather than a DOM walk: xbtit emits malformed
- * cells that the parser can reparent or drop, and the header block is exactly
- * where that loses the last-access row.
+ * Removes script and style elements without a regex. HTML filtering regexes
+ * miss end tags with attributes or unusual whitespace, and a DOM walk would
+ * drop the malformed cells xbtit emits in the very header block this reads.
  */
+function stripScriptsAndStyles(html: string): string {
+  const lower = html.toLowerCase()
+  let out = ""
+  let index = 0
+
+  while (index < html.length) {
+    const script = lower.indexOf("<script", index)
+    const style = lower.indexOf("<style", index)
+    const start = script === -1 ? style : style === -1 ? script : Math.min(script, style)
+    if (start === -1) {
+      out += html.slice(index)
+      break
+    }
+
+    out += html.slice(index, start)
+    const closeScript = lower.indexOf("</script", start)
+    const closeStyle = lower.indexOf("</style", start)
+    const close = lower.startsWith("<script", start) ? closeScript : closeStyle
+    if (close === -1) break
+    const end = lower.indexOf(">", close)
+    if (end === -1) break
+    index = end + 1
+  }
+
+  return out
+}
+
+/** Visible text with scripts and styles removed, for the header-block regexes. */
 function visibleText(html: string): string {
   return normalizeWhitespace(
-    html
-      .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
-      .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ")
+    stripScriptsAndStyles(html)
       .replace(/<[^>]+>/g, " ")
       .replace(/&nbsp;/gi, " ")
       .replace(/&amp;/gi, "&")

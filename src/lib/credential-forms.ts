@@ -380,6 +380,58 @@ export const CREDENTIAL_FORMS = {
     },
   },
 
+  fileiplay: {
+    kind: "login",
+    hidesJoinDate: true,
+    dialog: {
+      username: {
+        label: "FileIplay Username",
+        tooltip:
+          "Use your FileIplay username, not the email address you sign in with. The adapter builds your profile URL from it.",
+        placeholder: "Your FileIplay username",
+      },
+      password: {
+        label: "FileIplay Password",
+        tooltip:
+          "FileIplay has no stats API, so stats are read by logging in on your behalf. Your password is encrypted at rest with the same key as every other tracker credential.",
+        docs: true,
+        placeholder: "Your FileIplay password",
+      },
+    },
+    sheet: {
+      username: { label: "Username" },
+      password: { label: "Password" },
+    },
+  },
+
+  hdspace: {
+    kind: "cookies",
+    example: "cf_clearance=...; PHPSESSID=...; uid=...; pass=...",
+    extraCookieNames: ["cf_clearance", "PHPSESSID", "uid", "pass"],
+    hidesJoinDate: true,
+    dialog: {
+      secret: {
+        label: "Browser Cookies",
+        tooltip:
+          "HD-Space is behind a Cloudflare challenge that blocks server-side logins, so stats are read from your browser session. Include the cf_clearance cookie and use the same public IP the browser used. Open DevTools (F12) → Network → any request to the site → copy the full Cookie header value.",
+        docs: true,
+        placeholder: "cf_clearance=...; PHPSESSID=...; uid=...; pass=...",
+        rows: 3,
+        warnsOnTruncation: true,
+      },
+    },
+    sheet: {
+      secret: {
+        label: "Browser Cookies",
+        tooltip:
+          "Open DevTools (F12) → Network → any request to HD-Space → copy the full Cookie header value, including cf_clearance.",
+        docs: true,
+        placeholder: "cf_clearance=...; PHPSESSID=...; uid=...; pass=...",
+        rows: 3,
+      },
+    },
+  },
+
   v3x: {
     kind: "cookies",
     example: "v3x_session=...",

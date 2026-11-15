@@ -28,11 +28,13 @@ export * from "./dreadvault"
 export * from "./empornium"
 export * from "./exoticaz"
 export * from "./fearnopeer"
+export * from "./fileiplay"
 export * from "./filelist"
 export * from "./gazellegames"
 export * from "./greatposterwall"
 export * from "./hawkeuno"
 export * from "./hdbits"
+export * from "./hdspace"
 export * from "./hdtorrents"
 export * from "./infinityhd"
 export * from "./iptorrents"
@@ -100,11 +102,13 @@ import { dreadvault } from "./dreadvault"
 import { empornium } from "./empornium"
 import { exoticaz } from "./exoticaz"
 import { fearnopeer } from "./fearnopeer"
+import { fileiplay } from "./fileiplay"
 import { filelist } from "./filelist"
 import { gazellegames } from "./gazellegames"
 import { greatposterwall } from "./greatposterwall"
 import { hawkeuno } from "./hawkeuno"
 import { hdbits } from "./hdbits"
+import { hdspace } from "./hdspace"
 import { hdtorrents } from "./hdtorrents"
 import { infinityhd } from "./infinityhd"
 import { iptorrents } from "./iptorrents"
@@ -173,11 +177,13 @@ export const ALL_TRACKERS: TrackerRegistryEntry[] = [
   empornium,
   exoticaz,
   fearnopeer,
+  fileiplay,
   filelist,
   gazellegames,
   greatposterwall,
   hawkeuno,
   hdbits,
+  hdspace,
   hdtorrents,
   infinityhd,
   iptorrents,

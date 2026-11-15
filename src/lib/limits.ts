@@ -72,6 +72,8 @@ const LARGE_TOKEN_PLATFORMS: ReadonlySet<string> = new Set([
   "teamhd",
   "torrentleech",
   "v3x",
+  "fileiplay",
+  "hdspace",
 ])
 
 export function maxTokenLengthFor(platform: string | null | undefined): number {

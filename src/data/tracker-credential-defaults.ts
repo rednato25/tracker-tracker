@@ -92,6 +92,8 @@ export const PLATFORM_CREDENTIAL_FIELDS: Partial<
     },
   ],
   luminance: [{ id: "username", label: "Username", secret: false }, PASSKEY_FIELD],
+  fileiplay: [{ id: "username", label: "Username", secret: false }, PASSKEY_FIELD],
+  hdspace: [{ id: "session_cookie", label: "Session cookie" }, PASSKEY_FIELD],
   // `custom` is deliberately absent. It falls through to the universal fallback,
   // which is the only honest default for a tracker we know nothing about.
 }

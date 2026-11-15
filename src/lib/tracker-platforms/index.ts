@@ -15,10 +15,12 @@ import { C411Adapter } from "./adapters/c411"
 import { CarptAdapter } from "./adapters/carpt"
 import { CzteamAdapter } from "./adapters/czteam"
 import { DigitalCoreAdapter } from "./adapters/digitalcore"
+import { FileiplayAdapter } from "./adapters/fileiplay"
 import { FilelistAdapter } from "./adapters/filelist"
 import { GazelleAdapter } from "./adapters/gazelle"
 import { GGnAdapter } from "./adapters/ggn"
 import { HawkeAdapter } from "./adapters/hawke"
+import { HdspaceAdapter } from "./adapters/hdspace"
 import { IptorrentsAdapter } from "./adapters/iptorrents"
 import { LuminanceAdapter } from "./adapters/luminance"
 import { MamAdapter } from "./adapters/mam"
@@ -42,10 +44,12 @@ const adapters: Record<string, TrackerAdapter> = {
   carpt: new CarptAdapter(),
   czteam: new CzteamAdapter(),
   digitalcore: new DigitalCoreAdapter(),
+  fileiplay: new FileiplayAdapter(),
   filelist: new FilelistAdapter(),
   gazelle: new GazelleAdapter(),
   ggn: new GGnAdapter(),
   hawke: new HawkeAdapter(),
+  hdspace: new HdspaceAdapter(),
   iptorrents: new IptorrentsAdapter(),
   luminance: new LuminanceAdapter(),
   mam: new MamAdapter(),

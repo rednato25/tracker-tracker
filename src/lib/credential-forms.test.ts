@@ -44,6 +44,11 @@ describe("CREDENTIAL_FORMS coverage", () => {
       extraCookieNames: ["love"],
       example: "cf_clearance=abc123; session=xyz",
     })
+    expect(CREDENTIAL_FORMS.hdspace).toMatchObject({
+      extraCookieNames: ["cf_clearance", "PHPSESSID", "uid", "pass"],
+      example: "cf_clearance=...; PHPSESSID=...; uid=...; pass=...",
+    })
+    expect(CREDENTIAL_FORMS.fileiplay).toMatchObject({ kind: "login" })
   })
 })
 
@@ -56,7 +61,7 @@ describe("credentialFormFor", () => {
     expect(credentialFormFor({ platform: "gazelle" }).hidesJoinDate).toBe(false)
   })
 
-  it("hides the Join Date field for exactly avistaz, carpt, czteam, digitalcore, filelist, ggn, iptorrents, luminance, portugas, retrotoon, teamhd, and v3x", () => {
+  it("hides the Join Date field for exactly avistaz, carpt, czteam, digitalcore, fileiplay, filelist, ggn, hdspace, iptorrents, luminance, portugas, retrotoon, teamhd, and v3x", () => {
     const hidden = VALID_PLATFORM_TYPES.filter((p) => CREDENTIAL_FORMS[p].hidesJoinDate)
     expect([...hidden].sort()).toEqual(
       [
@@ -65,8 +70,10 @@ describe("credentialFormFor", () => {
         "c411",
         "czteam",
         "digitalcore",
+        "fileiplay",
         "filelist",
         "ggn",
+        "hdspace",
         "iptorrents",
         "portugas",
         "retrotoon",

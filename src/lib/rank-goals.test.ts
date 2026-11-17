@@ -391,6 +391,42 @@ describe("manual rank values", () => {
     expect(condition.observedValue).toBe(1 * TiB)
   })
 
+  it("uses a manual value when the observed value is stale", () => {
+    const result = evaluateRequirementGroup(goal, {
+      userClasses: classes,
+      currentRank: "User",
+      observations: obs({ seedSizeBytes: 1 * TiB }, "stale"),
+      manualValues: {
+        seedSizeBytes: { value: 6 * TiB, unit: "TiB", enteredAt: "2026-10-20" },
+      },
+      now: NOW,
+    })
+    const condition = result.conditions[0] as RankConditionResult
+    expect(condition).toMatchObject({
+      status: "met",
+      manual: true,
+      source: "manual",
+      observedValue: 6 * TiB,
+      freshness: "fresh",
+    })
+  })
+
+  it("keeps a stale observed value visible when no manual value exists", () => {
+    const result = evaluateRequirementGroup(goal, {
+      userClasses: classes,
+      currentRank: "User",
+      observations: obs({ seedSizeBytes: 1 * TiB }, "stale"),
+      now: NOW,
+    })
+    const condition = result.conditions[0] as RankConditionResult
+    expect(condition).toMatchObject({
+      status: "unknown",
+      observedValue: 1 * TiB,
+      freshness: "stale",
+      source: "api",
+    })
+  })
+
   it("still uses a manual value after 14 days but marks it stale", () => {
     const result = evaluateRequirementGroup(goal, {
       userClasses: classes,

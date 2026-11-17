@@ -103,6 +103,67 @@ describe("RankGoalPanel", () => {
     expect(screen.getByText(/last values are out of date/)).toBeInTheDocument()
   })
 
+  it("explains a stale profile read and lets that row take a manual value", async () => {
+    rankGoalsResponse = JSON.stringify({ "1": { targetRank: "Shadow Walker" } })
+    const user = userEvent.setup()
+    const onSave = vi.fn().mockResolvedValue(undefined)
+    const { container } = render(
+      <RankGoalPanel
+        trackerId={1}
+        trackerName="DreadVault"
+        registrySlug="dreadvault"
+        userClasses={dreadvault.userClasses}
+        currentRank="User"
+        stats={{ ...stats, group: "User" }}
+        joinedAt={JOINED_AT}
+        lastPolledAt={RECENT_POLL}
+        accentColor="#2ecc71"
+        platformType="unit3d"
+        profileReadingEnabled
+        hasProfileCookie
+        platformMeta={{
+          profileRead: {
+            fetchedAt: new Date(Date.now() - 15 * DAY_MS).toISOString(),
+            attemptedAt: new Date(Date.now() - HOUR_MS).toISOString(),
+            status: null,
+            message: "Cloudflare challenge detected on DreadVault",
+            values: { seedSizeBytes: 2 * GiB },
+          },
+        }}
+        onSaveManualValue={onSave}
+        onClearManualValue={vi.fn().mockResolvedValue(undefined)}
+      />
+    )
+
+    await waitFor(() =>
+      expect(container.querySelector("[data-profile-stale]")?.textContent).toContain(
+        "The last profile read failed."
+      )
+    )
+    expect(container.querySelector("[data-profile-stale]")?.textContent).toContain("15 days ago")
+
+    const seedSize = (await screen.findAllByText("Seed size ≥ 5 TiB"))[0]
+    const row = seedSize.closest("li")
+    expect(row).not.toBeNull()
+    if (!row) return
+    expect(within(row).getByText("Unknown")).toBeInTheDocument()
+    const enter = within(row).getByText("Enter value")
+    await user.click(enter)
+
+    const input = within(row).getByLabelText("Value for Seed size ≥ 5 TiB on DreadVault")
+    await user.type(input, "6")
+    await user.selectOptions(
+      within(row).getByLabelText("Unit for Seed size ≥ 5 TiB on DreadVault"),
+      "TiB"
+    )
+    await user.click(within(row).getByRole("button", { name: "Save value" }))
+
+    expect(onSave).toHaveBeenCalledWith(
+      "seedSizeBytes",
+      expect.objectContaining({ value: 6 * 1024 ** 4, unit: "TiB" })
+    )
+  })
+
   it("tells the user to turn on profile reading when the ladder needs seed values", async () => {
     render(
       <RankGoalPanel

@@ -9,7 +9,7 @@ import { Notice } from "@/components/ui/Notice"
 import { RequirementBarTrack } from "@/components/ui/RequirementBarTrack"
 import type { TrackerRankPath, TrackerUserClass } from "@/data/tracker-registry"
 import { formatBytesNum, formatDate, formatRatio, formatSeedSize, formatSeedTime } from "@/lib/formatters"
-import { ladderUsesProfileMetrics, profileReadingHint } from "@/lib/profile-reading/hint"
+import { ladderUsesProfileMetrics, profileReadingHint, profileReadingStaleNotice } from "@/lib/profile-reading/hint"
 import { readProfileReadRecord } from "@/lib/profile-reading/types"
 import {
   evaluateRankGoal,
@@ -141,9 +141,15 @@ function ConditionRow({
       : null
   const observed =
     condition.observedValue !== null && condition.source !== "manual" && condition.manual !== true
+  // A stale profile value is shown but cannot establish a condition. The user
+  // can replace it with their own value until the next profile read succeeds.
+  const staleProfileObservation =
+    condition.source === "profile" &&
+    condition.freshness === "stale" &&
+    condition.observedValue !== null
   const canEnter =
     condition.status === "unknown" &&
-    !observed &&
+    (!observed || staleProfileObservation) &&
     !manual &&
     condition.metric !== undefined &&
     condition.scope !== "per-torrent" &&
@@ -213,7 +219,7 @@ function ConditionRow({
           manual={manual}
           manualUsed={condition.manual === true}
           manualStale={condition.manualStale === true}
-          observed={observed}
+          observed={observed && !staleProfileObservation}
           canEnter={canEnter}
           now={now}
           onSave={onSaveManual as (value: RankManualValue) => Promise<void>}
@@ -314,6 +320,20 @@ export function RankGoalPanel({
       : profileRead?.status === "page_changed"
         ? "Page changed"
         : null
+
+  // A finished read older than the freshness window is not a stop, but the
+  // values below it are still out of date. Say so instead of leaving the
+  // UNKNOWN rows unexplained.
+  const profileStale = useMemo(
+    () =>
+      now && ladderUsesProfileMetrics(userClasses)
+        ? profileReadingStaleNotice(
+            { registrySlug, profileReadingEnabled, hasProfileCookie, platformMeta },
+            now
+          )
+        : null,
+    [now, userClasses, registrySlug, profileReadingEnabled, hasProfileCookie, platformMeta]
+  )
 
   const observationMap = useMemo<RankObservationMap>(
     () =>
@@ -483,6 +503,11 @@ export function RankGoalPanel({
       {!profileStopped && profileHint && (
         <p className="mt-3 font-mono text-4xs text-warn" data-profile-hint>
           {profileHint}
+        </p>
+      )}
+      {!profileStopped && !profileHint && profileStale && (
+        <p className="mt-3 font-mono text-4xs text-warn" data-profile-stale>
+          {profileStale}
         </p>
       )}
 

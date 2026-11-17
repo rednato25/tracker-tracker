@@ -199,6 +199,9 @@ the only violet used for controls.
   the tracker page say the next step: turn on `Read profile page daily`, add a
   session cookie, or wait for the first read. A stopped read keeps its own
   notice and gets no second hint.
+- A finished read older than a day says when it last succeeded and what the
+  last attempt failed with. Its rows accept a manual value until the next read
+  replaces it; a fresh read always wins over a manual value.
 - The Ranks header counts how many trackers are checked automatically. Below it,
   `All`, `Automatic`, `Text only` and `No ladder` pills with counts filter the
   sections by registry coverage: structured conditions the evaluator reads, a

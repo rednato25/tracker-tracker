@@ -18,7 +18,6 @@ import {
 import { buildRankForest, buildRankLadder } from "@/lib/rank-ladder"
 import {
   isManualValueStale,
-  manualMetricLabel,
   type RankManualValues,
 } from "@/lib/rank-manual-values"
 
@@ -203,7 +202,7 @@ function manualObservationFor(
     freshness: stale ? "stale" : "fresh",
     source: "manual",
     observedAt: manual.enteredAt,
-    note: `Entered by you on ${manual.enteredAt}; the API does not report ${manualMetricLabel(metric)}.`,
+    note: `Entered by you on ${manual.enteredAt}; used because the tracker value is missing or out of date.`,
   }
 }
 
@@ -212,9 +211,13 @@ function observationFor(
   input: RankGoalInput
 ): RankObservation | null {
   const provided = input.observations[metric]
-  // A manual value is a fallback, never an override. An observed number wins,
-  // including a stale one, because the policy is "observed values always win".
-  if (provided && knownNumber(provided.value)) return provided
+  // A fresh observation always wins. A stale value cannot establish a
+  // condition on its own, so a manual value replaces it until the next read;
+  // with no manual value the stale value is still returned so the row can show
+  // what the last read saw.
+  if (provided && knownNumber(provided.value) && provided.freshness === "fresh") {
+    return provided
+  }
 
   if (metric === "accountAgeDays" && input.joinedAt) {
     const joined = new Date(input.joinedAt)

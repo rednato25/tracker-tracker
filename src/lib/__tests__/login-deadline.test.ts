@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   calendarDayNumber,
   dateFromCalendarDay,
+  loginActivityNote,
   readLoginDeadline,
 } from "@/lib/login-deadline"
 
@@ -107,5 +108,60 @@ describe("readLoginDeadline", () => {
     })
     expect(deadline.lastLoginText).toBe("Last login today")
     expect(deadline.dueText).toBe("due in 7 days")
+  })
+})
+
+describe("loginActivityNote", () => {
+  it("names both M-Team dates when activity is newer than the login", () => {
+    const note = loginActivityNote({
+      platformType: "mteam",
+      lastLoginAt: "2026-10-14",
+      intervalDays: 40,
+      platformMeta: { lastBrowseDate: "2026-10-24" },
+    })
+    expect(note?.note).toBe("Last login Oct 14, 2026. Last activity Oct 24, 2026.")
+    expect(note?.tooltip).toContain("40-day counter")
+    expect(note?.tooltip).toContain("only on a real login")
+  })
+
+  it("stays quiet when the tracker reports one date or the same day", () => {
+    // Same day: a login already refreshed both dates.
+    expect(
+      loginActivityNote({
+        platformType: "mteam",
+        lastLoginAt: "2026-10-24",
+        intervalDays: 40,
+        platformMeta: { lastBrowseDate: "2026-10-24" },
+      })
+    ).toBeNull()
+
+    // A poll that carried no browse date leaves nothing to compare.
+    expect(
+      loginActivityNote({
+        platformType: "mteam",
+        lastLoginAt: "2026-10-14",
+        intervalDays: 40,
+        platformMeta: {},
+      })
+    ).toBeNull()
+
+    // Platforms with a single date never claim a second one.
+    expect(
+      loginActivityNote({
+        platformType: "unit3d",
+        lastLoginAt: "2026-10-14",
+        intervalDays: 40,
+        platformMeta: { lastBrowseDate: "2026-10-24" },
+      })
+    ).toBeNull()
+  })
+
+  it("omits the interval when the registry has no login rule", () => {
+    const note = loginActivityNote({
+      platformType: "mteam",
+      lastLoginAt: "2026-10-14",
+      platformMeta: { lastBrowseDate: "2026-10-24" },
+    })
+    expect(note?.tooltip).toContain("the inactivity counter")
   })
 })

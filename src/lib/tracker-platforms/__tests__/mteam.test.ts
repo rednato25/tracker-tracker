@@ -90,6 +90,8 @@ describe("MteamAdapter", () => {
 
     const none = await adapter.fetchStats(HOST, "api-key", PATH)
     expect(none.lastAccessDate).toBeUndefined()
+    // No browse date either, so nothing is compared against a missing login.
+    expect((none.platformMeta as MteamPlatformMeta).lastBrowseDate).toBeUndefined()
   })
 
   it("maps the profile and peer status into TrackerStats", async () => {
@@ -116,6 +118,8 @@ describe("MteamAdapter", () => {
     expect(meta.vip).toBe(false)
     expect(meta.uploads).toBe(42)
     expect(meta.seedSizeBytes).toBe(1099511627776)
+    // Kept beside the login date so the card can name both when they differ.
+    expect(meta.lastBrowseDate).toBe("2026-10-21")
   })
 
   it("fails when a byte total is missing", async () => {

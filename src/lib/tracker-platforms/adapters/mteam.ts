@@ -193,6 +193,10 @@ function readProfile(body: MteamEnvelope<MteamProfile>, hostname: string): Track
 
   const meta: MteamPlatformMeta = {}
   if (typeof data.memberStatus?.vip === "boolean") meta.vip = data.memberStatus.vip
+  // Kept apart from lastAccessDate on purpose: the card names both so a frozen
+  // login countdown reads as the site's rule instead of a broken poll.
+  const lastBrowseDate = dateOnly(data.memberStatus?.lastBrowse)
+  if (lastBrowseDate) meta.lastBrowseDate = lastBrowseDate
 
   return {
     username: typeof data.username === "string" ? data.username : "",

@@ -235,6 +235,32 @@ describe("buildRankObservations", () => {
     expect(result.uploads?.value).toBe(136)
   })
 
+  it("reads CZTeam's total seed time and completed seeds from the profile sidebar", () => {
+    const result = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "czteam",
+      platformMeta: { totalSeedTimeSeconds: 75_000_000, completedSeeds: 87 },
+      now: NOW,
+    })
+    expect(result.totalSeedTimeSeconds?.value).toBe(75_000_000)
+    expect(result.totalSeedTimeSeconds?.source).toBe("api")
+    expect(result.completedSeeds?.value).toBe(87)
+    expect(result.completedSeeds?.freshness).toBe("fresh")
+  })
+
+  it("leaves CZTeam's seed figures absent when the sidebar read found no row", () => {
+    const result = buildRankObservations({
+      latestStats: stats(),
+      lastPolledAt: "2026-10-28T11:00:00.000Z",
+      platformType: "czteam",
+      platformMeta: {},
+      now: NOW,
+    })
+    expect(result.totalSeedTimeSeconds).toBeUndefined()
+    expect(result.completedSeeds).toBeUndefined()
+  })
+
   it("keeps a missing seed size or seeding points absent instead of zero", () => {
     const filelist = buildRankObservations({
       latestStats: stats(),

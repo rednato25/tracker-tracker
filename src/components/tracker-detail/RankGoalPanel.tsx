@@ -77,7 +77,9 @@ function formatValue(metric: RankMetric | undefined, value: number | null): stri
     return formatBytesNum(value)
   }
   if (metric === "seedSizeBytes") return formatSeedSize(value)
-  if (metric === "averageSeedTimeSeconds") return formatSeedTime(value)
+  if (metric === "averageSeedTimeSeconds" || metric === "totalSeedTimeSeconds") {
+    return formatSeedTime(value)
+  }
   if (metric === "accountAgeDays") return `${value} day${value === 1 ? "" : "s"}`
   if (metric === "accountRatio") return formatRatio(value)
   return String(value)

@@ -114,8 +114,10 @@ export function buildRankObservations(input: RankObservationSource): RankObserva
     }
   }
 
-  // CZTeam's ladder is built on average seed time, which only its profile page
-  // reports, plus the upload count from the activity summary.
+  // CZTeam's ladder is built on the seed figures its profile page reports
+  // (average seed time, total seed time, completed seeds), plus the upload
+  // count from the activity summary. Every one of them is optional: a read that
+  // could not find a row leaves the metric absent rather than zero.
   if (input.platformType === "czteam") {
     const czteam = input.platformMeta as CzteamPlatformMeta | null
     const avgSeedTime = metaNumber(czteam?.avgSeedTimeSeconds)
@@ -126,6 +128,19 @@ export function buildRankObservations(input: RankObservationSource): RankObserva
         source,
         observedAt,
       }
+    }
+    const totalSeedTime = metaNumber(czteam?.totalSeedTimeSeconds)
+    if (totalSeedTime !== null) {
+      observations.totalSeedTimeSeconds = {
+        value: totalSeedTime,
+        freshness,
+        source,
+        observedAt,
+      }
+    }
+    const completedSeeds = metaNumber(czteam?.completedSeeds)
+    if (completedSeeds !== null) {
+      observations.completedSeeds = { value: completedSeeds, freshness, source, observedAt }
     }
     const uploads = metaNumber(czteam?.uploads)
     if (uploads !== null) {

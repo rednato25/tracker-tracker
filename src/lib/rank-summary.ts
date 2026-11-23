@@ -95,7 +95,9 @@ function formatValue(metric: RankMetric | undefined, value: number | null): stri
     return formatBytesNum(value)
   }
   if (metric === "seedSizeBytes") return formatSeedSize(value)
-  if (metric === "averageSeedTimeSeconds") return formatSeedTime(value)
+  if (metric === "averageSeedTimeSeconds" || metric === "totalSeedTimeSeconds") {
+    return formatSeedTime(value)
+  }
   if (metric === "accountRatio") return formatRatio(value)
   if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
   return formatCount(value)
@@ -149,6 +151,10 @@ function shortMetricLabel(bar: RankSummaryBar): string {
       return "seeding points"
     case "averageSeedTimeSeconds":
       return "average seed time"
+    case "totalSeedTimeSeconds":
+      return "total seed time"
+    case "completedSeeds":
+      return "completed seeds"
     default:
       return bar.label.toLowerCase()
   }

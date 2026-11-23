@@ -5,6 +5,10 @@ import type { TrackerRegistryEntry } from "@/data/tracker-registry"
 const GiB = 1024 ** 3
 const TiB = 1024 ** 4
 const DAY = 86_400
+// The FAQ states whole months and years; the ladder reads them as 30-day
+// months and 365-day years, the same reading the other NexusPHP entries use.
+const MONTH = 30 * DAY
+const YEAR = 365 * DAY
 
 export const czteam: TrackerRegistryEntry = {
   // ── Identity ────────────────────────────────────────────────────────
@@ -42,10 +46,10 @@ export const czteam: TrackerRegistryEntry = {
     sourceLastModified: null,
     verification: "published",
     note:
-      "Read from the public FAQ, which states every threshold. Promotions run every 15 minutes; demotions run on the 1st of each month against the same six metrics, so a class is also the floor you have to keep. Total seedtime and completed seeds are not supported rank metrics and stay text-only.",
+      "Read from the public FAQ, which states every threshold. Promotions run every 15 minutes; demotions run on the 1st of each month against the same six metrics, so a class is also the floor you have to keep. Completed seeds and total seedtime are printed only on the userdetails.php sidebar, which the adapter reads on every poll.",
   },
   rankUnresolved: [
-    "Total seedtime (6 months / 2 years / 5 years) and completed seeds (25 / 50 / 60) are not supported rank metrics, so those conditions stay text-only.",
+    "Completed seeds and total seedtime come from the userdetails.php sidebar; a poll that cannot read that page leaves them unknown rather than zero.",
     "Average seedtime is the site's total seedtime divided by downloaded torrents, not the fleet average the app collects.",
     "VIP, Uploader and staff classes are awarded by staff, not by the promotion sweep.",
   ],
@@ -65,8 +69,8 @@ export const czteam: TrackerRegistryEntry = {
           { kind: "numeric", id: "czt-power-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 500 * GiB, scope: "account", label: "At least 500 GiB uploaded" },
           { kind: "numeric", id: "czt-power-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 1.5, scope: "account", label: "Ratio at least 1.50" },
           { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 10 * DAY, scope: "account", label: "Average seed time ≥ 10 days" },
-          { kind: "non-numeric", label: "At least 25 completed seeds", description: "Torrents seeded for at least 7 days" },
-          { kind: "non-numeric", label: "Total seed time ≥ 6 months" },
+          { kind: "numeric", id: "czt-power-seeds", metric: "completedSeeds", comparison: "gte", requiredValue: 25, scope: "account", label: "At least 25 completed seeds" },
+          { kind: "numeric", id: "czt-power-seedtime", metric: "totalSeedTimeSeconds", comparison: "gte", requiredValue: 6 * MONTH, scope: "account", label: "Total seed time ≥ 6 months" },
         ],
       },
     },
@@ -81,8 +85,8 @@ export const czteam: TrackerRegistryEntry = {
           { kind: "numeric", id: "czt-elite-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1 * TiB, scope: "account", label: "At least 1 TiB uploaded" },
           { kind: "numeric", id: "czt-elite-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.0, scope: "account", label: "Ratio at least 2.00" },
           { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 25 * DAY, scope: "account", label: "Average seed time ≥ 25 days" },
-          { kind: "non-numeric", label: "At least 50 completed seeds" },
-          { kind: "non-numeric", label: "Total seed time ≥ 2 years" },
+          { kind: "numeric", id: "czt-elite-seeds", metric: "completedSeeds", comparison: "gte", requiredValue: 50, scope: "account", label: "At least 50 completed seeds" },
+          { kind: "numeric", id: "czt-elite-seedtime", metric: "totalSeedTimeSeconds", comparison: "gte", requiredValue: 2 * YEAR, scope: "account", label: "Total seed time ≥ 2 years" },
         ],
       },
     },
@@ -97,8 +101,8 @@ export const czteam: TrackerRegistryEntry = {
           { kind: "numeric", id: "czt-devil-upload", metric: "uploadedBytes", comparison: "gte", requiredValue: 1536 * GiB, scope: "account", label: "At least 1.5 TiB uploaded" },
           { kind: "numeric", id: "czt-devil-ratio", metric: "accountRatio", comparison: "gte", requiredValue: 2.5, scope: "account", label: "Ratio at least 2.50" },
           { kind: "numeric", metric: "averageSeedTimeSeconds", comparison: "gte", requiredValue: 45 * DAY, scope: "account", label: "Average seed time ≥ 45 days" },
-          { kind: "non-numeric", label: "At least 60 completed seeds" },
-          { kind: "non-numeric", label: "Total seed time ≥ 5 years" },
+          { kind: "numeric", id: "czt-devil-seeds", metric: "completedSeeds", comparison: "gte", requiredValue: 60, scope: "account", label: "At least 60 completed seeds" },
+          { kind: "numeric", id: "czt-devil-seedtime", metric: "totalSeedTimeSeconds", comparison: "gte", requiredValue: 5 * YEAR, scope: "account", label: "Total seed time ≥ 5 years" },
         ],
       },
     },

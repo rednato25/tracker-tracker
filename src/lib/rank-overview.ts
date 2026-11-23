@@ -52,6 +52,8 @@ const SUPPORTED_METRICS = new Set<RankMetric>([
   "seedSizeBytes",
   "seedingPoints",
   "averageSeedTimeSeconds",
+  "totalSeedTimeSeconds",
+  "completedSeeds",
   "accountAgeDays",
   "uploads",
   "hitAndRuns",
@@ -143,7 +145,9 @@ function formatValue(metric: RankMetric | null, value: number | null): string {
     return formatBytesNum(value)
   }
   if (metric === "seedSizeBytes") return formatSeedSize(value)
-  if (metric === "averageSeedTimeSeconds") return formatSeedTime(value)
+  if (metric === "averageSeedTimeSeconds" || metric === "totalSeedTimeSeconds") {
+    return formatSeedTime(value)
+  }
   if (metric === "accountRatio") return formatRatio(value)
   if (metric === "accountAgeDays") return `${formatCount(value)} day${value === 1 ? "" : "s"}`
   return formatCount(value)

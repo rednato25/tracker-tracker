@@ -31,6 +31,8 @@ export const RANK_METRICS = [
   "seedSizeBytes",
   "seedingPoints",
   "averageSeedTimeSeconds",
+  "totalSeedTimeSeconds",
+  "completedSeeds",
   "accountAgeDays",
   "uploads",
   "snatched",

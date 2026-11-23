@@ -457,4 +457,51 @@ describe("P35 structured rank requirements", () => {
     })
     expect(short.status).toBe("unmet")
   })
+
+  it("CZTeam: Elite evaluates completed seeds and total seed time, not just their text", () => {
+    // Both conditions used to be non-numeric, so a member who met all six
+    // thresholds still read as "3 of 6, 2 unknown" and could never be met.
+    const met = evaluate("czteam", "CZTeam Elite", {
+      accountAgeDays: 90,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 2,
+      averageSeedTimeSeconds: 25 * DAY,
+      completedSeeds: 50,
+      totalSeedTimeSeconds: 2 * 365 * DAY,
+    })
+    expect(met.status).toBe("met")
+    expect(met.progress).toEqual({ met: 6, unmet: 0, unknown: 0, total: 6 })
+
+    const shortSeeds = evaluate("czteam", "CZTeam Elite", {
+      accountAgeDays: 90,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 2,
+      averageSeedTimeSeconds: 25 * DAY,
+      completedSeeds: 49,
+      totalSeedTimeSeconds: 2 * 365 * DAY,
+    })
+    expect(shortSeeds.status).toBe("unmet")
+    expect(shortSeeds.progress).toEqual({ met: 5, unmet: 1, unknown: 0, total: 6 })
+
+    const shortSeedTime = evaluate("czteam", "CZTeam Elite", {
+      accountAgeDays: 90,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 2,
+      averageSeedTimeSeconds: 25 * DAY,
+      completedSeeds: 50,
+      totalSeedTimeSeconds: 2 * 365 * DAY - 1,
+    })
+    expect(shortSeedTime.status).toBe("unmet")
+  })
+
+  it("CZTeam: the seed figures stay unknown when the sidebar was not read", () => {
+    const result = evaluate("czteam", "CZTeam Elite", {
+      accountAgeDays: 90,
+      uploadedBytes: 1 * TiB,
+      accountRatio: 2,
+      averageSeedTimeSeconds: 25 * DAY,
+    })
+    expect(result.status).toBe("unknown")
+    expect(result.progress).toEqual({ met: 4, unmet: 0, unknown: 2, total: 6 })
+  })
 })

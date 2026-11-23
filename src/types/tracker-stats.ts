@@ -260,6 +260,12 @@ export interface MteamPlatformMeta {
   uploads?: number
   /** `seederSize` from `/api/tracker/myPeerStatistics`, in bytes. */
   seedSizeBytes?: number
+  /**
+   * `memberStatus.lastBrowse`, YYYY-MM-DD. Kept beside the login date because
+   * the two differ: any request refreshes the browse date, including this
+   * app's own polls, while only a real login moves the login date.
+   */
+  lastBrowseDate?: string
 }
 
 /** TorrentLeech's top bar carries the seeded size beside the count. */

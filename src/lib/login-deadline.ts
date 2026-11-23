@@ -4,6 +4,8 @@
 // register "Login due" column and the checks strip all read this module so a
 // tracker cannot be overdue in one view and fine in another.
 
+import { formatDate } from "@/lib/formatters"
+
 export type LoginTone = "ok" | "warn" | "crit" | "muted"
 
 export interface LoginDeadline {
@@ -140,5 +142,45 @@ export function readLoginDeadline(input: {
     tone: dueInDays <= 7 ? "warn" : "ok",
     lastLoginText,
     dueText: dueInDays === 0 ? "due today" : `due in ${pluralDays(dueInDays)}`,
+  }
+}
+
+export interface LoginActivityNote {
+  /** One line under the ring naming both dates. */
+  note: string
+  /** The rule behind the gap, for the card's info tip. */
+  tooltip: string
+}
+
+/**
+ * The login date and the browse date are different facts on M-Team, and only
+ * one of them drives the countdown. A request refreshes the browse date, this
+ * app's polls included, so the two routinely disagree while the countdown
+ * stays put. Naming both dates stops that from reading as a broken poll.
+ *
+ * Every other platform reports a single date, so this returns null.
+ */
+export function loginActivityNote(input: {
+  platformType: string | null | undefined
+  lastLoginAt: string | null | undefined
+  intervalDays?: number | null
+  platformMeta: unknown
+}): LoginActivityNote | null {
+  if (input.platformType !== "mteam" || !input.lastLoginAt) return null
+  const loginDay = calendarDayNumber(input.lastLoginAt)
+  const browse = (input.platformMeta as { lastBrowseDate?: unknown } | null | undefined)
+    ?.lastBrowseDate
+  if (typeof browse !== "string") return null
+  const browseDay = calendarDayNumber(browse)
+  if (loginDay === null || browseDay === null || browseDay <= loginDay) return null
+
+  const interval = input.intervalDays
+  const counter =
+    typeof interval === "number" && Number.isFinite(interval) && interval > 0
+      ? `the ${Math.floor(interval)}-day counter`
+      : "the inactivity counter"
+  return {
+    note: `Last login ${formatDate(input.lastLoginAt)}. Last activity ${formatDate(browse)}.`,
+    tooltip: `M-Team restarts ${counter} only on a real login. Opening the site, or an API call, changes the activity date but not the login date.`,
   }
 }

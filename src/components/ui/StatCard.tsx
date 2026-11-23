@@ -73,6 +73,8 @@ interface StatCardRingProps extends StatCardBase {
   title?: string
   lastAccessAt: string
   loginIntervalDays: number
+  /** A quiet line under the countdown, i.e. the two dates a tracker keeps. */
+  note?: string
   tooltip?: string
 }
 
@@ -396,9 +398,11 @@ function RingContent({
   loginDaysOverdue,
   accentColor,
   variant,
+  note,
 }: RingWindow & {
   accentColor: string
   variant: "ring" | "deadline"
+  note?: string
 }) {
   const now = Date.now()
   const remainingMs = deadlineMs - now
@@ -451,6 +455,9 @@ function RingContent({
       <p className="timestamp text-center">
         {isOverdue ? pastCopy.footer(overdueDays) : `by ${deadlineDateStr}`}
       </p>
+      {note && (
+        <p className="max-w-64 text-center text-xs leading-snug text-secondary">{note}</p>
+      )}
     </>
   )
 }
@@ -506,6 +513,7 @@ function StatCard(props: StatCardProps) {
           {...window}
           accentColor={accentColor ?? "var(--color-accent)"}
           variant={props.type}
+          note={props.type === "ring" ? props.note : undefined}
         />
       </Shell>
     )

@@ -29,7 +29,11 @@ const BYTE_METRICS = new Set<RankMetric>([
   "seedSizeBytes",
 ])
 
-const DURATION_METRICS = new Set<RankMetric>(["averageSeedTimeSeconds", "accountAgeDays"])
+const DURATION_METRICS = new Set<RankMetric>([
+  "averageSeedTimeSeconds",
+  "totalSeedTimeSeconds",
+  "accountAgeDays",
+])
 
 const METRIC_LABELS: Record<RankMetric, string> = {
   accountRatio: "ratio",
@@ -41,6 +45,8 @@ const METRIC_LABELS: Record<RankMetric, string> = {
   seedSizeBytes: "seed size",
   seedingPoints: "seeding points",
   averageSeedTimeSeconds: "average seed time",
+  totalSeedTimeSeconds: "total seed time",
+  completedSeeds: "completed seeds",
   accountAgeDays: "account age",
   uploads: "uploaded torrents",
   snatched: "snatched torrents",
@@ -86,7 +92,7 @@ export function manualValueToCanonical(
     if (unit === "TiB") return value * 1024 ** 4
     if (unit === "GiB") return value * 1024 ** 3
   }
-  if (metric === "averageSeedTimeSeconds") {
+  if (metric === "averageSeedTimeSeconds" || metric === "totalSeedTimeSeconds") {
     if (unit === "days") return value * 86_400
     if (unit === "weeks") return value * 7 * 86_400
     if (unit === "months") return value * 30 * 86_400

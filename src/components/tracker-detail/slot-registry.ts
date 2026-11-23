@@ -39,6 +39,7 @@ import type {
 import { StatCard } from "@/components/ui/StatCard"
 import { registryBonusName } from "@/data/tracker-registry"
 import { formatBytesNum, formatCount, formatRatio } from "@/lib/formatters"
+import { loginActivityNote } from "@/lib/login-deadline"
 import type { SlotCategory, SlotContext } from "@/types/slots"
 import { metaFor } from "@/types/tracker-stats"
 import type { GgnAchievementProgressProps } from "./platform/GgnAchievementProgress"
@@ -393,11 +394,19 @@ const loginDeadlineSlot: SlotDefinition<LoginDeadlineCardProps> = {
     const lastAccess = ctx.tracker.lastAccessAt
     const loginDays = ctx.registry?.rules?.loginIntervalDays
     if (!lastAccess || !loginDays || loginDays === 0) return null
+    const activity = loginActivityNote({
+      platformType: ctx.tracker.platformType,
+      lastLoginAt: lastAccess,
+      intervalDays: loginDays,
+      platformMeta: ctx.meta,
+    })
     return {
       type: "ring",
       lastAccessAt: lastAccess,
       loginIntervalDays: loginDays,
       accentColor: ctx.accentColor,
+      // Both dates plus the rule behind the gap, when the tracker keeps two.
+      ...(activity ? { note: activity.note, tooltip: activity.tooltip } : {}),
       // The user's configured tracker URL. Same destination the detail
       // header and dashboard login timers already link to. Undefined when
       // unset so the button is omitted instead of pointing nowhere.
